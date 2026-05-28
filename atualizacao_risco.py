@@ -185,6 +185,7 @@ def montar_linha_on_route(row):
     U  ORIGEN_FACILITY_ID
     V  FACILITY_XD_OW
     W  GMV USD
+    X  DATA DE ENTRADA           (preenchida automaticamente)
     """
     return [
         '',                                              # A  Responsável
@@ -210,6 +211,7 @@ def montar_linha_on_route(row):
         str(row.get('ORIGEN_FACILITY_ID', '')),          # U  Origem
         str(row.get('FACILITY_XD_OW', '')),              # V  Facility XD OW
         str(row.get('GMV_USD', '')),                     # W  GMV USD
+        datetime.now().strftime('%d/%m/%Y'),             # X  Data de entrada
     ]
 
 
@@ -238,6 +240,7 @@ def montar_linha_on_way(row):
     T  ULTIMO_SISTEMA_MOVIMENTACAO_SVC
     U  DATA_ULTIMA_MOVIMENTACAO_SVC
     V  GMV USD
+    W  DATA DE ENTRADA           (preenchida automaticamente)
     """
     return [
         '',                                              # A  Responsável
@@ -262,6 +265,7 @@ def montar_linha_on_way(row):
         str(row.get('ULTIMO_SISTEMA_SVC', '')),          # T  Último sistema SVC
         str(row.get('DATA_ULTIMA_SVC', '')),             # U  Data última movimentação SVC
         str(row.get('GMV_USD', '')),                     # V  GMV USD
+        datetime.now().strftime('%d/%m/%Y'),             # W  Data de entrada
     ]
 
 
