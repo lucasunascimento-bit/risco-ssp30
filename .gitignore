@@ -1,0 +1,15 @@
+# Credenciais (NUNCA subir para o GitHub)
+*.json
+credentials*.json
+application_default_credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+
+# Diagnósticos (não precisam ir pro GitHub)
+diagnostico.py
+diagnostico2.py
+ler_cabecalho.py
