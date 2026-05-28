@@ -185,7 +185,7 @@ def montar_linha_on_route(row):
     U  ORIGEN_FACILITY_ID
     V  FACILITY_XD_OW
     W  GMV USD
-    X  DATA DE ENTRADA           (preenchida automaticamente)
+    (AF → Data de Entrada — preenchida separadamente pelo script)
     """
     return [
         '',                                              # A  Responsável
@@ -211,7 +211,6 @@ def montar_linha_on_route(row):
         str(row.get('ORIGEN_FACILITY_ID', '')),          # U  Origem
         str(row.get('FACILITY_XD_OW', '')),              # V  Facility XD OW
         str(row.get('GMV_USD', '')),                     # W  GMV USD
-        datetime.now().strftime('%d/%m/%Y'),             # X  Data de entrada
     ]
 
 
@@ -240,7 +239,7 @@ def montar_linha_on_way(row):
     T  ULTIMO_SISTEMA_MOVIMENTACAO_SVC
     U  DATA_ULTIMA_MOVIMENTACAO_SVC
     V  GMV USD
-    W  DATA DE ENTRADA           (preenchida automaticamente)
+    (AF → Data de Entrada — preenchida separadamente pelo script)
     """
     return [
         '',                                              # A  Responsável
@@ -265,7 +264,6 @@ def montar_linha_on_way(row):
         str(row.get('ULTIMO_SISTEMA_SVC', '')),          # T  Último sistema SVC
         str(row.get('DATA_ULTIMA_SVC', '')),             # U  Data última movimentação SVC
         str(row.get('GMV_USD', '')),                     # V  GMV USD
-        datetime.now().strftime('%d/%m/%Y'),             # W  Data de entrada
     ]
 
 
@@ -308,6 +306,12 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv):
         next_row = last_row + 1
 
         sheet.update(range_name=f'A{next_row}', values=linhas, value_input_option='USER_ENTERED')
+
+        # registra a data de entrada em AF (após a última coluna AE)
+        hoje = datetime.now().strftime('%d/%m/%Y')
+        datas = [[hoje] for _ in linhas]
+        sheet.update(range_name=f'AF{next_row}', values=datas, value_input_option='USER_ENTERED')
+
         print(f"  {len(linhas)} linhas adicionadas a partir da linha {next_row}!")
 
     # corrige Situation dos existentes que continuam no BigQuery
