@@ -111,7 +111,7 @@ SELECT
   COALESCE(CAST(LAST_HANDLING_SVC_DT AS STRING), '')                           AS DATA_ULTIMA_SVC,
   CAST(ROUND(SHP_ORDER_COST_USD, 2) AS STRING)                                 AS GMV_USD,
   CASE
-    WHEN FLAG_BPP = true                       THEN 'Possivel Lost OW'
+    WHEN FLAG_BPP = true                       THEN 'Possivel Lost'
     WHEN DETAIL_SHIPMENT = 'ON WAY >= 11 DIAS' THEN '>= 11 dias OW'
     ELSE '< 11 dias OW'
   END                                                                          AS Situation
@@ -534,7 +534,7 @@ def enviar_gchat(stats_route, stats_way, cftv, stats_mensais, duracao, data_hora
         f"  💰 Top GMV: *${stats_route['top_gmv']}* · `{stats_route['top_id']}`\n"
         f"\n"
         f"*🚛 ON WAY* — {stats_way['total']} pacotes\n"
-        f"  Possivel Lost OW : *{sit(stats_way, 'Possivel Lost OW')}*\n"
+        f"  Possivel Lost    : *{sit(stats_way, 'Possivel Lost')}*\n"
         f"  >= 11 dias OW    : *{sit(stats_way, '>= 11 dias OW')}*\n"
         f"  < 11 dias OW     : *{sit(stats_way, '< 11 dias OW')}*\n"
         f"  Novos hoje       : +{stats_way['novos']}  |  Removidos: -{stats_way['removidos']}\n"
