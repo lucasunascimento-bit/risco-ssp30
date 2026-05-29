@@ -159,6 +159,28 @@ def buscar_bigquery(bq_client, query, nome):
     return df
 
 
+def verificar_entrega(bq_client, ids):
+    """
+    Consulta BT_SHP_LG_SHIPMENTS para saber o status atual dos pacotes removidos.
+    Retorna dict: { shp_id_str: SHP_LG_STATUS }
+    """
+    if not ids:
+        return {}
+    ids_sql = ', '.join(f"'{i}'" for i in ids)
+    query = f"""
+    SELECT CAST(SHP_SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
+           COALESCE(SHP_LG_STATUS, '') AS SHP_LG_STATUS
+    FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENTS`
+    WHERE CAST(SHP_SHIPMENT_ID AS STRING) IN ({ids_sql})
+    """
+    try:
+        df = bq_client.query(query).to_dataframe()
+        return dict(zip(df['SHP_SHIPMENT_ID'].astype(str), df['SHP_LG_STATUS'].astype(str)))
+    except Exception as e:
+        print(f"  Aviso verificar_entrega: {e}")
+        return {}
+
+
 def montar_linha_on_route(row):
     """
     Colunas da aba ON ROUTE (A–W):
@@ -267,13 +289,14 @@ def montar_linha_on_way(row):
     ]
 
 
-def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv):
+def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv, bq_client, col_acao_lp):
     """
     Sincroniza a aba com o BigQuery:
       - Adiciona pacotes novos logo após o último registro
       - Corrige a coluna Situation dos existentes
       - Remove linhas que não aparecem mais nos resultados (e arquiva os dados)
-    idx_gmv: índice 0-based da coluna GMV na planilha (ON ROUTE=22, ON WAY=21)
+    idx_gmv    : índice 0-based da coluna GMV (ON ROUTE=22, ON WAY=21)
+    col_acao_lp: coluna da Ação de LP na planilha (ON ROUTE='X', ON WAY='W')
     """
     todos_dados = sheet.get_all_values()
     col_b = sheet.col_values(2)   # Situation
@@ -331,18 +354,44 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv):
 
     # coleta linhas para remover e arquiva os dados antes de deletar
     hoje = datetime.now().strftime('%d/%m/%Y')
-    arquivados = []
-    para_remover = []
+
+    # verifica no BigQuery quais foram entregues (delivered)
+    ids_para_remover = [sid for sid, (ln, _) in existentes.items() if sid not in ids_bigquery]
+    print(f"  Verificando status de {len(ids_para_remover)} pacote(s) removido(s)...")
+    status_bq = verificar_entrega(bq_client, ids_para_remover)
+
+    arquivados       = []
+    para_remover     = []
+    recuperados      = 0
+    updates_conclusao = []
+
     for shp_id, (linha, situation) in existentes.items():
         if shp_id not in ids_bigquery:
             para_remover.append(linha)
+            status_atual = status_bq.get(shp_id, '').lower()
+            foi_entregue = status_atual == 'delivered'
+
+            if foi_entregue:
+                recuperados += 1
+                # marca o pacote como Concluído na planilha antes de remover
+                updates_conclusao += [
+                    {'range': f'AC{linha}',           'values': [['Concluído']]},
+                    {'range': f'{col_acao_lp}{linha}', 'values': [['Acompanhado - Pacote seguiu fluxo correto']]},
+                ]
+
             if linha - 1 < len(todos_dados):
                 row_data    = todos_dados[linha - 1]
                 responsavel = row_data[0]       if len(row_data) > 0       else ''
                 gmv         = row_data[idx_gmv] if len(row_data) > idx_gmv else ''
-                status_caso = row_data[28]      if len(row_data) > 28      else ''
-                finalizacao = row_data[29]      if len(row_data) > 29      else ''
+                status_caso = 'Concluído'               if foi_entregue else (row_data[28] if len(row_data) > 28 else '')
+                finalizacao = 'Seguiu fluxo correto'    if foi_entregue else (row_data[29] if len(row_data) > 29 else '')
                 arquivados.append([hoje, nome_aba, shp_id, situation, gmv, responsavel, status_caso, finalizacao])
+
+    # aplica os updates de conclusão antes de deletar as linhas
+    if updates_conclusao:
+        sheet.batch_update(updates_conclusao)
+        print(f"  ✅ {recuperados} pacote(s) marcado(s) como Concluído — entregue(s)")
+
     para_remover.sort(reverse=True)
 
     if para_remover:
@@ -368,6 +417,7 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv):
     return {
         'novos':         len(novos),
         'removidos':     len(para_remover),
+        'recuperados':   recuperados,
         'arquivados':    arquivados,
         'total':         len(ids_bigquery),
         'por_situation': df['Situation'].value_counts().to_dict() if not df.empty else {},
@@ -530,6 +580,7 @@ def enviar_gchat(stats_route, stats_way, cftv, stats_mensais, duracao, data_hora
         f"  Procurar Pacote : *{sit(stats_route, 'Procurar Pacote')}*\n"
         f"  Possivel Lost   : *{sit(stats_route, 'Possivel Lost')}*\n"
         f"  Novos hoje      : +{stats_route['novos']}  |  Removidos: -{stats_route['removidos']}\n"
+        f"  ✅ Recuperados  : *{stats_route['recuperados']}* (entregues — seguiram fluxo)\n"
         f"  CFTV solicitado : *{cftv_r.get('sim', 0)}/{cftv_r.get('total', 0)}*\n"
         f"  💰 Top GMV: *${stats_route['top_gmv']}* · `{stats_route['top_id']}`\n"
         f"\n"
@@ -538,6 +589,7 @@ def enviar_gchat(stats_route, stats_way, cftv, stats_mensais, duracao, data_hora
         f"  >= 11 dias OW    : *{sit(stats_way, '>= 11 dias OW')}*\n"
         f"  < 11 dias OW     : *{sit(stats_way, '< 11 dias OW')}*\n"
         f"  Novos hoje       : +{stats_way['novos']}  |  Removidos: -{stats_way['removidos']}\n"
+        f"  ✅ Recuperados   : *{stats_way['recuperados']}* (entregues — seguiram fluxo)\n"
         f"  CFTV solicitado  : *{cftv_w.get('sim', 0)}/{cftv_w.get('total', 0)}*\n"
         f"  💰 Top GMV: *${stats_way['top_gmv']}* · `{stats_way['top_id']}`\n"
         f"\n"
@@ -581,12 +633,14 @@ if __name__ == '__main__':
     print("\n--- ON ROUTE ---")
     df_route    = buscar_bigquery(bq_client, QUERY_ON_ROUTE, 'ON ROUTE')
     aba_route   = planilha_controle.worksheet(ABA_ON_ROUTE)
-    stats_route = atualizar_aba(aba_route, df_route, ABA_ON_ROUTE, montar_linha_on_route, idx_gmv=22)
+    stats_route = atualizar_aba(aba_route, df_route, ABA_ON_ROUTE, montar_linha_on_route,
+                                idx_gmv=22, bq_client=bq_client, col_acao_lp='X')
 
     print("\n--- ON WAY ---")
     df_way    = buscar_bigquery(bq_client, QUERY_ON_WAY, 'ON WAY')
     aba_way   = planilha_controle.worksheet(ABA_ON_WAY)
-    stats_way = atualizar_aba(aba_way, df_way, ABA_ON_WAY, montar_linha_on_way, idx_gmv=21)
+    stats_way = atualizar_aba(aba_way, df_way, ABA_ON_WAY, montar_linha_on_way,
+                              idx_gmv=21, bq_client=bq_client, col_acao_lp='W')
 
     salvar_historico(planilha_controle, stats_route['arquivados'], stats_way['arquivados'])
 

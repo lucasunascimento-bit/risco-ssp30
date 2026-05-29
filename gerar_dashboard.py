@@ -126,6 +126,7 @@ def processar(rt, wy, hi):
     # ---- Histórico do mês ----
     hist_mes = [r for r in hi if len(r) > 0 and mes_ano in r[0]]
     concluidos  = sum(1 for r in hist_mes if len(r) > 6 and 'conclu' in r[6].lower())
+    recuperados = sum(1 for r in hist_mes if len(r) > 7 and 'fluxo' in r[7].lower())
     removidos   = len(hist_mes)
     hist_rows   = [{'data': r[0], 'origem': r[1], 'id': r[2],
                     'sit': r[3], 'gmv': r[4], 'resp': r[5],
@@ -162,7 +163,7 @@ def processar(rt, wy, hi):
         'status_cnt':  status_cnt,
         'top15':       top15,
         # Histórico
-        'concluidos':  concluidos, 'removidos': removidos,
+        'concluidos':  concluidos, 'recuperados': recuperados, 'removidos': removidos,
         'hist_rows':   hist_rows,
         # Evolução
         'evo_labels':  datas_todas,
@@ -360,6 +361,7 @@ def gerar_html(d):
     <div class="card green"><div class="label">💰 GMV ON WAY</div><div class="value">${d["w_gmv"]:,.0f}</div></div>
     <div class="card orange"><div class="label">📹 CFTV Solicitado</div><div class="value">{d["cftv_total"]}</div><div class="delta">Route {d["r_cftv"]} | Way {d["w_cftv"]}</div></div>
     <div class="card purple"><div class="label">✅ Concluídos {d["mes_lbl"]}</div><div class="value">{d["concluidos"]}</div><div class="delta">{d["removidos"]} removidos no mês</div></div>
+    <div class="card green"><div class="label">🏆 Recuperados {d["mes_lbl"]}</div><div class="value">{d["recuperados"]}</div><div class="delta">Seguiram fluxo correto</div></div>
   </div>
 
   <div class="grid2">
@@ -442,6 +444,7 @@ def gerar_html(d):
 <div id="tab-hist" class="content">
   <div class="cards">
     <div class="card green"><div class="label">✅ Concluídos no mês</div><div class="value">{d["concluidos"]}</div></div>
+    <div class="card green"><div class="label">🏆 Recuperados</div><div class="value">{d["recuperados"]}</div><div class="delta">Seguiram fluxo correto</div></div>
     <div class="card blue"><div class="label">📤 Total removidos</div><div class="value">{d["removidos"]}</div></div>
     <div class="card yellow"><div class="label">📅 Mês</div><div class="value" style="font-size:18px">{d["mes_lbl"]}</div></div>
   </div>
