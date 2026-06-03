@@ -169,13 +169,13 @@ def verificar_entrega(bq_client, ids):
     ids_sql = ', '.join(f"'{i}'" for i in ids)
     query = f"""
     SELECT CAST(SHP_SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
-           COALESCE(SHP_LG_STATUS, '') AS SHP_LG_STATUS
+           COALESCE(SHP_LG_SUB_STATUS, '') AS SHP_LG_SUB_STATUS
     FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENTS`
     WHERE CAST(SHP_SHIPMENT_ID AS STRING) IN ({ids_sql})
     """
     try:
         df = bq_client.query(query).to_dataframe()
-        return dict(zip(df['SHP_SHIPMENT_ID'].astype(str), df['SHP_LG_STATUS'].astype(str)))
+        return dict(zip(df['SHP_SHIPMENT_ID'].astype(str), df['SHP_LG_SUB_STATUS'].astype(str)))
     except Exception as e:
         print(f"  Aviso verificar_entrega: {e}")
         return {}
@@ -369,7 +369,7 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv, bq_client, col_acao_lp
         if shp_id not in ids_bigquery:
             para_remover.append(linha)
             status_atual = status_bq.get(shp_id, '').lower()
-            foi_entregue = status_atual == 'delivered'
+            foi_entregue = status_atual.startswith('delivered')  # delivered_place, delivered_buyer, etc.
 
             if foi_entregue:
                 recuperados += 1
