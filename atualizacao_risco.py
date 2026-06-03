@@ -390,7 +390,7 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv, bq_client, col_acao_lp
     # aplica os updates de conclusão antes de deletar as linhas
     if updates_conclusao:
         sheet.batch_update(updates_conclusao)
-        print(f"  ✅ {recuperados} pacote(s) marcado(s) como Concluído — entregue(s)")
+        print(f"  OK: {recuperados} pacote(s) marcado(s) como Concluido - entregue(s)")
 
     para_remover.sort(reverse=True)
 
@@ -580,7 +580,7 @@ def enviar_gchat(stats_route, stats_way, cftv, stats_mensais, duracao, data_hora
         f"  Procurar Pacote : *{sit(stats_route, 'Procurar Pacote')}*\n"
         f"  Possivel Lost   : *{sit(stats_route, 'Possivel Lost')}*\n"
         f"  Novos hoje      : +{stats_route['novos']}  |  Removidos: -{stats_route['removidos']}\n"
-        f"  ✅ Recuperados  : *{stats_route['recuperados']}* (entregues — seguiram fluxo)\n"
+        f"  ✅ Recuperados  : *{stats_route['recuperados']}* (Acompanhado fluxo correto)\n"
         f"  CFTV solicitado : *{cftv_r.get('sim', 0)}/{cftv_r.get('total', 0)}*\n"
         f"  💰 Top GMV: *${stats_route['top_gmv']}* · `{stats_route['top_id']}`\n"
         f"\n"
@@ -589,7 +589,7 @@ def enviar_gchat(stats_route, stats_way, cftv, stats_mensais, duracao, data_hora
         f"  >= 11 dias OW    : *{sit(stats_way, '>= 11 dias OW')}*\n"
         f"  < 11 dias OW     : *{sit(stats_way, '< 11 dias OW')}*\n"
         f"  Novos hoje       : +{stats_way['novos']}  |  Removidos: -{stats_way['removidos']}\n"
-        f"  ✅ Recuperados   : *{stats_way['recuperados']}* (entregues — seguiram fluxo)\n"
+        f"  ✅ Recuperados   : *{stats_way['recuperados']}* (Acompanhado fluxo correto)\n"
         f"  CFTV solicitado  : *{cftv_w.get('sim', 0)}/{cftv_w.get('total', 0)}*\n"
         f"  💰 Top GMV: *${stats_way['top_gmv']}* · `{stats_way['top_id']}`\n"
         f"\n"
