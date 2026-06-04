@@ -202,7 +202,16 @@ def processar(rt, wy, hi):
         if d:
             datas_wy[d]  = datas_wy.get(d, 0) + 1
             gmv_wy_dt[d] = gmv_wy_dt.get(d, 0) + g
-    datas_todas = sorted(set(list(datas_rt.keys()) + list(datas_wy.keys())))
+    # ordena cronologicamente (não lexicograficamente)
+    datas_todas = sorted(
+        set(list(datas_rt.keys()) + list(datas_wy.keys())),
+        key=lambda d: datetime.strptime(d, '%d/%m/%Y') if d else datetime.min
+    )
+    # labels sem o ano para o eixo X (01/06 em vez de 01/06/2026)
+    def fmt_eixo(d):
+        try: return datetime.strptime(d, '%d/%m/%Y').strftime('%d/%m')
+        except: return d
+    evo_labels_fmt = [fmt_eixo(d) for d in datas_todas]
 
     return {
         'gerado':      agora.strftime('%d/%m/%Y %H:%M'),
@@ -231,7 +240,7 @@ def processar(rt, wy, hi):
         # Comparativo
         'net_rt': net_rt, 'net_wy': net_wy,
         # Evolução
-        'evo_labels':  datas_todas,
+        'evo_labels':  evo_labels_fmt,
         'evo_rt':      [datas_rt.get(d, 0)      for d in datas_todas],
         'evo_wy':      [datas_wy.get(d, 0)      for d in datas_todas],
         'evo_gmv_rt':  [round(gmv_rt_dt.get(d, 0), 2) for d in datas_todas],
@@ -468,7 +477,7 @@ def gerar_html(d):
   @media(max-width:900px){{.grid2{{grid-template-columns:1fr}}}}
   /* CHART BOX */
   .box{{background:#0d1321;border-radius:8px;padding:20px 20px;border:1px solid #111827}}
-  .box-title{{font-size:10px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.7px;margin-bottom:16px}}
+  .box-title{{font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.7px;margin-bottom:16px}}
   /* TABLE */
   .tbl-wrap{{background:#0d1321;border-radius:8px;overflow:hidden;margin-bottom:20px;border:1px solid #111827}}
   .tbl-title{{padding:14px 24px;font-size:10px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid #111827}}
@@ -867,8 +876,8 @@ new Chart(document.getElementById('cStatus'), {{
   data: {{ labels:{st_labels}, datasets:[{{ data:{st_values},
     backgroundColor:['#3B82F6','#F59E0B','#9CA3AF'], borderRadius:6 }}] }},
   options: {{ ...defOpts, plugins:{{ legend:{{ display:false }} }},
-    scales:{{ x:{{ ticks:{{ color:'#64748b' }}, grid:{{ color:'#1e293b' }} }},
-              y:{{ ticks:{{ color:'#64748b' }}, grid:{{ color:'#334155' }} }} }} }}
+    scales:{{ x:{{ ticks:{{ color:'#8a8a8a' }}, grid:{{ color:'#1e293b' }} }},
+              y:{{ ticks:{{ color:'#8a8a8a' }}, grid:{{ color:'#334155' }} }} }} }}
 }});
 
 // GMV em risco por data de entrada
@@ -882,8 +891,8 @@ new Chart(document.getElementById('cGmvEvo'), {{
     ]
   }},
   options: {{ ...defOpts,
-    scales:{{ x:{{ stacked:true, ticks:{{ color:'#64748b', maxRotation:45 }}, grid:{{ color:'#1e293b' }} }},
-              y:{{ stacked:true, ticks:{{ color:'#64748b', callback: v=>'$'+v.toLocaleString('pt-BR') }}, grid:{{ color:'#334155' }} }} }},
+    scales:{{ x:{{ stacked:true, ticks:{{ color:'#8a8a8a', maxRotation:45 }}, grid:{{ color:'#1e293b' }} }},
+              y:{{ stacked:true, ticks:{{ color:'#8a8a8a', callback: v=>'$'+v.toLocaleString('pt-BR') }}, grid:{{ color:'#334155' }} }} }},
     plugins:{{ ...defOpts.plugins, tooltip:{{ callbacks:{{ label: ctx=>' $'+ctx.raw.toLocaleString('pt-BR',{{minimumFractionDigits:2}}) }} }} }}
   }}
 }});
@@ -899,8 +908,8 @@ new Chart(document.getElementById('cEvo'), {{
     ]
   }},
   options: {{ ...defOpts,
-    scales:{{ x:{{ stacked:true, ticks:{{ color:'#64748b', maxRotation:45 }}, grid:{{ color:'#1e293b' }} }},
-              y:{{ stacked:true, ticks:{{ color:'#64748b' }}, grid:{{ color:'#334155' }} }} }}
+    scales:{{ x:{{ stacked:true, ticks:{{ color:'#8a8a8a', maxRotation:45 }}, grid:{{ color:'#1e293b' }} }},
+              y:{{ stacked:true, ticks:{{ color:'#8a8a8a' }}, grid:{{ color:'#334155' }} }} }}
   }}
 }});
 
@@ -922,7 +931,7 @@ new Chart(document.getElementById('cHeatmap'), {{
     plugins:{{ legend:{{ display:false }},
       tooltip:{{ callbacks:{{ label: ctx=>`${{ctx.raw}} pacotes entraram na ${{ctx.label}}` }} }} }},
     scales:{{ x:{{ ticks:{{ color:'#94a3b8', font:{{size:13, weight:'bold'}} }}, grid:{{ display:false }} }},
-              y:{{ ticks:{{ color:'#64748b' }}, grid:{{ color:'#334155' }} }} }}
+              y:{{ ticks:{{ color:'#8a8a8a' }}, grid:{{ color:'#334155' }} }} }}
   }}
 }});
 
@@ -933,7 +942,7 @@ new Chart(document.getElementById('cTop'), {{
   options: {{
     indexAxis:'y', responsive:true,
     plugins:{{ legend:{{ display:false }}, tooltip:{{ callbacks:{{ label: ctx=>' $'+ctx.raw.toLocaleString('pt-BR',{{minimumFractionDigits:2}}) }} }} }},
-    scales:{{ x:{{ ticks:{{ color:'#64748b', callback: v=>'$'+v.toLocaleString('pt-BR') }}, grid:{{ color:'#334155' }} }},
+    scales:{{ x:{{ ticks:{{ color:'#8a8a8a', callback: v=>'$'+v.toLocaleString('pt-BR') }}, grid:{{ color:'#334155' }} }},
               y:{{ ticks:{{ color:'#94a3b8', font:{{ size:11 }} }}, grid:{{ display:false }} }} }}
   }}
 }});
