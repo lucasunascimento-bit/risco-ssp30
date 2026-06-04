@@ -74,7 +74,7 @@
 <div class="header">
   <div>
     <h1>🔔 Risco SSP30 — Dashboard</h1>
-    <div class="sub">Fonte: Planilha de Controle · Gerado em 03/06/2026 19:38</div>
+    <div class="sub">Fonte: Planilha de Controle · Gerado em 04/06/2026 18:38</div>
   </div>
   <div class="header-right">
     <span class="countdown" id="countdown">Calculando...</span>
@@ -86,7 +86,7 @@
 <div class="tabs">
   <div class="tab active" onclick="showTab('geral',this)">📊 Visão Geral</div>
   <div class="tab" onclick="showTab('route',this)">📦 ON ROUTE (38)</div>
-  <div class="tab" onclick="showTab('way',this)">🚛 ON WAY (27)</div>
+  <div class="tab" onclick="showTab('way',this)">🚛 ON WAY (54)</div>
   <div class="tab" onclick="showTab('gmv',this)">💰 Top GMV</div>
   <div class="tab" onclick="showTab('hist',this)">📁 Histórico jun/2026</div>
 </div>
@@ -94,15 +94,15 @@
 <!-- ===================== ABA 1: VISÃO GERAL ===================== -->
 <div id="tab-geral" class="content active">
   <div class="cards">
-    <div class="card yellow"><div class="label">📦 ON ROUTE</div><div class="value">38</div><div class="delta">+8 hoje</div></div>
-    <div class="card blue"><div class="label">🚛 ON WAY</div><div class="value">27</div><div class="delta">+5 hoje</div></div>
-    <div class="card green"><div class="label">💰 GMV ON ROUTE</div><div class="value">$24,026</div></div>
-    <div class="card green"><div class="label">💰 GMV ON WAY</div><div class="value">$12,848</div></div>
-    <div class="card red"><div class="label">🔥 GMV TOTAL EM RISCO</div><div class="value">$36,874</div></div>
+    <div class="card yellow"><div class="label">📦 ON ROUTE</div><div class="value">38</div><div class="delta">+5 hoje</div></div>
+    <div class="card blue"><div class="label">🚛 ON WAY</div><div class="value">54</div><div class="delta">+33 hoje</div></div>
+    <div class="card green"><div class="label">💰 GMV ON ROUTE</div><div class="value">$19,747</div></div>
+    <div class="card green"><div class="label">💰 GMV ON WAY</div><div class="value">$34,110</div></div>
+    <div class="card red"><div class="label">🔥 GMV TOTAL EM RISCO</div><div class="value">$53,857</div></div>
     <div class="card orange"><div class="label">📹 CFTV Solicitado</div><div class="value">37</div><div class="delta">Route 16 | Way 21</div></div>
-    <div class="card purple"><div class="label">⏱ Dias médio carteira</div><div class="value">4.4</div><div class="delta">pacotes ativos</div></div>
-    <div class="card green"><div class="label">🏆 Recuperados jun/2026</div><div class="value">6</div><div class="delta">Seguiram fluxo correto</div></div>
-    <div class="card purple"><div class="label">✅ Concluídos jun/2026</div><div class="value">6</div><div class="delta">38 removidos no mês</div></div>
+    <div class="card purple"><div class="label">⏱ Dias médio carteira</div><div class="value">3.4</div><div class="delta">pacotes ativos</div></div>
+    <div class="card green"><div class="label">🏆 Recuperados jun/2026</div><div class="value">13</div><div class="delta">Seguiram fluxo correto</div></div>
+    <div class="card purple"><div class="label">✅ Concluídos jun/2026</div><div class="value">13</div><div class="delta">49 removidos no mês</div></div>
   </div>
 
   <div class="legend">
@@ -126,11 +126,11 @@
 <div id="tab-route" class="content">
   <div class="cards">
     <div class="card yellow"><div class="label">Total</div><div class="value">38</div></div>
-    <div class="card green"><div class="label">GMV Total</div><div class="value">$24,026</div></div>
-    <div class="card red"><div class="label">Possivel Lost</div><div class="value">15</div></div>
-    <div class="card orange"><div class="label">Procurar Pacote</div><div class="value">23</div></div>
+    <div class="card green"><div class="label">GMV Total</div><div class="value">$19,747</div></div>
+    <div class="card red"><div class="label">Possivel Lost</div><div class="value">18</div></div>
+    <div class="card orange"><div class="label">Procurar Pacote</div><div class="value">20</div></div>
     <div class="card blue"><div class="label">CFTV Solicitado</div><div class="value">16</div></div>
-    <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">8</div></div>
+    <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">5</div></div>
   </div>
   <div class="tbl-wrap">
     <div class="tbl-title">📦 Pacotes ON ROUTE — ordenados por GMV</div>
@@ -139,7 +139,7 @@
       <input type="text" id="busca_route" placeholder="🔍 Buscar por SHP ID ou responsável..."
              oninput="filtrar('route')" class="filter-input">
       <select id="sit_route" onchange="filtrar('route')" class="filter-select">
-        <option value="">Todas as Situations</option><option value="possivel lost">Possivel Lost</option><option value="procurar pacote">Procurar Pacote</option>
+        <option value="">Todas as Situations</option><option value="procurar pacote">Procurar Pacote</option><option value="possivel lost">Possivel Lost</option>
       </select>
       <select id="status_route" onchange="filtrar('route')" class="filter-select">
         <option value="">Todos os Status</option>
@@ -157,20 +157,7 @@
         <th>Responsável</th><th>CFTV</th><th>Status Caso</th>
         <th>Dias Cart.</th><th>Entrada</th>
       </tr></thead>
-      <tbody><tr style="" class="data-row"
-            data-id="47184094630"
-            data-sit="procurar pacote"
-            data-status=""
-            data-resp="">
-            <td style="font-family:monospace;font-size:12px">47184094630</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$4,517.73</td>
-            <td>—</td>
-            <td style="text-align:center">❌</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+      <tbody><tr style="background:#3b1a1a" class="data-row"
             data-id="47069669118"
             data-sit="procurar pacote"
             data-status="concluido"
@@ -181,9 +168,9 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="" class="data-row"
+        </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47176942580"
             data-sit="procurar pacote"
             data-status=""
@@ -194,7 +181,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">31/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47166311471"
@@ -207,20 +194,20 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47122298879"
-            data-sit="procurar pacote"
+            data-sit="possivel lost"
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px">47122298879</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$1,086.93</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">02/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47203171689"
@@ -233,9 +220,9 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47091872906"
             data-sit="possivel lost"
             data-status=""
@@ -246,7 +233,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47200714418"
@@ -259,9 +246,22 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="" class="data-row"
+            data-id="47200816346"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47200816346</td>
+            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$635.95</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47145689534"
             data-sit="procurar pacote"
             data-status=""
@@ -272,7 +272,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47168929991"
@@ -285,7 +285,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47170517480"
@@ -298,21 +298,8 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
-            data-id="47039926510"
-            data-sit="procurar pacote"
-            data-status=""
-            data-resp="lucas nascimento">
-            <td style="font-family:monospace;font-size:12px">47039926510</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$489.19</td>
-            <td>Lucas Nascimento</td>
-            <td style="text-align:center">✅</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47186145045"
             data-sit="procurar pacote"
@@ -324,22 +311,22 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">02/06/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47128033779"
-            data-sit="procurar pacote"
+            data-sit="possivel lost"
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px">47128033779</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$478.64</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47039557019"
             data-sit="procurar pacote"
             data-status=""
@@ -350,7 +337,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47168490956"
@@ -363,9 +350,9 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47079778283"
             data-sit="possivel lost"
             data-status=""
@@ -376,9 +363,9 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47091434844"
             data-sit="procurar pacote"
             data-status=""
@@ -389,7 +376,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47190258123"
@@ -402,7 +389,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
             <td style="font-size:11px;color:#9CA3AF">01/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47161278266"
@@ -415,7 +402,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47154816260"
@@ -428,35 +415,22 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
-            data-id="47169603716"
+        </tr><tr style="" class="data-row"
+            data-id="47205855916"
             data-sit="procurar pacote"
             data-status=""
             data-resp="">
-            <td style="font-family:monospace;font-size:12px">47169603716</td>
+            <td style="font-family:monospace;font-size:12px">47205855916</td>
             <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$424.68</td>
+            <td style="font-weight:700;color:#10B981">$437.33</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
-            data-id="47169330365"
-            data-sit="procurar pacote"
-            data-status=""
-            data-resp="">
-            <td style="font-family:monospace;font-size:12px">47169330365</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$424.68</td>
-            <td>—</td>
-            <td style="text-align:center">❌</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47152669204"
             data-sit="procurar pacote"
             data-status=""
@@ -467,8 +441,21 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47163065402"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47163065402</td>
+            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$391.45</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47136323446"
             data-sit="procurar pacote"
@@ -480,9 +467,9 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47063438675"
             data-sit="possivel lost"
             data-status=""
@@ -493,9 +480,9 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47090534009"
             data-sit="possivel lost"
             data-status=""
@@ -506,7 +493,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47097877945"
@@ -519,7 +506,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47088719465"
@@ -532,7 +519,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47122893530"
@@ -545,7 +532,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47085891009"
@@ -558,7 +545,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47068646131"
@@ -571,7 +558,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47062603346"
@@ -584,7 +571,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47085504134"
@@ -597,7 +584,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47079350520"
@@ -610,7 +597,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47085244062"
@@ -623,8 +610,21 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47088759101"
+            data-sit="possivel lost"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47088759101</td>
+            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td style="font-weight:700;color:#10B981">$119.78</td>
+            <td>—</td>
+            <td style="text-align:center">✅</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47090932997"
             data-sit="possivel lost"
@@ -636,21 +636,21 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
-            data-id="47063030044"
+        </tr><tr style="" class="data-row"
+            data-id="47091783555"
             data-sit="possivel lost"
             data-status=""
-            data-resp="lucas nascimento">
-            <td style="font-family:monospace;font-size:12px">47063030044</td>
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47091783555</td>
             <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
-            <td style="font-weight:700;color:#10B981">$109.58</td>
-            <td>Lucas Nascimento</td>
+            <td style="font-weight:700;color:#10B981">$102.02</td>
+            <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
         </tr></tbody>
     </table>
     </div>
@@ -660,11 +660,11 @@
 <!-- ===================== ABA 3: ON WAY ===================== -->
 <div id="tab-way" class="content">
   <div class="cards">
-    <div class="card yellow"><div class="label">Total</div><div class="value">27</div></div>
-    <div class="card green"><div class="label">GMV Total</div><div class="value">$12,848</div></div>
-    <div class="card red"><div class="label">Possivel Lost</div><div class="value">16</div></div>
-    <div class="card orange"><div class="label">&gt;= 11 dias OW</div><div class="value">3</div></div>
-    <div class="card blue"><div class="label">&lt; 11 dias OW</div><div class="value">7</div></div>
+    <div class="card yellow"><div class="label">Total</div><div class="value">54</div></div>
+    <div class="card green"><div class="label">GMV Total</div><div class="value">$34,110</div></div>
+    <div class="card red"><div class="label">Possivel Lost</div><div class="value">17</div></div>
+    <div class="card orange"><div class="label">&gt;= 11 dias OW</div><div class="value">2</div></div>
+    <div class="card blue"><div class="label">&lt; 11 dias OW</div><div class="value">34</div></div>
     <div class="card orange"><div class="label">CFTV Solicitado</div><div class="value">21</div></div>
   </div>
   <div class="tbl-wrap">
@@ -692,7 +692,7 @@
         <th>Dias OW</th><th>Transportadora</th><th>CFTV</th>
         <th>Status Caso</th><th>Dias Cart.</th><th>Entrada</th>
       </tr></thead>
-      <tbody><tr style="background:#2d1f0e" class="data-row"
+      <tbody><tr style="background:#3b1a1a" class="data-row"
             data-id="47090537177"
             data-sit="< 11 dias ow"
             data-status=""
@@ -704,9 +704,65 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="" class="data-row"
+            data-id="47218695812"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218695812</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$1,556.88</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47220251831"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47220251831</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$1,398.19</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47220237798"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47220237798</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$1,322.03</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47199454258"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47199454258</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$1,230.00</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
+            <td>MARONITRANSP</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47012996990"
             data-sit="possivel lost"
             data-status="concluido"
@@ -718,37 +774,135 @@
             <td>null</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
-            data-id="47179445020"
+            data-id="47213801254"
             data-sit="< 11 dias ow"
             data-status=""
             data-resp="">
-            <td style="font-family:monospace;font-size:12px">47179445020</td>
+            <td style="font-family:monospace;font-size:12px">47213801254</td>
             <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981">$1,119.07</td>
-            <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
-            <td>MARONITRANSP</td>
+            <td style="font-weight:700;color:#10B981">$1,153.02</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
         </tr><tr style="" class="data-row"
-            data-id="47196743380"
+            data-id="47218304793"
             data-sit="< 11 dias ow"
             data-status=""
             data-resp="">
-            <td style="font-family:monospace;font-size:12px">47196743380</td>
+            <td style="font-family:monospace;font-size:12px">47218304793</td>
             <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981">$1,073.38</td>
-            <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
+            <td style="font-weight:700;color:#10B981">$999.50</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47205052399"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47205052399</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$996.15</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47170053536"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47170053536</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$941.36</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47219560563"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47219560563</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$932.06</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218788983"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218788983</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$900.53</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218788726"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218788726</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$859.31</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47217956429"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47217956429</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$776.36</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218478827"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218478827</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$749.58</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46885962511"
             data-sit="possivel lost"
             data-status="concluido"
@@ -760,65 +914,289 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
-            data-id="47208112364"
+            data-id="47218097005"
             data-sit="< 11 dias ow"
             data-status=""
             data-resp="">
-            <td style="font-family:monospace;font-size:12px">47208112364</td>
+            <td style="font-family:monospace;font-size:12px">47218097005</td>
             <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981">$683.06</td>
+            <td style="font-weight:700;color:#10B981">$743.63</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="46954224956"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">46954224956</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$697.39</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218072580"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218072580</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$694.22</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47220032573"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47220032573</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$694.04</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47217831812"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47217831812</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$654.37</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47189153461"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47189153461</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$618.61</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
+            <td>MARONITRANSP</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47167099653"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47167099653</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$594.58</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
+            <td>MARONITRANSP</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47195166021"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47195166021</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$594.44</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
+            <td>MARONITRANSP</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218445703"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218445703</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$594.38</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47219628445"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47219628445</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$592.08</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47219611608"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47219611608</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$592.08</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218876100"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218876100</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$592.08</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218060306"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218060306</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$588.91</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47217524127"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47217524127</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$588.91</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218831183"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218831183</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$572.80</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47202581406"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47202581406</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$560.43</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
+            <td>MARONITRANSP</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47215557047"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47215557047</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$536.68</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
         </tr><tr style="" class="data-row"
-            data-id="47195356672"
+            data-id="47198677277"
             data-sit="< 11 dias ow"
             data-status=""
             data-resp="">
-            <td style="font-family:monospace;font-size:12px">47195356672</td>
+            <td style="font-family:monospace;font-size:12px">47198677277</td>
             <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981">$593.21</td>
+            <td style="font-weight:700;color:#10B981">$531.08</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
         </tr><tr style="" class="data-row"
-            data-id="47003333928"
+            data-id="47182965849"
             data-sit="< 11 dias ow"
             data-status=""
             data-resp="">
-            <td style="font-family:monospace;font-size:12px">47003333928</td>
+            <td style="font-family:monospace;font-size:12px">47182965849</td>
             <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981">$576.72</td>
-            <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
-            <td>MARONITRANSP</td>
-            <td style="text-align:center">❌</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
-        </tr><tr style="" class="data-row"
-            data-id="47170079602"
-            data-sit="< 11 dias ow"
-            data-status=""
-            data-resp="">
-            <td style="font-family:monospace;font-size:12px">47170079602</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981">$573.16</td>
+            <td style="font-weight:700;color:#10B981">$518.70</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
-            <td>JOMED</td>
+            <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">02/06/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218611567"
+            data-sit="< 11 dias ow"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px">47218611567</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981">$506.60</td>
+            <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
+            <td>JM TRANSPORTES</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46927258373"
             data-sit="possivel lost"
             data-status="concluido"
@@ -830,9 +1208,9 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46855434089"
             data-sit=">= 11 dias"
             data-status="concluido"
@@ -844,9 +1222,9 @@
             <td>ADYGE</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46855434089"
             data-sit="possivel lost"
             data-status="concluido"
@@ -858,9 +1236,9 @@
             <td>ADYGE</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46994743959"
             data-sit="possivel lost"
             data-status="concluido"
@@ -872,9 +1250,9 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46918540469"
             data-sit="possivel lost"
             data-status="concluido"
@@ -886,23 +1264,23 @@
             <td>DV3</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47072653552"
-            data-sit=">= 11 dias ow"
+            data-sit="possivel lost"
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px">47072653552</td>
-            <td><span class="pill" style="background:#FBBF24;color:#1a1a1a">>= 11 dias OW</span></td>
+            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$180.49</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">11</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46935801844"
             data-sit="possivel lost"
             data-status="concluido"
@@ -914,9 +1292,9 @@
             <td>JOMED</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46879619854"
             data-sit="possivel lost"
             data-status="concluido"
@@ -928,9 +1306,9 @@
             <td>GAS TRANSPORTES</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47036107033"
             data-sit="possivel lost"
             data-status=""
@@ -942,7 +1320,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47027648159"
@@ -956,9 +1334,9 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47049354601"
             data-sit="possivel lost"
             data-status=""
@@ -970,9 +1348,9 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46961814688"
             data-sit="possivel lost"
             data-status="concluido"
@@ -984,7 +1362,7 @@
             <td>null</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47120523767"
@@ -998,7 +1376,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">02/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47092766316"
@@ -1012,9 +1390,9 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46993835378"
             data-sit="possivel lost"
             data-status=""
@@ -1026,9 +1404,9 @@
             <td>RN EXPRESS</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47016539135"
             data-sit="possivel lost"
             data-status="concluido"
@@ -1040,9 +1418,9 @@
             <td>2026-05-25 00:48:31</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46937855725"
             data-sit="possivel lost"
             data-status="concluido"
@@ -1054,9 +1432,9 @@
             <td>null</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
+        </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46889167588"
             data-sit="possivel lost"
             data-status="concluido"
@@ -1068,7 +1446,7 @@
             <td>AXON TRANSPORTES</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr></tbody>
     </table>
@@ -1087,138 +1465,138 @@
         <th>#</th><th>Origem</th><th>SHP ID</th><th>Situation</th>
         <th>GMV USD</th><th>Responsável</th><th>Status</th><th>Dias Cart.</th>
       </tr></thead>
-      <tbody><tr style="">
+      <tbody><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">1</td>
-            <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
-            <td style="font-family:monospace;font-size:12px">47184094630</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$4,517.73</td>
-            <td>—</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
-        </tr><tr style="background:#2d1f0e">
-            <td style="text-align:center;font-weight:700;color:#FFE600">2</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px">47090537177</td>
             <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,850.28</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
-        </tr><tr style="background:#2d1f0e">
-            <td style="text-align:center;font-weight:700;color:#FFE600">3</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
+        </tr><tr style="background:#3b1a1a">
+            <td style="text-align:center;font-weight:700;color:#FFE600">2</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px">47069669118</td>
             <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,542.67</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
-        </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">4</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
+        </tr><tr style="background:#2d1f0e">
+            <td style="text-align:center;font-weight:700;color:#FFE600">3</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px">47176942580</td>
             <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,197.50</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
-        </tr><tr style="background:#2d1f0e">
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+        </tr><tr style="">
+            <td style="text-align:center;font-weight:700;color:#FFE600">4</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
+            <td style="font-family:monospace;font-size:12px">47218695812</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$1,556.88</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+        </tr><tr style="">
             <td style="text-align:center;font-weight:700;color:#FFE600">5</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
+            <td style="font-family:monospace;font-size:12px">47220251831</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$1,398.19</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+        </tr><tr style="">
+            <td style="text-align:center;font-weight:700;color:#FFE600">6</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
+            <td style="font-family:monospace;font-size:12px">47220237798</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$1,322.03</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+        </tr><tr style="background:#2d1f0e">
+            <td style="text-align:center;font-weight:700;color:#FFE600">7</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px">47166311471</td>
             <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,265.15</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
-        </tr><tr style="background:#2d1f0e">
-            <td style="text-align:center;font-weight:700;color:#FFE600">6</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+        </tr><tr style="">
+            <td style="text-align:center;font-weight:700;color:#FFE600">8</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
+            <td style="font-family:monospace;font-size:12px">47199454258</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$1,230.00</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+        </tr><tr style="background:#3b1a1a">
+            <td style="text-align:center;font-weight:700;color:#FFE600">9</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px">47012996990</td>
             <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,217.48</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">7</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">10</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
-            <td style="font-family:monospace;font-size:12px">47179445020</td>
+            <td style="font-family:monospace;font-size:12px">47213801254</td>
             <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$1,119.07</td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$1,153.02</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">8</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">11</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px">47122298879</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,086.93</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">9</td>
-            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
-            <td style="font-family:monospace;font-size:12px">47196743380</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$1,073.38</td>
-            <td>—</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
-        </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">10</td>
-            <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
-            <td style="font-family:monospace;font-size:12px">47203171689</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$794.98</td>
-            <td>—</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
-        </tr><tr style="background:#2d1f0e">
-            <td style="text-align:center;font-weight:700;color:#FFE600">11</td>
-            <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
-            <td style="font-family:monospace;font-size:12px">47091872906</td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$767.52</td>
-            <td>Lucas Nascimento</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
-        </tr><tr style="background:#2d1f0e">
             <td style="text-align:center;font-weight:700;color:#FFE600">12</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
-            <td style="font-family:monospace;font-size:12px">46885962511</td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$744.34</td>
-            <td>Lucas Nascimento</td>
-            <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="font-family:monospace;font-size:12px">47218304793</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$999.50</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
         </tr><tr style="">
             <td style="text-align:center;font-weight:700;color:#FFE600">13</td>
-            <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
-            <td style="font-family:monospace;font-size:12px">47200714418</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$715.46</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
+            <td style="font-family:monospace;font-size:12px">47205052399</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$996.15</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
         </tr><tr style="">
             <td style="text-align:center;font-weight:700;color:#FFE600">14</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
-            <td style="font-family:monospace;font-size:12px">47208112364</td>
+            <td style="font-family:monospace;font-size:12px">47170053536</td>
             <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$683.06</td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$941.36</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
         </tr><tr style="">
             <td style="text-align:center;font-weight:700;color:#FFE600">15</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
-            <td style="font-family:monospace;font-size:12px">47195356672</td>
+            <td style="font-family:monospace;font-size:12px">47219560563</td>
             <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$593.21</td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$932.06</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
@@ -1231,9 +1609,9 @@
 <!-- ===================== ABA 5: HISTÓRICO ===================== -->
 <div id="tab-hist" class="content">
   <div class="cards">
-    <div class="card green"><div class="label">✅ Concluídos no mês</div><div class="value">6</div></div>
-    <div class="card green"><div class="label">🏆 Recuperados</div><div class="value">6</div><div class="delta">Seguiram fluxo correto</div></div>
-    <div class="card blue"><div class="label">📤 Total removidos</div><div class="value">38</div></div>
+    <div class="card green"><div class="label">✅ Concluídos no mês</div><div class="value">13</div></div>
+    <div class="card green"><div class="label">🏆 Recuperados</div><div class="value">13</div><div class="delta">Seguiram fluxo correto</div></div>
+    <div class="card blue"><div class="label">📤 Total removidos</div><div class="value">49</div></div>
     <div class="card yellow"><div class="label">📅 Mês</div><div class="value" style="font-size:18px">jun/2026</div></div>
   </div>
   <div class="tbl-wrap">
@@ -1580,6 +1958,105 @@
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="font-size:11px;color:#9CA3AF">—</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47063030044</td>
+            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td style="color:#10B981;font-weight:600">$109.58</td>
+            <td>Lucas Nascimento</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="font-size:11px;color:#9CA3AF">—</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47039926510</td>
+            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td style="color:#10B981;font-weight:600">$489.19</td>
+            <td>Lucas Nascimento</td>
+            <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
+            <td style="font-size:11px;color:#9CA3AF">Seguiu fluxo correto</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47169603716</td>
+            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td style="color:#10B981;font-weight:600">$424.68</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
+            <td style="font-size:11px;color:#9CA3AF">Seguiu fluxo correto</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47169330365</td>
+            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td style="color:#10B981;font-weight:600">$424.68</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
+            <td style="font-size:11px;color:#9CA3AF">Seguiu fluxo correto</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47184094630</td>
+            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td style="color:#10B981;font-weight:600">$4,517.73</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="font-size:11px;color:#9CA3AF">—</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47170079602</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="color:#10B981;font-weight:600">$573.16</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
+            <td style="font-size:11px;color:#9CA3AF">Seguiu fluxo correto</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47179445020</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="color:#10B981;font-weight:600">$1,119.07</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="font-size:11px;color:#9CA3AF">—</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47196743380</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="color:#10B981;font-weight:600">$1,073.38</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
+            <td style="font-size:11px;color:#9CA3AF">Seguiu fluxo correto</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47208112364</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="color:#10B981;font-weight:600">$683.06</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="font-size:11px;color:#9CA3AF">—</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47195356672</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="color:#10B981;font-weight:600">$593.21</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
+            <td style="font-size:11px;color:#9CA3AF">Seguiu fluxo correto</td>
+        </tr><tr>
+            <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
+            <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
+            <td style="font-family:monospace;font-size:12px">47003333928</td>
+            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td style="color:#10B981;font-weight:600">$576.72</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
+            <td style="font-size:11px;color:#9CA3AF">Seguiu fluxo correto</td>
         </tr></tbody></table></div>
   </div>
 </div>
@@ -1652,21 +2129,21 @@ const defOpts = {
 // Doughnut ON ROUTE
 new Chart(document.getElementById('cSitRt'), {
   type: 'doughnut',
-  data: { labels:["Possivel Lost", "Procurar Pacote"], datasets:[{ data:[15, 23], backgroundColor:["#EF4444", "#F97316"], borderWidth:0 }] },
+  data: { labels:["Procurar Pacote", "Possivel Lost"], datasets:[{ data:[20, 18], backgroundColor:["#F97316", "#EF4444"], borderWidth:0 }] },
   options: { ...defOpts, cutout:'40%' }
 });
 
 // Doughnut ON WAY
 new Chart(document.getElementById('cSitWy'), {
   type: 'doughnut',
-  data: { labels:[">= 11 dias", "Possivel Lost", "< 11 dias OW", ">= 11 dias OW"], datasets:[{ data:[1, 16, 7, 3], backgroundColor:["#9CA3AF", "#EF4444", "#60A5FA", "#FBBF24"], borderWidth:0 }] },
+  data: { labels:[">= 11 dias", "Possivel Lost", "< 11 dias OW", ">= 11 dias OW"], datasets:[{ data:[1, 17, 34, 2], backgroundColor:["#9CA3AF", "#EF4444", "#60A5FA", "#FBBF24"], borderWidth:0 }] },
   options: { ...defOpts, cutout:'40%' }
 });
 
 // Status dos casos
 new Chart(document.getElementById('cStatus'), {
   type: 'bar',
-  data: { labels:["Em andamento", "Pendente", "Sem acomp."], datasets:[{ data:[0, 0, 65],
+  data: { labels:["Em andamento", "Pendente", "Sem acomp."], datasets:[{ data:[0, 0, 92],
     backgroundColor:['#3B82F6','#F59E0B','#9CA3AF'], borderRadius:6 }] },
   options: { ...defOpts, plugins:{ legend:{ display:false } },
     scales:{ x:{ ticks:{ color:'#64748b' }, grid:{ color:'#1e293b' } },
@@ -1677,10 +2154,10 @@ new Chart(document.getElementById('cStatus'), {
 new Chart(document.getElementById('cGmvEvo'), {
   type: 'bar',
   data: {
-    labels: ["01/06/2026", "02/06/2026", "03/06/2026", "27/05/2026", "29/05/2026", "30/05/2026", "31/05/2026"],
+    labels: ["01/06/2026", "02/06/2026", "03/06/2026", "04/06/2026", "27/05/2026", "29/05/2026", "30/05/2026", "31/05/2026"],
     datasets: [
-      { label:'GMV ON ROUTE', data:[444.74, 1567.07, 7499.4, 7432.13, 1254.2, 3631.13, 2197.5], backgroundColor:'#3B82F6', borderRadius:4 },
-      { label:'GMV ON WAY',   data:[0, 722.73, 4045.44, 7599.4, 180.49, 299.57, 0], backgroundColor:'#10B981', borderRadius:4 },
+      { label:'GMV ON ROUTE', data:[444.74, 1567.07, 2981.67, 1686.53, 6833.36, 1254.2, 2781.77, 2197.5], backgroundColor:'#3B82F6', borderRadius:4 },
+      { label:'GMV ON WAY',   data:[0, 149.57, 0, 25880.98, 7599.4, 180.49, 299.57, 0], backgroundColor:'#10B981', borderRadius:4 },
     ]
   },
   options: { ...defOpts,
@@ -1694,10 +2171,10 @@ new Chart(document.getElementById('cGmvEvo'), {
 new Chart(document.getElementById('cEvo'), {
   type: 'bar',
   data: {
-    labels: ["01/06/2026", "02/06/2026", "03/06/2026", "27/05/2026", "29/05/2026", "30/05/2026", "31/05/2026"],
+    labels: ["01/06/2026", "02/06/2026", "03/06/2026", "04/06/2026", "27/05/2026", "29/05/2026", "30/05/2026", "31/05/2026"],
     datasets: [
-      { label:'ON ROUTE', data:[1, 2, 8, 12, 5, 9, 1], backgroundColor:'rgba(59,130,246,0.7)', borderRadius:4 },
-      { label:'ON WAY',   data:[0, 2, 5, 17, 1, 2, 0], backgroundColor:'rgba(16,185,129,0.7)', borderRadius:4 },
+      { label:'ON ROUTE', data:[1, 2, 7, 5, 10, 5, 7, 1], backgroundColor:'rgba(59,130,246,0.7)', borderRadius:4 },
+      { label:'ON WAY',   data:[0, 1, 0, 33, 17, 1, 2, 0], backgroundColor:'rgba(16,185,129,0.7)', borderRadius:4 },
     ]
   },
   options: { ...defOpts,
@@ -1709,7 +2186,7 @@ new Chart(document.getElementById('cEvo'), {
 // Top GMV horizontal
 new Chart(document.getElementById('cTop'), {
   type: 'bar',
-  data: { labels:["47184094630", "47090537177", "47069669118", "47176942580", "47166311471", "47012996990", "47179445020", "47122298879", "47196743380", "47203171689", "47091872906", "46885962511", "47200714418", "47208112364", "47195356672"], datasets:[{ data:[4517.73, 2850.28, 2542.67, 2197.5, 1265.15, 1217.48, 1119.07, 1086.93, 1073.38, 794.98, 767.52, 744.34, 715.46, 683.06, 593.21], backgroundColor:["#F97316", "#60A5FA", "#F97316", "#F97316", "#F97316", "#EF4444", "#60A5FA", "#F97316", "#60A5FA", "#F97316", "#EF4444", "#EF4444", "#F97316", "#60A5FA", "#60A5FA"], borderRadius:4 }] },
+  data: { labels:["47090537177", "47069669118", "47176942580", "47218695812", "47220251831", "47220237798", "47166311471", "47199454258", "47012996990", "47213801254", "47122298879", "47218304793", "47205052399", "47170053536", "47219560563"], datasets:[{ data:[2850.28, 2542.67, 2197.5, 1556.88, 1398.19, 1322.03, 1265.15, 1230.0, 1217.48, 1153.02, 1086.93, 999.5, 996.15, 941.36, 932.06], backgroundColor:["#60A5FA", "#F97316", "#F97316", "#60A5FA", "#60A5FA", "#60A5FA", "#F97316", "#60A5FA", "#EF4444", "#60A5FA", "#EF4444", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA"], borderRadius:4 }] },
   options: {
     indexAxis:'y', responsive:true,
     plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx=>' $'+ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2}) } } },
