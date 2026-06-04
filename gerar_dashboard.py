@@ -423,115 +423,169 @@ def gerar_html(d):
 <title>Risco SSP30 — Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔔</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
-  body{{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
+  body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh}}
   /* HEADER */
-  .header{{background:#FFE600;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}}
-  .header h1{{color:#1a1a1a;font-size:20px;font-weight:800}}
-  .header-right{{display:flex;flex-direction:column;align-items:flex-end;gap:2px}}
-  .header .sub{{color:#1a1a1a;font-size:11px;opacity:0.7}}
-  .countdown{{background:#1a1a1a;color:#FFE600;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700}}
+  .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1f2937}}
+  .header-brand{{display:flex;align-items:center;gap:10px}}
+  .header-accent{{width:3px;height:28px;background:#FFE600;border-radius:2px}}
+  .header-title{{font-size:16px;font-weight:700;color:#ffffff;letter-spacing:-0.3px}}
+  .header-sub{{font-size:11px;color:#374151;margin-top:2px}}
+  .header-right{{display:flex;align-items:center;gap:10px}}
+  .status-dot{{width:7px;height:7px;border-radius:50%;background:#FFE600;animation:pulse 2.5s infinite}}
+  @keyframes pulse{{0%,100%{{opacity:1;box-shadow:0 0 0 0 rgba(255,230,0,.4)}}50%{{opacity:.6;box-shadow:0 0 0 5px rgba(255,230,0,0)}}}}
+  .countdown-txt{{font-size:11px;color:#4b5563}}
   /* TABS */
-  .tabs{{background:#1e293b;border-bottom:2px solid #334155;padding:0 24px;display:flex;gap:4px;overflow-x:auto}}
-  .tab{{padding:12px 20px;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:3px solid transparent;transition:.2s;white-space:nowrap}}
-  .tab:hover{{color:#e2e8f0}}
-  .tab.active{{color:#FFE600;border-bottom-color:#FFE600}}
+  .tabs{{background:#080d19;border-bottom:1px solid #111827;padding:0 32px;display:flex;gap:0;overflow-x:auto}}
+  .tab{{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#4b5563;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;letter-spacing:.2px}}
+  .tab:hover{{color:#9ca3af}}
+  .tab.active{{color:#ffffff;border-bottom-color:#FFE600;font-weight:600}}
+  .tab-alert{{color:#ef4444!important}}
   /* CONTENT */
-  .content{{display:none;padding:24px;max-width:1400px;margin:0 auto}}
+  .content{{display:none;padding:28px 32px;max-width:1480px;margin:0 auto}}
   .content.active{{display:block}}
   /* CARDS */
-  .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:24px}}
-  .card{{background:#1e293b;border-radius:12px;padding:16px;border-left:4px solid #334155}}
-  .card.yellow{{border-left-color:#FFE600}}
-  .card.green{{border-left-color:#10B981}}
-  .card.red{{border-left-color:#EF4444}}
-  .card.blue{{border-left-color:#3B82F6}}
-  .card.orange{{border-left-color:#F97316}}
-  .card.purple{{border-left-color:#A78BFA}}
-  .card .label{{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}}
-  .card .value{{font-size:26px;font-weight:800;line-height:1}}
-  .card .delta{{font-size:11px;color:#64748b;margin-top:4px}}
+  .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:24px}}
+  .card{{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:.15s;cursor:default}}
+  .card:hover{{border-color:#1f2937;transform:translateY(-1px)}}
+  .card.card-alert{{border-color:#450a0a;background:#0f0606}}
+  .card.card-ok{{border-color:#022c22;background:#060f0d}}
+  .card-header{{display:flex;align-items:center;gap:7px;margin-bottom:14px}}
+  .card-icon{{color:#374151;flex-shrink:0}}
+  .card-label{{font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.7px;font-weight:600}}
+  .card-value{{font-size:28px;font-weight:800;color:#ffffff;line-height:1;letter-spacing:-1px}}
+  .card-value.val-alert{{color:#ef4444}}
+  .card-value.val-ok{{color:#10b981}}
+  .card-value.val-warn{{color:#f59e0b}}
+  .card-delta{{font-size:11px;color:#374151;margin-top:6px;line-height:1.4}}
   /* GRIDS */
-  .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}}
+  .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}}
   @media(max-width:900px){{.grid2{{grid-template-columns:1fr}}}}
   /* CHART BOX */
-  .box{{background:#1e293b;border-radius:12px;padding:20px}}
-  .box h3{{font-size:13px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}}
+  .box{{background:#0d1321;border-radius:8px;padding:20px 24px;border:1px solid #111827}}
+  .box-title{{font-size:10px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.7px;margin-bottom:16px}}
   /* TABLE */
-  .tbl-wrap{{background:#1e293b;border-radius:12px;overflow:hidden;margin-bottom:24px}}
-  .tbl-title{{padding:14px 20px;font-size:13px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #334155}}
+  .tbl-wrap{{background:#0d1321;border-radius:8px;overflow:hidden;margin-bottom:20px;border:1px solid #111827}}
+  .tbl-title{{padding:14px 24px;font-size:10px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid #111827}}
   table{{width:100%;border-collapse:collapse;font-size:13px}}
-  th{{background:#0f172a;padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px}}
-  td{{padding:10px 14px;border-bottom:1px solid #1a2540;background:transparent}}
-  tr:hover td{{background:#1a2d45!important}}
+  th{{background:#080d19;padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.6px}}
+  td{{padding:11px 16px;border-bottom:1px solid #0d1321;color:#d1d5db}}
+  tr:hover td{{background:#111827!important}}
   tr:last-child td{{border-bottom:none}}
   .tbl-scroll{{overflow-x:auto}}
   /* PILL */
-  .pill{{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap}}
+  .pill{{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}}
   /* LEGEND */
-  .legend{{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;font-size:12px}}
-  .legend-item{{display:flex;align-items:center;gap:5px;color:#94a3b8}}
-  .legend-dot{{width:10px;height:10px;border-radius:50%}}
+  .legend{{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:11px}}
+  .legend-item{{display:flex;align-items:center;gap:5px;color:#4b5563}}
+  .legend-dot{{width:7px;height:7px;border-radius:50%}}
   /* FILTER BAR */
-  .filter-bar{{display:flex;gap:10px;padding:12px 20px;flex-wrap:wrap;border-bottom:1px solid #334155;align-items:center}}
-  .filter-input{{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px 12px;color:#e2e8f0;font-size:13px;flex:1;min-width:200px}}
-  .filter-input:focus{{outline:none;border-color:#FFE600}}
-  .filter-select{{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px 12px;color:#e2e8f0;font-size:13px}}
-  .filter-select:focus{{outline:none;border-color:#FFE600}}
-  .btn-export{{background:#1D4ED8;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}}
-  .btn-export:hover{{background:#2563EB}}
-  /* DIVIDER */
-  .divider{{height:1px;background:#334155;margin:20px 0}}
-  /* SHP LINK */
-  .shp-link{{color:#60A5FA;text-decoration:none;font-weight:600}}
-  .shp-link:hover{{color:#FFE600;text-decoration:underline}}
+  .filter-bar{{display:flex;gap:8px;padding:12px 24px;flex-wrap:wrap;border-bottom:1px solid #111827;align-items:center}}
+  .filter-input{{background:#080d19;border:1px solid #111827;border-radius:6px;padding:7px 12px;color:#e2e8f0;font-size:12px;flex:1;min-width:200px;transition:.15s}}
+  .filter-input:focus{{outline:none;border-color:#1f2937}}
+  .filter-input::placeholder{{color:#374151}}
+  .filter-select{{background:#080d19;border:1px solid #111827;border-radius:6px;padding:7px 12px;color:#9ca3af;font-size:12px;transition:.15s}}
+  .filter-select:focus{{outline:none;border-color:#1f2937}}
+  .btn-export{{background:#111827;color:#6b7280;border:1px solid #1f2937;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;transition:.15s;display:flex;align-items:center;gap:5px}}
+  .btn-export:hover{{background:#1f2937;color:#e2e8f0}}
+  /* LINKS */
+  .shp-link{{color:#60a5fa;text-decoration:none;font-weight:500;font-family:monospace;font-size:12px}}
+  .shp-link:hover{{color:#93c5fd}}
   /* SORTABLE */
   th.sortable{{cursor:pointer;user-select:none}}
-  th.sortable:hover{{color:#FFE600}}
-  th.sortable::after{{content:" ↕";opacity:0.4;font-size:10px}}
-  th.sort-asc::after{{content:" ↑";opacity:1;color:#FFE600}}
-  th.sort-desc::after{{content:" ↓";opacity:1;color:#FFE600}}
+  th.sortable:hover{{color:#6b7280}}
+  th.sort-asc::after{{content:" ↑";color:#FFE600}}
+  th.sort-desc::after{{content:" ↓";color:#FFE600}}
+  /* DIVIDER */
+  .divider{{height:1px;background:#111827;margin:20px 0}}
+  /* mb utils */
+  .mb16{{margin-bottom:16px}}
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
 <div class="header">
-  <div>
-    <h1>🔔 Risco SSP30 — Dashboard</h1>
-    <div class="sub">Fonte: Planilha de Controle · Gerado em {d["gerado"]}</div>
+  <div class="header-brand">
+    <div class="header-accent"></div>
+    <div>
+      <div class="header-title">Risco SSP30</div>
+      <div class="header-sub">Planilha de Controle · Gerado em {d["gerado"]}</div>
+    </div>
   </div>
   <div class="header-right">
-    <span class="countdown" id="countdown">Calculando...</span>
-    <div class="sub" style="color:#1a1a1a;margin-top:2px">Atualiza todo dia às 08:00 BRT</div>
+    <span class="status-dot"></span>
+    <span class="countdown-txt" id="countdown">Calculando...</span>
   </div>
 </div>
 
 <!-- TABS -->
 <div class="tabs">
-  <div class="tab active" onclick="showTab('geral',this)">📊 Visão Geral</div>
-  <div class="tab" onclick="showTab('criticos',this)" style="{'color:#EF4444;font-weight:800' if d['criticos'] else ''}">🚨 Críticos ({len(d["criticos"])})</div>
-  <div class="tab" onclick="showTab('route',this)">📦 ON ROUTE ({d["r_total"]})</div>
-  <div class="tab" onclick="showTab('way',this)">🚛 ON WAY ({d["w_total"]})</div>
-  <div class="tab" onclick="showTab('gmv',this)">💰 Top GMV</div>
-  <div class="tab" onclick="showTab('hist',this)">📁 Histórico {d["mes_lbl"]}</div>
+  <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
+  <div class="tab {'tab-alert' if d['criticos'] else ''}" onclick="showTab('criticos',this)">Críticos ({len(d["criticos"])})</div>
+  <div class="tab" onclick="showTab('route',this)">ON ROUTE ({d["r_total"]})</div>
+  <div class="tab" onclick="showTab('way',this)">ON WAY ({d["w_total"]})</div>
+  <div class="tab" onclick="showTab('gmv',this)">Top GMV</div>
+  <div class="tab" onclick="showTab('hist',this)">Histórico {d["mes_lbl"]}</div>
 </div>
 
 <!-- ===================== ABA 1: VISÃO GERAL ===================== -->
 <div id="tab-geral" class="content active">
   <div class="cards">
-    <div class="card yellow"><div class="label">📦 ON ROUTE</div><div class="value">{d["r_total"]}</div><div class="delta">+{d["r_novos"]} novos · {trend(d["net_rt"])}</div></div>
-    <div class="card blue"><div class="label">🚛 ON WAY</div><div class="value">{d["w_total"]}</div><div class="delta">+{d["w_novos"]} novos · {trend(d["net_wy"])}</div></div>
-    <div class="card green"><div class="label">💰 GMV ON ROUTE</div><div class="value">${d["r_gmv"]:,.0f}</div></div>
-    <div class="card green"><div class="label">💰 GMV ON WAY</div><div class="value">${d["w_gmv"]:,.0f}</div></div>
-    <div class="card red"><div class="label">🔥 GMV TOTAL EM RISCO</div><div class="value">${d["gmv_total"]:,.0f}</div></div>
-    <div class="card orange"><div class="label">📹 CFTV Solicitado</div><div class="value">{d["cftv_total"]}</div><div class="delta">Route {d["r_cftv"]} | Way {d["w_cftv"]}</div></div>
-    <div class="card purple"><div class="label">⏱ Dias médio carteira</div><div class="value">{d["dias_medio"]}</div><div class="delta">pacotes ativos</div></div>
-    <div class="card green"><div class="label">🏆 Recuperados {d["mes_lbl"]}</div><div class="value">{d["recuperados"]}</div><div class="delta">Seguiram fluxo correto</div></div>
-    <div class="card green"><div class="label">💵 GMV Recuperado</div><div class="value">${d["gmv_recuperado"]:,.0f}</div><div class="delta">{d["mes_lbl"]}</div></div>
-    <div class="card blue"><div class="label">📈 Taxa de Recupero</div><div class="value">{d["taxa_recupero"]}%</div><div class="delta">{d["recuperados"]} de {d["removidos"]} removidos</div></div>
-    <div class="card purple"><div class="label">✅ Concluídos {d["mes_lbl"]}</div><div class="value">{d["concluidos"]}</div><div class="delta">{d["removidos"]} removidos no mês</div></div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="package" class="card-icon" width="14" height="14"></i><span class="card-label">ON ROUTE</span></div>
+      <div class="card-value">{d["r_total"]}</div>
+      <div class="card-delta">+{d["r_novos"]} novos · {trend(d["net_rt"])}</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="truck" class="card-icon" width="14" height="14"></i><span class="card-label">ON WAY</span></div>
+      <div class="card-value">{d["w_total"]}</div>
+      <div class="card-delta">+{d["w_novos"]} novos · {trend(d["net_wy"])}</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON ROUTE</span></div>
+      <div class="card-value">${d["r_gmv"]:,.0f}</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON WAY</span></div>
+      <div class="card-value">${d["w_gmv"]:,.0f}</div>
+    </div>
+    <div class="card card-alert">
+      <div class="card-header"><i data-lucide="alert-triangle" class="card-icon" width="14" height="14" style="color:#7f1d1d"></i><span class="card-label">GMV EM RISCO</span></div>
+      <div class="card-value val-alert">${d["gmv_total"]:,.0f}</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="camera" class="card-icon" width="14" height="14"></i><span class="card-label">CFTV Solicitado</span></div>
+      <div class="card-value val-warn">{d["cftv_total"]}</div>
+      <div class="card-delta">Route {d["r_cftv"]} · Way {d["w_cftv"]}</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="clock" class="card-icon" width="14" height="14"></i><span class="card-label">Dias médio carteira</span></div>
+      <div class="card-value">{d["dias_medio"]}</div>
+      <div class="card-delta">pacotes ativos</div>
+    </div>
+    <div class="card card-ok">
+      <div class="card-header"><i data-lucide="award" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Recuperados {d["mes_lbl"]}</span></div>
+      <div class="card-value val-ok">{d["recuperados"]}</div>
+      <div class="card-delta">Seguiram fluxo correto</div>
+    </div>
+    <div class="card card-ok">
+      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Recuperado</span></div>
+      <div class="card-value val-ok">${d["gmv_recuperado"]:,.0f}</div>
+      <div class="card-delta">{d["mes_lbl"]}</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>
+      <div class="card-value">{d["taxa_recupero"]}%</div>
+      <div class="card-delta">{d["recuperados"]} de {d["removidos"]} removidos</div>
+    </div>
+    <div class="card card-ok">
+      <div class="card-header"><i data-lucide="check-circle" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Concluídos {d["mes_lbl"]}</span></div>
+      <div class="card-value val-ok">{d["concluidos"]}</div>
+      <div class="card-delta">{d["removidos"]} removidos no mês</div>
+    </div>
   </div>
 
   <div class="legend">
@@ -540,16 +594,16 @@ def gerar_html(d):
     <span class="legend-item"><span class="legend-dot" style="background:#EF4444"></span> 8+ dias (crítico)</span>
   </div>
 
-  <div class="grid2">
-    <div class="box"><h3>ON ROUTE por Situation</h3><canvas id="cSitRt" height="220"></canvas></div>
-    <div class="box"><h3>ON WAY por Situation</h3><canvas id="cSitWy" height="220"></canvas></div>
+  <div class="grid2 mb16">
+    <div class="box"><div class="box-title">ON ROUTE por Situation</div><canvas id="cSitRt" height="220"></canvas></div>
+    <div class="box"><div class="box-title">ON WAY por Situation</div><canvas id="cSitWy" height="220"></canvas></div>
   </div>
-  <div class="grid2">
-    <div class="box"><h3>Status dos Casos (ambas as abas)</h3><canvas id="cStatus" height="220"></canvas></div>
-    <div class="box"><h3>GMV em Risco por Data de Entrada</h3><canvas id="cGmvEvo" height="220"></canvas></div>
+  <div class="grid2 mb16">
+    <div class="box"><div class="box-title">Status dos Casos</div><canvas id="cStatus" height="220"></canvas></div>
+    <div class="box"><div class="box-title">GMV em Risco por Data de Entrada</div><canvas id="cGmvEvo" height="220"></canvas></div>
   </div>
-  <div class="box" style="margin-bottom:24px"><h3>Pacotes por Data de Entrada</h3><canvas id="cEvo" height="180"></canvas></div>
-  <div class="box" style="margin-bottom:24px"><h3>📅 Entradas por Dia da Semana (ativos + histórico do mês)</h3><canvas id="cHeatmap" height="160"></canvas></div>
+  <div class="box mb16"><div class="box-title">Volume de Entradas por Data</div><canvas id="cEvo" height="180"></canvas></div>
+  <div class="box mb16"><div class="box-title">Entradas por Dia da Semana</div><canvas id="cHeatmap" height="160"></canvas></div>
 </div>
 
 <!-- ===================== ABA 2: CRÍTICOS ===================== -->
@@ -880,6 +934,8 @@ new Chart(document.getElementById('cTop'), {{
               y:{{ ticks:{{ color:'#94a3b8', font:{{ size:11 }} }}, grid:{{ display:false }} }} }}
   }}
 }});
+// Inicializa ícones Lucide
+lucide.createIcons();
 </script>
 </body>
 </html>'''
