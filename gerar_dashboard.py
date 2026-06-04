@@ -450,7 +450,7 @@ def gerar_html(d):
   .countdown-txt{{font-size:11px;color:#4b5563}}
   /* TABS */
   .tabs{{background:#080d19;border-bottom:1px solid #111827;padding:0 32px;display:flex;gap:0;overflow-x:auto}}
-  .tab{{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;letter-spacing:.2px}}
+  .tab{{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;transition:background-color .3s ease,color .3s ease,border-color .3s ease,box-shadow .3s ease,transform .2s ease;white-space:nowrap;letter-spacing:.2px}}
   .tab:hover{{color:#f9fafb}}
   .tab.active{{color:#ffffff;border-bottom-color:#FFE600;font-weight:600}}
   .tab-alert{{color:#ef4444!important}}
@@ -459,7 +459,7 @@ def gerar_html(d):
   .content.active{{display:block}}
   /* CARDS */
   .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:24px;align-items:stretch}}
-  .card{{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:.15s;cursor:default;display:flex;flex-direction:column;min-height:96px}}
+  .card{{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:background-color .3s ease,color .3s ease,border-color .3s ease,box-shadow .3s ease,transform .2s ease;cursor:default;display:flex;flex-direction:column;min-height:96px}}
   .card:hover{{border-color:#374151;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.5)}}
   .card-delta{{margin-top:auto;padding-top:6px}}
   .card.card-alert{{border-color:#450a0a;background:#0f0606;padding-left:22px}}
@@ -495,12 +495,12 @@ def gerar_html(d):
   .legend-dot{{width:7px;height:7px;border-radius:50%;flex-shrink:0}}
   /* FILTER BAR */
   .filter-bar{{display:flex;gap:8px;padding:12px 24px;flex-wrap:wrap;border-bottom:1px solid #111827;align-items:center}}
-  .filter-input{{background:#080d19;border:1px solid #111827;border-radius:6px;padding:7px 12px;color:#e2e8f0;font-size:12px;flex:1;min-width:200px;transition:.15s}}
+  .filter-input{{background:#080d19;border:1px solid #111827;border-radius:6px;padding:7px 12px;color:#e2e8f0;font-size:12px;flex:1;min-width:200px;transition:background-color .3s ease,color .3s ease,border-color .3s ease,box-shadow .3s ease,transform .2s ease}}
   .filter-input:focus{{outline:none;border-color:#1f2937}}
   .filter-input::placeholder{{color:#374151}}
-  .filter-select{{background:#080d19;border:1px solid #111827;border-radius:6px;padding:7px 12px;color:#9ca3af;font-size:12px;transition:.15s}}
+  .filter-select{{background:#080d19;border:1px solid #111827;border-radius:6px;padding:7px 12px;color:#9ca3af;font-size:12px;transition:background-color .3s ease,color .3s ease,border-color .3s ease,box-shadow .3s ease,transform .2s ease}}
   .filter-select:focus{{outline:none;border-color:#1f2937}}
-  .btn-export{{background:#111827;color:#6b7280;border:1px solid #1f2937;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;transition:.15s;display:flex;align-items:center;gap:5px}}
+  .btn-export{{background:#111827;color:#6b7280;border:1px solid #1f2937;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background-color .3s ease,color .3s ease,border-color .3s ease,box-shadow .3s ease,transform .2s ease;display:flex;align-items:center;gap:5px}}
   .btn-export:hover{{background:#1f2937;color:#e2e8f0}}
   /* LINKS */
   .shp-link{{color:#60a5fa;text-decoration:none;font-weight:500;font-family:monospace;font-size:12px}}
