@@ -224,6 +224,11 @@ def row_bg(d):
     if d >= 4:  return 'background:#2d1f0e'
     return ''
 
+MELI_PKG_URL = 'https://envios.adminml.com/logistics/package-management/package'
+
+def id_link(shp_id):
+    return f'<a href="{MELI_PKG_URL}/{shp_id}" target="_blank" class="shp-link">{shp_id}</a>'
+
 def rows_table_rt(rows):
     out = ''
     for r in rows:
@@ -234,7 +239,7 @@ def rows_table_rt(rows):
             data-sit="{r["sit"].lower()}"
             data-status="{r["status"].lower()}"
             data-resp="{r["resp"].lower()}">
-            <td style="font-family:monospace;font-size:12px">{r["id"]}</td>
+            <td style="font-family:monospace;font-size:12px">{id_link(r["id"])}</td>
             <td>{pill(r["sit"])}</td>
             <td style="font-weight:700;color:#10B981">{g}</td>
             <td>{r["resp"] or "—"}</td>
@@ -255,7 +260,7 @@ def rows_table_wy(rows):
             data-sit="{r["sit"].lower()}"
             data-status="{r["status"].lower()}"
             data-resp="{r["resp"].lower()}">
-            <td style="font-family:monospace;font-size:12px">{r["id"]}</td>
+            <td style="font-family:monospace;font-size:12px">{id_link(r["id"])}</td>
             <td>{pill(r["sit"])}</td>
             <td style="font-weight:700;color:#10B981">{g}</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">{r["dias_ow"] or "—"}</td>
@@ -276,7 +281,7 @@ def rows_table_top(rows):
         out += f'''<tr style="{bg}">
             <td style="text-align:center;font-weight:700;color:#FFE600">{i}</td>
             <td><span style="background:{orig_bg};color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">{r["origem"]}</span></td>
-            <td style="font-family:monospace;font-size:12px">{r["id"]}</td>
+            <td style="font-family:monospace;font-size:12px">{id_link(r["id"])}</td>
             <td>{pill(r["sit"])}</td>
             <td style="font-weight:700;color:#10B981;font-size:14px">{g}</td>
             <td>{r["resp"] or "—"}</td>
@@ -425,6 +430,15 @@ def gerar_html(d):
   .btn-export:hover{{background:#2563EB}}
   /* DIVIDER */
   .divider{{height:1px;background:#334155;margin:20px 0}}
+  /* SHP LINK */
+  .shp-link{{color:#60A5FA;text-decoration:none;font-weight:600}}
+  .shp-link:hover{{color:#FFE600;text-decoration:underline}}
+  /* SORTABLE */
+  th.sortable{{cursor:pointer;user-select:none}}
+  th.sortable:hover{{color:#FFE600}}
+  th.sortable::after{{content:" ↕";opacity:0.4;font-size:10px}}
+  th.sort-asc::after{{content:" ↑";opacity:1;color:#FFE600}}
+  th.sort-desc::after{{content:" ↓";opacity:1;color:#FFE600}}
 </style>
 </head>
 <body>
@@ -497,9 +511,14 @@ def gerar_html(d):
     <div class="tbl-scroll">
     <table id="tbl_route">
       <thead><tr>
-        <th>SHP ID</th><th>Situation</th><th>GMV USD</th>
-        <th>Responsável</th><th>CFTV</th><th>Status Caso</th>
-        <th>Dias Cart.</th><th>Entrada</th>
+        <th class="sortable" onclick="sortTable('tbl_route',0)">SHP ID</th>
+        <th class="sortable" onclick="sortTable('tbl_route',1)">Situation</th>
+        <th class="sortable" onclick="sortTable('tbl_route',2)">GMV USD</th>
+        <th class="sortable" onclick="sortTable('tbl_route',3)">Responsável</th>
+        <th>CFTV</th>
+        <th class="sortable" onclick="sortTable('tbl_route',5)">Status Caso</th>
+        <th class="sortable" onclick="sortTable('tbl_route',6)">Dias Cart.</th>
+        <th class="sortable" onclick="sortTable('tbl_route',7)">Entrada</th>
       </tr></thead>
       <tbody>{rows_table_rt(d["r_rows"])}</tbody>
     </table>
@@ -523,9 +542,15 @@ def gerar_html(d):
     <div class="tbl-scroll">
     <table id="tbl_way">
       <thead><tr>
-        <th>SHP ID</th><th>Situation</th><th>GMV USD</th>
-        <th>Dias OW</th><th>Transportadora</th><th>CFTV</th>
-        <th>Status Caso</th><th>Dias Cart.</th><th>Entrada</th>
+        <th class="sortable" onclick="sortTable('tbl_way',0)">SHP ID</th>
+        <th class="sortable" onclick="sortTable('tbl_way',1)">Situation</th>
+        <th class="sortable" onclick="sortTable('tbl_way',2)">GMV USD</th>
+        <th class="sortable" onclick="sortTable('tbl_way',3)">Dias OW</th>
+        <th class="sortable" onclick="sortTable('tbl_way',4)">Transportadora</th>
+        <th>CFTV</th>
+        <th class="sortable" onclick="sortTable('tbl_way',6)">Status Caso</th>
+        <th class="sortable" onclick="sortTable('tbl_way',7)">Dias Cart.</th>
+        <th class="sortable" onclick="sortTable('tbl_way',8)">Entrada</th>
       </tr></thead>
       <tbody>{rows_table_wy(d["w_rows"])}</tbody>
     </table>
@@ -608,6 +633,34 @@ function exportCSV(tabId, filename) {{
   a.click();
 }}
 
+// Ordenação de colunas
+const sortState = {{}};
+function sortTable(tblId, colIdx) {{
+  const tbl  = document.getElementById(tblId);
+  const tbody= tbl.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const key  = tblId + '_' + colIdx;
+  const asc  = sortState[key] !== true;
+  sortState[key] = asc;
+
+  // atualiza ícones
+  tbl.querySelectorAll('th').forEach((th,i) => {{
+    th.classList.remove('sort-asc','sort-desc');
+    if (i === colIdx) th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+  }});
+
+  rows.sort((a, b) => {{
+    const ta = a.cells[colIdx]?.textContent.trim() || '';
+    const tb = b.cells[colIdx]?.textContent.trim() || '';
+    // tenta numérico (remove $, d, ,)
+    const na = parseFloat(ta.replace(/[$,d]/g,''));
+    const nb = parseFloat(tb.replace(/[$,d]/g,''));
+    if (!isNaN(na) && !isNaN(nb)) return asc ? na-nb : nb-na;
+    return asc ? ta.localeCompare(tb,'pt-BR') : tb.localeCompare(ta,'pt-BR');
+  }});
+  rows.forEach(r => tbody.appendChild(r));
+}}
+
 // Countdown para próxima atualização (08:00 BRT = 11:00 UTC)
 function updateCountdown() {{
   const now  = new Date();
@@ -629,18 +682,33 @@ const defOpts = {{
   plugins: {{ legend: {{ labels: {{ color:'#94a3b8', font:{{ size:12 }} }} }} }},
 }};
 
+// Clique no gráfico → filtra tabela e muda de aba
+function onClickChart(evt, elements, chart, tabId, sitSelectId) {{
+  if (!elements.length) return;
+  const label = chart.data.labels[elements[0].index];
+  showTab(tabId, document.querySelector('.tab:nth-child(' + (tabId==='route'?2:3) + ')'));
+  const sel = document.getElementById(sitSelectId);
+  if (sel) {{ sel.value = label.toLowerCase(); filtrar(tabId); }}
+}}
+
 // Doughnut ON ROUTE
 new Chart(document.getElementById('cSitRt'), {{
   type: 'doughnut',
   data: {{ labels:{sit_rt_labels}, datasets:[{{ data:{sit_rt_values}, backgroundColor:{rt_colors}, borderWidth:0 }}] }},
-  options: {{ ...defOpts, cutout:'40%' }}
+  options: {{ ...defOpts, cutout:'40%',
+    onClick: (evt,els,chart) => onClickChart(evt,els,chart,'route','sit_route'),
+    plugins: {{ ...defOpts.plugins, tooltip:{{ callbacks:{{ label: ctx => ` ${{ctx.label}}: ${{ctx.raw}} pacotes — clique para filtrar` }} }} }}
+  }}
 }});
 
 // Doughnut ON WAY
 new Chart(document.getElementById('cSitWy'), {{
   type: 'doughnut',
   data: {{ labels:{sit_wy_labels}, datasets:[{{ data:{sit_wy_values}, backgroundColor:{wy_colors}, borderWidth:0 }}] }},
-  options: {{ ...defOpts, cutout:'40%' }}
+  options: {{ ...defOpts, cutout:'40%',
+    onClick: (evt,els,chart) => onClickChart(evt,els,chart,'way','sit_way'),
+    plugins: {{ ...defOpts.plugins, tooltip:{{ callbacks:{{ label: ctx => ` ${{ctx.label}}: ${{ctx.raw}} pacotes — clique para filtrar` }} }} }}
+  }}
 }});
 
 // Status dos casos
