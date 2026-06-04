@@ -83,7 +83,7 @@
 <div class="header">
   <div>
     <h1>🔔 Risco SSP30 — Dashboard</h1>
-    <div class="sub">Fonte: Planilha de Controle · Gerado em 04/06/2026 16:29</div>
+    <div class="sub">Fonte: Planilha de Controle · Gerado em 04/06/2026 16:35</div>
   </div>
   <div class="header-right">
     <span class="countdown" id="countdown">Calculando...</span>
@@ -111,6 +111,8 @@
     <div class="card orange"><div class="label">📹 CFTV Solicitado</div><div class="value">37</div><div class="delta">Route 16 | Way 21</div></div>
     <div class="card purple"><div class="label">⏱ Dias médio carteira</div><div class="value">3.4</div><div class="delta">pacotes ativos</div></div>
     <div class="card green"><div class="label">🏆 Recuperados jun/2026</div><div class="value">13</div><div class="delta">Seguiram fluxo correto</div></div>
+    <div class="card green"><div class="label">💵 GMV Recuperado</div><div class="value">$8,767</div><div class="delta">jun/2026</div></div>
+    <div class="card blue"><div class="label">📈 Taxa de Recupero</div><div class="value">26.5%</div><div class="delta">13 de 49 removidos</div></div>
     <div class="card purple"><div class="label">✅ Concluídos jun/2026</div><div class="value">13</div><div class="delta">49 removidos no mês</div></div>
   </div>
 
@@ -129,6 +131,7 @@
     <div class="box"><h3>GMV em Risco por Data de Entrada</h3><canvas id="cGmvEvo" height="220"></canvas></div>
   </div>
   <div class="box" style="margin-bottom:24px"><h3>Pacotes por Data de Entrada</h3><canvas id="cEvo" height="180"></canvas></div>
+  <div class="box" style="margin-bottom:24px"><h3>📅 Entradas por Dia da Semana (ativos + histórico do mês)</h3><canvas id="cHeatmap" height="160"></canvas></div>
 </div>
 
 <!-- ===================== ABA 2: ON ROUTE ===================== -->
@@ -2243,6 +2246,28 @@ new Chart(document.getElementById('cEvo'), {
   options: { ...defOpts,
     scales:{ x:{ stacked:true, ticks:{ color:'#64748b', maxRotation:45 }, grid:{ color:'#1e293b' } },
               y:{ stacked:true, ticks:{ color:'#64748b' }, grid:{ color:'#334155' } } }
+  }
+});
+
+// Heatmap dias da semana
+const hmColors = [10, 7, 59, 49, 6, 9, 1].map(v => {
+  const max = Math.max(...[10, 7, 59, 49, 6, 9, 1]);
+  const ratio = max > 0 ? v / max : 0;
+  const r = Math.round(59  + (239-59)  * ratio);
+  const g = Math.round(130 + (68-130)  * ratio);
+  const b = Math.round(246 + (68-246)  * ratio);
+  return `rgba(${r},${g},${b},0.85)`;
+});
+new Chart(document.getElementById('cHeatmap'), {
+  type: 'bar',
+  data: { labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"], datasets:[{ data:[10, 7, 59, 49, 6, 9, 1],
+    backgroundColor: hmColors, borderRadius:8 }] },
+  options: {
+    responsive:true,
+    plugins:{ legend:{ display:false },
+      tooltip:{ callbacks:{ label: ctx=>`${ctx.raw} pacotes entraram na ${ctx.label}` } } },
+    scales:{ x:{ ticks:{ color:'#94a3b8', font:{size:13, weight:'bold'} }, grid:{ display:false } },
+              y:{ ticks:{ color:'#64748b' }, grid:{ color:'#334155' } } }
   }
 });
 

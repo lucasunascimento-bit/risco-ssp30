@@ -146,6 +146,26 @@ def processar(rt, wy, hi):
                     'final':  r[7] if len(r) > 7 else ''}
                    for r in hist_mes]
 
+    # Taxa de recupero e GMV recuperado
+    taxa_recupero  = round(recuperados / removidos * 100, 1) if removidos > 0 else 0
+    gmv_recuperado = sum(flt(r['gmv']) for r in hist_rows if 'fluxo' in r['final'].lower())
+
+    # ---- Heatmap por dia da semana (ativos + histórico do mês) ----
+    dias_labels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+    heatmap = [0] * 7
+    # pacotes ativos
+    for r in rt + wy:
+        entrada = r[31] if len(r) > 31 else ''
+        try:
+            heatmap[datetime.strptime(entrada.strip(), '%d/%m/%Y').weekday()] += 1
+        except: pass
+    # histórico do mês
+    for r in hist_mes:
+        data = r[0] if len(r) > 0 else ''
+        try:
+            heatmap[datetime.strptime(data.strip(), '%d/%m/%Y').weekday()] += 1
+        except: pass
+
     # ---- Evolução por data de entrada (qtd + GMV) ----
     datas_rt, datas_wy   = {}, {}
     gmv_rt_dt, gmv_wy_dt = {}, {}
@@ -182,6 +202,9 @@ def processar(rt, wy, hi):
         # Histórico
         'concluidos': concluidos, 'recuperados': recuperados,
         'removidos':  removidos,  'hist_rows': hist_rows,
+        'taxa_recupero': taxa_recupero, 'gmv_recuperado': gmv_recuperado,
+        # Heatmap
+        'heatmap_labels': dias_labels, 'heatmap': heatmap,
         # Evolução
         'evo_labels':  datas_todas,
         'evo_rt':      [datas_rt.get(d, 0)      for d in datas_todas],
@@ -475,6 +498,8 @@ def gerar_html(d):
     <div class="card orange"><div class="label">📹 CFTV Solicitado</div><div class="value">{d["cftv_total"]}</div><div class="delta">Route {d["r_cftv"]} | Way {d["w_cftv"]}</div></div>
     <div class="card purple"><div class="label">⏱ Dias médio carteira</div><div class="value">{d["dias_medio"]}</div><div class="delta">pacotes ativos</div></div>
     <div class="card green"><div class="label">🏆 Recuperados {d["mes_lbl"]}</div><div class="value">{d["recuperados"]}</div><div class="delta">Seguiram fluxo correto</div></div>
+    <div class="card green"><div class="label">💵 GMV Recuperado</div><div class="value">${d["gmv_recuperado"]:,.0f}</div><div class="delta">{d["mes_lbl"]}</div></div>
+    <div class="card blue"><div class="label">📈 Taxa de Recupero</div><div class="value">{d["taxa_recupero"]}%</div><div class="delta">{d["recuperados"]} de {d["removidos"]} removidos</div></div>
     <div class="card purple"><div class="label">✅ Concluídos {d["mes_lbl"]}</div><div class="value">{d["concluidos"]}</div><div class="delta">{d["removidos"]} removidos no mês</div></div>
   </div>
 
@@ -493,6 +518,7 @@ def gerar_html(d):
     <div class="box"><h3>GMV em Risco por Data de Entrada</h3><canvas id="cGmvEvo" height="220"></canvas></div>
   </div>
   <div class="box" style="margin-bottom:24px"><h3>Pacotes por Data de Entrada</h3><canvas id="cEvo" height="180"></canvas></div>
+  <div class="box" style="margin-bottom:24px"><h3>📅 Entradas por Dia da Semana (ativos + histórico do mês)</h3><canvas id="cHeatmap" height="160"></canvas></div>
 </div>
 
 <!-- ===================== ABA 2: ON ROUTE ===================== -->
@@ -751,6 +777,28 @@ new Chart(document.getElementById('cEvo'), {{
   options: {{ ...defOpts,
     scales:{{ x:{{ stacked:true, ticks:{{ color:'#64748b', maxRotation:45 }}, grid:{{ color:'#1e293b' }} }},
               y:{{ stacked:true, ticks:{{ color:'#64748b' }}, grid:{{ color:'#334155' }} }} }}
+  }}
+}});
+
+// Heatmap dias da semana
+const hmColors = {j(d["heatmap"])}.map(v => {{
+  const max = Math.max(...{j(d["heatmap"])});
+  const ratio = max > 0 ? v / max : 0;
+  const r = Math.round(59  + (239-59)  * ratio);
+  const g = Math.round(130 + (68-130)  * ratio);
+  const b = Math.round(246 + (68-246)  * ratio);
+  return `rgba(${{r}},${{g}},${{b}},0.85)`;
+}});
+new Chart(document.getElementById('cHeatmap'), {{
+  type: 'bar',
+  data: {{ labels: {j(d["heatmap_labels"])}, datasets:[{{ data:{j(d["heatmap"])},
+    backgroundColor: hmColors, borderRadius:8 }}] }},
+  options: {{
+    responsive:true,
+    plugins:{{ legend:{{ display:false }},
+      tooltip:{{ callbacks:{{ label: ctx=>`${{ctx.raw}} pacotes entraram na ${{ctx.label}}` }} }} }},
+    scales:{{ x:{{ ticks:{{ color:'#94a3b8', font:{{size:13, weight:'bold'}} }}, grid:{{ display:false }} }},
+              y:{{ ticks:{{ color:'#64748b' }}, grid:{{ color:'#334155' }} }} }}
   }}
 }});
 
