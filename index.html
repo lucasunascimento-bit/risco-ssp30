@@ -30,9 +30,10 @@
   .content{display:none;padding:28px 32px;max-width:1480px;margin:0 auto}
   .content.active{display:block}
   /* CARDS */
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:24px}
-  .card{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:.15s;cursor:default}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:24px;align-items:stretch}
+  .card{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:.15s;cursor:default;display:flex;flex-direction:column;min-height:96px}
   .card:hover{border-color:#1f2937;transform:translateY(-1px)}
+  .card-delta{margin-top:auto;padding-top:6px}
   .card.card-alert{border-color:#450a0a;background:#0f0606;padding-left:22px}
   .card.card-ok{border-color:#022c22;background:#060f0d;padding-left:22px}
   .card-header{display:flex;align-items:center;gap:7px;margin-bottom:14px}
@@ -61,9 +62,9 @@
   /* PILL */
   .pill{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
   /* LEGEND */
-  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:11px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;padding:0;margin-left:0}
   .legend-item{display:flex;align-items:center;gap:5px;color:#4b5563}
-  .legend-dot{width:7px;height:7px;border-radius:50%}
+  .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
   /* FILTER BAR */
   .filter-bar{display:flex;gap:8px;padding:12px 24px;flex-wrap:wrap;border-bottom:1px solid #111827;align-items:center}
   .filter-input{background:#080d19;border:1px solid #111827;border-radius:6px;padding:7px 12px;color:#e2e8f0;font-size:12px;flex:1;min-width:200px;transition:.15s}
@@ -95,7 +96,7 @@
     <div class="header-accent"></div>
     <div>
       <div class="header-title">Risco SSP30</div>
-      <div class="header-sub">Planilha de Controle · Gerado em 04/06/2026 17:20</div>
+      <div class="header-sub">Planilha de Controle · Gerado em 04/06/2026 17:29</div>
     </div>
   </div>
   <div class="header-right">
@@ -150,9 +151,9 @@
       <div class="card-delta">pacotes ativos</div>
     </div>
     <div class="card card-ok">
-      <div class="card-header"><i data-lucide="award" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Recuperados jun/2026</span></div>
+      <div class="card-header"><i data-lucide="award" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Recuperados</span></div>
       <div class="card-value val-ok">13</div>
-      <div class="card-delta">Seguiram fluxo correto</div>
+      <div class="card-delta">jun/2026 · Seguiram fluxo correto</div>
     </div>
     <div class="card card-ok">
       <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Recuperado</span></div>
@@ -2694,7 +2695,7 @@ function onClickChart(evt, elements, chart, tabId, sitSelectId) {
 // Doughnut ON ROUTE
 new Chart(document.getElementById('cSitRt'), {
   type: 'doughnut',
-  data: { labels:["Procurar Pacote", "Possivel Lost"], datasets:[{ data:[20, 18], backgroundColor:["#b07040", "#b54040"], borderWidth:0 }] },
+  data: { labels:["Procurar Pacote", "Possivel Lost"], datasets:[{ data:[20, 18], backgroundColor:["rgba(176,112,64,0.85)", "rgba(181,64,64,0.85)"], borderWidth:0 }] },
   options: { ...defOpts, cutout:'40%',
     onClick: (evt,els,chart) => onClickChart(evt,els,chart,'route','sit_route'),
     plugins: { ...defOpts.plugins, tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} pacotes — clique para filtrar` } } }
@@ -2704,7 +2705,7 @@ new Chart(document.getElementById('cSitRt'), {
 // Doughnut ON WAY
 new Chart(document.getElementById('cSitWy'), {
   type: 'doughnut',
-  data: { labels:[">= 11 dias", "Possivel Lost", "< 11 dias OW", ">= 11 dias OW"], datasets:[{ data:[1, 17, 34, 2], backgroundColor:["#9CA3AF", "#b54040", "#3d6ea8", "#9d8530"], borderWidth:0 }] },
+  data: { labels:[">= 11 dias", "Possivel Lost", "< 11 dias OW", ">= 11 dias OW"], datasets:[{ data:[1, 17, 34, 2], backgroundColor:["#9CA3AF", "rgba(181,64,64,0.85)", "rgba(61,110,168,0.85)", "rgba(157,133,48,0.85)"], borderWidth:0 }] },
   options: { ...defOpts, cutout:'40%',
     onClick: (evt,els,chart) => onClickChart(evt,els,chart,'way','sit_way'),
     plugins: { ...defOpts.plugins, tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} pacotes — clique para filtrar` } } }

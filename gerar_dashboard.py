@@ -398,8 +398,10 @@ def gerar_html(d):
     st_labels = j(list(d['status_cnt'].keys()))
     st_values = j(list(d['status_cnt'].values()))
 
-    CORES_SIT = {'Possivel Lost':'#b54040','Procurar Pacote':'#b07040',
-                 '>= 11 dias OW':'#9d8530','< 11 dias OW':'#3d6ea8'}
+    CORES_SIT = {'Possivel Lost':  'rgba(181,64,64,0.85)',
+                 'Procurar Pacote':'rgba(176,112,64,0.85)',
+                 '>= 11 dias OW': 'rgba(157,133,48,0.85)',
+                 '< 11 dias OW':  'rgba(61,110,168,0.85)'}
     rt_colors = j([CORES_SIT.get(k,'#9CA3AF') for k in d['r_sit'].keys()])
     wy_colors = j([CORES_SIT.get(k,'#9CA3AF') for k in d['w_sit'].keys()])
 
@@ -447,9 +449,10 @@ def gerar_html(d):
   .content{{display:none;padding:28px 32px;max-width:1480px;margin:0 auto}}
   .content.active{{display:block}}
   /* CARDS */
-  .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:24px}}
-  .card{{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:.15s;cursor:default}}
+  .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:24px;align-items:stretch}}
+  .card{{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:.15s;cursor:default;display:flex;flex-direction:column;min-height:96px}}
   .card:hover{{border-color:#1f2937;transform:translateY(-1px)}}
+  .card-delta{{margin-top:auto;padding-top:6px}}
   .card.card-alert{{border-color:#450a0a;background:#0f0606;padding-left:22px}}
   .card.card-ok{{border-color:#022c22;background:#060f0d;padding-left:22px}}
   .card-header{{display:flex;align-items:center;gap:7px;margin-bottom:14px}}
@@ -478,9 +481,9 @@ def gerar_html(d):
   /* PILL */
   .pill{{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}}
   /* LEGEND */
-  .legend{{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:11px}}
+  .legend{{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;padding:0;margin-left:0}}
   .legend-item{{display:flex;align-items:center;gap:5px;color:#4b5563}}
-  .legend-dot{{width:7px;height:7px;border-radius:50%}}
+  .legend-dot{{width:7px;height:7px;border-radius:50%;flex-shrink:0}}
   /* FILTER BAR */
   .filter-bar{{display:flex;gap:8px;padding:12px 24px;flex-wrap:wrap;border-bottom:1px solid #111827;align-items:center}}
   .filter-input{{background:#080d19;border:1px solid #111827;border-radius:6px;padding:7px 12px;color:#e2e8f0;font-size:12px;flex:1;min-width:200px;transition:.15s}}
@@ -567,9 +570,9 @@ def gerar_html(d):
       <div class="card-delta">pacotes ativos</div>
     </div>
     <div class="card card-ok">
-      <div class="card-header"><i data-lucide="award" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Recuperados {d["mes_lbl"]}</span></div>
+      <div class="card-header"><i data-lucide="award" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Recuperados</span></div>
       <div class="card-value val-ok">{d["recuperados"]}</div>
-      <div class="card-delta">Seguiram fluxo correto</div>
+      <div class="card-delta">{d["mes_lbl"]} · Seguiram fluxo correto</div>
     </div>
     <div class="card card-ok">
       <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Recuperado</span></div>
