@@ -22,8 +22,8 @@
   .countdown-txt{font-size:11px;color:#4b5563}
   /* TABS */
   .tabs{background:#080d19;border-bottom:1px solid #111827;padding:0 32px;display:flex;gap:0;overflow-x:auto}
-  .tab{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#4b5563;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;letter-spacing:.2px}
-  .tab:hover{color:#9ca3af}
+  .tab{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;letter-spacing:.2px}
+  .tab:hover{color:#d1d5db}
   .tab.active{color:#ffffff;border-bottom-color:#FFE600;font-weight:600}
   .tab-alert{color:#ef4444!important}
   /* CONTENT */
@@ -33,11 +33,11 @@
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:24px}
   .card{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:.15s;cursor:default}
   .card:hover{border-color:#1f2937;transform:translateY(-1px)}
-  .card.card-alert{border-color:#450a0a;background:#0f0606}
-  .card.card-ok{border-color:#022c22;background:#060f0d}
+  .card.card-alert{border-color:#450a0a;background:#0f0606;padding-left:22px}
+  .card.card-ok{border-color:#022c22;background:#060f0d;padding-left:22px}
   .card-header{display:flex;align-items:center;gap:7px;margin-bottom:14px}
   .card-icon{color:#374151;flex-shrink:0}
-  .card-label{font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.7px;font-weight:600}
+  .card-label{font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .card-value{font-size:28px;font-weight:800;color:#ffffff;line-height:1;letter-spacing:-1px}
   .card-value.val-alert{color:#ef4444}
   .card-value.val-ok{color:#10b981}
@@ -95,7 +95,7 @@
     <div class="header-accent"></div>
     <div>
       <div class="header-title">Risco SSP30</div>
-      <div class="header-sub">Planilha de Controle · Gerado em 04/06/2026 17:15</div>
+      <div class="header-sub">Planilha de Controle · Gerado em 04/06/2026 17:20</div>
     </div>
   </div>
   <div class="header-right">
@@ -198,7 +198,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47012996990" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47012996990</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -216,7 +216,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47091872906" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47091872906</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -234,7 +234,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46885962511" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46885962511</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -252,7 +252,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47090537177" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47090537177</a>
-        <span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span>
+        <span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -270,7 +270,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47069669118" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47069669118</a>
-        <span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span>
+        <span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -288,7 +288,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47122298879" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47122298879</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -306,7 +306,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47145689534" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47145689534</a>
-        <span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span>
+        <span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -324,7 +324,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46927258373" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46927258373</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -342,7 +342,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47128033779" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47128033779</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -360,7 +360,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47079778283" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47079778283</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -378,7 +378,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47063438675" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47063438675</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -396,7 +396,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47090534009" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47090534009</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -414,7 +414,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46855434089" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46855434089</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -432,7 +432,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46994743959" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46994743959</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -450,7 +450,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46918540469" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46918540469</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -468,7 +468,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46935801844" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46935801844</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -486,7 +486,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46879619854" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46879619854</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -504,7 +504,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47036107033" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47036107033</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -522,7 +522,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47049354601" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47049354601</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -540,7 +540,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46961814688" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46961814688</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -558,7 +558,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46993835378" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46993835378</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -576,7 +576,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/47016539135" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47016539135</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -594,7 +594,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46937855725" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46937855725</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -612,7 +612,7 @@
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <a href="https://envios.adminml.com/logistics/package-management/package/46889167588" target="_blank"
            style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46889167588</a>
-        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span>
         <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -673,7 +673,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47069669118" target="_blank" class="shp-link">47069669118</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$2,542.67</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
@@ -686,7 +686,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47176942580" target="_blank" class="shp-link">47176942580</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$2,197.50</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -699,7 +699,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47166311471" target="_blank" class="shp-link">47166311471</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$1,265.15</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -712,7 +712,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47122298879" target="_blank" class="shp-link">47122298879</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$1,086.93</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -725,7 +725,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47203171689" target="_blank" class="shp-link">47203171689</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$794.98</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -738,7 +738,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47091872906" target="_blank" class="shp-link">47091872906</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$767.52</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
@@ -751,7 +751,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47200714418" target="_blank" class="shp-link">47200714418</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$715.46</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -764,7 +764,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47200816346" target="_blank" class="shp-link">47200816346</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$635.95</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -777,7 +777,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47145689534" target="_blank" class="shp-link">47145689534</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$554.54</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">❌</td>
@@ -790,7 +790,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47168929991" target="_blank" class="shp-link">47168929991</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$548.98</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -803,7 +803,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47170517480" target="_blank" class="shp-link">47170517480</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$492.37</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -816,7 +816,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47186145045" target="_blank" class="shp-link">47186145045</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$480.14</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -829,7 +829,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47128033779" target="_blank" class="shp-link">47128033779</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$478.64</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
@@ -842,7 +842,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47039557019" target="_blank" class="shp-link">47039557019</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$462.58</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
@@ -855,7 +855,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47168490956" target="_blank" class="shp-link">47168490956</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$454.54</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -868,7 +868,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47079778283" target="_blank" class="shp-link">47079778283</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$453.86</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
@@ -881,7 +881,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47091434844" target="_blank" class="shp-link">47091434844</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$448.53</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
@@ -894,7 +894,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47190258123" target="_blank" class="shp-link">47190258123</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$444.74</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -907,7 +907,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47161278266" target="_blank" class="shp-link">47161278266</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$443.93</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
@@ -920,7 +920,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47154816260" target="_blank" class="shp-link">47154816260</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$442.13</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -933,7 +933,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47205855916" target="_blank" class="shp-link">47205855916</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$437.33</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -946,7 +946,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47152669204" target="_blank" class="shp-link">47152669204</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$408.35</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">❌</td>
@@ -959,7 +959,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47163065402" target="_blank" class="shp-link">47163065402</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$391.45</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -972,7 +972,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47136323446" target="_blank" class="shp-link">47136323446</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981">$380.73</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -985,7 +985,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47063438675" target="_blank" class="shp-link">47063438675</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$361.71</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">❌</td>
@@ -998,7 +998,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47090534009" target="_blank" class="shp-link">47090534009</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$354.96</td>
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
@@ -1011,7 +1011,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47097877945" target="_blank" class="shp-link">47097877945</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$199.41</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
@@ -1024,7 +1024,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47088719465" target="_blank" class="shp-link">47088719465</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$177.48</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -1037,7 +1037,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47122893530" target="_blank" class="shp-link">47122893530</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$174.43</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -1050,7 +1050,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47085891009" target="_blank" class="shp-link">47085891009</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$156.56</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
@@ -1063,7 +1063,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47068646131" target="_blank" class="shp-link">47068646131</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$138.53</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
@@ -1076,7 +1076,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47062603346" target="_blank" class="shp-link">47062603346</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$137.81</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -1089,7 +1089,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47085504134" target="_blank" class="shp-link">47085504134</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$130.93</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
@@ -1102,7 +1102,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47079350520" target="_blank" class="shp-link">47079350520</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$128.30</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
@@ -1115,7 +1115,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47085244062" target="_blank" class="shp-link">47085244062</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$124.18</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
@@ -1128,7 +1128,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47088759101" target="_blank" class="shp-link">47088759101</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$119.78</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
@@ -1141,7 +1141,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47090932997" target="_blank" class="shp-link">47090932997</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$111.74</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
@@ -1154,7 +1154,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47091783555" target="_blank" class="shp-link">47091783555</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$102.02</td>
             <td>—</td>
             <td style="text-align:center">✅</td>
@@ -1214,7 +1214,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47090537177" target="_blank" class="shp-link">47090537177</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$2,850.28</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">3</td>
             <td>MARONITRANSP</td>
@@ -1228,7 +1228,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218695812" target="_blank" class="shp-link">47218695812</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$1,556.88</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1242,7 +1242,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47220251831" target="_blank" class="shp-link">47220251831</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$1,398.19</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>—</td>
@@ -1256,7 +1256,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47220237798" target="_blank" class="shp-link">47220237798</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$1,322.03</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1270,7 +1270,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47199454258" target="_blank" class="shp-link">47199454258</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$1,230.00</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
             <td>MARONITRANSP</td>
@@ -1284,7 +1284,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47012996990" target="_blank" class="shp-link">47012996990</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$1,217.48</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">11</td>
             <td>null</td>
@@ -1298,7 +1298,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47213801254" target="_blank" class="shp-link">47213801254</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$1,153.02</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>—</td>
@@ -1312,7 +1312,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218304793" target="_blank" class="shp-link">47218304793</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$999.50</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1326,7 +1326,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47205052399" target="_blank" class="shp-link">47205052399</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$996.15</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>—</td>
@@ -1340,7 +1340,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47170053536" target="_blank" class="shp-link">47170053536</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$941.36</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>MARONITRANSP</td>
@@ -1354,7 +1354,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47219560563" target="_blank" class="shp-link">47219560563</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$932.06</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1368,7 +1368,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218788983" target="_blank" class="shp-link">47218788983</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$900.53</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1382,7 +1382,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218788726" target="_blank" class="shp-link">47218788726</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$859.31</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1396,7 +1396,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47217956429" target="_blank" class="shp-link">47217956429</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$776.36</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1410,7 +1410,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218478827" target="_blank" class="shp-link">47218478827</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$749.58</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1424,7 +1424,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46885962511" target="_blank" class="shp-link">46885962511</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$744.34</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">30</td>
             <td>MARONITRANSP</td>
@@ -1438,7 +1438,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218097005" target="_blank" class="shp-link">47218097005</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$743.63</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1452,7 +1452,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46954224956" target="_blank" class="shp-link">46954224956</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$697.39</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
             <td>—</td>
@@ -1466,7 +1466,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218072580" target="_blank" class="shp-link">47218072580</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$694.22</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1480,7 +1480,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47220032573" target="_blank" class="shp-link">47220032573</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$694.04</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1494,7 +1494,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47217831812" target="_blank" class="shp-link">47217831812</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$654.37</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1508,7 +1508,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47189153461" target="_blank" class="shp-link">47189153461</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$618.61</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
             <td>MARONITRANSP</td>
@@ -1522,7 +1522,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47167099653" target="_blank" class="shp-link">47167099653</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$594.58</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
             <td>MARONITRANSP</td>
@@ -1536,7 +1536,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47195166021" target="_blank" class="shp-link">47195166021</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$594.44</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
             <td>MARONITRANSP</td>
@@ -1550,7 +1550,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218445703" target="_blank" class="shp-link">47218445703</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$594.38</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1564,7 +1564,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47219628445" target="_blank" class="shp-link">47219628445</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$592.08</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1578,7 +1578,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47219611608" target="_blank" class="shp-link">47219611608</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$592.08</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1592,7 +1592,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218876100" target="_blank" class="shp-link">47218876100</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$592.08</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1606,7 +1606,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218060306" target="_blank" class="shp-link">47218060306</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$588.91</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1620,7 +1620,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47217524127" target="_blank" class="shp-link">47217524127</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$588.91</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1634,7 +1634,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218831183" target="_blank" class="shp-link">47218831183</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$572.80</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1648,7 +1648,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47202581406" target="_blank" class="shp-link">47202581406</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$560.43</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
             <td>MARONITRANSP</td>
@@ -1662,7 +1662,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47215557047" target="_blank" class="shp-link">47215557047</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$536.68</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>—</td>
@@ -1676,7 +1676,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47198677277" target="_blank" class="shp-link">47198677277</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$531.08</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">1</td>
             <td>MARONITRANSP</td>
@@ -1690,7 +1690,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47182965849" target="_blank" class="shp-link">47182965849</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$518.70</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>—</td>
@@ -1704,7 +1704,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218611567" target="_blank" class="shp-link">47218611567</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$506.60</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">0</td>
             <td>JM TRANSPORTES</td>
@@ -1718,7 +1718,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46927258373" target="_blank" class="shp-link">46927258373</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$494.05</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">25</td>
             <td>MONFREDINI TRANSPORTES</td>
@@ -1732,7 +1732,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46855434089" target="_blank" class="shp-link">46855434089</a></td>
-            <td><span class="pill" style="background:#9CA3AF;color:#fff">>= 11 dias</span></td>
+            <td><span class="pill" style="background:#1f2937;color:#9ca3af">>= 11 dias</span></td>
             <td style="font-weight:700;color:#10B981">$267.98</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">12</td>
             <td>ADYGE</td>
@@ -1746,7 +1746,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46855434089" target="_blank" class="shp-link">46855434089</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$267.98</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">34</td>
             <td>ADYGE</td>
@@ -1760,7 +1760,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46994743959" target="_blank" class="shp-link">46994743959</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$258.94</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">15</td>
             <td>MARONITRANSP</td>
@@ -1774,7 +1774,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46918540469" target="_blank" class="shp-link">46918540469</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$237.99</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">27</td>
             <td>DV3</td>
@@ -1788,7 +1788,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47072653552" target="_blank" class="shp-link">47072653552</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$180.49</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">11</td>
             <td>—</td>
@@ -1802,7 +1802,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46935801844" target="_blank" class="shp-link">46935801844</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$177.30</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">23</td>
             <td>JOMED</td>
@@ -1816,7 +1816,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46879619854" target="_blank" class="shp-link">46879619854</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$171.47</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">29</td>
             <td>GAS TRANSPORTES</td>
@@ -1830,7 +1830,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47036107033" target="_blank" class="shp-link">47036107033</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$169.65</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">14</td>
             <td>MARONITRANSP</td>
@@ -1844,7 +1844,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47027648159" target="_blank" class="shp-link">47027648159</a></td>
-            <td><span class="pill" style="background:#FBBF24;color:#1a1a1a">>= 11 dias OW</span></td>
+            <td><span class="pill" style="background:#713f12;color:#fde68a">>= 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$169.37</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">11</td>
             <td>—</td>
@@ -1858,7 +1858,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47049354601" target="_blank" class="shp-link">47049354601</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$167.42</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">15</td>
             <td>MONFREDINI TRANSPORTES</td>
@@ -1872,7 +1872,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46961814688" target="_blank" class="shp-link">46961814688</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$150.19</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">20</td>
             <td>null</td>
@@ -1886,7 +1886,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47120523767" target="_blank" class="shp-link">47120523767</a></td>
-            <td><span class="pill" style="background:#FBBF24;color:#1a1a1a">>= 11 dias OW</span></td>
+            <td><span class="pill" style="background:#713f12;color:#fde68a">>= 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981">$149.57</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">11</td>
             <td>—</td>
@@ -1900,7 +1900,7 @@
             data-status=""
             data-resp="">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47092766316" target="_blank" class="shp-link">47092766316</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$130.20</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">11</td>
             <td>—</td>
@@ -1914,7 +1914,7 @@
             data-status=""
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46993835378" target="_blank" class="shp-link">46993835378</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$112.73</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">21</td>
             <td>RN EXPRESS</td>
@@ -1928,7 +1928,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47016539135" target="_blank" class="shp-link">47016539135</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$108.87</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">2026-05-18 22:05:16</td>
             <td>2026-05-25 00:48:31</td>
@@ -1942,7 +1942,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46937855725" target="_blank" class="shp-link">46937855725</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$102.32</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">23</td>
             <td>null</td>
@@ -1956,7 +1956,7 @@
             data-status="concluido"
             data-resp="lucas nascimento">
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/46889167588" target="_blank" class="shp-link">46889167588</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981">$100.41</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">28</td>
             <td>AXON TRANSPORTES</td>
@@ -1985,7 +1985,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">1</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47090537177" target="_blank" class="shp-link">47090537177</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,850.28</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -1994,7 +1994,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">2</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47069669118" target="_blank" class="shp-link">47069669118</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,542.67</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
@@ -2003,7 +2003,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">3</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47176942580" target="_blank" class="shp-link">47176942580</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,197.50</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2012,7 +2012,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">4</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218695812" target="_blank" class="shp-link">47218695812</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,556.88</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2021,7 +2021,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">5</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47220251831" target="_blank" class="shp-link">47220251831</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,398.19</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2030,7 +2030,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">6</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47220237798" target="_blank" class="shp-link">47220237798</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,322.03</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2039,7 +2039,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">7</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47166311471" target="_blank" class="shp-link">47166311471</a></td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,265.15</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2048,7 +2048,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">8</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47199454258" target="_blank" class="shp-link">47199454258</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,230.00</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2057,7 +2057,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">9</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47012996990" target="_blank" class="shp-link">47012996990</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,217.48</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
@@ -2066,7 +2066,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">10</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47213801254" target="_blank" class="shp-link">47213801254</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,153.02</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2075,7 +2075,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">11</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47122298879" target="_blank" class="shp-link">47122298879</a></td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,086.93</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2084,7 +2084,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">12</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218304793" target="_blank" class="shp-link">47218304793</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$999.50</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2093,7 +2093,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">13</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47205052399" target="_blank" class="shp-link">47205052399</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$996.15</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2102,7 +2102,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">14</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47170053536" target="_blank" class="shp-link">47170053536</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$941.36</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2111,7 +2111,7 @@
             <td style="text-align:center;font-weight:700;color:#FFE600">15</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47219560563" target="_blank" class="shp-link">47219560563</a></td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$932.06</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2136,7 +2136,7 @@
             <td style="font-size:12px;color:#9CA3AF">01/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47073102580</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$913.29</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2145,7 +2145,7 @@
             <td style="font-size:12px;color:#9CA3AF">01/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47072830805</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$913.29</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2154,7 +2154,7 @@
             <td style="font-size:12px;color:#9CA3AF">01/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47066534955</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$895.60</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2163,7 +2163,7 @@
             <td style="font-size:12px;color:#9CA3AF">01/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47066534943</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$895.60</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2172,7 +2172,7 @@
             <td style="font-size:12px;color:#9CA3AF">01/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47161741329</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$657.03</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2181,7 +2181,7 @@
             <td style="font-size:12px;color:#9CA3AF">01/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47117809914</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$521.55</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2190,7 +2190,7 @@
             <td style="font-size:12px;color:#9CA3AF">01/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47186668888</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$2,455.85</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2199,7 +2199,7 @@
             <td style="font-size:12px;color:#9CA3AF">01/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47185572780</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$993.18</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2208,7 +2208,7 @@
             <td style="font-size:12px;color:#9CA3AF">01/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47184757348</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$549.08</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2217,7 +2217,7 @@
             <td style="font-size:12px;color:#9CA3AF">02/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47168760693</td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="color:#10B981;font-weight:600">$2,099.80</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2226,7 +2226,7 @@
             <td style="font-size:12px;color:#9CA3AF">02/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47173828728</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$521.96</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2235,7 +2235,7 @@
             <td style="font-size:12px;color:#9CA3AF">02/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47184203780</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$352.81</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2244,7 +2244,7 @@
             <td style="font-size:12px;color:#9CA3AF">02/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47189607037</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$939.58</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2253,7 +2253,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47084727377</td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="color:#10B981;font-weight:600">$177.28</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2262,7 +2262,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47187305022</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$3,163.80</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2271,7 +2271,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47158305821</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$1,274.42</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2280,7 +2280,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47176323961</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$1,075.28</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2289,7 +2289,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47203645380</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$871.95</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2298,7 +2298,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47160283481</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$776.72</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2307,7 +2307,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47199712254</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$708.49</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2316,7 +2316,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47174317777</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$623.88</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2325,7 +2325,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47176095245</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$592.37</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2334,7 +2334,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47179029714</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$583.36</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2343,7 +2343,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47189870068</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$533.73</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2352,7 +2352,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47213524318</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$2,511.92</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2361,7 +2361,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47213578318</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$1,016.55</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2370,7 +2370,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47200370758</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$1,001.73</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2379,7 +2379,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47213718439</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$916.87</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2388,7 +2388,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47211685398</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$906.90</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2397,7 +2397,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47213094944</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$906.90</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2406,7 +2406,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47212537663</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$906.90</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2415,7 +2415,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47213557581</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$797.25</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2424,7 +2424,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47211979978</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$787.28</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2433,7 +2433,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47211331524</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$781.48</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2442,7 +2442,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47213140942</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$595.09</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2451,7 +2451,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47213810744</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$595.09</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2460,7 +2460,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47212625039</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$591.91</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2469,7 +2469,7 @@
             <td style="font-size:12px;color:#9CA3AF">03/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47213538274</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$501.82</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2478,7 +2478,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47063030044</td>
-            <td><span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span></td>
+            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
             <td style="color:#10B981;font-weight:600">$109.58</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2487,7 +2487,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47039926510</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$489.19</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2496,7 +2496,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47169603716</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$424.68</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2505,7 +2505,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47169330365</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$424.68</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2514,7 +2514,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Route (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47184094630</td>
-            <td><span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
             <td style="color:#10B981;font-weight:600">$4,517.73</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2523,7 +2523,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47170079602</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$573.16</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2532,7 +2532,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47179445020</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$1,119.07</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2541,7 +2541,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47196743380</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$1,073.38</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2550,7 +2550,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47208112364</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$683.06</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
@@ -2559,7 +2559,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47195356672</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$593.21</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2568,7 +2568,7 @@
             <td style="font-size:12px;color:#9CA3AF">04/06/2026</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">Tratativas Risco On Way (HV) - Lucas</span></td>
             <td style="font-family:monospace;font-size:12px">47003333928</td>
-            <td><span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span></td>
+            <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="color:#10B981;font-weight:600">$576.72</td>
             <td>—</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluído</span></td>
@@ -2694,7 +2694,7 @@ function onClickChart(evt, elements, chart, tabId, sitSelectId) {
 // Doughnut ON ROUTE
 new Chart(document.getElementById('cSitRt'), {
   type: 'doughnut',
-  data: { labels:["Procurar Pacote", "Possivel Lost"], datasets:[{ data:[20, 18], backgroundColor:["#F97316", "#EF4444"], borderWidth:0 }] },
+  data: { labels:["Procurar Pacote", "Possivel Lost"], datasets:[{ data:[20, 18], backgroundColor:["#b07040", "#b54040"], borderWidth:0 }] },
   options: { ...defOpts, cutout:'40%',
     onClick: (evt,els,chart) => onClickChart(evt,els,chart,'route','sit_route'),
     plugins: { ...defOpts.plugins, tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} pacotes — clique para filtrar` } } }
@@ -2704,7 +2704,7 @@ new Chart(document.getElementById('cSitRt'), {
 // Doughnut ON WAY
 new Chart(document.getElementById('cSitWy'), {
   type: 'doughnut',
-  data: { labels:[">= 11 dias", "Possivel Lost", "< 11 dias OW", ">= 11 dias OW"], datasets:[{ data:[1, 17, 34, 2], backgroundColor:["#9CA3AF", "#EF4444", "#60A5FA", "#FBBF24"], borderWidth:0 }] },
+  data: { labels:[">= 11 dias", "Possivel Lost", "< 11 dias OW", ">= 11 dias OW"], datasets:[{ data:[1, 17, 34, 2], backgroundColor:["#9CA3AF", "#b54040", "#3d6ea8", "#9d8530"], borderWidth:0 }] },
   options: { ...defOpts, cutout:'40%',
     onClick: (evt,els,chart) => onClickChart(evt,els,chart,'way','sit_way'),
     plugins: { ...defOpts.plugins, tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} pacotes — clique para filtrar` } } }

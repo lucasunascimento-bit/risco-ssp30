@@ -248,12 +248,12 @@ def trend(net):
 
 def pill(sit):
     cores = {
-        'Possivel Lost':   ('#EF4444','#fff'),
-        'Procurar Pacote': ('#F97316','#fff'),
-        '>= 11 dias OW':   ('#FBBF24','#1a1a1a'),
-        '< 11 dias OW':    ('#60A5FA','#fff'),
+        'Possivel Lost':   ('#7f1d1d','#fca5a5'),
+        'Procurar Pacote': ('#7c3c14','#fdba74'),
+        '>= 11 dias OW':   ('#713f12','#fde68a'),
+        '< 11 dias OW':    ('#1e3a5f','#93c5fd'),
     }
-    bg, fg = cores.get(sit, ('#9CA3AF','#fff'))
+    bg, fg = cores.get(sit, ('#1f2937','#9ca3af'))
     return f'<span class="pill" style="background:{bg};color:{fg}">{sit}</span>'
 
 def pill_status(s):
@@ -398,8 +398,8 @@ def gerar_html(d):
     st_labels = j(list(d['status_cnt'].keys()))
     st_values = j(list(d['status_cnt'].values()))
 
-    CORES_SIT = {'Possivel Lost':'#EF4444','Procurar Pacote':'#F97316',
-                 '>= 11 dias OW':'#FBBF24','< 11 dias OW':'#60A5FA'}
+    CORES_SIT = {'Possivel Lost':'#b54040','Procurar Pacote':'#b07040',
+                 '>= 11 dias OW':'#9d8530','< 11 dias OW':'#3d6ea8'}
     rt_colors = j([CORES_SIT.get(k,'#9CA3AF') for k in d['r_sit'].keys()])
     wy_colors = j([CORES_SIT.get(k,'#9CA3AF') for k in d['w_sit'].keys()])
 
@@ -439,8 +439,8 @@ def gerar_html(d):
   .countdown-txt{{font-size:11px;color:#4b5563}}
   /* TABS */
   .tabs{{background:#080d19;border-bottom:1px solid #111827;padding:0 32px;display:flex;gap:0;overflow-x:auto}}
-  .tab{{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#4b5563;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;letter-spacing:.2px}}
-  .tab:hover{{color:#9ca3af}}
+  .tab{{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;letter-spacing:.2px}}
+  .tab:hover{{color:#d1d5db}}
   .tab.active{{color:#ffffff;border-bottom-color:#FFE600;font-weight:600}}
   .tab-alert{{color:#ef4444!important}}
   /* CONTENT */
@@ -450,11 +450,11 @@ def gerar_html(d):
   .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:24px}}
   .card{{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:.15s;cursor:default}}
   .card:hover{{border-color:#1f2937;transform:translateY(-1px)}}
-  .card.card-alert{{border-color:#450a0a;background:#0f0606}}
-  .card.card-ok{{border-color:#022c22;background:#060f0d}}
+  .card.card-alert{{border-color:#450a0a;background:#0f0606;padding-left:22px}}
+  .card.card-ok{{border-color:#022c22;background:#060f0d;padding-left:22px}}
   .card-header{{display:flex;align-items:center;gap:7px;margin-bottom:14px}}
   .card-icon{{color:#374151;flex-shrink:0}}
-  .card-label{{font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.7px;font-weight:600}}
+  .card-label{{font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
   .card-value{{font-size:28px;font-weight:800;color:#ffffff;line-height:1;letter-spacing:-1px}}
   .card-value.val-alert{{color:#ef4444}}
   .card-value.val-ok{{color:#10b981}}
