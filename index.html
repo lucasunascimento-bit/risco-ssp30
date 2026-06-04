@@ -83,7 +83,7 @@
 <div class="header">
   <div>
     <h1>🔔 Risco SSP30 — Dashboard</h1>
-    <div class="sub">Fonte: Planilha de Controle · Gerado em 04/06/2026 16:50</div>
+    <div class="sub">Fonte: Planilha de Controle · Gerado em 04/06/2026 16:57</div>
   </div>
   <div class="header-right">
     <span class="countdown" id="countdown">Calculando...</span>
@@ -104,8 +104,8 @@
 <!-- ===================== ABA 1: VISÃO GERAL ===================== -->
 <div id="tab-geral" class="content active">
   <div class="cards">
-    <div class="card yellow"><div class="label">📦 ON ROUTE</div><div class="value">38</div><div class="delta">+5 hoje</div></div>
-    <div class="card blue"><div class="label">🚛 ON WAY</div><div class="value">54</div><div class="delta">+33 hoje</div></div>
+    <div class="card yellow"><div class="label">📦 ON ROUTE</div><div class="value">38</div><div class="delta">+5 novos · <span style="color:#94a3b8">➡ estável hoje</span></div></div>
+    <div class="card blue"><div class="label">🚛 ON WAY</div><div class="value">54</div><div class="delta">+33 novos · <span style="color:#EF4444;font-weight:700">▲ +27 vs ontem</span></div></div>
     <div class="card green"><div class="label">💰 GMV ON ROUTE</div><div class="value">$19,747</div></div>
     <div class="card green"><div class="label">💰 GMV ON WAY</div><div class="value">$34,110</div></div>
     <div class="card red"><div class="label">🔥 GMV TOTAL EM RISCO</div><div class="value">$53,857</div></div>
@@ -2525,13 +2525,25 @@
 
 <!-- ===================== SCRIPTS ===================== -->
 <script>
-// Troca de abas
+// Troca de abas + atualiza URL hash para link direto
+const TAB_ORDER = ['geral','criticos','route','way','gmv','hist'];
 function showTab(name, el) {
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
+  history.replaceState(null, '', '#' + name);
 }
+
+// Abre aba pelo hash da URL (ex: #criticos)
+window.addEventListener('load', () => {
+  const hash = window.location.hash.replace('#','');
+  const idx  = TAB_ORDER.indexOf(hash);
+  if (idx >= 0) {
+    const tabs = document.querySelectorAll('.tab');
+    if (tabs[idx]) showTab(hash, tabs[idx]);
+  }
+});
 
 // Filtros das tabelas
 function filtrar(tabId) {

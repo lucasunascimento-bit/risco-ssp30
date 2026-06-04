@@ -165,6 +165,12 @@ def processar(rt, wy, hi):
     taxa_recupero  = round(recuperados / removidos * 100, 1) if removidos > 0 else 0
     gmv_recuperado = sum(flt(r['gmv']) for r in hist_rows if 'fluxo' in r['final'].lower())
 
+    # ---- Comparativo hoje (novos - removidos hoje) ----
+    rem_hoje_rt = sum(1 for r in hist_rows if r['data'] == hoje and 'Route' in r['origem'])
+    rem_hoje_wy = sum(1 for r in hist_rows if r['data'] == hoje and 'Way'   in r['origem'])
+    net_rt = r_novos - rem_hoje_rt
+    net_wy = w_novos - rem_hoje_wy
+
     # ---- Heatmap por dia da semana (ativos + histórico do mês) ----
     dias_labels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
     heatmap = [0] * 7
@@ -222,6 +228,8 @@ def processar(rt, wy, hi):
         'heatmap_labels': dias_labels, 'heatmap': heatmap,
         # Críticos
         'criticos': criticos,
+        # Comparativo
+        'net_rt': net_rt, 'net_wy': net_wy,
         # Evolução
         'evo_labels':  datas_todas,
         'evo_rt':      [datas_rt.get(d, 0)      for d in datas_todas],
@@ -233,6 +241,11 @@ def processar(rt, wy, hi):
 # ============================================================
 # HELPERS HTML
 # ============================================================
+def trend(net):
+    if net > 0: return f'<span style="color:#EF4444;font-weight:700">▲ +{net} vs ontem</span>'
+    if net < 0: return f'<span style="color:#10B981;font-weight:700">▼ {net} vs ontem</span>'
+    return '<span style="color:#94a3b8">➡ estável hoje</span>'
+
 def pill(sit):
     cores = {
         'Possivel Lost':   ('#EF4444','#fff'),
@@ -508,8 +521,8 @@ def gerar_html(d):
 <!-- ===================== ABA 1: VISÃO GERAL ===================== -->
 <div id="tab-geral" class="content active">
   <div class="cards">
-    <div class="card yellow"><div class="label">📦 ON ROUTE</div><div class="value">{d["r_total"]}</div><div class="delta">+{d["r_novos"]} hoje</div></div>
-    <div class="card blue"><div class="label">🚛 ON WAY</div><div class="value">{d["w_total"]}</div><div class="delta">+{d["w_novos"]} hoje</div></div>
+    <div class="card yellow"><div class="label">📦 ON ROUTE</div><div class="value">{d["r_total"]}</div><div class="delta">+{d["r_novos"]} novos · {trend(d["net_rt"])}</div></div>
+    <div class="card blue"><div class="label">🚛 ON WAY</div><div class="value">{d["w_total"]}</div><div class="delta">+{d["w_novos"]} novos · {trend(d["net_wy"])}</div></div>
     <div class="card green"><div class="label">💰 GMV ON ROUTE</div><div class="value">${d["r_gmv"]:,.0f}</div></div>
     <div class="card green"><div class="label">💰 GMV ON WAY</div><div class="value">${d["w_gmv"]:,.0f}</div></div>
     <div class="card red"><div class="label">🔥 GMV TOTAL EM RISCO</div><div class="value">${d["gmv_total"]:,.0f}</div></div>
@@ -659,13 +672,25 @@ def gerar_html(d):
 
 <!-- ===================== SCRIPTS ===================== -->
 <script>
-// Troca de abas
+// Troca de abas + atualiza URL hash para link direto
+const TAB_ORDER = ['geral','criticos','route','way','gmv','hist'];
 function showTab(name, el) {{
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
+  history.replaceState(null, '', '#' + name);
 }}
+
+// Abre aba pelo hash da URL (ex: #criticos)
+window.addEventListener('load', () => {{
+  const hash = window.location.hash.replace('#','');
+  const idx  = TAB_ORDER.indexOf(hash);
+  if (idx >= 0) {{
+    const tabs = document.querySelectorAll('.tab');
+    if (tabs[idx]) showTab(hash, tabs[idx]);
+  }}
+}});
 
 // Filtros das tabelas
 function filtrar(tabId) {{
