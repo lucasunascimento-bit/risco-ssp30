@@ -83,7 +83,7 @@
 <div class="header">
   <div>
     <h1>🔔 Risco SSP30 — Dashboard</h1>
-    <div class="sub">Fonte: Planilha de Controle · Gerado em 04/06/2026 16:35</div>
+    <div class="sub">Fonte: Planilha de Controle · Gerado em 04/06/2026 16:50</div>
   </div>
   <div class="header-right">
     <span class="countdown" id="countdown">Calculando...</span>
@@ -94,6 +94,7 @@
 <!-- TABS -->
 <div class="tabs">
   <div class="tab active" onclick="showTab('geral',this)">📊 Visão Geral</div>
+  <div class="tab" onclick="showTab('criticos',this)" style="color:#EF4444;font-weight:800">🚨 Críticos (24)</div>
   <div class="tab" onclick="showTab('route',this)">📦 ON ROUTE (38)</div>
   <div class="tab" onclick="showTab('way',this)">🚛 ON WAY (54)</div>
   <div class="tab" onclick="showTab('gmv',this)">💰 Top GMV</div>
@@ -134,7 +135,445 @@
   <div class="box" style="margin-bottom:24px"><h3>📅 Entradas por Dia da Semana (ativos + histórico do mês)</h3><canvas id="cHeatmap" height="160"></canvas></div>
 </div>
 
-<!-- ===================== ABA 2: ON ROUTE ===================== -->
+<!-- ===================== ABA 2: CRÍTICOS ===================== -->
+<div id="tab-criticos" class="content">
+  <div style="background:#7f1d1d;border:1px solid #EF4444;border-radius:12px;padding:20px;margin-bottom:24px;display:flex;align-items:center;gap:16px"><span style="font-size:32px">🚨</span><div><div style="font-size:16px;font-weight:800;color:#FCA5A5">24 pacotes precisam de atenção urgente</div><div style="color:#FCA5A5;opacity:0.8;font-size:13px;margin-top:4px">Critérios: Possivel Lost / +11d OW + GMV alto + muitos dias na carteira (2 ou mais fatores)</div></div></div>
+  
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47012996990" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47012996990</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$1,217.48</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">💰 GMV alto</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47091872906" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47091872906</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$767.52</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">💰 GMV alto</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46885962511" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46885962511</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$744.34</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">💰 GMV alto</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47090537177" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47090537177</a>
+        <span class="pill" style="background:#60A5FA;color:#fff">< 11 dias OW</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$2,850.28</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">💰 GMV alto</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47069669118" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47069669118</a>
+        <span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$2,542.67</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">💰 GMV alto</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47122298879" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47122298879</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$1,086.93</span>
+        <span style="color:#10B981;font-weight:700">2d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">💰 GMV alto</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47145689534" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47145689534</a>
+        <span class="pill" style="background:#F97316;color:#fff">Procurar Pacote</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$554.54</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">💰 GMV alto</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46927258373" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46927258373</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$494.05</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47128033779" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47128033779</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$478.64</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47079778283" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47079778283</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$453.86</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47063438675" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47063438675</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$361.71</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47090534009" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47090534009</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON ROUTE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$354.96</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46855434089" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46855434089</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$267.98</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46994743959" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46994743959</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$258.94</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46918540469" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46918540469</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$237.99</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46935801844" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46935801844</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$177.30</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46879619854" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46879619854</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$171.47</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47036107033" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47036107033</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$169.65</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47049354601" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47049354601</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$167.42</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46961814688" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46961814688</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$150.19</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46993835378" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46993835378</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$112.73</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/47016539135" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">47016539135</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$108.87</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46937855725" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46937855725</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$102.32</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/46889167588" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">46889167588</a>
+        <span class="pill" style="background:#EF4444;color:#fff">Possivel Lost</span>
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">ON WAY</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">$100.41</span>
+        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 Possivel Lost / +11d OW</span><span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏰ +7 dias na carteira</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ABA: ON ROUTE ===================== -->
 <div id="tab-route" class="content">
   <div class="cards">
     <div class="card yellow"><div class="label">Total</div><div class="value">38</div></div>

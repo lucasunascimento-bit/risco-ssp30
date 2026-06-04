@@ -135,6 +135,21 @@ def processar(rt, wy, hi):
     top_all.sort(key=lambda x: -x['gmv'])
     top15 = top_all[:15]
 
+    # ---- Críticos (pontuação de risco) ----
+    def score_critico(r):
+        pts = []
+        if r['sit'] in ('Possivel Lost', '>= 11 dias OW'): pts.append('🔴 Possivel Lost / +11d OW')
+        if r['gmv'] > 500:                                  pts.append('💰 GMV alto')
+        if r['dias_carteira'] > 7:                          pts.append('⏰ +7 dias na carteira')
+        return pts
+
+    criticos = []
+    for r in top_all:
+        motivos = score_critico(r)
+        if len(motivos) >= 2:
+            criticos.append({**r, 'motivos': motivos})
+    criticos.sort(key=lambda x: (-len(x['motivos']), -x['gmv']))
+
     # ---- Histórico do mês ----
     hist_mes    = [r for r in hi if len(r) > 0 and mes_ano in r[0]]
     concluidos  = sum(1 for r in hist_mes if len(r) > 6 and 'conclu' in r[6].lower())
@@ -205,6 +220,8 @@ def processar(rt, wy, hi):
         'taxa_recupero': taxa_recupero, 'gmv_recuperado': gmv_recuperado,
         # Heatmap
         'heatmap_labels': dias_labels, 'heatmap': heatmap,
+        # Críticos
+        'criticos': criticos,
         # Evolução
         'evo_labels':  datas_todas,
         'evo_rt':      [datas_rt.get(d, 0)      for d in datas_todas],
@@ -481,6 +498,7 @@ def gerar_html(d):
 <!-- TABS -->
 <div class="tabs">
   <div class="tab active" onclick="showTab('geral',this)">📊 Visão Geral</div>
+  <div class="tab" onclick="showTab('criticos',this)" style="{'color:#EF4444;font-weight:800' if d['criticos'] else ''}">🚨 Críticos ({len(d["criticos"])})</div>
   <div class="tab" onclick="showTab('route',this)">📦 ON ROUTE ({d["r_total"]})</div>
   <div class="tab" onclick="showTab('way',this)">🚛 ON WAY ({d["w_total"]})</div>
   <div class="tab" onclick="showTab('gmv',this)">💰 Top GMV</div>
@@ -521,7 +539,31 @@ def gerar_html(d):
   <div class="box" style="margin-bottom:24px"><h3>📅 Entradas por Dia da Semana (ativos + histórico do mês)</h3><canvas id="cHeatmap" height="160"></canvas></div>
 </div>
 
-<!-- ===================== ABA 2: ON ROUTE ===================== -->
+<!-- ===================== ABA 2: CRÍTICOS ===================== -->
+<div id="tab-criticos" class="content">
+  {'<div style="background:#7f1d1d;border:1px solid #EF4444;border-radius:12px;padding:20px;margin-bottom:24px;display:flex;align-items:center;gap:16px"><span style="font-size:32px">🚨</span><div><div style="font-size:16px;font-weight:800;color:#FCA5A5">'+str(len(d["criticos"]))+' pacotes precisam de atenção urgente</div><div style="color:#FCA5A5;opacity:0.8;font-size:13px;margin-top:4px">Critérios: Possivel Lost / +11d OW + GMV alto + muitos dias na carteira (2 ou mais fatores)</div></div></div>' if d['criticos'] else '<div style="text-align:center;padding:48px;color:#64748b"><div style="font-size:48px">✅</div><div style="font-size:18px;margin-top:12px">Nenhum pacote crítico no momento!</div></div>'}
+  {''.join([f"""
+  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="https://envios.adminml.com/logistics/package-management/package/{r["id"]}" target="_blank"
+           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">{r["id"]}</a>
+        {pill(r["sit"])}
+        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">{r["origem"]}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:800;color:#10B981">${r["gmv"]:,.2f}</span>
+        {dias_badge(r["dias_carteira"])} na carteira
+        {pill_status(r["status"])}
+      </div>
+    </div>
+    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+      {''.join(f'<span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">{m}</span>' for m in r["motivos"])}
+    </div>
+  </div>""" for r in d["criticos"]])}
+</div>
+
+<!-- ===================== ABA: ON ROUTE ===================== -->
 <div id="tab-route" class="content">
   <div class="cards">
     <div class="card yellow"><div class="label">Total</div><div class="value">{d["r_total"]}</div></div>
