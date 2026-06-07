@@ -553,6 +553,10 @@ def gerar_html(d):
   .divider{{height:1px;background:#111827;margin:20px 0}}
   /* mb utils */
   .mb16{{margin-bottom:16px}}
+  /* CARD CLICÁVEL */
+  .card-link{{cursor:pointer;position:relative}}
+  .card-link::after{{content:'↗';position:absolute;top:14px;right:14px;font-size:10px;color:#1f2937;transition:color .3s ease}}
+  .card-link:hover::after{{color:#6b7280}}
   /* SELETOR DE MÊS */
   .mes-selector{{display:flex;gap:8px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid #111827;align-items:center}}
   .mes-btn{{background:#0d1321;color:#4b5563;border:1px solid #1f2937;border-radius:20px;padding:5px 14px;font-size:11px;font-weight:500;cursor:pointer;transition:background-color .3s ease,color .3s ease,border-color .3s ease,box-shadow .3s ease,transform .2s ease}}
@@ -607,29 +611,29 @@ def gerar_html(d):
 <!-- ===================== ABA 1: VISÃO GERAL ===================== -->
 <div id="tab-geral" class="content active">
   <div class="cards">
-    <div class="card">
+    <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="package" class="card-icon" width="14" height="14"></i><span class="card-label">ON ROUTE</span></div>
       <div class="card-value">{d["r_total"]}</div>
       <div class="card-delta">+{d["r_novos"]} novos · {trend(d["net_rt"])}</div>
     </div>
-    <div class="card">
+    <div class="card card-link" onclick="irPara('way')">
       <div class="card-header"><i data-lucide="truck" class="card-icon" width="14" height="14"></i><span class="card-label">ON WAY</span></div>
       <div class="card-value">{d["w_total"]}</div>
       <div class="card-delta">+{d["w_novos"]} novos · {trend(d["net_wy"])}</div>
     </div>
-    <div class="card">
+    <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON ROUTE</span></div>
       <div class="card-value">${d["r_gmv"]:,.0f}</div>
     </div>
-    <div class="card">
+    <div class="card card-link" onclick="irPara('way')">
       <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON WAY</span></div>
       <div class="card-value">${d["w_gmv"]:,.0f}</div>
     </div>
-    <div class="card card-alert">
+    <div class="card card-alert card-link" onclick="irPara('gmv')">
       <div class="card-header"><i data-lucide="alert-triangle" class="card-icon" width="14" height="14" style="color:#7f1d1d"></i><span class="card-label">GMV EM RISCO</span></div>
       <div class="card-value val-alert">${d["gmv_total"]:,.0f}</div>
     </div>
-    <div class="card">
+    <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="camera" class="card-icon" width="14" height="14"></i><span class="card-label">CFTV Solicitado</span></div>
       <div class="card-value val-warn">{d["cftv_total"]}</div>
       <div class="card-delta">Route {d["r_cftv"]} · Way {d["w_cftv"]}</div>
@@ -639,17 +643,17 @@ def gerar_html(d):
       <div class="card-value">{d["dias_medio"]}</div>
       <div class="card-delta">pacotes ativos</div>
     </div>
-    <div class="card card-ok">
+    <div class="card card-ok card-link" onclick="irPara('hist')">
       <div class="card-header"><i data-lucide="award" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Recuperados</span></div>
       <div class="card-value val-ok">{d["recuperados"]}</div>
       <div class="card-delta">{d["mes_lbl"]} · Seguiram fluxo correto</div>
     </div>
-    <div class="card card-ok">
+    <div class="card card-ok card-link" onclick="irPara('hist')">
       <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Recuperado</span></div>
       <div class="card-value val-ok">${d["gmv_recuperado"]:,.0f}</div>
       <div class="card-delta">{d["mes_lbl"]}</div>
     </div>
-    <div class="card">
+    <div class="card card-link" onclick="irPara('hist')">
       <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>
       <div class="card-value">{d["taxa_recupero"]}%</div>
       <div class="card-delta">{d["recuperados"]} de {d["removidos"]} removidos</div>
@@ -844,6 +848,16 @@ window.addEventListener('load', () => {{
     if (tabs[idx]) showTab(hash, tabs[idx]);
   }}
 }});
+
+// Navega para uma aba ao clicar num card
+function irPara(tabName) {{
+  const idx = TAB_ORDER.indexOf(tabName);
+  if (idx >= 0) {{
+    const el = document.querySelectorAll('.tab')[idx];
+    if (el) showTab(tabName, el);
+    window.scrollTo({{top:0, behavior:'smooth'}});
+  }}
+}}
 
 // Filtro por mês no Histórico
 function filtrarMes(mes) {{
