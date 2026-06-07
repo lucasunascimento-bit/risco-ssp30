@@ -122,7 +122,7 @@
     <div class="header-accent"></div>
     <div>
       <div class="header-title">Risco SSP30</div>
-      <div class="header-sub">Planilha de Controle · Gerado em 07/06/2026 12:47</div>
+      <div class="header-sub">Planilha de Controle · Gerado em 07/06/2026 13:06</div>
     </div>
   </div>
   <div class="header-right">
@@ -135,7 +135,7 @@
 <div class="tabs">
   <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
   <div class="tab tab-alert" onclick="showTab('criticos',this)">Críticos (28)</div>
-  <div class="tab" onclick="showTab('route',this)">ON ROUTE (37)</div>
+  <div class="tab" onclick="showTab('route',this)">ON ROUTE (40)</div>
   <div class="tab" onclick="showTab('way',this)">ON WAY (54)</div>
   <div class="tab" onclick="showTab('gmv',this)">Top GMV</div>
   <div class="tab" onclick="showTab('hist',this)">Histórico</div>
@@ -146,8 +146,8 @@
   <div class="cards">
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="package" class="card-icon" width="14" height="14"></i><span class="card-label">ON ROUTE</span></div>
-      <div class="card-value">37</div>
-      <div class="card-delta">+0 novos · <span style="color:#94a3b8">➡ estável hoje</span></div>
+      <div class="card-value">40</div>
+      <div class="card-delta">+9 novos · <span style="color:#EF4444;font-weight:700">▲ +9 vs ontem</span></div>
     </div>
     <div class="card card-link" onclick="irPara('way')">
       <div class="card-header"><i data-lucide="truck" class="card-icon" width="14" height="14"></i><span class="card-label">ON WAY</span></div>
@@ -156,7 +156,7 @@
     </div>
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON ROUTE</span></div>
-      <div class="card-value">$18,850</div>
+      <div class="card-value">$21,305</div>
     </div>
     <div class="card card-link" onclick="irPara('way')">
       <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON WAY</span></div>
@@ -164,7 +164,7 @@
     </div>
     <div class="card card-alert card-link" onclick="irPara('gmv')">
       <div class="card-header"><i data-lucide="alert-triangle" class="card-icon" width="14" height="14" style="color:#7f1d1d"></i><span class="card-label">GMV EM RISCO</span></div>
-      <div class="card-value val-alert">$49,491</div>
+      <div class="card-value val-alert">$51,945</div>
     </div>
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="camera" class="card-icon" width="14" height="14"></i><span class="card-label">CFTV Solicitado</span></div>
@@ -173,7 +173,7 @@
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="clock" class="card-icon" width="14" height="14"></i><span class="card-label">Dias médio carteira</span></div>
-      <div class="card-value">5.1</div>
+      <div class="card-value">4.8</div>
       <div class="card-delta">pacotes ativos</div>
     </div>
     <div class="card card-ok card-link" onclick="irPara('hist')">
@@ -182,9 +182,12 @@
       <div class="card-delta">jun/2026 · Seguiram fluxo correto</div>
     </div>
     <div class="card card-ok card-link" onclick="irPara('hist')">
-      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Recuperado</span></div>
+      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV do Mês</span></div>
       <div class="card-value val-ok">$33,674</div>
-      <div class="card-delta">jun/2026</div>
+      <div class="card-delta">
+        <span style="color:#10b981">↑ $33,674 recuperado</span><br>
+        <span style="color:#ef4444">↓ $0 perdido</span>
+      </div>
     </div>
     <div class="card card-link" onclick="irPara('hist')">
       <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>
@@ -724,12 +727,12 @@
 <!-- ===================== ABA: ON ROUTE ===================== -->
 <div id="tab-route" class="content">
   <div class="cards">
-    <div class="card yellow"><div class="label">Total</div><div class="value">37</div></div>
-    <div class="card green"><div class="label">GMV Total</div><div class="value">$18,850</div></div>
-    <div class="card red"><div class="label">Possivel Lost</div><div class="value">16</div></div>
-    <div class="card orange"><div class="label">Procurar Pacote</div><div class="value">21</div></div>
+    <div class="card yellow"><div class="label">Total</div><div class="value">40</div></div>
+    <div class="card green"><div class="label">GMV Total</div><div class="value">$21,305</div></div>
+    <div class="card red"><div class="label">Possivel Lost</div><div class="value">15</div></div>
+    <div class="card orange"><div class="label">Procurar Pacote</div><div class="value">25</div></div>
     <div class="card blue"><div class="label">CFTV Solicitado</div><div class="value">16</div></div>
-    <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">0</div></div>
+    <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">9</div></div>
   </div>
   <div class="tbl-wrap">
     <div class="tbl-title">📦 Pacotes ON ROUTE — ordenados por GMV</div>
@@ -787,6 +790,19 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
             <td style="font-size:11px;color:#9CA3AF">31/05/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47198458624"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47198458624" target="_blank" class="shp-link">47198458624</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$1,933.02</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47166311471"
             data-sit="procurar pacote"
@@ -813,19 +829,6 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">02/06/2026</td>
-        </tr><tr style="" class="data-row"
-            data-id="47218650159"
-            data-sit="procurar pacote"
-            data-status=""
-            data-resp="">
-            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218650159" target="_blank" class="shp-link">47218650159</a></td>
-            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$813.05</td>
-            <td>—</td>
-            <td style="text-align:center">❌</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47200714418"
             data-sit="procurar pacote"
@@ -840,31 +843,18 @@
             <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
         </tr><tr style="" class="data-row"
-            data-id="47176458537"
+            data-id="47217258847"
             data-sit="procurar pacote"
             data-status=""
             data-resp="">
-            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47176458537" target="_blank" class="shp-link">47176458537</a></td>
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47217258847" target="_blank" class="shp-link">47217258847</a></td>
             <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$669.08</td>
+            <td style="font-weight:700;color:#10B981">$579.51</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
-        </tr><tr style="" class="data-row"
-            data-id="47200816346"
-            data-sit="procurar pacote"
-            data-status=""
-            data-resp="">
-            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47200816346" target="_blank" class="shp-link">47200816346</a></td>
-            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$635.95</td>
-            <td>—</td>
-            <td style="text-align:center">❌</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47145689534"
             data-sit="procurar pacote"
@@ -891,6 +881,19 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47163292219"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47163292219" target="_blank" class="shp-link">47163292219</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$507.92</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47186145045"
             data-sit="procurar pacote"
@@ -917,6 +920,19 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47237982431"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47237982431" target="_blank" class="shp-link">47237982431</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$468.96</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47039557019"
             data-sit="procurar pacote"
@@ -930,19 +946,6 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
-            data-id="47168490956"
-            data-sit="procurar pacote"
-            data-status=""
-            data-resp="">
-            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47168490956" target="_blank" class="shp-link">47168490956</a></td>
-            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$454.54</td>
-            <td>—</td>
-            <td style="text-align:center">❌</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">03/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47091434844"
             data-sit="procurar pacote"
@@ -982,6 +985,19 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47223138252"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47223138252" target="_blank" class="shp-link">47223138252</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$442.72</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47154816260"
             data-sit="procurar pacote"
@@ -1008,6 +1024,19 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
             <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47228872181"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47228872181" target="_blank" class="shp-link">47228872181</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$418.47</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47152669204"
             data-sit="procurar pacote"
@@ -1021,6 +1050,32 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47229649627"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47229649627" target="_blank" class="shp-link">47229649627</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$408.01</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47218111678"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218111678" target="_blank" class="shp-link">47218111678</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$408.01</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47163065402"
             data-sit="procurar pacote"
@@ -1047,6 +1102,19 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47222506648"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47222506648" target="_blank" class="shp-link">47222506648</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$376.96</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47090534009"
             data-sit="possivel lost"
@@ -1060,19 +1128,6 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
-        </tr><tr style="" class="data-row"
-            data-id="47142502636"
-            data-sit="procurar pacote"
-            data-status=""
-            data-resp="">
-            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47142502636" target="_blank" class="shp-link">47142502636</a></td>
-            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$351.59</td>
-            <td>—</td>
-            <td style="text-align:center">❌</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47097877945"
             data-sit="possivel lost"
@@ -1112,19 +1167,6 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
-        </tr><tr style="" class="data-row"
-            data-id="47206000852"
-            data-sit="possivel lost"
-            data-status=""
-            data-resp="">
-            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47206000852" target="_blank" class="shp-link">47206000852</a></td>
-            <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
-            <td style="font-weight:700;color:#10B981">$164.94</td>
-            <td>—</td>
-            <td style="text-align:center">❌</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47085891009"
             data-sit="possivel lost"
@@ -2089,8 +2131,17 @@
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
-        </tr><tr style="background:#3b1a1a">
+        </tr><tr style="">
             <td style="text-align:center;font-weight:700;color:#FFE600">4</td>
+            <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47198458624" target="_blank" class="shp-link">47198458624</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981;font-size:14px">$1,933.02</td>
+            <td>—</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+        </tr><tr style="background:#3b1a1a">
+            <td style="text-align:center;font-weight:700;color:#FFE600">5</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47166311471" target="_blank" class="shp-link">47166311471</a></td>
             <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
@@ -2099,7 +2150,7 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
         </tr><tr style="background:#3b1a1a">
-            <td style="text-align:center;font-weight:700;color:#FFE600">5</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">6</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47012996990" target="_blank" class="shp-link">47012996990</a></td>
             <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
@@ -2108,7 +2159,7 @@
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
             <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
         </tr><tr style="background:#2d1f0e">
-            <td style="text-align:center;font-weight:700;color:#FFE600">6</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">7</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47122298879" target="_blank" class="shp-link">47122298879</a></td>
             <td><span class="pill" style="background:#7f1d1d;color:#fca5a5">Possivel Lost</span></td>
@@ -2117,7 +2168,7 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">7</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">8</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47210972413" target="_blank" class="shp-link">47210972413</a></td>
             <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
@@ -2126,7 +2177,7 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">8</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">9</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47229607697" target="_blank" class="shp-link">47229607697</a></td>
             <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
@@ -2135,7 +2186,7 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">9</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">10</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47230977047" target="_blank" class="shp-link">47230977047</a></td>
             <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
@@ -2144,7 +2195,7 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">10</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">11</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47227920566" target="_blank" class="shp-link">47227920566</a></td>
             <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
@@ -2153,7 +2204,7 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">11</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">12</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47213578392" target="_blank" class="shp-link">47213578392</a></td>
             <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
@@ -2162,7 +2213,7 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">12</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">13</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47225952558" target="_blank" class="shp-link">47225952558</a></td>
             <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
@@ -2171,7 +2222,7 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">13</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">14</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47227183807" target="_blank" class="shp-link">47227183807</a></td>
             <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
@@ -2180,20 +2231,11 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
         </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">14</td>
+            <td style="text-align:center;font-weight:700;color:#FFE600">15</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47231853176" target="_blank" class="shp-link">47231853176</a></td>
             <td><span class="pill" style="background:#1e3a5f;color:#93c5fd">< 11 dias OW</span></td>
             <td style="font-weight:700;color:#10B981;font-size:14px">$832.89</td>
-            <td>—</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
-        </tr><tr style="">
-            <td style="text-align:center;font-weight:700;color:#FFE600">15</td>
-            <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
-            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47218650159" target="_blank" class="shp-link">47218650159</a></td>
-            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981;font-size:14px">$813.05</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
@@ -2211,10 +2253,13 @@
       <div class="card-value val-ok">44</div>
       <div class="card-delta">Seguiram fluxo correto</div>
     </div>
-    <div class="card card-ok">
-      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Recuperado</span></div>
+    <div class="card card-ok card-link" onclick="irPara('hist')">
+      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV do Mês</span></div>
       <div class="card-value val-ok">$33,674</div>
-      <div class="card-delta">jun/2026</div>
+      <div class="card-delta">
+        <span style="color:#10b981">↑ $33,674 recuperado</span><br>
+        <span style="color:#ef4444">↓ $0 perdido</span>
+      </div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>
@@ -3897,7 +3942,7 @@ function onClickChart(evt, elements, chart, tabId, sitSelectId) {
 // Doughnut ON ROUTE
 new Chart(document.getElementById('cSitRt'), {
   type: 'doughnut',
-  data: { labels:["Procurar Pacote", "Possivel Lost"], datasets:[{ data:[21, 16], backgroundColor:["rgba(176,112,64,0.85)", "rgba(181,64,64,0.85)"], borderWidth:0 }] },
+  data: { labels:["Procurar Pacote", "Possivel Lost"], datasets:[{ data:[25, 15], backgroundColor:["rgba(176,112,64,0.85)", "rgba(181,64,64,0.85)"], borderWidth:0 }] },
   options: { ...defOpts, cutout:'40%',
     onClick: (evt,els,chart) => onClickChart(evt,els,chart,'route','sit_route'),
     plugins: { ...defOpts.plugins, tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} pacotes — clique para filtrar` } } }
@@ -3917,7 +3962,7 @@ new Chart(document.getElementById('cSitWy'), {
 // Status dos casos
 const cStatus = new Chart(document.getElementById('cStatus'), {
   type: 'bar',
-  data: { labels:["Em andamento", "Pendente", "Sem acomp."], datasets:[{ data:[0, 0, 91],
+  data: { labels:["Em andamento", "Pendente", "Sem acomp."], datasets:[{ data:[0, 0, 94],
     backgroundColor:['#3B82F6','#F59E0B','#9CA3AF'], borderRadius:6 }] },
   options: { ...defOpts, plugins:{ legend:{ display:false } },
     scales:{ x:{ ticks:{ color:'#8a8a8a' }, grid:{ color:'#1e293b' } },
@@ -3929,10 +3974,10 @@ checkEmpty('cStatus', cStatus);
 new Chart(document.getElementById('cGmvEvo'), {
   type: 'bar',
   data: {
-    labels: ["27/05", "29/05", "30/05", "31/05", "01/06", "02/06", "03/06", "04/06", "05/06", "06/06"],
+    labels: ["27/05", "29/05", "30/05", "31/05", "01/06", "02/06", "03/06", "04/06", "05/06", "06/06", "07/06"],
     datasets: [
-      { label:'GMV ON ROUTE', data:[5250.27, 1130.02, 1845.81, 2197.5, 444.74, 1567.07, 2186.69, 1686.53, 432.66, 2108.85], backgroundColor:'#3B82F6', borderRadius:4 },
-      { label:'GMV ON WAY',   data:[7599.4, 180.49, 299.57, 0, 0, 149.57, 0, 0, 1806.05, 20605.73], backgroundColor:'#10B981', borderRadius:4 },
+      { label:'GMV ON ROUTE', data:[5250.27, 1130.02, 1845.81, 2197.5, 444.74, 1567.07, 1732.15, 1050.58, 432.66, 110.19, 5543.58], backgroundColor:'#3B82F6', borderRadius:4 },
+      { label:'GMV ON WAY',   data:[7599.4, 180.49, 299.57, 0, 0, 149.57, 0, 0, 1806.05, 20605.73, 0], backgroundColor:'#10B981', borderRadius:4 },
     ]
   },
   options: { ...defOpts,
@@ -3946,10 +3991,10 @@ new Chart(document.getElementById('cGmvEvo'), {
 new Chart(document.getElementById('cEvo'), {
   type: 'bar',
   data: {
-    labels: ["27/05", "29/05", "30/05", "31/05", "01/06", "02/06", "03/06", "04/06", "05/06", "06/06"],
+    labels: ["27/05", "29/05", "30/05", "31/05", "01/06", "02/06", "03/06", "04/06", "05/06", "06/06", "07/06"],
     datasets: [
-      { label:'ON ROUTE', data:[7, 4, 3, 1, 1, 2, 6, 5, 3, 5], backgroundColor:'rgba(59,130,246,0.7)', borderRadius:4 },
-      { label:'ON WAY',   data:[17, 1, 2, 0, 0, 1, 0, 0, 3, 30], backgroundColor:'rgba(16,185,129,0.7)', borderRadius:4 },
+      { label:'ON ROUTE', data:[7, 4, 3, 1, 1, 2, 5, 4, 3, 1, 9], backgroundColor:'rgba(59,130,246,0.7)', borderRadius:4 },
+      { label:'ON WAY',   data:[17, 1, 2, 0, 0, 1, 0, 0, 3, 30, 0], backgroundColor:'rgba(16,185,129,0.7)', borderRadius:4 },
     ]
   },
   options: { ...defOpts,
@@ -3959,8 +4004,8 @@ new Chart(document.getElementById('cEvo'), {
 });
 
 // Heatmap dias da semana
-const hmColors = [10, 7, 55, 16, 46, 57, 1].map(v => {
-  const max = Math.max(...[10, 7, 55, 16, 46, 57, 1]);
+const hmColors = [10, 7, 54, 15, 46, 53, 10].map(v => {
+  const max = Math.max(...[10, 7, 54, 15, 46, 53, 10]);
   const ratio = max > 0 ? v / max : 0;
   const r = Math.round(59  + (239-59)  * ratio);
   const g = Math.round(130 + (68-130)  * ratio);
@@ -3969,7 +4014,7 @@ const hmColors = [10, 7, 55, 16, 46, 57, 1].map(v => {
 });
 new Chart(document.getElementById('cHeatmap'), {
   type: 'bar',
-  data: { labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"], datasets:[{ data:[10, 7, 55, 16, 46, 57, 1],
+  data: { labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"], datasets:[{ data:[10, 7, 54, 15, 46, 53, 10],
     backgroundColor: hmColors, borderRadius:8 }] },
   options: {
     responsive:true,
@@ -3983,7 +4028,7 @@ new Chart(document.getElementById('cHeatmap'), {
 // Top GMV horizontal
 new Chart(document.getElementById('cTop'), {
   type: 'bar',
-  data: { labels:["47090537177", "47069669118", "47176942580", "47166311471", "47012996990", "47122298879", "47210972413", "47229607697", "47230977047", "47227920566", "47213578392", "47225952558", "47227183807", "47231853176", "47218650159"], datasets:[{ data:[2850.28, 2542.67, 2197.5, 1265.15, 1217.48, 1086.93, 974.68, 872.56, 872.56, 863.9, 857.06, 852.72, 852.72, 832.89, 813.05], backgroundColor:["#60A5FA", "#F97316", "#F97316", "#F97316", "#EF4444", "#EF4444", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA", "#F97316"], borderRadius:4 }] },
+  data: { labels:["47090537177", "47069669118", "47176942580", "47198458624", "47166311471", "47012996990", "47122298879", "47210972413", "47229607697", "47230977047", "47227920566", "47213578392", "47225952558", "47227183807", "47231853176"], datasets:[{ data:[2850.28, 2542.67, 2197.5, 1933.02, 1265.15, 1217.48, 1086.93, 974.68, 872.56, 872.56, 863.9, 857.06, 852.72, 852.72, 832.89], backgroundColor:["#60A5FA", "#F97316", "#F97316", "#F97316", "#F97316", "#EF4444", "#EF4444", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA", "#60A5FA"], borderRadius:4 }] },
   options: {
     indexAxis:'y', responsive:true,
     plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx=>' $'+ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2}) } } },

@@ -197,9 +197,10 @@ def processar(rt, wy, hi):
                   for m in sorted(set(r['mes'] for r in hist_todos if r['mes']),
                                   key=lambda m: datetime.strptime('01/'+m, '%d/%m/%Y'))]
 
-    # Taxa de recupero e GMV recuperado
+    # Taxa de recupero, GMV recuperado e GMV perdido
     taxa_recupero  = round(recuperados / removidos * 100, 1) if removidos > 0 else 0
-    gmv_recuperado = sum(flt(r['gmv']) for r in hist_rows if 'fluxo' in r['final'].lower())
+    gmv_recuperado = sum(flt(r['gmv']) for r in hist_rows if 'fluxo'   in r['final'].lower())
+    gmv_perdido    = sum(flt(r['gmv']) for r in hist_rows if 'perdido' in r['final'].lower())
 
     # ---- Comparativo hoje (novos - removidos hoje) ----
     rem_hoje_rt = sum(1 for r in hist_rows if r['data'] == hoje and 'Route' in r['origem'])
@@ -271,6 +272,7 @@ def processar(rt, wy, hi):
         'hist_todos': hist_todos, 'meses_hist': meses_hist,
         'mes_ano':    mes_ano,
         'taxa_recupero': taxa_recupero, 'gmv_recuperado': gmv_recuperado,
+        'gmv_perdido': gmv_perdido,
         # Heatmap
         'heatmap_labels': dias_labels, 'heatmap': heatmap,
         # Críticos
@@ -649,9 +651,12 @@ def gerar_html(d):
       <div class="card-delta">{d["mes_lbl"]} · Seguiram fluxo correto</div>
     </div>
     <div class="card card-ok card-link" onclick="irPara('hist')">
-      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Recuperado</span></div>
+      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV do Mês</span></div>
       <div class="card-value val-ok">${d["gmv_recuperado"]:,.0f}</div>
-      <div class="card-delta">{d["mes_lbl"]}</div>
+      <div class="card-delta">
+        <span style="color:#10b981">↑ ${d["gmv_recuperado"]:,.0f} recuperado</span><br>
+        <span style="color:#ef4444">↓ ${d["gmv_perdido"]:,.0f} perdido</span>
+      </div>
     </div>
     <div class="card card-link" onclick="irPara('hist')">
       <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>
@@ -790,10 +795,13 @@ def gerar_html(d):
       <div class="card-value val-ok">{d["recuperados"]}</div>
       <div class="card-delta">Seguiram fluxo correto</div>
     </div>
-    <div class="card card-ok">
-      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Recuperado</span></div>
+    <div class="card card-ok card-link" onclick="irPara('hist')">
+      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV do Mês</span></div>
       <div class="card-value val-ok">${d["gmv_recuperado"]:,.0f}</div>
-      <div class="card-delta">{d["mes_lbl"]}</div>
+      <div class="card-delta">
+        <span style="color:#10b981">↑ ${d["gmv_recuperado"]:,.0f} recuperado</span><br>
+        <span style="color:#ef4444">↓ ${d["gmv_perdido"]:,.0f} perdido</span>
+      </div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>

@@ -368,29 +368,41 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv, bq_client, col_acao_lp
     for shp_id, (linha, situation) in existentes.items():
         if shp_id not in ids_bigquery:
             para_remover.append(linha)
-            status_atual = status_bq.get(shp_id, '').lower()
-            foi_entregue = status_atual.startswith('delivered')  # delivered_place, delivered_buyer, etc.
+            sub          = status_bq.get(shp_id, '').lower()
+            foi_entregue = sub.startswith('delivered') or sub == 'sorting'
+            foi_perdido  = sub == 'lost'
 
             if foi_entregue:
                 recuperados += 1
-                # marca o pacote como Concluído na planilha antes de remover
+
+            if foi_entregue or foi_perdido:
+                status_caso_novo = 'Concluído'
+                acao_lp_novo     = ('Acompanhado - Pacote seguiu fluxo correto'
+                                    if foi_entregue else
+                                    'Acompanhado - Pacote confirmado perdido')
                 updates_conclusao += [
-                    {'range': f'AC{linha}',           'values': [['Concluído']]},
-                    {'range': f'{col_acao_lp}{linha}', 'values': [['Acompanhado - Pacote seguiu fluxo correto']]},
+                    {'range': f'AC{linha}',            'values': [[status_caso_novo]]},
+                    {'range': f'{col_acao_lp}{linha}', 'values': [[acao_lp_novo]]},
                 ]
 
             if linha - 1 < len(todos_dados):
                 row_data    = todos_dados[linha - 1]
                 responsavel = row_data[0]       if len(row_data) > 0       else ''
                 gmv         = row_data[idx_gmv] if len(row_data) > idx_gmv else ''
-                status_caso = 'Concluído'               if foi_entregue else (row_data[28] if len(row_data) > 28 else '')
-                finalizacao = 'Seguiu fluxo correto'    if foi_entregue else (row_data[29] if len(row_data) > 29 else '')
-                arquivados.append([hoje, nome_aba, shp_id, situation, gmv, responsavel, status_caso, finalizacao])
+                if foi_entregue or foi_perdido:
+                    status_caso = 'Concluído'
+                    finalizacao = 'Seguiu fluxo correto' if foi_entregue else 'Perdido'
+                    resp_final  = responsavel if responsavel.strip() else 'Lucas Nascimento'
+                else:
+                    status_caso = row_data[28] if len(row_data) > 28 else ''
+                    finalizacao = row_data[29] if len(row_data) > 29 else ''
+                    resp_final  = responsavel
+                arquivados.append([hoje, nome_aba, shp_id, situation, gmv, resp_final, status_caso, finalizacao])
 
     # aplica os updates de conclusão antes de deletar as linhas
     if updates_conclusao:
         sheet.batch_update(updates_conclusao)
-        print(f"  OK: {recuperados} pacote(s) marcado(s) como Concluido - entregue(s)")
+        print(f"  OK: {recuperados} pacote(s) marcado(s) como Concluido - seguiram fluxo")
 
     para_remover.sort(reverse=True)
 
@@ -500,37 +512,48 @@ def corrigir_historico(planilha_controle, bq_client):
         print("  Aba Histórico não encontrada")
         return
 
-    ids_sem_status = {}   # { shp_id: linha_planilha }
+    # { shp_id: {'linha': i, 'resp': responsavel} }
+    ids_sem_status = {}
     for i, row in enumerate(dados[1:], start=2):
         shp_id = row[2] if len(row) > 2 else ''
         status = row[6] if len(row) > 6 else ''
         final  = row[7] if len(row) > 7 else ''
+        resp   = row[5] if len(row) > 5 else ''
         if shp_id and not status.strip() and not final.strip():
-            ids_sem_status[shp_id] = i
+            ids_sem_status[shp_id] = {'linha': i, 'resp': resp}
 
     if not ids_sem_status:
         print("  Nenhuma linha para corrigir")
         return
 
-    print(f"  {len(ids_sem_status)} linha(s) sem status — verificando entrega no BigQuery...")
+    print(f"  {len(ids_sem_status)} linha(s) sem status — verificando no BigQuery...")
     status_bq = verificar_entrega(bq_client, list(ids_sem_status.keys()))
 
     updates    = []
     corrigidos = 0
-    for shp_id, linha in ids_sem_status.items():
-        sub = status_bq.get(shp_id, '').lower()
-        if sub.startswith('delivered'):
+    for shp_id, info in ids_sem_status.items():
+        linha = info['linha']
+        resp  = info['resp']
+        sub   = status_bq.get(shp_id, '').lower()
+
+        foi_entregue = sub.startswith('delivered') or sub == 'sorting'
+        foi_perdido  = sub == 'lost'
+
+        if foi_entregue or foi_perdido:
+            finalizacao = 'Seguiu fluxo correto' if foi_entregue else 'Perdido'
             updates += [
                 {'range': f'G{linha}', 'values': [['Concluído']]},
-                {'range': f'H{linha}', 'values': [['Seguiu fluxo correto']]},
+                {'range': f'H{linha}', 'values': [[finalizacao]]},
             ]
+            if not resp.strip():
+                updates.append({'range': f'F{linha}', 'values': [['Lucas Nascimento']]})
             corrigidos += 1
 
     if updates:
         aba_hist.batch_update(updates)
-        print(f"  {corrigidos} linha(s) corrigida(s) como Concluído/Seguiu fluxo correto")
+        print(f"  {corrigidos} linha(s) corrigida(s) no Histórico")
     else:
-        print(f"  Nenhum pacote entregue encontrado entre os sem status")
+        print(f"  Nenhum pacote encontrado para corrigir")
 
 
 def salvar_historico(planilha_controle, arquivados_route, arquivados_way):
