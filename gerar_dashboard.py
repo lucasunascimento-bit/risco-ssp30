@@ -161,6 +161,42 @@ def processar(rt, wy, hi):
                     'final':  r[7] if len(r) > 7 else ''}
                    for r in hist_mes]
 
+    # Histórico completo (todas as datas) para a aba com filtro de mês
+    def mes_de(data_str):
+        try:
+            p = data_str.strip().split('/')
+            return f"{p[1]}/{p[2]}"   # mm/yyyy
+        except: return ''
+
+    hist_todos = []
+    for r in hi:
+        if not (len(r) > 0 and r[0].strip()): continue
+        m = mes_de(r[0])
+        hist_todos.append({
+            'data':   r[0], 'origem': r[1] if len(r) > 1 else '',
+            'id':     r[2] if len(r) > 2 else '',
+            'sit':    r[3] if len(r) > 3 else '',
+            'gmv':    r[4] if len(r) > 4 else '',
+            'resp':   r[5] if len(r) > 5 else '',
+            'status': r[6] if len(r) > 6 else '',
+            'final':  r[7] if len(r) > 7 else '',
+            'mes':    m,
+        })
+    # ordena do mais recente para o mais antigo
+    hist_todos.sort(
+        key=lambda r: datetime.strptime(r['data'], '%d/%m/%Y') if r['data'] else datetime.min,
+        reverse=True
+    )
+    # meses disponíveis em ordem cronológica
+    def lbl_mes(m):
+        try:
+            dt = datetime.strptime('01/' + m, '%d/%m/%Y')
+            return f"{MESES_PT[dt.month]}/{dt.year}"
+        except: return m
+    meses_hist = [{'val': m, 'lbl': lbl_mes(m)}
+                  for m in sorted(set(r['mes'] for r in hist_todos if r['mes']),
+                                  key=lambda m: datetime.strptime('01/'+m, '%d/%m/%Y'))]
+
     # Taxa de recupero e GMV recuperado
     taxa_recupero  = round(recuperados / removidos * 100, 1) if removidos > 0 else 0
     gmv_recuperado = sum(flt(r['gmv']) for r in hist_rows if 'fluxo' in r['final'].lower())
@@ -232,6 +268,8 @@ def processar(rt, wy, hi):
         # Histórico
         'concluidos': concluidos, 'recuperados': recuperados,
         'removidos':  removidos,  'hist_rows': hist_rows,
+        'hist_todos': hist_todos, 'meses_hist': meses_hist,
+        'mes_ano':    mes_ano,
         'taxa_recupero': taxa_recupero, 'gmv_recuperado': gmv_recuperado,
         # Heatmap
         'heatmap_labels': dias_labels, 'heatmap': heatmap,
@@ -355,12 +393,13 @@ def rows_table_top(rows):
 def rows_table_hist(rows):
     out = ''
     for r in rows:
-        orig_bg = '#1D4ED8' if r['origem'] == 'ON ROUTE' else '#065F46'
+        orig_bg = '#1D4ED8' if 'Route' in r['origem'] else '#065F46'
         g       = f'${flt(r["gmv"]):,.2f}' if r['gmv'] else '—'
-        out += f'''<tr>
+        mes     = r.get('mes', '')
+        out += f'''<tr class="hist-row" data-mes="{mes}">
             <td style="font-size:12px;color:#9CA3AF">{r["data"]}</td>
-            <td><span style="background:{orig_bg};color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">{r["origem"]}</span></td>
-            <td style="font-family:monospace;font-size:12px">{r["id"]}</td>
+            <td><span style="background:{orig_bg};color:#fff;padding:2px 7px;border-radius:4px;font-size:11px">{"ON ROUTE" if "Route" in r["origem"] else "ON WAY"}</span></td>
+            <td style="font-family:monospace;font-size:12px">{id_link(r["id"]) if r["id"] else "—"}</td>
             <td>{pill(r["sit"])}</td>
             <td style="color:#10B981;font-weight:600">{g}</td>
             <td>{r["resp"] or "—"}</td>
@@ -514,6 +553,11 @@ def gerar_html(d):
   .divider{{height:1px;background:#111827;margin:20px 0}}
   /* mb utils */
   .mb16{{margin-bottom:16px}}
+  /* SELETOR DE MÊS */
+  .mes-selector{{display:flex;gap:8px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid #111827;align-items:center}}
+  .mes-btn{{background:#0d1321;color:#4b5563;border:1px solid #1f2937;border-radius:20px;padding:5px 14px;font-size:11px;font-weight:500;cursor:pointer;transition:background-color .3s ease,color .3s ease,border-color .3s ease,box-shadow .3s ease,transform .2s ease}}
+  .mes-btn:hover{{color:#e2e8f0;border-color:#374151}}
+  .mes-btn.mes-ativo{{background:#1f2937;color:#ffffff;border-color:#374151}}
   /* RESPONSIVO */
   @media(max-width:1024px){{
     .content{{padding:20px 20px}}
@@ -557,7 +601,7 @@ def gerar_html(d):
   <div class="tab" onclick="showTab('route',this)">ON ROUTE ({d["r_total"]})</div>
   <div class="tab" onclick="showTab('way',this)">ON WAY ({d["w_total"]})</div>
   <div class="tab" onclick="showTab('gmv',this)">Top GMV</div>
-  <div class="tab" onclick="showTab('hist',this)">Histórico {d["mes_lbl"]}</div>
+  <div class="tab" onclick="showTab('hist',this)">Histórico</div>
 </div>
 
 <!-- ===================== ABA 1: VISÃO GERAL ===================== -->
@@ -609,11 +653,6 @@ def gerar_html(d):
       <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>
       <div class="card-value">{d["taxa_recupero"]}%</div>
       <div class="card-delta">{d["recuperados"]} de {d["removidos"]} removidos</div>
-    </div>
-    <div class="card card-ok">
-      <div class="card-header"><i data-lucide="check-circle" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Concluídos {d["mes_lbl"]}</span></div>
-      <div class="card-value val-ok">{d["concluidos"]}</div>
-      <div class="card-delta">{d["removidos"]} removidos no mês</div>
     </div>
   </div>
 
@@ -742,14 +781,45 @@ def gerar_html(d):
 <!-- ===================== ABA 5: HISTÓRICO ===================== -->
 <div id="tab-hist" class="content">
   <div class="cards">
-    <div class="card green"><div class="label">✅ Concluídos no mês</div><div class="value">{d["concluidos"]}</div></div>
-    <div class="card green"><div class="label">🏆 Recuperados</div><div class="value">{d["recuperados"]}</div><div class="delta">Seguiram fluxo correto</div></div>
-    <div class="card blue"><div class="label">📤 Total removidos</div><div class="value">{d["removidos"]}</div></div>
-    <div class="card yellow"><div class="label">📅 Mês</div><div class="value" style="font-size:18px">{d["mes_lbl"]}</div></div>
+    <div class="card card-ok">
+      <div class="card-header"><i data-lucide="award" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Recuperados {d["mes_lbl"]}</span></div>
+      <div class="card-value val-ok">{d["recuperados"]}</div>
+      <div class="card-delta">Seguiram fluxo correto</div>
+    </div>
+    <div class="card card-ok">
+      <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Recuperado</span></div>
+      <div class="card-value val-ok">${d["gmv_recuperado"]:,.0f}</div>
+      <div class="card-delta">{d["mes_lbl"]}</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>
+      <div class="card-value">{d["taxa_recupero"]}%</div>
+      <div class="card-delta">{d["recuperados"]} de {d["removidos"]} removidos</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="archive" class="card-icon" width="14" height="14"></i><span class="card-label">Total no Histórico</span></div>
+      <div class="card-value">{len(d["hist_todos"])}</div>
+      <div class="card-delta">todos os meses</div>
+    </div>
   </div>
+
+  <!-- Seletor de mês -->
+  <div class="mes-selector">
+    <button class="mes-btn" data-mes="" onclick="filtrarMes('')">Todos</button>
+    {''.join(f'<button class="mes-btn" data-mes="{m["val"]}" onclick="filtrarMes(\'{m["val"]}\')">{m["lbl"]}</button>' for m in d["meses_hist"])}
+  </div>
+
   <div class="tbl-wrap">
-    <div class="tbl-title">📁 Pacotes arquivados em {d["mes_lbl"]}</div>
-    {hist_table}
+    <div class="tbl-title">Pacotes arquivados</div>
+    <div class="tbl-scroll">
+    <table id="tbl_hist">
+      <thead><tr>
+        <th>Data</th><th>Origem</th><th>SHP ID</th><th>Situation</th>
+        <th>GMV USD</th><th>Responsável</th><th>Status</th><th>Finalização</th>
+      </tr></thead>
+      <tbody>{rows_table_hist(d["hist_todos"])}</tbody>
+    </table>
+    </div>
   </div>
 </div>
 
@@ -774,6 +844,18 @@ window.addEventListener('load', () => {{
     if (tabs[idx]) showTab(hash, tabs[idx]);
   }}
 }});
+
+// Filtro por mês no Histórico
+function filtrarMes(mes) {{
+  document.querySelectorAll('.hist-row').forEach(tr => {{
+    tr.style.display = (!mes || tr.dataset.mes === mes) ? '' : 'none';
+  }});
+  document.querySelectorAll('.mes-btn').forEach(btn => {{
+    btn.classList.toggle('mes-ativo', btn.dataset.mes === mes);
+  }});
+}}
+// Abre no mês atual por padrão
+filtrarMes('{d["mes_ano"]}');
 
 // Filtros das tabelas
 function filtrar(tabId) {{

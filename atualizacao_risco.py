@@ -486,6 +486,53 @@ def atualizar_cftv(planilha_controle, planilha_cftv):
     return cftv_counts
 
 
+def corrigir_historico(planilha_controle, bq_client):
+    """
+    Varre o Histórico procurando linhas sem Status e sem Finalização.
+    Se o pacote foi entregue (SHP_LG_SUB_STATUS startswith 'delivered'),
+    preenche Status='Concluído' e Finalização='Seguiu fluxo correto'.
+    """
+    print("\nCorrigindo Histórico (pacotes sem status)...")
+    try:
+        aba_hist = planilha_controle.worksheet(ABA_HISTORICO)
+        dados    = aba_hist.get_all_values()
+    except gspread.exceptions.WorksheetNotFound:
+        print("  Aba Histórico não encontrada")
+        return
+
+    ids_sem_status = {}   # { shp_id: linha_planilha }
+    for i, row in enumerate(dados[1:], start=2):
+        shp_id = row[2] if len(row) > 2 else ''
+        status = row[6] if len(row) > 6 else ''
+        final  = row[7] if len(row) > 7 else ''
+        if shp_id and not status.strip() and not final.strip():
+            ids_sem_status[shp_id] = i
+
+    if not ids_sem_status:
+        print("  Nenhuma linha para corrigir")
+        return
+
+    print(f"  {len(ids_sem_status)} linha(s) sem status — verificando entrega no BigQuery...")
+    status_bq = verificar_entrega(bq_client, list(ids_sem_status.keys()))
+
+    updates    = []
+    corrigidos = 0
+    for shp_id, linha in ids_sem_status.items():
+        sub = status_bq.get(shp_id, '').lower()
+        if sub.startswith('delivered'):
+            updates += [
+                {'range': f'G{linha}', 'values': [['Concluído']]},
+                {'range': f'H{linha}', 'values': [['Seguiu fluxo correto']]},
+            ]
+            corrigidos += 1
+
+    if updates:
+        aba_hist.batch_update(updates)
+        print(f"  {corrigidos} linha(s) corrigida(s) como Concluído/Seguiu fluxo correto")
+    else:
+        print(f"  Nenhum pacote entregue encontrado entre os sem status")
+
+
 def salvar_historico(planilha_controle, arquivados_route, arquivados_way):
     """
     Arquiva no Histórico as linhas removidas das abas ativas.
@@ -643,6 +690,7 @@ if __name__ == '__main__':
                               idx_gmv=21, bq_client=bq_client, col_acao_lp='W')
 
     salvar_historico(planilha_controle, stats_route['arquivados'], stats_way['arquivados'])
+    corrigir_historico(planilha_controle, bq_client)
 
     cftv = atualizar_cftv(planilha_controle, planilha_cftv)
 
