@@ -534,10 +534,16 @@ def rows_drivers(drivers, cruzados):
         dias_str = f'{dias}d' if dias >= 0 else '—'
         dias_cor = '#10b981' if 0 <= dias <= 30 else '#f59e0b' if dias <= 90 else '#ef4444' if dias > 0 else '#4b5563'
         ativ_cor = d.get('ativ_cor', '#4b5563')
-        out += f'''<tr {toggle}>
+        leal = d.get('lealdade','N/A')
+        leal_html = lealdade_badge(leal) if leal != 'N/A' else '<span style="color:#374151;font-size:11px">—</span>'
+        out += f'''<tr {toggle}
+            data-id="{d["id"]}"
+            data-transp="{d.get("transportadora","").lower()}"
+            data-ativ="{d.get("atividade","").lower()}">
             <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta} {cruz}</td>
             <td>{prio_badge(d["prio"])}</td>
             <td style="font-size:11px;color:#9ca3af">{d.get("transportadora","—")}</td>
+            <td>{leal_html}</td>
             <td>
               <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{ativ_cor};margin-right:5px"></span>
               <span style="font-size:11px;color:{ativ_cor}">{d.get("atividade","—")}</span>
@@ -855,9 +861,24 @@ def gerar_html(d):
 
   <div class="tbl-wrap">
     <div class="tbl-title">Ranking Ativo — Drivers em Atuação ({len(d["drivers_ativos"])})</div>
-    <div class="tbl-scroll"><table>
+    <!-- Filtros -->
+    <div class="filter-bar">
+      <input type="text" id="busca_driver" placeholder="Buscar por Driver ID..." oninput="filtrarDrivers()" class="filter-input">
+      <select id="filtro_transp" onchange="filtrarDrivers()" class="filter-select">
+        <option value="">Todas as transportadoras</option>
+        {''.join(f'<option value="{t.lower()}">{t}</option>' for t in sorted(t for t in set(r.get("transportadora","") for r in d["drivers_ativos"]) if t and t not in ("N/A","—","")))}
+      </select>
+      <select id="filtro_ativ" onchange="filtrarDrivers()" class="filter-select">
+        <option value="">Todas as atividades</option>
+        <option value="ativo">🟢 Ativo</option>
+        <option value="em observação">🟡 Em observação</option>
+        <option value="inativo">🔴 Inativo</option>
+        <option value="sem dados">⚪ Sem dados</option>
+      </select>
+    </div>
+    <div class="tbl-scroll"><table id="tbl_drivers">
       <thead><tr>
-        <th>Driver ID</th><th>Prioridade</th><th>Transportadora</th>
+        <th>Driver ID</th><th>Prioridade</th><th>Transportadora</th><th>Categoria</th>
         <th>Atividade</th><th>Última Rota</th><th>Score</th>
         <th>Fraudes</th><th>Damaged</th><th>Fraud Confirm.</th><th>BPP Total</th>
       </tr></thead>
@@ -923,6 +944,25 @@ def gerar_html(d):
 </div>
 
 <script>
+// Filtro da tabela de drivers
+function filtrarDrivers() {{
+  const busca  = (document.getElementById('busca_driver')?.value || '').toLowerCase();
+  const transp = (document.getElementById('filtro_transp')?.value || '').toLowerCase();
+  const ativ   = (document.getElementById('filtro_ativ')?.value || '').toLowerCase();
+  document.querySelectorAll('#tbl_drivers > tbody > tr[data-id]').forEach(tr => {{
+    const id    = (tr.dataset.id    || '').toLowerCase();
+    const tp    = (tr.dataset.transp|| '').toLowerCase();
+    const at    = (tr.dataset.ativ  || '').toLowerCase();
+    const ok = (!busca  || id.includes(busca))
+            && (!transp || tp.includes(transp))
+            && (!ativ   || at.includes(ativ));
+    tr.style.display = ok ? '' : 'none';
+    // esconde também o tbody expandido do driver quando filtrado
+    const nextSibling = tr.nextElementSibling;
+    if (nextSibling && nextSibling.tagName === 'TBODY' && !ok) nextSibling.style.display = 'none';
+  }});
+}}
+
 // Expandir/recolher SHP IDs do driver
 function toggleDriver(id) {{
   const el = document.getElementById(id);
