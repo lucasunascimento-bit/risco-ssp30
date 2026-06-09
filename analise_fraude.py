@@ -892,6 +892,12 @@ def gerar_html(d):
       <div class="header-sub">Base {d["ano"]} · Gerado em {d["gerado"]}</div>
     </div>
   </div>
+  <a href="https://github.com/lucasunascimento-bit/risco-ssp30/actions/workflows/analise_fraude.yml"
+     target="_blank"
+     style="background:#064e3b;color:#4ade80;border:1px solid #166534;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:6px;transition:all .3s ease"
+     onmouseover="this.style.background='#065f46'" onmouseout="this.style.background='#064e3b'">
+    ↻ Atualizar dados
+  </a>
   <div class="nav-wrap">
     <button class="nav-btn" onclick="toggleNav(event)">⊞ Dashboards ▾</button>
     <div class="nav-dropdown">
