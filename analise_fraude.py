@@ -178,6 +178,30 @@ LEFT JOIN loyalty loy ON CAST(sd.DRIVER_ID AS STRING) = CAST(loy.driverid AS STR
 ORDER BY sd.STATUS, fd.TOTAL_INCIDENTES_HIST DESC
 """
 
+QUERY_DRIVER_ROUTES = f"""
+-- Última rota, transportadora e atividade dos drivers da análise de fraude
+SELECT
+    CAST(r.SHP_LG_DRIVER_ID AS STRING)                                          AS DRIVER_ID,
+    c.SHP_COMPANY_NAME                                                           AS TRANSPORTADORA,
+    MAX(DATE(r.SHP_LG_ROUTE_INIT_DATE))                                         AS ULTIMA_ROTA,
+    DATE_DIFF(CURRENT_DATE(), MAX(DATE(r.SHP_LG_ROUTE_INIT_DATE)), DAY)         AS DIAS_SEM_ROTA,
+    COUNT(DISTINCT r.SHP_LG_ROUTE_ID)                                            AS ROTAS_ANO
+FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENTS_ROUTES` r
+LEFT JOIN `meli-bi-data.WHOWNER.LK_SHP_COMPANIES` c
+    ON r.SHP_COMPANY_ID = c.SHP_COMPANY_ID
+WHERE r.SHP_LG_FACILITY_ID = 'SSP30'
+  AND DATE(r.SHP_LG_ROUTE_INIT_DATE) >= '{ANO_INICIO}'
+  AND CAST(r.SHP_LG_DRIVER_ID AS STRING) IN (
+      SELECT DISTINCT SAFE_CAST(DRIVER_ID AS STRING)
+      FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+      WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+        AND date_bpp >= '{ANO_INICIO}'
+        AND DRIVER_ID IS NOT NULL
+  )
+GROUP BY 1, 2
+ORDER BY DIAS_SEM_ROTA DESC
+"""
+
 QUERY_PLACE_SHIPMENTS = f"""
 -- SHP IDs por place (LOST + FRAUD apenas)
 SELECT
@@ -249,7 +273,7 @@ def prioridade(score, fraud_conf):
     if score >= 4:                     return 'MEDIA'
     return 'BAIXA'
 
-def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status):
+def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes):
     # ---- Drivers (score combinado) ----
     drivers = []
     for _, r in df_score.iterrows():
@@ -307,6 +331,19 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
             'ene':     int(r.get('DAMAGED_ENE', 0) or 0),
         })
 
+    # ---- Rotas dos drivers (transportadora + última rota) ----
+    routes_map = {}
+    for _, r in df_routes.iterrows():
+        did  = str(r.get('DRIVER_ID', ''))
+        dias = int(r.get('DIAS_SEM_ROTA', 999) or 999)
+        if did:
+            routes_map[did] = {
+                'transportadora': str(r.get('TRANSPORTADORA', '') or 'N/A'),
+                'ultima_rota':    str(r.get('ULTIMA_ROTA', '') or ''),
+                'dias_sem_rota':  dias,
+                'rotas_ano':      int(r.get('ROTAS_ANO', 0) or 0),
+            }
+
     # ---- Status dos drivers ----
     status_map = {}   # {driver_id: {status, substatus, lealdade, data_ativacao, primeira_fraude, ultima_fraude}}
     bloqueados = []
@@ -327,18 +364,37 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         if info['status'] == 'blocked':
             bloqueados.append({'id': did, **info})
 
-    # Enriquece drivers com status e separa bloqueados
-    drivers_ativos    = []
+    # Enriquece drivers com status, transportadora e atividade
+    drivers_ativos     = []
     drivers_bloqueados = []
     for d in drivers:
-        st = status_map.get(d['id'], {})
-        d['status_driver'] = st.get('status', 'active')
-        d['lealdade']      = st.get('lealdade', 'N/A')
-        d['data_ativacao'] = st.get('data_ativacao', '')
-        if d['status_driver'] == 'blocked':
+        st  = status_map.get(d['id'], {})
+        rt  = routes_map.get(d['id'], {})
+        dias = rt.get('dias_sem_rota', -1)
+
+        d['lealdade']       = st.get('lealdade', 'N/A')
+        d['data_ativacao']  = st.get('data_ativacao', '')
+        d['transportadora'] = rt.get('transportadora', 'N/A')
+        d['ultima_rota']    = rt.get('ultima_rota', '—')
+        d['dias_sem_rota']  = dias
+        d['rotas_ano']      = rt.get('rotas_ano', 0)
+
+        # Determina atividade
+        if st.get('status') == 'blocked':
+            d['atividade'] = '⛔ Bloqueado'
             drivers_bloqueados.append(d)
-        else:
+        elif dias < 0:
+            d['atividade'] = '❓ Sem dados'
             drivers_ativos.append(d)
+        elif dias <= 30:
+            d['atividade'] = '🟢 Ativo'
+            drivers_ativos.append(d)
+        elif dias <= 90:
+            d['atividade'] = '🟡 Em observação'
+            drivers_ativos.append(d)
+        else:
+            d['atividade'] = '🔴 Inativo'
+            drivers_ativos.append(d)  # inativo mas não bloqueado oficialmente
 
     # ---- SHP IDs por place ----
     shp_por_place = {}
@@ -462,10 +518,15 @@ def rows_drivers(drivers, cruzados):
             </tr>'''
         toggle = f'onclick="toggleDriver(\'{row_id}\')" style="cursor:pointer"' if d['shps'] else ''
         seta   = f' <span id="arrow_{row_id}" style="font-size:10px;color:#4b5563">▶ {len(d["shps"])} pacotes</span>' if d['shps'] else ''
+        dias = d.get('dias_sem_rota', -1)
+        dias_cor = '#10b981' if dias <= 30 else '#f59e0b' if dias <= 90 else '#ef4444'
         out += f'''<tr {toggle}>
             <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta} {cruz}</td>
             <td>{prio_badge(d["prio"])}</td>
+            <td style="font-size:11px;color:#9ca3af">{d.get("transportadora","N/A")}</td>
             <td>{lealdade_badge(d.get("lealdade","N/A"))}</td>
+            <td style="font-size:11px">{d.get("atividade","—")}</td>
+            <td style="font-size:11px;color:{dias_cor}">{d.get("ultima_rota","—")}<br><span style="font-size:10px">({dias}d)</span></td>
             <td style="text-align:center;font-weight:700;color:#f9fafb">{d["score"]}</td>
             <td style="text-align:center;color:#ef4444;font-weight:600">{d["fraude"]}</td>
             <td style="text-align:center;color:#f59e0b">{d["damaged"]}</td>
@@ -779,7 +840,8 @@ def gerar_html(d):
     <div class="tbl-title">Ranking Ativo — Drivers em Atuação ({len(d["drivers_ativos"])})</div>
     <div class="tbl-scroll"><table>
       <thead><tr>
-        <th>Driver ID</th><th>Prioridade</th><th>Categoria</th><th>Score</th>
+        <th>Driver ID</th><th>Prioridade</th><th>Transportadora</th><th>Categoria</th>
+        <th>Atividade</th><th>Última Rota</th><th>Score</th>
         <th>Fraudes</th><th>Damaged</th><th>Fraud Confirm.</th><th>BPP Total</th>
       </tr></thead>
       <tbody>{rows_drivers(d["drivers_ativos"], d["cruzados"])}</tbody>
@@ -954,13 +1016,14 @@ if __name__ == '__main__':
     df_score     = buscar(bq, QUERY_DRIVER_SCORE,    'Score por Driver')
     df_shp       = buscar(bq, QUERY_DRIVER_SHIPMENTS,'SHP IDs por Driver')
     df_status    = buscar(bq, QUERY_DRIVER_STATUS,   'Status dos Drivers')
+    df_routes    = buscar(bq, QUERY_DRIVER_ROUTES,   'Rotas dos Drivers')
     df_dxp       = buscar(bq, QUERY_DRIVER_PLACE,    'Driver x Place')
     df_places    = buscar(bq, QUERY_PLACES,           'Places')
     df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
     df_damaged   = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
 
     print("\nProcessando...")
-    dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status)
+    dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
 
     print("Gerando dashboard...")
     html = gerar_html(dados)
