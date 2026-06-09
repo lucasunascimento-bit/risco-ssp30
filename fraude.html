@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fraude SSP30 — Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  .header{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #7f1d1d}
+  .header-brand{display:flex;align-items:center;gap:10px}
+  .header-accent{width:3px;height:28px;background:#ef4444;border-radius:2px}
+  .header-title{font-size:16px;font-weight:700;color:#ffffff}
+  .header-sub{font-size:11px;color:#374151;margin-top:2px}
+  .tabs{background:#080d19;border-bottom:1px solid #111827;padding:0 32px;display:flex;gap:0;overflow-x:auto}
+  .tab{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;transition:all .3s ease;white-space:nowrap}
+  .tab:hover{color:#f9fafb}
+  .tab.active{color:#ffffff;border-bottom-color:#ef4444;font-weight:600}
+  .content{display:none;padding:28px 32px;max-width:1480px;margin:0 auto}
+  .content.active{display:block}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+  .card{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:all .3s ease;display:flex;flex-direction:column;min-height:90px}
+  .card:hover{border-color:#1f2937;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .card.c-red{border-color:#450a0a;background:#0f0606}
+  .card-header{display:flex;align-items:center;gap:7px;margin-bottom:12px}
+  .ci{color:#374151;flex-shrink:0}
+  .cl{font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.7px;font-weight:600}
+  .cv{font-size:28px;font-weight:800;color:#ffffff;line-height:1;letter-spacing:-1px}
+  .cv.red{color:#ef4444}
+  .cv.amber{color:#f59e0b}
+  .cv.green{color:#10b981}
+  .cd{font-size:11px;color:#374151;margin-top:auto;padding-top:6px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .box{background:#0d1321;border-radius:8px;padding:20px;border:1px solid #111827;margin-bottom:14px}
+  .bt{font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.7px;margin-bottom:16px}
+  .tbl-wrap{background:#0d1321;border-radius:8px;overflow:hidden;margin-bottom:20px;border:1px solid #111827}
+  .tbl-title{padding:14px 24px;font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid #111827}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:#080d19;padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.6px}
+  td{padding:10px 16px;border-bottom:1px solid #0d1321;color:#d1d5db}
+  tr:hover td{background:#111827!important}
+  tr:last-child td{border-bottom:none}
+  .tbl-scroll{overflow-x:auto}
+  .alerta-box{background:#160a0a;border:1px solid #7f1d1d;border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px}
+  .alerta-box .num{font-size:28px;font-weight:800;color:#fca5a5}
+  .alerta-box .txt{color:#fca5a5;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-accent"></div>
+    <div>
+      <div class="header-title">Análise de Fraude — SSP30</div>
+      <div class="header-sub">Base 2026 · Gerado em 09/06/2026 14:16</div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#4b5563">🔍 Loss Prevention</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
+  <div class="tab" onclick="showTab('drivers',this)">Risco por Driver (60)</div>
+  <div class="tab" onclick="showTab('dxp',this)">Driver × Place (17)</div>
+  <div class="tab" onclick="showTab('places',this)">Places (27)</div>
+  <div class="tab" onclick="showTab('damaged',this)">Damaged (60)</div>
+</div>
+
+<!-- VISÃO GERAL -->
+<div id="tab-geral" class="content active">
+  <div class="cards">
+    <div class="card c-red">
+      <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Drivers Críticos</span></div>
+      <div class="cv red">2</div>
+      <div class="cd">Prioridade Alta ou Máxima</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="package-x" class="ci" width="14" height="14"></i><span class="cl">Total Fraudes/Lost</span></div>
+      <div class="cv">15</div>
+      <div class="cd">2026</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="box" class="ci" width="14" height="14"></i><span class="cl">Total Damaged</span></div>
+      <div class="cv amber">179</div>
+      <div class="cd">2026</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14"></i><span class="cl">BPP Total</span></div>
+      <div class="cv green">$17,770.37</div>
+      <div class="cd">Cashout 2026</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="map-pin" class="ci" width="14" height="14"></i><span class="cl">Places Suspeitos</span></div>
+      <div class="cv">27</div>
+      <div class="cd">Com fraude/lost</div>
+    </div>
+    <div class="card c-red">
+      <div class="card-header"><i data-lucide="zap" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Cruzados F+D</span></div>
+      <div class="cv red">3</div>
+      <div class="cd">Fraude + Damaged</div>
+    </div>
+  </div>
+
+  
+  <div class="alerta-box">
+    <div class="num">3</div>
+    <div class="txt"><strong>drivers aparecem em AMBAS as análises (Fraude + Damaged)</strong><br>
+    Estes são os principais alvos para investigação e bloqueio.</div>
+  </div>
+  <div class="tbl-wrap">
+    <div class="tbl-title">Drivers com Fraude + Damaged (maior risco)</div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Driver ID</th><th>Prioridade</th><th>Fraudes</th><th>Damaged</th><th>Score</th><th>BPP Total</th></tr></thead>
+      <tbody><tr style="background:#160a0a">
+                <td style="font-weight:800;color:#fca5a5">292999</td>
+                <td><span style="background:#7c2d12;color:#fdba74;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">ALTA</span></td>
+                <td style="text-align:center;color:#ef4444;font-weight:700">1</td>
+                <td style="text-align:center;color:#f59e0b;font-weight:700">9</td>
+                <td style="text-align:center;font-weight:800;color:#f9fafb">13</td>
+                <td style="color:#10b981">$202.42</td>
+            </tr><tr style="background:#160a0a">
+                <td style="font-weight:800;color:#fca5a5">3502618</td>
+                <td><span style="background:#7c2d12;color:#fdba74;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">ALTA</span></td>
+                <td style="text-align:center;color:#ef4444;font-weight:700">1</td>
+                <td style="text-align:center;color:#f59e0b;font-weight:700">4</td>
+                <td style="text-align:center;font-weight:800;color:#f9fafb">9</td>
+                <td style="color:#10b981">$1,443.27</td>
+            </tr><tr style="background:#160a0a">
+                <td style="font-weight:800;color:#fca5a5">3633598</td>
+                <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+                <td style="text-align:center;color:#ef4444;font-weight:700">1</td>
+                <td style="text-align:center;color:#f59e0b;font-weight:700">2</td>
+                <td style="text-align:center;font-weight:800;color:#f9fafb">7</td>
+                <td style="color:#10b981">$846.83</td>
+            </tr></tbody></table></div>
+  </div>
+
+  <div class="grid2">
+    <div class="box"><div class="bt">Top 10 Drivers — Fraude vs Damaged</div><canvas id="cDrivers" height="280"></canvas></div>
+    <div class="box"><div class="bt">Top 10 Places com mais Fraudes</div><canvas id="cPlaces" height="280"></canvas></div>
+  </div>
+</div>
+
+<!-- RISCO POR DRIVER -->
+<div id="tab-drivers" class="content">
+  <div class="tbl-wrap">
+    <div class="tbl-title">Ranking de Drivers por Score de Risco — Score = (Fraude × 3) + (Damaged × 1)</div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>Driver ID</th><th>Prioridade</th><th>Score</th>
+        <th>Fraudes</th><th>Damaged</th><th>Fraud Confirm.</th><th>BPP Total</th>
+      </tr></thead>
+      <tbody><tr>
+            <td style="font-weight:700;color:#f9fafb">292999 ⚠️</td>
+            <td><span style="background:#7c2d12;color:#fdba74;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">ALTA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">13</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">10</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$202.42</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3502618 ⚠️</td>
+            <td><span style="background:#7c2d12;color:#fdba74;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">ALTA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">9</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">6</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$1,443.27</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3952072 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">7</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">7</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$779.93</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3633598 ⚠️</td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">7</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">4</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$846.83</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1435971 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">6</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$417.73</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2640693 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">6</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$351.49</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3670560 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">6</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$285.31</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3430727 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">6</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$293.62</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3041117 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">5</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">5</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$1,599.70</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3077194 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">5</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">5</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$124.06</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1007629 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">5</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">5</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$1,108.42</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3232607 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">5</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">5</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$833.70</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4033393 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">5</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">5</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$362.51</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4330496 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">5</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="color:#10b981;font-weight:600">$354.66</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4238622 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">5</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="color:#10b981;font-weight:600">$347.15</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3550334 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">5</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="color:#10b981;font-weight:600">$106.92</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3050750 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">4</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$357.44</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3854710 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">4</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$360.58</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3279273 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">4</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$80.30</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4326599 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">4</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$188.37</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4528417 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">4</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$26.80</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2628200 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">4</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$82.40</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2638197 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">1</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="color:#10b981;font-weight:600">$191.99</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3496248 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">1</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$173.81</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3174489 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">1</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$334.21</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2436760 </td>
+            <td><span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">MEDIA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">1</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$44.38</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2666591 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$314.73</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2557242 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$206.44</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3780311 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$351.76</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3321535 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$41.69</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">799048 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$120.77</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1335107 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$833.37</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3577276 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$438.12</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1893076 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$74.99</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1504741 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$290.22</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3233160 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$145.61</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2249319 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$23.37</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1884731 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$51.74</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3715402 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$85.42</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3873706 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$128.59</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">228133 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$57.93</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3493884 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$123.89</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3481075 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$408.36</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2332836 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$24.32</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4591782 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$424.43</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3354415 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">1</td>
+            <td style="text-align:center;color:#f59e0b">0</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$16.70</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1989141 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$340.43</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3252262 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$398.06</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3914920 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$81.68</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3505826 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$159.53</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2086178 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$69.56</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4058286 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$38.45</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">916157 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$91.60</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3820055 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$25.12</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3124995 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$89.29</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4570763 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$13.76</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4429518 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$72.99</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3264222 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">1</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$234.51</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1649243 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">1</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$81.25</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3358012 </td>
+            <td><span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">BAIXA</span></td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">0</td>
+            <td style="text-align:center;color:#ef4444;font-weight:600">0</td>
+            <td style="text-align:center;color:#f59e0b">0</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="color:#10b981;font-weight:600">$613.69</td>
+        </tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- DRIVER × PLACE -->
+<div id="tab-dxp" class="content">
+  <div class="tbl-wrap">
+    <div class="tbl-title">Driver × Place — Combinações com 2+ Fraudes em Comum</div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Driver ID</th><th>Place</th><th>Total</th><th>Fraudes</th><th>Damaged</th><th>BPP Total</th></tr></thead>
+      <tbody><tr style="background:#1a0a0a">
+            <td style="font-weight:700;color:#fca5a5">292999</td>
+            <td>RP VARIEDADES</td>
+            <td style="text-align:center;font-weight:800;color:#ef4444">12</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#f59e0b">10</td>
+            <td style="color:#10b981">$202.42</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">3279273</td>
+            <td>AGForros - MEGA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">4</td>
+            <td style="color:#10b981">$80.30</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">4528417</td>
+            <td>EMPÓRIO MONALIZA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">4</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">4</td>
+            <td style="color:#10b981">$26.80</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">3550334</td>
+            <td>GENERAL SHOPPING MAIRIPORA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">3</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$106.92</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">3873525</td>
+            <td>AGForros - MEGA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">3</td>
+            <td style="color:#10b981">$27.82</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">2546052</td>
+            <td>SHERICAN SYSTEM</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$77.26</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">3068273</td>
+            <td>GENERAL SHOPPING MAIRIPORA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$43.57</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">3873325</td>
+            <td>ACQUAPLAY DISTRIBUIDORA DE ÁGUA E BEBIDAS</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$16.10</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">2332836</td>
+            <td>SHALOM COSMETICOS</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$22.30</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">2640693</td>
+            <td>WE2 INFORMATICA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$112.31</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">4169914</td>
+            <td>EMPÓRIO MONALIZA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$73.07</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">4330496</td>
+            <td>WE2 INFORMATICA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$112.31</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">3498463</td>
+            <td>ARANTES</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$22.72</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">2664189</td>
+            <td>GENERAL SHOPPING MAIRIPORA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$61.17</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">4294518</td>
+            <td>WE2 INFORMATICA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$112.31</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">4254588</td>
+            <td>LUH ENTREGAS RAPIDAS</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$20.79</td>
+        </tr><tr style="">
+            <td style="font-weight:700;color:#f9fafb">3502618</td>
+            <td>WE2 INFORMATICA</td>
+            <td style="text-align:center;font-weight:800;color:#f9fafb">2</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#f59e0b">2</td>
+            <td style="color:#10b981">$112.31</td>
+        </tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- PLACES -->
+<div id="tab-places" class="content">
+  <div class="tbl-wrap">
+    <div class="tbl-title">Ranking de Places — Fraudes / Lost que passaram pelo place</div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>Place</th><th>Total</th><th>BPP</th>
+        <th>Lost Route</th><th>Lost Way</th><th>Lost Station</th><th>Lost ENE</th><th>Fraud Confirm.</th>
+      </tr></thead>
+      <tbody><tr>
+            <td>SUPRIJET</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">2</td>
+            <td style="color:#10b981">$22.98</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">1</td>
+            <td style="text-align:center;color:#a78bfa">1</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>CADILLAC REPRESENTACOES</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$490.70</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">1</td>
+        </tr><tr>
+            <td>GUI ENTREGAS</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$13.61</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">1</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>LOJA DO CASSIO</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$124.14</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">1</td>
+        </tr><tr>
+            <td>MEULOG EXPRESS LOGISTICA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$6.44</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">1</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>JUJU LANCONI</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$25.09</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>PIRULITO SOM</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$18.04</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>PC ON INFORMATICA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$124.14</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">1</td>
+        </tr><tr>
+            <td>TREND PERSONALIZADOS</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$36.60</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>ADTEC INFORMATICA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$344.49</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">1</td>
+        </tr><tr>
+            <td>GENERAL SHOPPING MAIRIPORA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$61.76</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">1</td>
+        </tr><tr>
+            <td>STUDIO PINK</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$6.19</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">1</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>D  LA BELLA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$58.41</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">1</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>NATU PLACE</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$13.87</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>AGForros - MEGA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$3.55</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">1</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>HIDROFIO</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$65.58</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">2</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>YUKIPAPELARIA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$12.36</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>DONA TINNA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$25.09</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>VETS E PETS</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$18.79</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">1</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>LATE E MIA 4 PATAS PETSHOP</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$29.79</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">1</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>RP VARIEDADES</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$7.56</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">1</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>HSM ELETRICA HIDRAULICA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$227.91</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">1</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>QUINA INFORMATICA E CELULAR</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$3.55</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">1</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>GIRADI INDUSTRIA E COMERCIO DE EMBALAGENS</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$9.57</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">1</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>SP ELETRONICOS</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$443.16</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>BAZAR E PAPELARIA LUMINOSA</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$9.93</td>
+            <td style="text-align:center;color:#ef4444">1</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">0</td>
+        </tr><tr>
+            <td>SHERICAN SYSTEM</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">1</td>
+            <td style="color:#10b981">$299.03</td>
+            <td style="text-align:center;color:#ef4444">0</td>
+            <td style="text-align:center;color:#60a5fa">0</td>
+            <td style="text-align:center;color:#a78bfa">0</td>
+            <td style="text-align:center;color:#94a3b8">0</td>
+            <td style="text-align:center;color:#f87171;font-weight:700">1</td>
+        </tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- DAMAGED -->
+<div id="tab-damaged" class="content">
+  <div class="tbl-wrap">
+    <div class="tbl-title">Damaged por Driver — ⚠️ indica driver que também tem fraudes</div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>Driver ID</th><th>Total Damaged</th><th>BPP Total</th>
+        <th>On Route</th><th>At Station</th><th>ENE</th>
+      </tr></thead>
+      <tbody><tr>
+            <td style="font-weight:700;color:#f9fafb">292999 ⚠️</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">9</td>
+            <td style="color:#10b981">$165.00</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">7</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4528417</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">4</td>
+            <td style="color:#10b981">$26.80</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">4</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3041117</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">4</td>
+            <td style="color:#10b981">$900.21</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">4</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3279273</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">4</td>
+            <td style="color:#10b981">$80.30</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">4</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3502618 ⚠️</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">4</td>
+            <td style="color:#10b981">$1,230.42</td>
+            <td style="text-align:center">2</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3780311</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">3</td>
+            <td style="color:#10b981">$351.76</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">3</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3077194</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">3</td>
+            <td style="color:#10b981">$57.94</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2249319</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">3</td>
+            <td style="color:#10b981">$23.37</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">3</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2628200</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">3</td>
+            <td style="color:#10b981">$51.18</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">3</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2332836</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">3</td>
+            <td style="color:#10b981">$24.32</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">3</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3577276</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$413.60</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3873525</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$27.82</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">3</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4169914</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$73.07</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4254588</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$20.79</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4011303</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$160.46</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3068273</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$43.57</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1893076</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$38.45</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3120697</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$42.29</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4429518</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$72.99</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3873325</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$16.10</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3884632</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$123.31</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4294477</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$46.11</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">799048</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$61.04</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3633598 ⚠️</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">2</td>
+            <td style="color:#10b981">$460.24</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3306536</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$4.47</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3744357</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$63.66</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2557242</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$23.67</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3242475</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$131.79</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1307798</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$47.13</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1649243</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$76.99</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2777342</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$18.49</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3332125</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$15.43</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3841666</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$10.05</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4014348</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$23.69</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4019285</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$4.46</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3891506</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$13.99</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3405408</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$18.92</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4368740</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$48.68</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3082248</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$13.95</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4591782</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$16.05</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">2</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">361900</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$28.42</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1223021</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$33.30</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3952536</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$5.93</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2971661</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$10.41</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3625709</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$33.09</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3228142</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$62.59</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3124995</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$32.82</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2229824</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$4.17</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3704085</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$7.16</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3596147</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$18.95</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3449745</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$7.40</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2191238</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$7.85</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">1864761</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$3.92</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4181787</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$45.52</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4343374</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$9.90</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3400500</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$5.66</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4193420</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$27.69</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">4014927</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$22.48</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">3321278</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$322.85</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+        </tr><tr>
+            <td style="font-weight:700;color:#f9fafb">2736180</td>
+            <td style="text-align:center;font-weight:700;color:#f59e0b">1</td>
+            <td style="color:#10b981">$15.24</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">0</td>
+            <td style="text-align:center">1</td>
+        </tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<script>
+const TAB_ORDER = ['geral','drivers','dxp','places','damaged'];
+function showTab(name, el) {
+  document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+  history.replaceState(null,'','#'+name);
+}
+window.addEventListener('load', () => {
+  const h = window.location.hash.replace('#','');
+  const i = TAB_ORDER.indexOf(h);
+  if (i >= 0) showTab(h, document.querySelectorAll('.tab')[i]);
+});
+
+Chart.defaults.plugins.tooltip.backgroundColor = '#0d1321';
+Chart.defaults.plugins.tooltip.titleColor      = '#f9fafb';
+Chart.defaults.plugins.tooltip.bodyColor       = '#9ca3af';
+Chart.defaults.plugins.tooltip.borderColor     = '#1f2937';
+Chart.defaults.plugins.tooltip.borderWidth     = 1;
+Chart.defaults.plugins.tooltip.cornerRadius    = 6;
+Chart.defaults.plugins.tooltip.padding         = 10;
+
+new Chart(document.getElementById('cDrivers'), {
+  type: 'bar',
+  data: {
+    labels: ["292999", "3502618", "3952072", "3633598", "1435971", "2640693", "3670560", "3430727", "3041117", "3077194"],
+    datasets: [
+      { label:'Fraudes', data:[1, 1, 0, 1, 1, 1, 1, 1, 0, 0], backgroundColor:'rgba(239,68,68,0.8)', borderRadius:4 },
+      { label:'Damaged', data:[10, 6, 7, 4, 3, 3, 3, 3, 5, 5], backgroundColor:'rgba(245,158,11,0.8)', borderRadius:4 },
+      { label:'Fraud Confirmado', data:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], backgroundColor:'rgba(168,85,247,0.8)', borderRadius:4 },
+    ]
+  },
+  options: {
+    responsive:true,
+    plugins:{ legend:{ labels:{ color:'#94a3b8', font:{size:11} } } },
+    scales:{
+      x:{ stacked:false, ticks:{color:'#8a8a8a'}, grid:{color:'#1e293b'} },
+      y:{ ticks:{color:'#8a8a8a'}, grid:{color:'#334155'} }
+    }
+  }
+});
+
+new Chart(document.getElementById('cPlaces'), {
+  type: 'bar',
+  data: {
+    labels: ["SUPRIJET", "CADILLAC REPRESENTACOES", "GUI ENTREGAS", "LOJA DO CASSIO", "MEULOG EXPRESS LOGISTICA", "JUJU LANCONI", "PIRULITO SOM", "PC ON INFORMATICA", "TREND PERSONALIZADOS", "ADTEC INFORMATICA"],
+    datasets: [{ data:[2, 1, 1, 1, 1, 1, 1, 1, 1, 1], backgroundColor:'rgba(239,68,68,0.7)', borderRadius:4 }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend:{display:false} },
+    scales: {
+      x:{ ticks:{color:'#8a8a8a'}, grid:{color:'#334155'} },
+      y:{ ticks:{color:'#8a8a8a', font:{size:11}}, grid:{display:false} }
+    }
+  }
+});
+
+lucide.createIcons();
+</script>
+</body>
+</html>
