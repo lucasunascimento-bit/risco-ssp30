@@ -400,7 +400,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
     for _, r in df_dxp.iterrows():
         nome = str(r.get('PLACE_NOME', '')).replace('Agncia Mercado Livre - ', '').replace('Agência Mercado Livre - ', '')
         dxp.append({
-            'driver':   str(r['DRIVER_ID']),
+            'driver':   norm_id(r['DRIVER_ID']),
             'place':    nome,
             'total':    int(r.get('INCIDENTES_EM_COMUM', 0) or 0),
             'fraudes':  int(r.get('FRAUDES', 0) or 0),
@@ -1204,7 +1204,7 @@ function showTab(name, el) {{
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
-  if (name === 'bloqueios') {{ setTimeout(initBlCharts, 100); setTimeout(initBloqueisFiltro, 50); }}
+  if (name === 'bloqueios') {{ setTimeout(initBloqueisFiltro, 50); }}
 }}
 window.addEventListener('load', () => {{
   const h = window.location.hash.replace('#','');
@@ -1309,6 +1309,8 @@ function initBlCharts() {{
 }}
 
 lucide.createIcons();
+// Cria gráficos de Bloqueios na carga da página
+initBlCharts();
 </script>
 
 <!-- ABA BLOQUEIOS -->
