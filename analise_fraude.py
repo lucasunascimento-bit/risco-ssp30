@@ -120,7 +120,8 @@ LIMIT 50
 """
 
 QUERY_DRIVER_STATUS = f"""
--- Status e categoria de todos os drivers da nossa análise de fraude
+-- Status de todos os drivers: blocked, inactive/fraud_prevention, removed, active
+-- Prioridade: blocked > inactive > removed > active
 WITH loyalty AS (
   SELECT
     crowd_driver_id AS driverid,
@@ -139,46 +140,60 @@ WITH loyalty AS (
     AND l.period_id = EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) * 100
                     + EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))
 ),
-status_driver AS (
-  SELECT
-    r.DRIVER_ID,
+-- Todos os status distintos por driver (pode ter múltiplos)
+status_raw AS (
+  SELECT DISTINCT
+    CAST(r.DRIVER_ID AS STRING)       AS DRIVER_ID,
     s.SHP_CROWD_STATUS                AS STATUS,
-    s.SHP_CROWD_SUBSTATUS             AS SUBSTATUS,
-    DATE(MIN(r.CREATED_AT))           AS DATA_ATIVACAO,
-    DATE_DIFF(CURRENT_DATE(), DATE(MIN(r.CREATED_AT)), DAY) AS DIAS_OPERACAO
+    s.SHP_CROWD_SUBSTATUS             AS SUBSTATUS
   FROM `meli-bi-data.WHOWNER.BT_SHP_CROWD_TRACKER_REGIST` AS r
   LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_CROWD_DRIVER_REG_STATUS` AS ds
     ON r.DRIVER_ID = ds.SHP_CROWD_DRIVER_ID
   LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_CROWD_REG_STATUS` AS s
     ON ds.SHP_CROWD_STATUS_ID = s.SHP_CROWD_ID
   WHERE r.SITE = 'MLB'
-  GROUP BY 1, 2, 3
+),
+-- Pega o status mais grave por driver
+status_priority AS (
+  SELECT DISTINCT
+    DRIVER_ID,
+    FIRST_VALUE(STATUS) OVER (
+      PARTITION BY DRIVER_ID
+      ORDER BY CASE STATUS
+        WHEN 'blocked'  THEN 1
+        WHEN 'inactive' THEN 2
+        WHEN 'removed'  THEN 3
+        ELSE 4
+      END
+    ) AS STATUS,
+    FIRST_VALUE(SUBSTATUS) OVER (
+      PARTITION BY DRIVER_ID
+      ORDER BY CASE STATUS
+        WHEN 'blocked'  THEN 1
+        WHEN 'inactive' THEN 2
+        WHEN 'removed'  THEN 3
+        ELSE 4
+      END
+    ) AS SUBSTATUS
+  FROM status_raw
 ),
 fraud_drivers AS (
-  SELECT DISTINCT SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID,
-    MIN(date_bpp) AS PRIMEIRA_FRAUDE,
-    MAX(date_bpp) AS ULTIMA_FRAUDE,
-    COUNT(*) AS TOTAL_INCIDENTES_HIST
+  SELECT DISTINCT SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
   WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
     AND date_bpp >= '{ANO_INICIO}'
     AND DRIVER_ID IS NOT NULL
-  GROUP BY 1
 )
 SELECT
-  sd.DRIVER_ID,
-  sd.STATUS,
-  sd.SUBSTATUS,
-  sd.DATA_ATIVACAO,
-  sd.DIAS_OPERACAO,
-  loy.lealdade                        AS CATEGORIA,
-  fd.PRIMEIRA_FRAUDE,
-  fd.ULTIMA_FRAUDE,
-  fd.TOTAL_INCIDENTES_HIST
-FROM status_driver sd
-INNER JOIN fraud_drivers fd ON CAST(sd.DRIVER_ID AS STRING) = fd.DRIVER_ID
-LEFT JOIN loyalty loy ON CAST(sd.DRIVER_ID AS STRING) = CAST(loy.driverid AS STRING)
-ORDER BY sd.STATUS, fd.TOTAL_INCIDENTES_HIST DESC
+  sp.DRIVER_ID,
+  sp.STATUS,
+  sp.SUBSTATUS,
+  loy.lealdade AS CATEGORIA
+FROM status_priority sp
+INNER JOIN fraud_drivers fd ON sp.DRIVER_ID = fd.DRIVER_ID
+LEFT JOIN loyalty loy ON sp.DRIVER_ID = CAST(loy.driverid AS STRING)
+ORDER BY
+  CASE sp.STATUS WHEN 'blocked' THEN 1 WHEN 'inactive' THEN 2 WHEN 'removed' THEN 3 ELSE 4 END
 """
 
 QUERY_DRIVER_ROUTES = f"""
@@ -436,23 +451,28 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
             }
 
     # ---- Status dos drivers ----
-    status_map = {}   # {driver_id: {status, substatus, lealdade, data_ativacao, primeira_fraude, ultima_fraude}}
+    status_map = {}
     bloqueados = []
     for _, r in df_status.iterrows():
         did = norm_id(r.get('DRIVER_ID', ''))
         if not did: continue
+        status    = str(r.get('STATUS',    '') or '')
+        substatus = str(r.get('SUBSTATUS', '') or '')
+        lealdade  = str(r.get('CATEGORIA', '') or 'N/A')
+        # Considera "removido do mercado" se: blocked, inactive/fraud_prevention, ou removed
+        removido = (
+            status == 'blocked' or
+            (status == 'inactive' and 'fraud' in substatus.lower()) or
+            status == 'removed'
+        )
         info = {
-            'status':          str(r.get('STATUS', '') or ''),
-            'substatus':       str(r.get('SUBSTATUS', '') or ''),
-            'lealdade':        str(r.get('CATEGORIA', '') or 'N/A'),
-            'data_ativacao':   str(r.get('DATA_ATIVACAO', '') or ''),
-            'dias_operacao':   int(r.get('DIAS_OPERACAO', 0) or 0),
-            'primeira_fraude': str(r.get('PRIMEIRA_FRAUDE', '') or ''),
-            'ultima_fraude':   str(r.get('ULTIMA_FRAUDE', '') or ''),
-            'total_hist':      int(r.get('TOTAL_INCIDENTES_HIST', 0) or 0),
+            'status':    status,
+            'substatus': substatus,
+            'lealdade':  lealdade,
+            'removido':  removido,
         }
         status_map[did] = info
-        if info['status'] == 'blocked':
+        if removido:
             bloqueados.append({'id': did, **info})
 
     # Enriquece drivers com status, transportadora e atividade
@@ -471,9 +491,16 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         d['rotas_ano']      = rt.get('rotas_ano', 0)
 
         # Determina atividade
-        if st.get('status') == 'blocked':
-            d['atividade']    = 'Bloqueado'
-            d['ativ_cor']     = '#ef4444'
+        if st.get('removido', False):
+            # Label conforme substatus
+            sub = st.get('substatus','')
+            if st.get('status') == 'blocked':
+                d['atividade'] = 'Bloqueado'
+            elif 'fraud' in sub.lower():
+                d['atividade'] = 'Inativo por Fraude'
+            else:
+                d['atividade'] = 'Removido'
+            d['ativ_cor'] = '#ef4444'
             drivers_bloqueados.append(d)
         elif dias < 0:
             d['atividade']    = 'Sem dados'
@@ -678,7 +705,7 @@ def rows_historico_bloqueios(bloqueados):
         rows += f'''<tr style="background:#051505">
             <td style="font-weight:700;color:#4ade80">{b["id"]}</td>
             <td>{lealdade_badge(b.get("lealdade","N/A"))}</td>
-            <td style="color:#6b7280;font-size:11px">{b.get("substatus","")}</td>
+            <td style="color:#6b7280;font-size:11px">{b.get("atividade",b.get("substatus",""))}</td>
             <td style="color:#9ca3af;font-size:12px">{b.get("primeira_fraude","")}</td>
             <td style="color:#9ca3af;font-size:12px">{b.get("ultima_fraude","")}</td>
             <td style="text-align:center;font-weight:700;color:#f9fafb">{b.get("fraude",0) + b.get("damaged",0)}</td>
