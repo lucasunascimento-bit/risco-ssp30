@@ -247,6 +247,11 @@ LIMIT 60
 # ============================================================
 # CONEXÃO E CONSULTAS
 # ============================================================
+def norm_id(s):
+    """Normaliza ID: '292999.0' → '292999'"""
+    try:    return str(int(float(str(s).strip())))
+    except: return str(s).strip()
+
 def conectar():
     print("Conectando ao BigQuery...")
     scopes = ['https://www.googleapis.com/auth/bigquery',
@@ -334,10 +339,12 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
     # ---- Rotas dos drivers (transportadora + última rota) ----
     routes_map = {}
     for _, r in df_routes.iterrows():
-        did  = str(r.get('DRIVER_ID', ''))
-        dias = int(r.get('DIAS_SEM_ROTA', 999) or 999)
+        did  = norm_id(r.get('DRIVER_ID', ''))
+        dias = int(r.get('DIAS_SEM_ROTA', -1) or -1)
         if did:
-            routes_map[did] = {
+            # mantém o registro com menos dias (mais recente)
+            if did not in routes_map or dias < routes_map[did]['dias_sem_rota']:
+                routes_map[did] = {
                 'transportadora': str(r.get('TRANSPORTADORA', '') or 'N/A'),
                 'ultima_rota':    str(r.get('ULTIMA_ROTA', '') or ''),
                 'dias_sem_rota':  dias,
@@ -348,7 +355,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
     status_map = {}   # {driver_id: {status, substatus, lealdade, data_ativacao, primeira_fraude, ultima_fraude}}
     bloqueados = []
     for _, r in df_status.iterrows():
-        did = str(r.get('DRIVER_ID', ''))
+        did = norm_id(r.get('DRIVER_ID', ''))
         if not did: continue
         info = {
             'status':          str(r.get('STATUS', '') or ''),
@@ -381,20 +388,25 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
 
         # Determina atividade
         if st.get('status') == 'blocked':
-            d['atividade'] = '⛔ Bloqueado'
+            d['atividade']    = 'Bloqueado'
+            d['ativ_cor']     = '#ef4444'
             drivers_bloqueados.append(d)
         elif dias < 0:
-            d['atividade'] = '❓ Sem dados'
+            d['atividade']    = 'Sem dados'
+            d['ativ_cor']     = '#4b5563'
             drivers_ativos.append(d)
         elif dias <= 30:
-            d['atividade'] = '🟢 Ativo'
+            d['atividade']    = 'Ativo'
+            d['ativ_cor']     = '#10b981'
             drivers_ativos.append(d)
         elif dias <= 90:
-            d['atividade'] = '🟡 Em observação'
+            d['atividade']    = 'Em observação'
+            d['ativ_cor']     = '#f59e0b'
             drivers_ativos.append(d)
         else:
-            d['atividade'] = '🔴 Inativo'
-            drivers_ativos.append(d)  # inativo mas não bloqueado oficialmente
+            d['atividade']    = 'Inativo'
+            d['ativ_cor']     = '#ef4444'
+            drivers_ativos.append(d)
 
     # ---- SHP IDs por place ----
     shp_por_place = {}
@@ -518,15 +530,20 @@ def rows_drivers(drivers, cruzados):
             </tr>'''
         toggle = f'onclick="toggleDriver(\'{row_id}\')" style="cursor:pointer"' if d['shps'] else ''
         seta   = f' <span id="arrow_{row_id}" style="font-size:10px;color:#4b5563">▶ {len(d["shps"])} pacotes</span>' if d['shps'] else ''
-        dias = d.get('dias_sem_rota', -1)
-        dias_cor = '#10b981' if dias <= 30 else '#f59e0b' if dias <= 90 else '#ef4444'
+        dias     = d.get('dias_sem_rota', -1)
+        dias_str = f'{dias}d' if dias >= 0 else '—'
+        dias_cor = '#10b981' if 0 <= dias <= 30 else '#f59e0b' if dias <= 90 else '#ef4444' if dias > 0 else '#4b5563'
+        ativ_cor = d.get('ativ_cor', '#4b5563')
         out += f'''<tr {toggle}>
             <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta} {cruz}</td>
             <td>{prio_badge(d["prio"])}</td>
-            <td style="font-size:11px;color:#9ca3af">{d.get("transportadora","N/A")}</td>
-            <td>{lealdade_badge(d.get("lealdade","N/A"))}</td>
-            <td style="font-size:11px">{d.get("atividade","—")}</td>
-            <td style="font-size:11px;color:{dias_cor}">{d.get("ultima_rota","—")}<br><span style="font-size:10px">({dias}d)</span></td>
+            <td style="font-size:11px;color:#9ca3af">{d.get("transportadora","—")}</td>
+            <td>
+              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{ativ_cor};margin-right:5px"></span>
+              <span style="font-size:11px;color:{ativ_cor}">{d.get("atividade","—")}</span>
+              <span style="font-size:10px;color:{dias_cor};margin-left:4px">({dias_str})</span>
+            </td>
+            <td style="font-size:11px;color:#6b7280">{d.get("ultima_rota","—")}</td>
             <td style="text-align:center;font-weight:700;color:#f9fafb">{d["score"]}</td>
             <td style="text-align:center;color:#ef4444;font-weight:600">{d["fraude"]}</td>
             <td style="text-align:center;color:#f59e0b">{d["damaged"]}</td>
@@ -547,11 +564,11 @@ def rows_historico_bloqueios(bloqueados):
             <td style="color:#6b7280;font-size:11px">{b.get("substatus","")}</td>
             <td style="color:#9ca3af;font-size:12px">{b.get("primeira_fraude","")}</td>
             <td style="color:#9ca3af;font-size:12px">{b.get("ultima_fraude","")}</td>
-            <td style="text-align:center;font-weight:700;color:#f9fafb">{b.get("total_hist",0)}</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">{b.get("fraude",0) + b.get("damaged",0)}</td>
             <td style="color:#10b981">${b.get("bpp",0):,.2f}</td>
         </tr>'''
     return f'''<div class="tbl-wrap" style="border-color:#166534">
-    <div class="tbl-title" style="color:#4ade80">Histórico de Bloqueios — Mérito da Análise ({len(bloqueados)})</div>
+    <div class="tbl-title" style="color:#4ade80">Drivers Bloqueados — Removidos do Mercado ({len(bloqueados)})</div>
     <div class="tbl-scroll"><table>
       <thead><tr>
         <th>Driver ID</th><th>Categoria</th><th>Substatus</th>
@@ -829,18 +846,18 @@ def gerar_html(d):
 <!-- RISCO POR DRIVER -->
 <div id="tab-drivers" class="content">
 
-  <!-- Card mérito bloqueio -->
+  <!-- Banner de bloqueados -->
   {f'''<div class="alerta-box" style="background:#0a1f0a;border-color:#166534">
     <div class="num" style="color:#4ade80">{d["total_bloqueados"]}</div>
-    <div class="txt" style="color:#4ade80"><strong>drivers bloqueados identificados na sua análise — mérito seu!</strong><br>
-    Esses drivers não aparecem mais no ranking ativo.</div>
+    <div class="txt" style="color:#4ade80"><strong>Drivers Bloqueados</strong> — identificados na sua análise e removidos do mercado.<br>
+    Não aparecem mais no ranking ativo.</div>
   </div>''' if d["total_bloqueados"] > 0 else ''}
 
   <div class="tbl-wrap">
     <div class="tbl-title">Ranking Ativo — Drivers em Atuação ({len(d["drivers_ativos"])})</div>
     <div class="tbl-scroll"><table>
       <thead><tr>
-        <th>Driver ID</th><th>Prioridade</th><th>Transportadora</th><th>Categoria</th>
+        <th>Driver ID</th><th>Prioridade</th><th>Transportadora</th>
         <th>Atividade</th><th>Última Rota</th><th>Score</th>
         <th>Fraudes</th><th>Damaged</th><th>Fraud Confirm.</th><th>BPP Total</th>
       </tr></thead>
