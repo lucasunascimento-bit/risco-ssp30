@@ -8,82 +8,76 @@ from datetime import datetime
 from google.cloud import bigquery
 from google.auth import default
 
-FACILITY   = 'SSP30'
-ANO_INICIO = '2026-01-01'
+FACILITY_NAME = 'Guarulhos Mega'   # SHP_LG_FACILITY_NAME em DM_LP_MELI_OPTIMIZADO
+ANO_INICIO    = '2026-01-01'
 OUTPUT     = os.path.join(os.path.dirname(__file__), 'fraude.html')
 
 # ============================================================
 # QUERIES
 # ============================================================
 QUERY_DRIVER_SCORE = f"""
--- Score combinado por driver: fraude (peso 3) + damaged (peso 1)
-WITH base AS (
-    SELECT
-        SAFE_CAST(SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
-        Classification_LM,
-        ROUND(BPP_CASHOUT_USD, 2)        AS BPP_CASHOUT_USD
-    FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-    WHERE SHP_LOGISTIC_CENTER_ID = '{FACILITY}'
-      AND date_bpp >= '{ANO_INICIO}'
-      AND date_bpp <= CURRENT_DATE()
-),
-checkpoints AS (
-    SELECT DISTINCT
-        CAST(SHP_SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
-        SHP_LG_DRIVER_ID
-    FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENT_CHECKPOINTS`
-    WHERE SHP_LG_FACILITY_ID = '{FACILITY}'
-      AND SHP_LG_DRIVER_ID IS NOT NULL
-)
+-- Score combinado por driver — usa DRIVER_ID direto da tabela (sem join)
 SELECT
-    c.SHP_LG_DRIVER_ID                                                          AS DRIVER_ID,
-    COUNT(DISTINCT b.SHP_SHIPMENT_ID)                                           AS TOTAL_INCIDENTES,
-    ROUND(SUM(b.BPP_CASHOUT_USD), 2)                                            AS TOTAL_BPP,
-    COUNTIF(b.Classification_LM IN (
+    SAFE_CAST(DRIVER_ID AS STRING)                                           AS DRIVER_ID,
+    COUNT(DISTINCT SHIPMENT_ID)                                              AS TOTAL_INCIDENTES,
+    ROUND(SUM(BPP_CASHOUT_USD), 2)                                           AS TOTAL_BPP,
+    COUNTIF(Classification_LM IN (
         'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-        'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'))                        AS TOTAL_FRAUDE,
-    COUNTIF(b.Classification_LM LIKE 'DAMAGED%')                               AS TOTAL_DAMAGED,
-    COUNTIF(b.Classification_LM LIKE 'FRAUD%')                                 AS FRAUD_CONFIRMADO
-FROM base b
-JOIN checkpoints c ON c.SHP_SHIPMENT_ID = b.SHP_SHIPMENT_ID
+        'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'))                     AS TOTAL_FRAUDE,
+    COUNTIF(Classification_LM LIKE 'DAMAGED%')                              AS TOTAL_DAMAGED,
+    COUNTIF(Classification_LM LIKE 'FRAUD%')                                AS FRAUD_CONFIRMADO
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  AND date_bpp >= '{ANO_INICIO}'
+  AND date_bpp <= CURRENT_DATE()
+  AND DRIVER_ID IS NOT NULL
 GROUP BY 1
 ORDER BY TOTAL_INCIDENTES DESC
 LIMIT 60
 """
 
+QUERY_DRIVER_SHIPMENTS = f"""
+-- Todos os SHP IDs por driver para exibir no dashboard
+SELECT
+    SAFE_CAST(DRIVER_ID AS STRING)       AS DRIVER_ID,
+    CAST(SHIPMENT_ID AS STRING)          AS SHP_ID,
+    Classification_LM                    AS CLASSIFICACAO,
+    ROUND(BPP_CASHOUT_USD, 2)            AS BPP,
+    FORMAT_DATE('%d/%m/%Y', date_bpp)    AS DATA,
+    FORMAT_DATE('%Y-W%V', date_bpp)      AS SEMANA
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  AND date_bpp >= '{ANO_INICIO}'
+  AND date_bpp <= CURRENT_DATE()
+  AND DRIVER_ID IS NOT NULL
+ORDER BY SAFE_CAST(DRIVER_ID AS INT64), BPP_CASHOUT_USD DESC
+"""
+
 QUERY_DRIVER_PLACE = f"""
--- Driver x Place: combinações com mais de 1 incidente em comum
--- Inclui todos os tipos (LOST + FRAUD + DAMAGED) para maximizar cruzamentos
-WITH fraudes AS (
-    SELECT SAFE_CAST(SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
-           Classification_LM,
-           ROUND(BPP_CASHOUT_USD, 2)        AS BPP_CASHOUT_USD
+-- Driver x Place — usa DRIVER_ID direto (sem join com checkpoints)
+WITH fraud_driver AS (
+    SELECT
+        SAFE_CAST(DRIVER_ID AS STRING)      AS DRIVER_ID,
+        SAFE_CAST(SHIPMENT_ID AS STRING)    AS SHP_SHIPMENT_ID,
+        Classification_LM,
+        ROUND(BPP_CASHOUT_USD, 2)           AS BPP_CASHOUT_USD
     FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-    WHERE SHP_LOGISTIC_CENTER_ID = '{FACILITY}'
+    WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
       AND date_bpp >= '{ANO_INICIO}'
       AND date_bpp <= CURRENT_DATE()
-),
-drivers AS (
-    SELECT DISTINCT CAST(SHP_SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID, SHP_LG_DRIVER_ID
-    FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENT_CHECKPOINTS`
-    WHERE SHP_LG_FACILITY_ID = '{FACILITY}' AND SHP_LG_DRIVER_ID IS NOT NULL
-),
-places AS (
-    SELECT DISTINCT CAST(SHP_SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
-           SHP_AGENCY_ID, SHP_AGEN_DESC
-    FROM `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES`
+      AND DRIVER_ID IS NOT NULL
 )
 SELECT
-    d.SHP_LG_DRIVER_ID                     AS DRIVER_ID,
+    fd.DRIVER_ID,
     p.SHP_AGENCY_ID,
-    p.SHP_AGEN_DESC                         AS PLACE_NOME,
-    COUNT(DISTINCT f.SHP_SHIPMENT_ID)                              AS INCIDENTES_EM_COMUM,
-    COUNTIF(f.Classification_LM LIKE 'LOST%' OR f.Classification_LM LIKE 'FRAUD%') AS FRAUDES,
-    COUNTIF(f.Classification_LM LIKE 'DAMAGED%')                   AS DAMAGED,
-    ROUND(SUM(f.BPP_CASHOUT_USD), 2)                               AS TOTAL_BPP
-FROM fraudes f
-JOIN drivers d ON d.SHP_SHIPMENT_ID = f.SHP_SHIPMENT_ID
-JOIN places  p ON p.SHP_SHIPMENT_ID = f.SHP_SHIPMENT_ID
+    p.SHP_AGEN_DESC                                                              AS PLACE_NOME,
+    COUNT(DISTINCT fd.SHP_SHIPMENT_ID)                                           AS INCIDENTES_EM_COMUM,
+    COUNTIF(fd.Classification_LM LIKE 'LOST%' OR fd.Classification_LM LIKE 'FRAUD%') AS FRAUDES,
+    COUNTIF(fd.Classification_LM LIKE 'DAMAGED%')                               AS DAMAGED,
+    ROUND(SUM(fd.BPP_CASHOUT_USD), 2)                                            AS TOTAL_BPP
+FROM fraud_driver fd
+JOIN `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` p
+    ON CAST(p.SHP_SHIPMENT_ID AS STRING) = fd.SHP_SHIPMENT_ID
 GROUP BY 1, 2, 3
 HAVING INCIDENTES_EM_COMUM >= 2
 ORDER BY INCIDENTES_EM_COMUM DESC
@@ -97,7 +91,7 @@ WITH fraudes AS (
            Classification_LM,
            ROUND(BPP_CASHOUT_USD, 2) AS BPP_CASHOUT_USD
     FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-    WHERE SHP_LOGISTIC_CENTER_ID = '{FACILITY}'
+    WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
       AND date_bpp >= '{ANO_INICIO}'
       AND date_bpp <= CURRENT_DATE()
       AND Classification_LM IN (
@@ -123,38 +117,20 @@ LIMIT 50
 """
 
 QUERY_DAMAGED = f"""
--- Damaged por driver (ultimo driver que movimentou o pacote)
-WITH damaged AS (
-    SELECT SAFE_CAST(SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
-           Classification_LM,
-           ROUND(BPP_CASHOUT_USD, 2) AS BPP_CASHOUT_USD
-    FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-    WHERE SHP_LOGISTIC_CENTER_ID = '{FACILITY}'
-      AND date_bpp >= '{ANO_INICIO}'
-      AND date_bpp <= CURRENT_DATE()
-      AND Classification_LM LIKE 'DAMAGED%'
-),
-ultimo_driver AS (
-    SELECT DISTINCT
-        CAST(SHP_SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
-        FIRST_VALUE(SHP_LG_DRIVER_ID) OVER (
-            PARTITION BY SHP_SHIPMENT_ID
-            ORDER BY SHP_LG_LAST_UPDATED DESC
-        ) AS ULTIMO_DRIVER_ID
-    FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENT_CHECKPOINTS`
-    WHERE SHP_LG_FACILITY_ID = '{FACILITY}'
-      AND SHP_LG_DRIVER_ID IS NOT NULL
-)
+-- Damaged por driver — usa DRIVER_ID direto da tabela
 SELECT
-    ud.ULTIMO_DRIVER_ID                                     AS DRIVER_ID,
-    COUNT(DISTINCT d.SHP_SHIPMENT_ID)                       AS TOTAL_DAMAGED,
-    ROUND(SUM(d.BPP_CASHOUT_USD), 2)                        AS TOTAL_BPP,
-    COUNTIF(d.Classification_LM = 'DAMAGED ON ROUTE')       AS DAMAGED_ON_ROUTE,
-    COUNTIF(d.Classification_LM = 'DAMAGED AT STATION')     AS DAMAGED_AT_STATION,
-    COUNTIF(d.Classification_LM = 'DAMAGED ENE')            AS DAMAGED_ENE
-FROM damaged d
-JOIN ultimo_driver ud ON ud.SHP_SHIPMENT_ID = d.SHP_SHIPMENT_ID
-WHERE ud.ULTIMO_DRIVER_ID IS NOT NULL
+    SAFE_CAST(DRIVER_ID AS STRING)                           AS DRIVER_ID,
+    COUNT(DISTINCT SHIPMENT_ID)                              AS TOTAL_DAMAGED,
+    ROUND(SUM(BPP_CASHOUT_USD), 2)                           AS TOTAL_BPP,
+    COUNTIF(Classification_LM = 'DAMAGED ON ROUTE')          AS DAMAGED_ON_ROUTE,
+    COUNTIF(Classification_LM = 'DAMAGED AT STATION')        AS DAMAGED_AT_STATION,
+    COUNTIF(Classification_LM = 'DAMAGED ENE')               AS DAMAGED_ENE
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  AND date_bpp >= '{ANO_INICIO}'
+  AND date_bpp <= CURRENT_DATE()
+  AND Classification_LM LIKE 'DAMAGED%'
+  AND DRIVER_ID IS NOT NULL
 GROUP BY 1
 ORDER BY TOTAL_DAMAGED DESC
 LIMIT 60
@@ -189,7 +165,7 @@ def prioridade(score, fraud_conf):
     if score >= 4:                     return 'MEDIA'
     return 'BAIXA'
 
-def processar(df_score, df_dxp, df_places, df_damaged):
+def processar(df_score, df_dxp, df_places, df_damaged, df_shp):
     # ---- Drivers (score combinado) ----
     drivers = []
     for _, r in df_score.iterrows():
@@ -247,6 +223,25 @@ def processar(df_score, df_dxp, df_places, df_damaged):
             'ene':     int(r.get('DAMAGED_ENE', 0) or 0),
         })
 
+    # ---- SHP IDs por driver ----
+    shp_por_driver = {}
+    for _, r in df_shp.iterrows():
+        did = str(r.get('DRIVER_ID', ''))
+        if not did: continue
+        if did not in shp_por_driver:
+            shp_por_driver[did] = []
+        shp_por_driver[did].append({
+            'id':    str(r.get('SHP_ID', '')),
+            'class': str(r.get('CLASSIFICACAO', '')),
+            'bpp':   flt(r.get('BPP', 0)),
+            'data':  str(r.get('DATA', '')),
+            'semana':str(r.get('SEMANA', '')),
+        })
+
+    # Adiciona os SHP IDs a cada driver
+    for d in drivers:
+        d['shps'] = shp_por_driver.get(d['id'], [])
+
     # ---- Conjunto de IDs que aparecem nas duas análises ----
     ids_fraude   = {d['id'] for d in drivers if d['fraude'] > 0}
     ids_damaged  = {d['id'] for d in damaged}
@@ -303,19 +298,38 @@ def prio_badge(p):
     bg, fg = cores.get(p, ('#1f2937','#9ca3af'))
     return f'<span style="background:{bg};color:{fg};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{p}</span>'
 
+MELI_URL = 'https://envios.adminml.com/logistics/package-management/package'
+
 def rows_drivers(drivers, cruzados):
     out = ''
     for d in drivers:
-        cruz = '⚠️' if d['id'] in cruzados else ''
-        out += f'''<tr>
-            <td style="font-weight:700;color:#f9fafb">{d["id"]} {cruz}</td>
+        cruz   = '⚠️' if d['id'] in cruzados else ''
+        row_id = f'dr_{d["id"]}'
+        # linhas dos SHP IDs
+        shp_rows = ''
+        for s in d.get('shps', []):
+            cls_cor = '#ef4444' if 'FRAUD' in s['class'] else '#f59e0b' if 'DAMAGED' in s['class'] else '#94a3b8'
+            shp_rows += f'''<tr style="background:#060c1a">
+                <td colspan="2" style="padding:6px 16px 6px 40px;font-family:monospace;font-size:12px">
+                  <a href="{MELI_URL}/{s["id"]}" target="_blank" style="color:#60a5fa;text-decoration:none">{s["id"]}</a>
+                </td>
+                <td style="color:{cls_cor};font-size:11px">{s["class"]}</td>
+                <td style="color:#10b981;font-size:12px">${s["bpp"]:,.2f}</td>
+                <td style="color:#6b7280;font-size:11px">{s["data"]}</td>
+                <td colspan="2" style="color:#4b5563;font-size:11px">{s["semana"]}</td>
+            </tr>'''
+        toggle = f'onclick="toggleDriver(\'{row_id}\')" style="cursor:pointer"' if d['shps'] else ''
+        seta   = f' <span id="arrow_{row_id}" style="font-size:10px;color:#4b5563">▶ {len(d["shps"])} pacotes</span>' if d['shps'] else ''
+        out += f'''<tr {toggle}>
+            <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta} {cruz}</td>
             <td>{prio_badge(d["prio"])}</td>
             <td style="text-align:center;font-weight:700;color:#f9fafb">{d["score"]}</td>
             <td style="text-align:center;color:#ef4444;font-weight:600">{d["fraude"]}</td>
             <td style="text-align:center;color:#f59e0b">{d["damaged"]}</td>
             <td style="text-align:center;color:#ef4444">{d["fraud_c"]}</td>
             <td style="color:#10b981;font-weight:600">${d["bpp"]:,.2f}</td>
-        </tr>'''
+        </tr>
+        <tbody id="{row_id}" style="display:none">{shp_rows}</tbody>'''
     return out
 
 def rows_dxp(dxp):
@@ -581,6 +595,16 @@ def gerar_html(d):
 </div>
 
 <script>
+// Expandir/recolher SHP IDs do driver
+function toggleDriver(id) {{
+  const el = document.getElementById(id);
+  const ar = document.getElementById('arrow_' + id);
+  if (!el) return;
+  const open = el.style.display === 'none';
+  el.style.display = open ? '' : 'none';
+  if (ar) ar.textContent = ar.textContent.replace(open ? '▶' : '▼', open ? '▼' : '▶');
+}}
+
 const TAB_ORDER = ['geral','drivers','dxp','places','damaged'];
 function showTab(name, el) {{
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
@@ -656,13 +680,14 @@ if __name__ == '__main__':
     bq = conectar()
 
     print("\nConsultando BigQuery...")
-    df_score   = buscar(bq, QUERY_DRIVER_SCORE,  'Score por Driver')
-    df_dxp     = buscar(bq, QUERY_DRIVER_PLACE,  'Driver x Place')
-    df_places  = buscar(bq, QUERY_PLACES,         'Places')
-    df_damaged = buscar(bq, QUERY_DAMAGED,         'Damaged por Driver')
+    df_score   = buscar(bq, QUERY_DRIVER_SCORE,    'Score por Driver')
+    df_shp     = buscar(bq, QUERY_DRIVER_SHIPMENTS,'SHP IDs por Driver')
+    df_dxp     = buscar(bq, QUERY_DRIVER_PLACE,    'Driver x Place')
+    df_places  = buscar(bq, QUERY_PLACES,           'Places')
+    df_damaged = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
 
     print("\nProcessando...")
-    dados = processar(df_score, df_dxp, df_places, df_damaged)
+    dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp)
 
     print("Gerando dashboard...")
     html = gerar_html(dados)
