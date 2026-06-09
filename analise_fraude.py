@@ -682,7 +682,14 @@ def rows_block_list(rows):
     for r in rows:
         did  = r['driver_id']
         link = f'https://shipping-bo.adminml.com/sauron/shipments/shipment/{did}' if did else '#'
-        out += f'''<tr>
+        # converte data para comparação: dd/mm/yyyy → yyyy-mm-dd
+        data_iso = ''
+        if r["data"]:
+            try:
+                from datetime import datetime as dt
+                data_iso = dt.strptime(r["data"].strip(), '%d/%m/%Y').strftime('%Y-%m-%d')
+            except: pass
+        out += f'''<tr class="bl-row" data-data="{data_iso}" data-status="{r["status"]}" data-transp="{r["mlp"]}">
             <td style="font-weight:700">
               <a href="{link}" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">{did or "—"}</a>
             </td>
@@ -886,6 +893,9 @@ def gerar_html(d):
   tr:hover td{{background:#111827!important}}
   tr:last-child td{{border-bottom:none}}
   .tbl-scroll{{overflow-x:auto}}
+  /* DATE PICKER */
+  input[type="date"]{{background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:7px 12px;color:#9ca3af;font-size:12px;outline:none;cursor:pointer;transition:border-color .3s ease;color-scheme:dark}}
+  input[type="date"]:focus{{border-color:#374151;color:#e2e8f0}}
   /* FILTROS */
   .filter-bar{{display:flex;gap:8px;padding:12px 20px;flex-wrap:wrap;border-bottom:1px solid #111827;align-items:center;background:#080d19}}
   .filter-input{{background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:8px 14px;color:#e2e8f0;font-size:12px;flex:1;min-width:180px;outline:none;transition:border-color .3s ease}}
@@ -1099,6 +1109,38 @@ def gerar_html(d):
 </div>
 
 <script>
+// Filtro por período na aba Bloqueios
+function filtrarBloqueios() {{
+  const de     = document.getElementById('bl_de')?.value    || '';
+  const ate    = document.getElementById('bl_ate')?.value   || '';
+  const status = document.getElementById('bl_status')?.value|| '';
+  const transp = document.getElementById('bl_transp')?.value|| '';
+  document.querySelectorAll('.bl-row').forEach(tr => {{
+    const d  = tr.dataset.data   || '';
+    const st = tr.dataset.status || '';
+    const tp = tr.dataset.transp || '';
+    const ok = (!de     || d >= de)
+            && (!ate    || d <= ate)
+            && (!status || st === status)
+            && (!transp || tp === transp);
+    tr.style.display = ok ? '' : 'none';
+  }});
+}}
+
+// Mês atual como padrão ao abrir a aba Bloqueios
+function initBloqueisFiltro() {{
+  const hoje = new Date();
+  const y = hoje.getFullYear();
+  const m = String(hoje.getMonth()+1).padStart(2,'0');
+  const ini = `${{y}}-${{m}}-01`;
+  const fim = `${{y}}-${{m}}-${{String(new Date(y,hoje.getMonth()+1,0).getDate()).padStart(2,'0')}}`;
+  const elDe  = document.getElementById('bl_de');
+  const elAte = document.getElementById('bl_ate');
+  if (elDe && !elDe.value)  elDe.value  = ini;
+  if (elAte && !elAte.value) elAte.value = fim;
+  filtrarBloqueios();
+}}
+
 // Menu Dashboards — abre/fecha com click, fecha ao clicar fora
 function toggleNav(e) {{
   e.stopPropagation();
@@ -1145,7 +1187,7 @@ function showTab(name, el) {{
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
-  if (name === 'bloqueios') initBlCharts();
+  if (name === 'bloqueios') {{ setTimeout(initBlCharts, 100); setTimeout(initBloqueisFiltro, 50); }}
 }}
 window.addEventListener('load', () => {{
   const h = window.location.hash.replace('#','');
@@ -1259,6 +1301,24 @@ new Chart(document.getElementById('cPlacesBar'), {{
 
   <div class="tbl-wrap">
     <div class="tbl-title">Lista Completa — Block List 2026</div>
+    <div class="filter-bar">
+      <span class="filter-label">Período:</span>
+      <input type="date" id="bl_de" onchange="filtrarBloqueios()" style="max-width:145px">
+      <span style="color:#4b5563;font-size:12px">até</span>
+      <input type="date" id="bl_ate" onchange="filtrarBloqueios()" style="max-width:145px">
+      <select id="bl_status" onchange="filtrarBloqueios()" class="filter-select">
+        <option value="">Todos os status</option>
+        <option value="Bloqueado">Bloqueado</option>
+        <option value="Solicitado">Solicitado</option>
+        <option value="Monitorado">Monitorado</option>
+        <option value="Recusado">Recusado</option>
+      </select>
+      <select id="bl_transp" onchange="filtrarBloqueios()" class="filter-select">
+        <option value="">Todas as transportadoras</option>
+        {''.join(f'<option value="{t}">{t}</option>' for t in sorted(set(r["mlp"] for r in d["bl"]["rows"]) - {{"N/A",""}}))}
+      </select>
+      <button onclick="document.getElementById('bl_de').value='';document.getElementById('bl_ate').value='';document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
+    </div>
     <div class="tbl-scroll"><table>
       <thead><tr>
         <th>Driver ID</th><th>Nome</th><th>Transportadora</th><th>Placa</th>
