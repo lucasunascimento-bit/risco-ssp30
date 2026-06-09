@@ -435,18 +435,35 @@ def rows_places(places, shp_por_place):
         <tbody id="pl_{i}" style="display:none">{shp_rows}</tbody>'''
     return out
 
-def rows_damaged(damaged, cruzados_fraude):
+def rows_damaged(damaged, cruzados_fraude, shp_por_driver):
     out = ''
-    for d in damaged:
-        cruz = ' ⚠️' if d['id'] in cruzados_fraude else ''
-        out += f'''<tr>
-            <td style="font-weight:700;color:#f9fafb">{d["id"]}{cruz}</td>
+    for i, d in enumerate(damaged):
+        cruz   = ' ⚠️' if d['id'] in cruzados_fraude else ''
+        row_id = f'dmg_{i}'
+        # filtra só DAMAGED
+        shps   = [s for s in shp_por_driver.get(d['id'], []) if 'DAMAGED' in s['class']]
+        shp_rows = ''
+        for s in shps:
+            cls_cor = '#f59e0b'
+            shp_rows += f'''<tr style="background:#060c1a">
+                <td style="padding:6px 16px 6px 36px;font-family:monospace;font-size:12px" colspan="2">
+                  <a href="{MELI_URL}/{s["id"]}" target="_blank" style="color:#60a5fa;text-decoration:none">{s["id"]}</a>
+                </td>
+                <td style="color:{cls_cor};font-size:11px" colspan="2">{s["class"]}</td>
+                <td style="color:#10b981;font-size:12px">${s["bpp"]:,.2f}</td>
+                <td style="color:#6b7280;font-size:11px">{s["data"]}</td>
+            </tr>'''
+        seta   = f' <span id="arrow_dmg_{i}" style="font-size:10px;color:#4b5563">▶ {len(shps)} ids</span>' if shps else ''
+        toggle = f'onclick="toggleDriver(\'dmg_{i}\')" style="cursor:pointer"' if shps else ''
+        out += f'''<tr {toggle}>
+            <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta}{cruz}</td>
             <td style="text-align:center;font-weight:700;color:#f59e0b">{d["total"]}</td>
             <td style="color:#10b981">${d["bpp"]:,.2f}</td>
             <td style="text-align:center">{d["route"]}</td>
             <td style="text-align:center">{d["station"]}</td>
             <td style="text-align:center">{d["ene"]}</td>
-        </tr>'''
+        </tr>
+        <tbody id="dmg_{i}" style="display:none">{shp_rows}</tbody>'''
     return out
 
 # ============================================================
@@ -676,7 +693,7 @@ def gerar_html(d):
         <th>Driver ID</th><th>Total Damaged</th><th>BPP Total</th>
         <th>On Route</th><th>At Station</th><th>ENE</th>
       </tr></thead>
-      <tbody>{rows_damaged(d["damaged"], d["cruzados"])}</tbody>
+      <tbody>{rows_damaged(d["damaged"], d["cruzados"], d["shp_por_driver"])}</tbody>
     </table></div>
   </div>
 </div>
