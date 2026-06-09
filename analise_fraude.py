@@ -535,7 +535,7 @@ def rows_drivers(drivers, cruzados):
         dias_cor = '#10b981' if 0 <= dias <= 30 else '#f59e0b' if dias <= 90 else '#ef4444' if dias > 0 else '#4b5563'
         ativ_cor = d.get('ativ_cor', '#4b5563')
         leal = d.get('lealdade','N/A')
-        leal_html = lealdade_badge(leal) if leal != 'N/A' else '<span style="color:#374151;font-size:11px">—</span>'
+        leal_html = lealdade_badge(leal) if leal not in ('N/A','') else '<span style="color:#374151;font-size:10px">Não se enquadra</span>'
         out += f'''<tr {toggle}
             data-id="{d["id"]}"
             data-transp="{d.get("transportadora","").lower()}"
@@ -834,7 +834,7 @@ def gerar_html(d):
     <div class="card card-ok">
       <div class="card-header"><i data-lucide="shield-check" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">Drivers Bloqueados</span></div>
       <div class="cv val-ok">{d["total_bloqueados"]}</div>
-      <div class="card-delta">Mérito da sua análise</div>
+      <div class="card-delta">Autônomos removidos do mercado</div>
     </div>
   </div>
 
