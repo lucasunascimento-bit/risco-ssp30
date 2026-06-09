@@ -7,10 +7,13 @@ import json, webbrowser, os
 from datetime import datetime
 from google.cloud import bigquery
 from google.auth import default
+import gspread
 
-FACILITY_NAME = 'Guarulhos Mega'   # SHP_LG_FACILITY_NAME em DM_LP_MELI_OPTIMIZADO
-ANO_INICIO    = '2026-01-01'
-OUTPUT     = os.path.join(os.path.dirname(__file__), 'fraude.html')
+FACILITY_NAME  = 'Guarulhos Mega'
+ANO_INICIO     = '2026-01-01'
+OUTPUT         = os.path.join(os.path.dirname(__file__), 'fraude.html')
+BLOCK_LIST_ID  = '1521Ek2wn8qYLj7g6dh0aBBMmpVYHjCp2hftGKNG9bO0'
+ABA_BLOQUEIOS  = 'Drivers Bloqueados'
 
 # ============================================================
 # QUERIES
@@ -253,11 +256,92 @@ def norm_id(s):
     except: return str(s).strip()
 
 def conectar():
-    print("Conectando ao BigQuery...")
-    scopes = ['https://www.googleapis.com/auth/bigquery',
-              'https://www.googleapis.com/auth/cloud-platform']
+    print("Conectando ao BigQuery e Google Sheets...")
+    scopes = [
+        'https://www.googleapis.com/auth/bigquery',
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive',
+        'https://www.googleapis.com/auth/cloud-platform',
+    ]
     creds, _ = default(scopes=scopes)
-    return bigquery.Client(credentials=creds, project='meli-bi-data')
+    bq = bigquery.Client(credentials=creds, project='meli-bi-data')
+    gs = gspread.authorize(creds)
+    return bq, gs
+
+def carregar_block_list(gs):
+    print("  Lendo Block List...")
+    try:
+        pl    = gs.open_by_key(BLOCK_LIST_ID)
+        dados = pl.worksheet(ABA_BLOQUEIOS).get_all_values()
+        if len(dados) <= 1:
+            return []
+        header = dados[0]
+        rows   = []
+        for r in dados[1:]:
+            if not any(r): continue
+            row = dict(zip(header, r))
+            ano = row.get('Ano','').strip()
+            if ano == '2026' or not ano:
+                rows.append(row)
+        print(f"  {len(rows)} registros na Block List")
+        return rows
+    except Exception as e:
+        print(f"  Aviso Block List: {e}")
+        return []
+
+def processar_block_list(rows):
+    if not rows:
+        return {
+            'total':0,'bloqueados':0,'solicitados':0,
+            'monitorados':0,'recusados':0,'gmv_protegido':0.0,
+            'por_transp':{},'rows':[],'por_status':{}
+        }
+    def flt(v):
+        try: return float(str(v).replace('$','').replace(',','.').strip() or 0)
+        except: return 0.0
+    def norm_status(s):
+        s = s.strip().lower()
+        if 'bloqueado' in s: return 'Bloqueado'
+        if 'solicitado' in s: return 'Solicitado'
+        if 'sendo' in s or 'monit' in s: return 'Monitorado'
+        if 'recusado' in s: return 'Recusado'
+        return s.title()
+
+    total = len(rows)
+    bloqueados  = sum(1 for r in rows if 'bloqueado' in r.get('Status','').lower())
+    solicitados = sum(1 for r in rows if 'solicitado' in r.get('Status','').lower())
+    monitorados = sum(1 for r in rows if 'sendo' in r.get('Status','').lower() or 'monit' in r.get('Status','').lower())
+    recusados   = sum(1 for r in rows if 'recusado' in r.get('Status','').lower())
+    gmv_protegido = sum(flt(r.get('USD$','0')) for r in rows if 'bloqueado' in r.get('Status','').lower())
+
+    por_transp = {}
+    por_status = {}
+    rows_out   = []
+    for r in rows:
+        mlp    = r.get('MLP','').strip() or 'N/A'
+        status = norm_status(r.get('Status',''))
+        por_transp[mlp]    = por_transp.get(mlp, 0) + 1
+        por_status[status] = por_status.get(status, 0) + 1
+        rows_out.append({
+            'driver_id':  r.get('Driver ID','').strip(),
+            'nome':       r.get('Nome','').strip(),
+            'mlp':        mlp,
+            'placa':      r.get('Placa','').strip(),
+            'shp':        r.get('SHP','').strip(),
+            'usd':        flt(r.get('USD$','0')),
+            'semana':     r.get('Semana','').strip(),
+            'data':       r.get('Data Solicitação','').strip(),
+            'status':     status,
+            'motivo':     r.get('Motivo','').strip(),
+        })
+    rows_out.sort(key=lambda x: (x['status'] != 'Bloqueado', -x['usd']))
+    return {
+        'total': total, 'bloqueados': bloqueados,
+        'solicitados': solicitados, 'monitorados': monitorados,
+        'recusados': recusados, 'gmv_protegido': gmv_protegido,
+        'por_transp': por_transp, 'por_status': por_status,
+        'rows': rows_out,
+    }
 
 def buscar(bq, query, nome):
     print(f"  Buscando {nome}...")
@@ -475,6 +559,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         'drivers_ativos':    drivers_ativos,
         'drivers_bloqueados':drivers_bloqueados,
         'total_bloqueados':  len(drivers_bloqueados),
+        'bl':                {},  # preenchido no main após carregar_block_list
         # Totais
         'total_fraudes': total_fraudes,
         'total_damaged': total_damaged,
@@ -557,6 +642,32 @@ def rows_drivers(drivers, cruzados):
             <td style="color:#10b981;font-weight:600">${d["bpp"]:,.2f}</td>
         </tr>
         <tbody id="{row_id}" style="display:none">{shp_rows}</tbody>'''
+    return out
+
+def status_bl_badge(s):
+    cores = {'Bloqueado':('#064e3b','#4ade80'), 'Solicitado':('#1e3a5f','#60a5fa'),
+             'Monitorado':('#713f12','#fde68a'), 'Recusado':('#7f1d1d','#fca5a5')}
+    bg, fg = cores.get(s, ('#1f2937','#9ca3af'))
+    return f'<span style="background:{bg};color:{fg};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{s}</span>'
+
+def rows_block_list(rows):
+    out = ''
+    for r in rows:
+        did  = r['driver_id']
+        link = f'https://shipping-bo.adminml.com/sauron/shipments/shipment/{did}' if did else '#'
+        out += f'''<tr>
+            <td style="font-weight:700">
+              <a href="{link}" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">{did or "—"}</a>
+            </td>
+            <td style="font-size:12px;color:#d1d5db">{r["nome"] or "—"}</td>
+            <td style="font-size:11px;color:#9ca3af">{r["mlp"]}</td>
+            <td style="font-size:11px;color:#6b7280">{r["placa"] or "—"}</td>
+            <td style="text-align:center">{r["shp"] or "—"}</td>
+            <td style="color:#10b981;font-weight:600">${r["usd"]:,.2f}</td>
+            <td>{status_bl_badge(r["status"])}</td>
+            <td style="font-size:11px;color:#6b7280">{r["data"] or "—"}</td>
+            <td style="font-size:11px;color:#6b7280">Sem {r["semana"]}</td>
+        </tr>'''
     return out
 
 def rows_historico_bloqueios(bloqueados):
@@ -796,6 +907,7 @@ def gerar_html(d):
   <div class="tab" onclick="showTab('dxp',this)">Driver × Place ({len(d["dxp"])})</div>
   <div class="tab" onclick="showTab('places',this)">Ofensores Places ({d["total_places"]})</div>
   <div class="tab" onclick="showTab('damaged',this)">Damaged ({len(d["damaged"])})</div>
+  <div class="tab" onclick="showTab('bloqueios',this)" style="color:#4ade80">Bloqueios ({d["bl"]["total"]})</div>
 </div>
 
 <!-- VISÃO GERAL -->
@@ -993,7 +1105,7 @@ function toggleDriver(id) {{
   if (ar) ar.textContent = ar.textContent.replace(open ? '▶' : '▼', open ? '▼' : '▶');
 }}
 
-const TAB_ORDER = ['geral','drivers','dxp','places','damaged'];
+const TAB_ORDER = ['geral','drivers','dxp','places','damaged','bloqueios'];
 function showTab(name, el) {{
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
@@ -1074,7 +1186,83 @@ new Chart(document.getElementById('cPlacesBar'), {{
   }}
 }});
 
+// TAB bloqueios inline — inserido antes do script
+</script>
+
+<!-- ABA BLOQUEIOS -->
+<div id="tab-bloqueios" class="content">
+  <div class="cards">
+    <div class="card">
+      <div class="card-header"><i data-lucide="list" class="ci" width="14" height="14"></i><span class="cl">Total Solicitações</span></div>
+      <div class="cv">{d["bl"]["total"]}</div><div class="cd">2026</div>
+    </div>
+    <div class="card card-ok">
+      <div class="card-header"><i data-lucide="shield-check" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">Bloqueados</span></div>
+      <div class="cv val-ok">{d["bl"]["bloqueados"]}</div><div class="cd">Confirmados</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="clock" class="ci" width="14" height="14"></i><span class="cl">Solicitados</span></div>
+      <div class="cv" style="color:#60a5fa">{d["bl"]["solicitados"]}</div><div class="cd">Aguardando</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="eye" class="ci" width="14" height="14"></i><span class="cl">Monitorados</span></div>
+      <div class="cv val-warn">{d["bl"]["monitorados"]}</div><div class="cd">Em acompanhamento</div>
+    </div>
+    <div class="card c-red">
+      <div class="card-header"><i data-lucide="x-circle" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Recusados</span></div>
+      <div class="cv red">{d["bl"]["recusados"]}</div><div class="cd">Não aprovados</div>
+    </div>
+    <div class="card card-ok">
+      <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">GMV Protegido</span></div>
+      <div class="cv val-ok">${d["bl"]["gmv_protegido"]:,.2f}</div><div class="cd">Bloqueados confirmados</div>
+    </div>
+  </div>
+
+  <div class="grid2 mb16">
+    <div class="box"><div class="bt">Por Status</div><canvas id="cBlStatus" height="220"></canvas></div>
+    <div class="box"><div class="bt">Por Transportadora</div><canvas id="cBlTransp" height="220"></canvas></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-title">Lista Completa — Block List 2026</div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>Driver ID</th><th>Nome</th><th>Transportadora</th><th>Placa</th>
+        <th>SHP</th><th>USD$</th><th>Status</th><th>Data Solicitação</th><th>Semana</th>
+      </tr></thead>
+      <tbody>{rows_block_list(d["bl"]["rows"])}</tbody>
+    </table></div>
+  </div>
+</div>
+
+<script>
 lucide.createIcons();
+
+// Gráfico Bloqueios por Status
+new Chart(document.getElementById('cBlStatus'), {{
+  type: 'doughnut',
+  data: {{
+    labels: {j(list(d["bl"]["por_status"].keys()))},
+    datasets: [{{ data: {j(list(d["bl"]["por_status"].values()))},
+      backgroundColor: ['#10b981','#3b82f6','#f59e0b','#ef4444','#6b7280'], borderWidth:0 }}]
+  }},
+  options: {{ ...defOpts, cutout:'40%' }}
+}});
+
+// Gráfico Bloqueios por Transportadora
+new Chart(document.getElementById('cBlTransp'), {{
+  type: 'bar',
+  data: {{
+    labels: {j(list(d["bl"]["por_transp"].keys()))},
+    datasets: [{{ data: {j(list(d["bl"]["por_transp"].values()))},
+      backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }}]
+  }},
+  options: {{
+    responsive:true, plugins:{{ legend:{{display:false}} }},
+    scales:{{ x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#1e293b'}} }},
+              y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
+  }}
+}});
 </script>
 </body>
 </html>'''
@@ -1087,7 +1275,7 @@ if __name__ == '__main__':
     print(f"Análise de Fraude SSP30 — {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     print("="*55)
 
-    bq = conectar()
+    bq, gs = conectar()
 
     print("\nConsultando BigQuery...")
     df_score     = buscar(bq, QUERY_DRIVER_SCORE,    'Score por Driver')
@@ -1099,8 +1287,11 @@ if __name__ == '__main__':
     df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
     df_damaged   = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
 
+    bl_rows = carregar_block_list(gs)
+
     print("\nProcessando...")
     dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
+    dados['bl'] = processar_block_list(bl_rows)
 
     print("Gerando dashboard...")
     html = gerar_html(dados)
