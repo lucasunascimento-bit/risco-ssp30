@@ -1145,6 +1145,7 @@ function showTab(name, el) {{
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
+  if (name === 'bloqueios') initBlCharts();
 }}
 window.addEventListener('load', () => {{
   const h = window.location.hash.replace('#','');
@@ -1271,31 +1272,34 @@ new Chart(document.getElementById('cPlacesBar'), {{
 <script>
 lucide.createIcons();
 
-// Gráfico Bloqueios por Status
-new Chart(document.getElementById('cBlStatus'), {{
-  type: 'doughnut',
-  data: {{
-    labels: {j(list(d["bl"]["por_status"].keys()))},
-    datasets: [{{ data: {j(list(d["bl"]["por_status"].values()))},
-      backgroundColor: ['#10b981','#3b82f6','#f59e0b','#ef4444','#6b7280'], borderWidth:0 }}]
-  }},
-  options: {{ ...defOpts, cutout:'40%' }}
-}});
-
-// Gráfico Bloqueios por Transportadora
-new Chart(document.getElementById('cBlTransp'), {{
-  type: 'bar',
-  data: {{
-    labels: {j(list(d["bl"]["por_transp"].keys()))},
-    datasets: [{{ data: {j(list(d["bl"]["por_transp"].values()))},
-      backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }}]
-  }},
-  options: {{
-    responsive:true, plugins:{{ legend:{{display:false}} }},
-    scales:{{ x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#1e293b'}} }},
-              y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
-  }}
-}});
+// Gráficos de Bloqueios criados na 1ª vez que a aba abre
+let _blChartsDone = false;
+function initBlCharts() {{
+  if (_blChartsDone) return;
+  _blChartsDone = true;
+  new Chart(document.getElementById('cBlStatus'), {{
+    type: 'doughnut',
+    data: {{
+      labels: {j(list(d["bl"]["por_status"].keys()))},
+      datasets: [{{ data: {j(list(d["bl"]["por_status"].values()))},
+        backgroundColor: ['#10b981','#3b82f6','#f59e0b','#ef4444','#6b7280'], borderWidth:0 }}]
+    }},
+    options: {{ ...defOpts, cutout:'40%' }}
+  }});
+  new Chart(document.getElementById('cBlTransp'), {{
+    type: 'bar',
+    data: {{
+      labels: {j(list(d["bl"]["por_transp"].keys()))},
+      datasets: [{{ data: {j(list(d["bl"]["por_transp"].values()))},
+        backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }}]
+    }},
+    options: {{
+      responsive:true, plugins:{{ legend:{{display:false}} }},
+      scales:{{ x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#1e293b'}} }},
+                y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
+    }}
+  }});
+}}
 </script>
 </body>
 </html>'''
