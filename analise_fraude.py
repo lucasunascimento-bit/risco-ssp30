@@ -748,6 +748,14 @@ def gerar_html(d):
   tr:hover td{{background:#111827!important}}
   tr:last-child td{{border-bottom:none}}
   .tbl-scroll{{overflow-x:auto}}
+  /* FILTROS */
+  .filter-bar{{display:flex;gap:8px;padding:12px 20px;flex-wrap:wrap;border-bottom:1px solid #111827;align-items:center;background:#080d19}}
+  .filter-input{{background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:8px 14px;color:#e2e8f0;font-size:12px;flex:1;min-width:180px;outline:none;transition:border-color .3s ease}}
+  .filter-input:focus{{border-color:#374151}}
+  .filter-input::placeholder{{color:#374151}}
+  .filter-select{{background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:8px 14px;color:#9ca3af;font-size:12px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;transition:border-color .3s ease}}
+  .filter-select:focus{{border-color:#374151;color:#e2e8f0}}
+  .filter-label{{font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}}
   /* NAV */
   .nav-wrap{{position:relative}}
   .nav-btn{{background:#111827;color:#9ca3af;border:1px solid #1f2937;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .3s ease}}
@@ -863,18 +871,20 @@ def gerar_html(d):
     <div class="tbl-title">Ranking Ativo — Drivers em Atuação ({len(d["drivers_ativos"])})</div>
     <!-- Filtros -->
     <div class="filter-bar">
-      <input type="text" id="busca_driver" placeholder="Buscar por Driver ID..." oninput="filtrarDrivers()" class="filter-input">
+      <span class="filter-label">Filtrar:</span>
+      <input type="text" id="busca_driver" placeholder="Driver ID..." oninput="filtrarDrivers()" class="filter-input" style="max-width:160px">
       <select id="filtro_transp" onchange="filtrarDrivers()" class="filter-select">
-        <option value="">Todas as transportadoras</option>
+        <option value="">Transportadora</option>
         {''.join(f'<option value="{t.lower()}">{t}</option>' for t in sorted(t for t in set(r.get("transportadora","") for r in d["drivers_ativos"]) if t and t not in ("N/A","—","")))}
       </select>
       <select id="filtro_ativ" onchange="filtrarDrivers()" class="filter-select">
-        <option value="">Todas as atividades</option>
-        <option value="ativo">🟢 Ativo</option>
-        <option value="em observação">🟡 Em observação</option>
-        <option value="inativo">🔴 Inativo</option>
-        <option value="sem dados">⚪ Sem dados</option>
+        <option value="">Atividade</option>
+        <option value="ativo">Ativo</option>
+        <option value="em observação">Em observação</option>
+        <option value="inativo">Inativo</option>
+        <option value="sem dados">Sem dados</option>
       </select>
+      <button onclick="document.getElementById('busca_driver').value='';document.getElementById('filtro_transp').value='';document.getElementById('filtro_ativ').value='';filtrarDrivers()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
     </div>
     <div class="tbl-scroll"><table id="tbl_drivers">
       <thead><tr>
