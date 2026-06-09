@@ -116,6 +116,68 @@ ORDER BY TOTAL DESC
 LIMIT 50
 """
 
+QUERY_DRIVER_STATUS = f"""
+-- Status e categoria de todos os drivers da nossa análise de fraude
+WITH loyalty AS (
+  SELECT
+    crowd_driver_id AS driverid,
+    CASE
+      WHEN scenarios.last_mile_crowd.progress.value = 1 THEN 'Bronze'
+      WHEN scenarios.last_mile_crowd.progress.value = 2 THEN 'Prata'
+      WHEN scenarios.last_mile_crowd.progress.value = 3 THEN 'Ouro'
+      WHEN scenarios.last_mile_crowd.progress.value = 4 THEN 'Platina'
+      ELSE 'N/A'
+    END AS lealdade
+  FROM `meli-bi-data.WHOWNER.BT_SHP_MT_METRICS_LOYALTY` l
+  LEFT JOIN UNNEST(l.player.profiles.last_mile_crowd) AS crowd_driver_id
+  WHERE l.period_monthly = TRUE
+    AND l.player.scenarios.is_last_mile_crowd = TRUE
+    AND l.site_id = 'MLB'
+    AND l.period_id = EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) * 100
+                    + EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))
+),
+status_driver AS (
+  SELECT
+    r.DRIVER_ID,
+    s.SHP_CROWD_STATUS                AS STATUS,
+    s.SHP_CROWD_SUBSTATUS             AS SUBSTATUS,
+    DATE(MIN(r.CREATED_AT))           AS DATA_ATIVACAO,
+    DATE_DIFF(CURRENT_DATE(), DATE(MIN(r.CREATED_AT)), DAY) AS DIAS_OPERACAO
+  FROM `meli-bi-data.WHOWNER.BT_SHP_CROWD_TRACKER_REGIST` AS r
+  LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_CROWD_DRIVER_REG_STATUS` AS ds
+    ON r.DRIVER_ID = ds.SHP_CROWD_DRIVER_ID
+  LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_CROWD_REG_STATUS` AS s
+    ON ds.SHP_CROWD_STATUS_ID = s.SHP_CROWD_ID
+  WHERE r.SITE = 'MLB'
+  GROUP BY 1, 2, 3
+),
+fraud_drivers AS (
+  SELECT DISTINCT SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID,
+    MIN(date_bpp) AS PRIMEIRA_FRAUDE,
+    MAX(date_bpp) AS ULTIMA_FRAUDE,
+    COUNT(*) AS TOTAL_INCIDENTES_HIST
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+    AND date_bpp >= '{ANO_INICIO}'
+    AND DRIVER_ID IS NOT NULL
+  GROUP BY 1
+)
+SELECT
+  sd.DRIVER_ID,
+  sd.STATUS,
+  sd.SUBSTATUS,
+  sd.DATA_ATIVACAO,
+  sd.DIAS_OPERACAO,
+  loy.lealdade                        AS CATEGORIA,
+  fd.PRIMEIRA_FRAUDE,
+  fd.ULTIMA_FRAUDE,
+  fd.TOTAL_INCIDENTES_HIST
+FROM status_driver sd
+INNER JOIN fraud_drivers fd ON CAST(sd.DRIVER_ID AS STRING) = fd.DRIVER_ID
+LEFT JOIN loyalty loy ON CAST(sd.DRIVER_ID AS STRING) = CAST(loy.driverid AS STRING)
+ORDER BY sd.STATUS, fd.TOTAL_INCIDENTES_HIST DESC
+"""
+
 QUERY_PLACE_SHIPMENTS = f"""
 -- SHP IDs por place (LOST + FRAUD apenas)
 SELECT
@@ -187,7 +249,7 @@ def prioridade(score, fraud_conf):
     if score >= 4:                     return 'MEDIA'
     return 'BAIXA'
 
-def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp):
+def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status):
     # ---- Drivers (score combinado) ----
     drivers = []
     for _, r in df_score.iterrows():
@@ -244,6 +306,39 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp):
             'station': int(r.get('DAMAGED_AT_STATION', 0) or 0),
             'ene':     int(r.get('DAMAGED_ENE', 0) or 0),
         })
+
+    # ---- Status dos drivers ----
+    status_map = {}   # {driver_id: {status, substatus, lealdade, data_ativacao, primeira_fraude, ultima_fraude}}
+    bloqueados = []
+    for _, r in df_status.iterrows():
+        did = str(r.get('DRIVER_ID', ''))
+        if not did: continue
+        info = {
+            'status':          str(r.get('STATUS', '') or ''),
+            'substatus':       str(r.get('SUBSTATUS', '') or ''),
+            'lealdade':        str(r.get('CATEGORIA', '') or 'N/A'),
+            'data_ativacao':   str(r.get('DATA_ATIVACAO', '') or ''),
+            'dias_operacao':   int(r.get('DIAS_OPERACAO', 0) or 0),
+            'primeira_fraude': str(r.get('PRIMEIRA_FRAUDE', '') or ''),
+            'ultima_fraude':   str(r.get('ULTIMA_FRAUDE', '') or ''),
+            'total_hist':      int(r.get('TOTAL_INCIDENTES_HIST', 0) or 0),
+        }
+        status_map[did] = info
+        if info['status'] == 'blocked':
+            bloqueados.append({'id': did, **info})
+
+    # Enriquece drivers com status e separa bloqueados
+    drivers_ativos    = []
+    drivers_bloqueados = []
+    for d in drivers:
+        st = status_map.get(d['id'], {})
+        d['status_driver'] = st.get('status', 'active')
+        d['lealdade']      = st.get('lealdade', 'N/A')
+        d['data_ativacao'] = st.get('data_ativacao', '')
+        if d['status_driver'] == 'blocked':
+            drivers_bloqueados.append(d)
+        else:
+            drivers_ativos.append(d)
 
     # ---- SHP IDs por place ----
     shp_por_place = {}
@@ -306,9 +401,12 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp):
         'dxp':       dxp,
         'places':    places,
         'damaged':   damaged,
-        'cruzados':       ids_cruzados,
-        'shp_por_driver': shp_por_driver,
-        'shp_por_place':  shp_por_place,
+        'cruzados':          ids_cruzados,
+        'shp_por_driver':    shp_por_driver,
+        'shp_por_place':     shp_por_place,
+        'drivers_ativos':    drivers_ativos,
+        'drivers_bloqueados':drivers_bloqueados,
+        'total_bloqueados':  len(drivers_bloqueados),
         # Totais
         'total_fraudes': total_fraudes,
         'total_damaged': total_damaged,
@@ -339,6 +437,11 @@ def prio_badge(p):
 
 MELI_URL = 'https://envios.adminml.com/logistics/package-management/package'
 
+def lealdade_badge(l):
+    cores = {'Bronze':'#cd7f32','Prata':'#9ca3af','Ouro':'#f59e0b','Platina':'#a78bfa','N/A':'#374151'}
+    cor = cores.get(l, '#374151')
+    return f'<span style="background:{cor};color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">{l}</span>'
+
 def rows_drivers(drivers, cruzados):
     out = ''
     for d in drivers:
@@ -362,6 +465,7 @@ def rows_drivers(drivers, cruzados):
         out += f'''<tr {toggle}>
             <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta} {cruz}</td>
             <td>{prio_badge(d["prio"])}</td>
+            <td>{lealdade_badge(d.get("lealdade","N/A"))}</td>
             <td style="text-align:center;font-weight:700;color:#f9fafb">{d["score"]}</td>
             <td style="text-align:center;color:#ef4444;font-weight:600">{d["fraude"]}</td>
             <td style="text-align:center;color:#f59e0b">{d["damaged"]}</td>
@@ -370,6 +474,31 @@ def rows_drivers(drivers, cruzados):
         </tr>
         <tbody id="{row_id}" style="display:none">{shp_rows}</tbody>'''
     return out
+
+def rows_historico_bloqueios(bloqueados):
+    if not bloqueados:
+        return ''
+    rows = ''
+    for b in bloqueados:
+        rows += f'''<tr style="background:#051505">
+            <td style="font-weight:700;color:#4ade80">{b["id"]}</td>
+            <td>{lealdade_badge(b.get("lealdade","N/A"))}</td>
+            <td style="color:#6b7280;font-size:11px">{b.get("substatus","")}</td>
+            <td style="color:#9ca3af;font-size:12px">{b.get("primeira_fraude","")}</td>
+            <td style="color:#9ca3af;font-size:12px">{b.get("ultima_fraude","")}</td>
+            <td style="text-align:center;font-weight:700;color:#f9fafb">{b.get("total_hist",0)}</td>
+            <td style="color:#10b981">${b.get("bpp",0):,.2f}</td>
+        </tr>'''
+    return f'''<div class="tbl-wrap" style="border-color:#166534">
+    <div class="tbl-title" style="color:#4ade80">Histórico de Bloqueios — Mérito da Análise ({len(bloqueados)})</div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>Driver ID</th><th>Categoria</th><th>Substatus</th>
+        <th>1ª Fraude</th><th>Última Fraude</th><th>Total Incidentes</th><th>BPP Total</th>
+      </tr></thead>
+      <tbody>{rows}</tbody>
+    </table></div>
+  </div>'''
 
 def rows_dxp(dxp, shp_por_driver):
     out = ''
@@ -610,6 +739,11 @@ def gerar_html(d):
       <div class="cv red">{len(d["cruzados"])}</div>
       <div class="cd">Fraude + Damaged</div>
     </div>
+    <div class="card card-ok">
+      <div class="card-header"><i data-lucide="shield-check" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">Drivers Bloqueados</span></div>
+      <div class="cv val-ok">{d["total_bloqueados"]}</div>
+      <div class="card-delta">Mérito da sua análise</div>
+    </div>
   </div>
 
   {"" if not d["cruzados"] else f'''
@@ -633,16 +767,27 @@ def gerar_html(d):
 
 <!-- RISCO POR DRIVER -->
 <div id="tab-drivers" class="content">
+
+  <!-- Card mérito bloqueio -->
+  {f'''<div class="alerta-box" style="background:#0a1f0a;border-color:#166534">
+    <div class="num" style="color:#4ade80">{d["total_bloqueados"]}</div>
+    <div class="txt" style="color:#4ade80"><strong>drivers bloqueados identificados na sua análise — mérito seu!</strong><br>
+    Esses drivers não aparecem mais no ranking ativo.</div>
+  </div>''' if d["total_bloqueados"] > 0 else ''}
+
   <div class="tbl-wrap">
-    <div class="tbl-title">Ranking de Drivers por Score de Risco — Score = (Fraude × 3) + (Damaged × 1)</div>
+    <div class="tbl-title">Ranking Ativo — Drivers em Atuação ({len(d["drivers_ativos"])})</div>
     <div class="tbl-scroll"><table>
       <thead><tr>
-        <th>Driver ID</th><th>Prioridade</th><th>Score</th>
+        <th>Driver ID</th><th>Prioridade</th><th>Categoria</th><th>Score</th>
         <th>Fraudes</th><th>Damaged</th><th>Fraud Confirm.</th><th>BPP Total</th>
       </tr></thead>
-      <tbody>{rows_drivers(d["drivers"], d["cruzados"])}</tbody>
+      <tbody>{rows_drivers(d["drivers_ativos"], d["cruzados"])}</tbody>
     </table></div>
   </div>
+
+  <!-- Histórico de bloqueados -->
+  {rows_historico_bloqueios(d["drivers_bloqueados"])}
 </div>
 
 <!-- DRIVER × PLACE -->
@@ -808,13 +953,14 @@ if __name__ == '__main__':
     print("\nConsultando BigQuery...")
     df_score     = buscar(bq, QUERY_DRIVER_SCORE,    'Score por Driver')
     df_shp       = buscar(bq, QUERY_DRIVER_SHIPMENTS,'SHP IDs por Driver')
+    df_status    = buscar(bq, QUERY_DRIVER_STATUS,   'Status dos Drivers')
     df_dxp       = buscar(bq, QUERY_DRIVER_PLACE,    'Driver x Place')
     df_places    = buscar(bq, QUERY_PLACES,           'Places')
     df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
     df_damaged   = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
 
     print("\nProcessando...")
-    dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp)
+    dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status)
 
     print("Gerando dashboard...")
     html = gerar_html(dados)
