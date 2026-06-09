@@ -503,7 +503,7 @@ def prio_badge(p):
     bg, fg = cores.get(p, ('#1f2937','#9ca3af'))
     return f'<span style="background:{bg};color:{fg};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{p}</span>'
 
-MELI_URL = 'https://envios.adminml.com/logistics/package-management/package'
+MELI_URL = 'https://shipping-bo.adminml.com/sauron/shipments/shipment'
 
 def lealdade_badge(l):
     cores = {'Bronze':'#cd7f32','Prata':'#9ca3af','Ouro':'#f59e0b','Platina':'#a78bfa','N/A':'#374151'}
@@ -761,7 +761,7 @@ def gerar_html(d):
   .nav-btn{{background:#111827;color:#9ca3af;border:1px solid #1f2937;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .3s ease}}
   .nav-btn:hover{{background:#1f2937;color:#e2e8f0}}
   .nav-dropdown{{display:none;position:absolute;right:0;top:calc(100% + 6px);background:#0d1321;border:1px solid #1f2937;border-radius:8px;overflow:hidden;min-width:220px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.6)}}
-  .nav-wrap:hover .nav-dropdown{{display:block}}
+  .nav-dropdown.open{{display:block}}
   .nav-dropdown a{{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:12px;color:#d1d5db;text-decoration:none;transition:background .2s;border-bottom:1px solid #111827}}
   .nav-dropdown a:last-child{{border-bottom:none}}
   .nav-dropdown a:hover{{background:#1f2937;color:#ffffff}}
@@ -782,7 +782,7 @@ def gerar_html(d):
     </div>
   </div>
   <div class="nav-wrap">
-    <button class="nav-btn">⊞ Dashboards ▾</button>
+    <button class="nav-btn" onclick="toggleNav(event)">⊞ Dashboards ▾</button>
     <div class="nav-dropdown">
       <a href="./index.html">🔔 Risco SSP30 — ON ROUTE / ON WAY</a>
       <a href="./fraude.html" class="nav-active">🔍 Análise de Fraude SSP30</a>
@@ -954,6 +954,16 @@ def gerar_html(d):
 </div>
 
 <script>
+// Menu Dashboards — abre/fecha com click, fecha ao clicar fora
+function toggleNav(e) {{
+  e.stopPropagation();
+  const dd = document.querySelector('.nav-dropdown');
+  dd.classList.toggle('open');
+}}
+document.addEventListener('click', () => {{
+  document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+}});
+
 // Filtro da tabela de drivers
 function filtrarDrivers() {{
   const busca  = (document.getElementById('busca_driver')?.value || '').toLowerCase();
