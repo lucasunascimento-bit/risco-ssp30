@@ -269,7 +269,8 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp):
         'dxp':       dxp,
         'places':    places,
         'damaged':   damaged,
-        'cruzados':  ids_cruzados,
+        'cruzados':       ids_cruzados,
+        'shp_por_driver': shp_por_driver,
         # Totais
         'total_fraudes': total_fraudes,
         'total_damaged': total_damaged,
@@ -332,19 +333,36 @@ def rows_drivers(drivers, cruzados):
         <tbody id="{row_id}" style="display:none">{shp_rows}</tbody>'''
     return out
 
-def rows_dxp(dxp):
+def rows_dxp(dxp, shp_por_driver):
     out = ''
-    for r in dxp:
-        alert = r['total'] >= 5
-        bg = 'background:#1a0a0a' if alert else ''
-        out += f'''<tr style="{bg}">
-            <td style="font-weight:700;color:{"#fca5a5" if alert else "#f9fafb"}">{r["driver"]}</td>
+    for i, r in enumerate(dxp):
+        alert  = r['total'] >= 5
+        bg     = 'background:#1a0a0a' if alert else ''
+        row_id = f'dxp_{i}'
+        # SHP IDs do driver
+        shps     = shp_por_driver.get(r['driver'], [])
+        shp_rows = ''
+        for s in shps:
+            cls_cor = '#ef4444' if 'FRAUD' in s['class'] else '#f59e0b' if 'DAMAGED' in s['class'] else '#94a3b8'
+            shp_rows += f'''<tr style="background:#060c1a">
+                <td colspan="2" style="padding:6px 16px 6px 40px;font-family:monospace;font-size:12px">
+                  <a href="{MELI_URL}/{s["id"]}" target="_blank" style="color:#60a5fa;text-decoration:none">{s["id"]}</a>
+                </td>
+                <td style="color:{cls_cor};font-size:11px" colspan="2">{s["class"]}</td>
+                <td style="color:#10b981;font-size:12px">${s["bpp"]:,.2f}</td>
+                <td style="color:#6b7280;font-size:11px">{s["data"]}</td>
+            </tr>'''
+        seta   = f' <span id="arrow_dxp_{i}" style="font-size:10px;color:#4b5563">▶ {len(shps)} pacotes</span>' if shps else ''
+        toggle = f'onclick="toggleDriver(\'dxp_{i}\')" style="cursor:pointer"' if shps else ''
+        out += f'''<tr style="{bg}" {toggle}>
+            <td style="font-weight:700;color:{"#fca5a5" if alert else "#f9fafb"}">{r["driver"]}{seta}</td>
             <td>{r["place"]}</td>
             <td style="text-align:center;font-weight:800;color:{"#ef4444" if alert else "#f9fafb"}">{r["total"]}</td>
             <td style="text-align:center;color:#ef4444">{r["fraudes"]}</td>
             <td style="text-align:center;color:#f59e0b">{r["damaged"]}</td>
             <td style="color:#10b981">${r["bpp"]:,.2f}</td>
-        </tr>'''
+        </tr>
+        <tbody id="dxp_{i}" style="display:none">{shp_rows}</tbody>'''
     return out
 
 def rows_places(places):
@@ -483,7 +501,7 @@ def gerar_html(d):
   <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
   <div class="tab" onclick="showTab('drivers',this)">Risco por Driver ({len(d["drivers"])})</div>
   <div class="tab" onclick="showTab('dxp',this)">Driver × Place ({len(d["dxp"])})</div>
-  <div class="tab" onclick="showTab('places',this)">Places ({d["total_places"]})</div>
+  <div class="tab" onclick="showTab('places',this)">Ofensores Places ({d["total_places"]})</div>
   <div class="tab" onclick="showTab('damaged',this)">Damaged ({len(d["damaged"])})</div>
 </div>
 
@@ -561,15 +579,29 @@ def gerar_html(d):
     <div class="tbl-title">Driver × Place — Combinações com 2+ Fraudes em Comum</div>
     <div class="tbl-scroll"><table>
       <thead><tr><th>Driver ID</th><th>Place</th><th>Total</th><th>Fraudes</th><th>Damaged</th><th>BPP Total</th></tr></thead>
-      <tbody>{rows_dxp(d["dxp"])}</tbody>
+      <tbody>{rows_dxp(d["dxp"], d["shp_por_driver"])}</tbody>
     </table></div>
   </div>
 </div>
 
-<!-- PLACES -->
+<!-- PLACES / OFENSORES -->
 <div id="tab-places" class="content">
+
+  <!-- Top 3 cards -->
+  <div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+    {''.join(f"""
+    <div class="card {'c-red' if i==0 else ''}">
+      <div class="card-header"><i data-lucide="map-pin" class="ci" width="14" height="14" {'style="color:#7f1d1d"' if i==0 else ''}></i>
+        <span class="cl">#{i+1} Ofensor</span></div>
+      <div class="cv {'red' if i==0 else ''}" style="font-size:14px;font-weight:700">{p["nome"][:30]}{"…" if len(p["nome"])>30 else ""}</div>
+      <div class="cd">{p["total"]} incidentes · ${p["bpp"]:,.2f} BPP</div>
+    </div>""" for i, p in enumerate(d["places"][:3]))}
+  </div>
+
+  <div class="box mb16"><div class="bt">Top 15 Places por Total de Fraudes</div><canvas id="cPlacesBar" height="300"></canvas></div>
+
   <div class="tbl-wrap">
-    <div class="tbl-title">Ranking de Places — Fraudes / Lost que passaram pelo place</div>
+    <div class="tbl-title">Ranking completo — Places Ofensores</div>
     <div class="tbl-scroll"><table>
       <thead><tr>
         <th>Place</th><th>Total</th><th>BPP</th>
@@ -660,6 +692,28 @@ new Chart(document.getElementById('cPlaces'), {{
     scales: {{
       x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }},
       y:{{ ticks:{{color:'#8a8a8a', font:{{size:11}}}}, grid:{{display:false}} }}
+    }}
+  }}
+}});
+
+// Gráfico de Places Ofensores
+new Chart(document.getElementById('cPlacesBar'), {{
+  type: 'bar',
+  data: {{
+    labels: {j([p["nome"][:28]+"…" if len(p["nome"])>28 else p["nome"] for p in d["places"][:15]])},
+    datasets: [
+      {{ label:'Fraudes/Lost', data:{j([p["total"]-p["fraud"] for p in d["places"][:15]])},
+         backgroundColor:'rgba(239,68,68,0.75)', borderRadius:4 }},
+      {{ label:'Fraud Confirmado', data:{j([p["fraud"] for p in d["places"][:15]])},
+         backgroundColor:'rgba(168,85,247,0.75)', borderRadius:4 }},
+    ]
+  }},
+  options: {{
+    indexAxis:'y', responsive:true,
+    plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:11}} }} }} }},
+    scales:{{
+      x:{{ stacked:true, ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }},
+      y:{{ stacked:true, ticks:{{color:'#8a8a8a',font:{{size:10}}}}, grid:{{display:false}} }}
     }}
   }}
 }});
