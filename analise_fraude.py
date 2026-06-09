@@ -116,6 +116,28 @@ ORDER BY TOTAL DESC
 LIMIT 50
 """
 
+QUERY_PLACE_SHIPMENTS = f"""
+-- SHP IDs por place (LOST + FRAUD apenas)
+SELECT
+    p.SHP_AGENCY_ID                                                                    AS AGENCY_ID,
+    REGEXP_REPLACE(p.SHP_AGEN_DESC, r'Ag[êe]ncia Mercado Livre - ', '')               AS PLACE_NOME,
+    CAST(f.SHIPMENT_ID AS STRING)                                                       AS SHP_ID,
+    SAFE_CAST(f.DRIVER_ID AS STRING)                                                    AS DRIVER_ID,
+    f.Classification_LM                                                                 AS CLASSIFICACAO,
+    ROUND(f.BPP_CASHOUT_USD, 2)                                                         AS BPP,
+    FORMAT_DATE('%d/%m/%Y', f.date_bpp)                                                 AS DATA
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` f
+JOIN `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` p
+    ON CAST(p.SHP_SHIPMENT_ID AS STRING) = CAST(f.SHIPMENT_ID AS STRING)
+WHERE f.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  AND f.date_bpp >= '{ANO_INICIO}'
+  AND f.date_bpp <= CURRENT_DATE()
+  AND f.Classification_LM IN (
+      'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE')
+ORDER BY p.SHP_AGEN_DESC, f.BPP_CASHOUT_USD DESC
+"""
+
 QUERY_DAMAGED = f"""
 -- Damaged por driver — usa DRIVER_ID direto da tabela
 SELECT
@@ -165,7 +187,7 @@ def prioridade(score, fraud_conf):
     if score >= 4:                     return 'MEDIA'
     return 'BAIXA'
 
-def processar(df_score, df_dxp, df_places, df_damaged, df_shp):
+def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp):
     # ---- Drivers (score combinado) ----
     drivers = []
     for _, r in df_score.iterrows():
@@ -223,6 +245,21 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp):
             'ene':     int(r.get('DAMAGED_ENE', 0) or 0),
         })
 
+    # ---- SHP IDs por place ----
+    shp_por_place = {}
+    for _, r in df_place_shp.iterrows():
+        nome = str(r.get('PLACE_NOME', '')).replace('Agncia Mercado Livre - ', '').replace('Agência Mercado Livre - ', '')
+        if not nome: continue
+        if nome not in shp_por_place:
+            shp_por_place[nome] = []
+        shp_por_place[nome].append({
+            'id':      str(r.get('SHP_ID', '')),
+            'driver':  str(r.get('DRIVER_ID', '') or '—'),
+            'class':   str(r.get('CLASSIFICACAO', '')),
+            'bpp':     flt(r.get('BPP', 0)),
+            'data':    str(r.get('DATA', '')),
+        })
+
     # ---- SHP IDs por driver ----
     shp_por_driver = {}
     for _, r in df_shp.iterrows():
@@ -271,6 +308,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp):
         'damaged':   damaged,
         'cruzados':       ids_cruzados,
         'shp_por_driver': shp_por_driver,
+        'shp_por_place':  shp_por_place,
         # Totais
         'total_fraudes': total_fraudes,
         'total_damaged': total_damaged,
@@ -365,11 +403,27 @@ def rows_dxp(dxp, shp_por_driver):
         <tbody id="dxp_{i}" style="display:none">{shp_rows}</tbody>'''
     return out
 
-def rows_places(places):
+def rows_places(places, shp_por_place):
     out = ''
-    for p in places:
-        out += f'''<tr>
-            <td>{p["nome"]}</td>
+    for i, p in enumerate(places):
+        row_id = f'pl_{i}'
+        shps   = shp_por_place.get(p['nome'], [])
+        shp_rows = ''
+        for s in shps:
+            cls_cor = '#ef4444' if 'FRAUD' in s['class'] else '#94a3b8'
+            shp_rows += f'''<tr style="background:#060c1a">
+                <td style="padding:6px 16px 6px 36px;font-family:monospace;font-size:12px">
+                  <a href="{MELI_URL}/{s["id"]}" target="_blank" style="color:#60a5fa;text-decoration:none">{s["id"]}</a>
+                </td>
+                <td style="color:#6b7280;font-size:11px">Driver: {s["driver"]}</td>
+                <td style="color:{cls_cor};font-size:11px" colspan="2">{s["class"]}</td>
+                <td style="color:#10b981;font-size:12px">${s["bpp"]:,.2f}</td>
+                <td style="color:#6b7280;font-size:11px" colspan="3">{s["data"]}</td>
+            </tr>'''
+        seta   = f' <span id="arrow_pl_{i}" style="font-size:10px;color:#4b5563">▶ {len(shps)} ids</span>' if shps else ''
+        toggle = f'onclick="toggleDriver(\'pl_{i}\')" style="cursor:pointer"' if shps else ''
+        out += f'''<tr {toggle}>
+            <td style="font-weight:600;color:#f9fafb">{p["nome"]}{seta}</td>
             <td style="text-align:center;font-weight:700;color:#f9fafb">{p["total"]}</td>
             <td style="color:#10b981">${p["bpp"]:,.2f}</td>
             <td style="text-align:center;color:#ef4444">{p["route"]}</td>
@@ -377,7 +431,8 @@ def rows_places(places):
             <td style="text-align:center;color:#a78bfa">{p["station"]}</td>
             <td style="text-align:center;color:#94a3b8">{p["ene"]}</td>
             <td style="text-align:center;color:#f87171;font-weight:700">{p["fraud"]}</td>
-        </tr>'''
+        </tr>
+        <tbody id="pl_{i}" style="display:none">{shp_rows}</tbody>'''
     return out
 
 def rows_damaged(damaged, cruzados_fraude):
@@ -607,7 +662,7 @@ def gerar_html(d):
         <th>Place</th><th>Total</th><th>BPP</th>
         <th>Lost Route</th><th>Lost Way</th><th>Lost Station</th><th>Lost ENE</th><th>Fraud Confirm.</th>
       </tr></thead>
-      <tbody>{rows_places(d["places"])}</tbody>
+      <tbody>{rows_places(d["places"], d["shp_por_place"])}</tbody>
     </table></div>
   </div>
 </div>
@@ -734,14 +789,15 @@ if __name__ == '__main__':
     bq = conectar()
 
     print("\nConsultando BigQuery...")
-    df_score   = buscar(bq, QUERY_DRIVER_SCORE,    'Score por Driver')
-    df_shp     = buscar(bq, QUERY_DRIVER_SHIPMENTS,'SHP IDs por Driver')
-    df_dxp     = buscar(bq, QUERY_DRIVER_PLACE,    'Driver x Place')
-    df_places  = buscar(bq, QUERY_PLACES,           'Places')
-    df_damaged = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
+    df_score     = buscar(bq, QUERY_DRIVER_SCORE,    'Score por Driver')
+    df_shp       = buscar(bq, QUERY_DRIVER_SHIPMENTS,'SHP IDs por Driver')
+    df_dxp       = buscar(bq, QUERY_DRIVER_PLACE,    'Driver x Place')
+    df_places    = buscar(bq, QUERY_PLACES,           'Places')
+    df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
+    df_damaged   = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
 
     print("\nProcessando...")
-    dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp)
+    dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp)
 
     print("Gerando dashboard...")
     html = gerar_html(dados)
