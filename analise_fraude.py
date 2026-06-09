@@ -519,6 +519,22 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
             d['ativ_cor']     = '#ef4444'
             drivers_ativos.append(d)
 
+    # ---- SHP IDs por (driver, place) — para Driver × Place correto ----
+    shp_dxp = {}   # {(driver_id, place_nome): [shps]}
+    for _, r in df_place_shp.iterrows():
+        did  = norm_id(r.get('DRIVER_ID', ''))
+        nome = str(r.get('PLACE_NOME', '')).replace('Agncia Mercado Livre - ','').replace('Agência Mercado Livre - ','')
+        if not did or not nome: continue
+        key = (did, nome)
+        if key not in shp_dxp:
+            shp_dxp[key] = []
+        shp_dxp[key].append({
+            'id':    str(r.get('SHP_ID', '')),
+            'class': str(r.get('CLASSIFICACAO', '')),
+            'bpp':   flt(r.get('BPP', 0)),
+            'data':  str(r.get('DATA', '')),
+        })
+
     # ---- SHP IDs por place ----
     shp_por_place = {}
     for _, r in df_place_shp.iterrows():
@@ -583,6 +599,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         'cruzados':          ids_cruzados,
         'shp_por_driver':    shp_por_driver,
         'shp_por_place':     shp_por_place,
+        'shp_dxp':           shp_dxp,
         'drivers_ativos':    drivers_ativos,
         'drivers_bloqueados':drivers_bloqueados,
         'total_bloqueados':  len(drivers_bloqueados),
@@ -729,14 +746,14 @@ def rows_historico_bloqueios(bloqueados):
     </table></div>
   </div>'''
 
-def rows_dxp(dxp, shp_por_driver):
+def rows_dxp(dxp, shp_por_driver, shp_dxp):
     out = ''
     for i, r in enumerate(dxp):
         alert  = r['total'] >= 5
         bg     = 'background:#1a0a0a' if alert else ''
         row_id = f'dxp_{i}'
-        # SHP IDs do driver
-        shps     = shp_por_driver.get(r['driver'], [])
+        # SHP IDs que cruzam especificamente este driver + este place
+        shps = shp_dxp.get((r['driver'], r['place']), [])
         shp_rows = ''
         for s in shps:
             cls_cor = '#ef4444' if 'FRAUD' in s['class'] else '#f59e0b' if 'DAMAGED' in s['class'] else '#94a3b8'
@@ -1061,7 +1078,7 @@ def gerar_html(d):
     <div class="tbl-title">Driver × Place — Combinações com 2+ Fraudes em Comum</div>
     <div class="tbl-scroll"><table>
       <thead><tr><th>Driver ID</th><th>Place</th><th>Total</th><th>Fraudes</th><th>Damaged</th><th>BPP Total</th></tr></thead>
-      <tbody>{rows_dxp(d["dxp"], d["shp_por_driver"])}</tbody>
+      <tbody>{rows_dxp(d["dxp"], d["shp_por_driver"], d["shp_dxp"])}</tbody>
     </table></div>
   </div>
 </div>
@@ -1315,7 +1332,7 @@ new Chart(document.getElementById('cPlacesBar'), {{
       </select>
       <select id="bl_transp" onchange="filtrarBloqueios()" class="filter-select">
         <option value="">Todas as transportadoras</option>
-        {''.join(f'<option value="{t}">{t}</option>' for t in sorted(set(r["mlp"] for r in d["bl"]["rows"]) - {{"N/A",""}}))}
+        {''.join(f'<option value="{t}">{t}</option>' for t in sorted(t for t in set(r["mlp"] for r in d["bl"]["rows"]) if t and t not in ("N/A","")))}
       </select>
       <button onclick="document.getElementById('bl_de').value='';document.getElementById('bl_ate').value='';document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
     </div>
