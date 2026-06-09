@@ -1003,10 +1003,10 @@ def gerar_html(d):
       <div class="cv red">{len(d["cruzados"])}</div>
       <div class="cd">Fraude + Damaged</div>
     </div>
-    <div class="card card-ok">
-      <div class="card-header"><i data-lucide="shield-check" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">Drivers Bloqueados</span></div>
-      <div class="cv val-ok">{d["total_bloqueados"]}</div>
-      <div class="card-delta">Autônomos removidos do mercado</div>
+    <div class="card card-ok card-link" onclick="irPara('bloqueios')">
+      <div class="card-header"><i data-lucide="shield-check" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">Bloqueios Confirmados</span></div>
+      <div class="cv val-ok">{d["bl"]["bloqueados"]}</div>
+      <div class="card-delta">de {d["bl"]["total"]} sol. · ${d["bl"]["gmv_protegido"]:,.0f} protegido</div>
     </div>
   </div>
 
@@ -1279,7 +1279,36 @@ new Chart(document.getElementById('cPlacesBar'), {{
   }}
 }});
 
-// TAB bloqueios inline — inserido antes do script
+// Gráficos de Bloqueios — criados na 1ª vez que a aba abre
+let _blDone = false;
+function initBlCharts() {{
+  if (_blDone) return;
+  _blDone = true;
+  new Chart(document.getElementById('cBlStatus'), {{
+    type: 'doughnut',
+    data: {{
+      labels: {j(list(d["bl"]["por_status"].keys()))},
+      datasets: [{{ data: {j(list(d["bl"]["por_status"].values()))},
+        backgroundColor: ['#10b981','#3b82f6','#f59e0b','#ef4444','#6b7280'], borderWidth:0 }}]
+    }},
+    options: {{ ...defOpts, cutout:'40%' }}
+  }});
+  new Chart(document.getElementById('cBlTransp'), {{
+    type: 'bar',
+    data: {{
+      labels: {j(list(d["bl"]["por_transp"].keys()))},
+      datasets: [{{ data: {j(list(d["bl"]["por_transp"].values()))},
+        backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }}]
+    }},
+    options: {{
+      responsive:true, plugins:{{ legend:{{display:false}} }},
+      scales:{{ x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#1e293b'}} }},
+                y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
+    }}
+  }});
+}}
+
+lucide.createIcons();
 </script>
 
 <!-- ABA BLOQUEIOS -->
@@ -1346,38 +1375,6 @@ new Chart(document.getElementById('cPlacesBar'), {{
   </div>
 </div>
 
-<script>
-lucide.createIcons();
-
-// Gráficos de Bloqueios criados na 1ª vez que a aba abre
-let _blChartsDone = false;
-function initBlCharts() {{
-  if (_blChartsDone) return;
-  _blChartsDone = true;
-  new Chart(document.getElementById('cBlStatus'), {{
-    type: 'doughnut',
-    data: {{
-      labels: {j(list(d["bl"]["por_status"].keys()))},
-      datasets: [{{ data: {j(list(d["bl"]["por_status"].values()))},
-        backgroundColor: ['#10b981','#3b82f6','#f59e0b','#ef4444','#6b7280'], borderWidth:0 }}]
-    }},
-    options: {{ ...defOpts, cutout:'40%' }}
-  }});
-  new Chart(document.getElementById('cBlTransp'), {{
-    type: 'bar',
-    data: {{
-      labels: {j(list(d["bl"]["por_transp"].keys()))},
-      datasets: [{{ data: {j(list(d["bl"]["por_transp"].values()))},
-        backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }}]
-    }},
-    options: {{
-      responsive:true, plugins:{{ legend:{{display:false}} }},
-      scales:{{ x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#1e293b'}} }},
-                y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
-    }}
-  }});
-}}
-</script>
 </body>
 </html>'''
 
