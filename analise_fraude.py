@@ -438,6 +438,8 @@ def processar_block_list(rows):
             'status':     status,
             'motivo':     r.get('Motivo','').strip(),
         })
+    # Remove Recusado do gráfico (status descontinuado)
+    por_status.pop('Recusado', None)
     # Agrupar por driver_id para histórico de solicitações
     from collections import defaultdict as _dd
     from datetime import datetime as _dt2
@@ -1378,9 +1380,10 @@ function updateBloqueiosCards() {{
   set('bl-cv-monitorados',counts['Monitorado'] || 0);
   set('bl-cv-gmv', '$' + gmv.toLocaleString('en-US', {{minimumFractionDigits:2,maximumFractionDigits:2}}));
   if (_chartBlStatus) {{
-    const labels = Object.keys(counts);
+    const labels = Object.keys(counts).filter(k => k !== 'Recusado');
     _chartBlStatus.data.labels = labels;
     _chartBlStatus.data.datasets[0].data = labels.map(k => counts[k]);
+    _chartBlStatus.data.datasets[0].backgroundColor = _blColors(labels);
     _chartBlStatus.update();
   }}
   if (_chartBlTransp) {{
@@ -1531,17 +1534,23 @@ new Chart(document.getElementById('cPlacesBar'), {{
   }}
 }});
 
+// Mapa fixo de cores por status — evita troca de cor ao atualizar dinamicamente
+const BL_COLORS = {{Bloqueado:'#10b981',Solicitado:'#3b82f6',Monitorado:'#f59e0b',Inativo:'#6b7280'}};
+function _blColors(labels) {{ return labels.map(l => BL_COLORS[l] || '#94a3b8'); }}
+
 // Gráficos de Bloqueios — criados na 1ª vez que a aba abre
 let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
 function initBlCharts() {{
   if (_blDone) return;
   _blDone = true;
+  const _stLabels = {j([k for k in d["bl"]["por_status"].keys() if k != 'Recusado'])};
+  const _stData   = {j([v for k, v in d["bl"]["por_status"].items() if k != 'Recusado'])};
   _chartBlStatus = new Chart(document.getElementById('cBlStatus'), {{
     type: 'doughnut',
     data: {{
-      labels: {j(list(d["bl"]["por_status"].keys()))},
-      datasets: [{{ data: {j(list(d["bl"]["por_status"].values()))},
-        backgroundColor: ['#10b981','#3b82f6','#f59e0b','#ef4444','#6b7280'], borderWidth:0 }}]
+      labels: _stLabels,
+      datasets: [{{ data: _stData,
+        backgroundColor: _blColors(_stLabels), borderWidth:0 }}]
     }},
     options: {{ responsive:true, plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:11}} }} }} }}, cutout:'40%' }}
   }});
