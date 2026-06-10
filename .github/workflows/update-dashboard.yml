@@ -45,5 +45,6 @@ jobs:
             echo "Sem mudanças no dashboard."
           else
             git commit -m "Auto-update: $(date -u '+%d/%m/%Y %H:%M UTC')"
+            git pull --rebase origin main
             git push
           fi
