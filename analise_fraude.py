@@ -1244,12 +1244,14 @@ function toggleDriver(id) {{
 
 const TAB_ORDER = ['geral','drivers','dxp','places','damaged','bloqueios'];
 function showTab(name, el) {{
+  _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
-  if (name === 'bloqueios') {{ filtrarBloqueios(); initBlCharts(); }}
+  applyPeriodoToTab(name);
+  if (name === 'bloqueios') initBlCharts();
 }}
 window.addEventListener('load', () => {{
   const h = window.location.hash.replace('#','');
@@ -1376,6 +1378,29 @@ const ANNUAL  = {{
   bpp:     MONTHLY.reduce((s,m)=>s+m.bpp,0)
 }};
 let _periodDe = '', _periodAte = '';
+let _currentTab = 'geral';
+
+// Aplica filtro de período apenas na aba indicada
+function applyPeriodoToTab(name) {{
+  const filterByMonths = (tblId) => {{
+    const tbl = document.getElementById(tblId);
+    if (!tbl) return;
+    tbl.querySelectorAll('tbody > tr[data-months]').forEach(tr => {{
+      const months = (tr.dataset.months||'').split(' ');
+      const show = (!_periodDe && !_periodAte) ? true
+        : months.some(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
+      tr.style.display = show ? '' : 'none';
+      const nx = tr.nextElementSibling;
+      if (nx && nx.tagName === 'TBODY' && !show) nx.style.display = 'none';
+    }});
+  }};
+  if      (name === 'geral')    {{ filterByMonths('tbl_cruzados'); updateCountCards(); }}
+  else if (name === 'drivers')  {{ filtrarDrivers(); }}
+  else if (name === 'dxp')      {{ filterByMonths('tbl_dxp'); }}
+  else if (name === 'places')   {{ filterByMonths('tbl_places'); }}
+  else if (name === 'damaged')  {{ filterByMonths('tbl_damaged'); }}
+  else if (name === 'bloqueios') {{ filtrarBloqueios(); }}
+}}
 
 function setPeriodo() {{
   const de  = document.getElementById('pd_de').value;
@@ -1403,19 +1428,7 @@ function setPeriodo() {{
   document.getElementById('sub-bpp').textContent = 'Cashout ' + lbl;
   document.getElementById('pd_label').textContent = (!de && !ate) ? '' : '📅 ' + lbl;
 
-  ['tbl_dxp','tbl_places','tbl_damaged','tbl_cruzados'].forEach(tblId => {{
-    const tbl = document.getElementById(tblId);
-    if (!tbl) return;
-    tbl.querySelectorAll('tbody > tr[data-months]').forEach(tr => {{
-      const months = (tr.dataset.months||'').split(' ');
-      const show = !de && !ate ? true : months.some(m => (!de || m >= de) && (!ate || m <= ate));
-      tr.style.display = show ? '' : 'none';
-      const nx = tr.nextElementSibling;
-      if (nx && nx.tagName === 'TBODY' && !show) nx.style.display = 'none';
-    }});
-  }});
-  filtrarDrivers();
-  filtrarBloqueios();
+  applyPeriodoToTab(_currentTab);
 }}
 
 function resetPeriodo() {{
