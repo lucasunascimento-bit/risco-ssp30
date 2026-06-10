@@ -1184,36 +1184,21 @@ def gerar_html(d):
 </div>
 
 <script>
-// Filtro por período na aba Bloqueios
+// Filtro da aba Bloqueios — usa período global _periodDe/_periodAte
 function filtrarBloqueios() {{
-  const de     = document.getElementById('bl_de')?.value    || '';
-  const ate    = document.getElementById('bl_ate')?.value   || '';
   const status = document.getElementById('bl_status')?.value|| '';
   const transp = document.getElementById('bl_transp')?.value|| '';
   document.querySelectorAll('.bl-row').forEach(tr => {{
     const d  = tr.dataset.data   || '';
+    const ym = d.substring(0,7);
     const st = tr.dataset.status || '';
     const tp = tr.dataset.transp || '';
-    const ok = (!de     || d >= de)
-            && (!ate    || d <= ate)
+    const ok = (!_periodDe || ym >= _periodDe)
+            && (!_periodAte || ym <= _periodAte)
             && (!status || st === status)
             && (!transp || tp === transp);
     tr.style.display = ok ? '' : 'none';
   }});
-}}
-
-// Mês atual como padrão ao abrir a aba Bloqueios
-function initBloqueisFiltro() {{
-  const hoje = new Date();
-  const y = hoje.getFullYear();
-  const m = String(hoje.getMonth()+1).padStart(2,'0');
-  const ini = `${{y}}-${{m}}-01`;
-  const fim = `${{y}}-${{m}}-${{String(new Date(y,hoje.getMonth()+1,0).getDate()).padStart(2,'0')}}`;
-  const elDe  = document.getElementById('bl_de');
-  const elAte = document.getElementById('bl_ate');
-  if (elDe && !elDe.value)  elDe.value  = ini;
-  if (elAte && !elAte.value) elAte.value = fim;
-  filtrarBloqueios();
 }}
 
 // Menu Dashboards — abre/fecha com click, fecha ao clicar fora
@@ -1264,7 +1249,7 @@ function showTab(name, el) {{
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
-  if (name === 'bloqueios') {{ setTimeout(initBloqueisFiltro, 50); initBlCharts(); }}
+  if (name === 'bloqueios') {{ filtrarBloqueios(); initBlCharts(); }}
 }}
 window.addEventListener('load', () => {{
   const h = window.location.hash.replace('#','');
@@ -1430,6 +1415,7 @@ function setPeriodo() {{
     }});
   }});
   filtrarDrivers();
+  filtrarBloqueios();
 }}
 
 function resetPeriodo() {{
@@ -1534,10 +1520,6 @@ lucide.createIcons();
   <div class="tbl-wrap">
     <div class="tbl-title">Lista Completa — Block List 2026</div>
     <div class="filter-bar">
-      <span class="filter-label">Período:</span>
-      <input type="date" id="bl_de" onchange="filtrarBloqueios()" style="max-width:145px">
-      <span style="color:#4b5563;font-size:12px">até</span>
-      <input type="date" id="bl_ate" onchange="filtrarBloqueios()" style="max-width:145px">
       <select id="bl_status" onchange="filtrarBloqueios()" class="filter-select">
         <option value="">Todos os status</option>
         <option value="Bloqueado">Bloqueado</option>
@@ -1549,7 +1531,7 @@ lucide.createIcons();
         <option value="">Todas as transportadoras</option>
         {''.join(f'<option value="{t}">{t}</option>' for t in sorted(t for t in set(r["mlp"] for r in d["bl"]["rows"]) if t and t not in ("N/A","")))}
       </select>
-      <button onclick="document.getElementById('bl_de').value='';document.getElementById('bl_ate').value='';document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
+      <button onclick="document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
     </div>
     <div class="tbl-scroll"><table>
       <thead><tr>
