@@ -438,13 +438,30 @@ def processar_block_list(rows):
             'status':     status,
             'motivo':     r.get('Motivo','').strip(),
         })
-    rows_out.sort(key=lambda x: (x['status'] != 'Bloqueado', -x['usd']))
+    # Agrupar por driver_id para histórico de solicitações
+    from collections import defaultdict as _dd
+    from datetime import datetime as _dt2
+    _PRIO = {'Bloqueado':0,'Monitorado':1,'Solicitado':2,'Inativo':3,'Recusado':4}
+    def _parse_dt(d):
+        try: return _dt2.strptime(d, '%d/%m/%Y').timestamp()
+        except: return 0.0
+    grupos = _dd(list)
+    for r in rows_out:
+        grupos[r['driver_id'] or ''].append(r)
+    final_rows = []
+    for did, entries in grupos.items():
+        entries_s = sorted(entries, key=lambda x: (_PRIO.get(x['status'],9), -_parse_dt(x['data'])))
+        main = entries_s[0].copy()
+        main['historico']      = entries_s
+        main['n_solicitacoes'] = len(entries_s)
+        final_rows.append(main)
+    final_rows.sort(key=lambda x: (_PRIO.get(x['status'],9), -x['usd']))
     return {
         'total': total, 'bloqueados': bloqueados,
         'solicitados': solicitados, 'monitorados': monitorados,
         'recusados': recusados, 'gmv_protegido': gmv_protegido,
         'por_transp': por_transp, 'por_status': por_status,
-        'rows': rows_out,
+        'rows': final_rows,
     }
 
 def buscar(bq, query, nome):
@@ -819,21 +836,37 @@ def status_bl_badge(s):
     return f'<span style="background:{bg};color:{fg};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{s}</span>'
 
 def rows_block_list(rows):
+    from datetime import datetime as _dtbl
+    def _iso(d):
+        try: return _dtbl.strptime(d.strip(), '%d/%m/%Y').strftime('%Y-%m-%d')
+        except: return ''
+
     out = ''
-    for r in rows:
-        did  = r['driver_id']
-        link = f'https://shipping-bo.adminml.com/sauron/shipments/shipment/{did}' if did else '#'
-        # converte data para comparação: dd/mm/yyyy → yyyy-mm-dd
-        data_iso = ''
-        if r["data"]:
-            try:
-                from datetime import datetime as dt
-                data_iso = dt.strptime(r["data"].strip(), '%d/%m/%Y').strftime('%Y-%m-%d')
-            except: pass
-        out += f'''<tr class="bl-row" data-data="{data_iso}" data-status="{r["status"]}" data-transp="{r["mlp"]}" data-usd="{r["usd"]}">
-            <td style="font-weight:700">
+    for idx, r in enumerate(rows):
+        did      = r['driver_id']
+        link     = f'https://shipping-bo.adminml.com/sauron/shipments/shipment/{did}' if did else '#'
+        data_iso = _iso(r["data"]) if r["data"] else ''
+        n_sol    = r.get('n_solicitacoes', 1)
+        row_id   = f'blh_{idx}'
+
+        # badge de contagem de solicitações
+        badge_hist = ''
+        if n_sol > 1:
+            badge_hist = f' <span title="Ver histórico" style="background:#1e3a5f;color:#60a5fa;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;cursor:pointer" onclick="toggleBl(\'{row_id}\')">{n_sol}x</span>'
+
+        # célula do driver: com ou sem expand
+        if n_sol > 1:
+            driver_cell = f'''<td style="font-weight:700;cursor:pointer" onclick="toggleBl('{row_id}')">
+              <span id="{row_id}_arrow" style="color:#4b5563;margin-right:3px;font-size:10px">▶</span>
+              <a href="{link}" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px" onclick="event.stopPropagation()">{did or "—"}</a>{badge_hist}
+            </td>'''
+        else:
+            driver_cell = f'''<td style="font-weight:700">
               <a href="{link}" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">{did or "—"}</a>
-            </td>
+            </td>'''
+
+        out += f'''<tr class="bl-row" data-data="{data_iso}" data-status="{r["status"]}" data-transp="{r["mlp"]}" data-usd="{r["usd"]}">
+            {driver_cell}
             <td style="font-size:12px;color:#d1d5db">{r["nome"] or "—"}</td>
             <td style="font-size:11px;color:#9ca3af">{r["mlp"]}</td>
             <td style="font-size:11px;color:#6b7280">{r["placa"] or "—"}</td>
@@ -844,6 +877,34 @@ def rows_block_list(rows):
             <td style="font-size:11px;color:#6b7280">{r["data"] or "—"}</td>
             <td style="font-size:11px;color:#6b7280">Sem {r["semana"]}</td>
         </tr>'''
+
+        # subrow com histórico completo
+        if n_sol > 1:
+            hist_rows = ''
+            for i, h in enumerate(r.get('historico', []), 1):
+                hist_rows += f'''<tr style="background:#060c1a">
+                    <td style="padding:4px 8px;font-size:11px;color:#6b7280;text-align:center">#{i}</td>
+                    <td style="padding:4px 8px;font-size:11px;color:#9ca3af">{h["data"] or "—"}</td>
+                    <td style="padding:4px 8px;font-size:11px">Sem {h["semana"]}</td>
+                    <td style="padding:4px 8px">{status_bl_badge(h["status"])}</td>
+                    <td style="padding:4px 8px;font-size:11px;color:#6b7280">{h["motivo"] or "—"}</td>
+                    <td style="padding:4px 8px;font-size:11px;color:#10b981">${h["usd"]:,.2f}</td>
+                </tr>'''
+            out += f'''<tr id="{row_id}" class="bl-hist-row" style="display:none">
+                <td colspan="10" style="padding:0 0 6px 32px;background:#07111e">
+                    <table style="width:100%;border-collapse:collapse;border:1px solid #1e3a5f;border-radius:4px">
+                        <thead><tr style="background:#0a1929">
+                            <th style="padding:4px 8px;font-size:10px;color:#4b5563;text-align:center;width:32px">#</th>
+                            <th style="padding:4px 8px;font-size:10px;color:#4b5563;text-align:left">Data</th>
+                            <th style="padding:4px 8px;font-size:10px;color:#4b5563;text-align:left">Semana</th>
+                            <th style="padding:4px 8px;font-size:10px;color:#4b5563;text-align:left">Status</th>
+                            <th style="padding:4px 8px;font-size:10px;color:#4b5563;text-align:left">Motivo</th>
+                            <th style="padding:4px 8px;font-size:10px;color:#4b5563;text-align:left">USD$</th>
+                        </tr></thead>
+                        <tbody>{hist_rows}</tbody>
+                    </table>
+                </td>
+            </tr>'''
     return out
 
 def rows_historico_bloqueios(bloqueados):
@@ -1075,12 +1136,10 @@ def gerar_html(d):
       <div class="header-sub">Base {d["ano"]} · Gerado em {d["gerado"]}</div>
     </div>
   </div>
-  <a href="https://github.com/lucasunascimento-bit/risco-ssp30/actions/workflows/analise_fraude.yml"
-     target="_blank"
-     style="background:#064e3b;color:#4ade80;border:1px solid #166534;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:6px;transition:all .3s ease"
-     onmouseover="this.style.background='#065f46'" onmouseout="this.style.background='#064e3b'">
-    ↻ Atualizar dados
-  </a>
+  <a href="https://github.com/lucasunascimento-bit/risco-ssp30/actions/workflows/update-dashboard.yml"
+     target="_blank" title="Atualizar dados"
+     style="position:fixed;bottom:20px;right:20px;background:#064e3b;color:#4ade80;border:1px solid #166534;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:18px;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.5);transition:all .2s"
+     onmouseover="this.style.background='#065f46';this.style.transform='scale(1.1)'" onmouseout="this.style.background='#064e3b';this.style.transform='scale(1)'">↻</a>
   <div class="nav-wrap">
     <button class="nav-btn" onclick="toggleNav(event)">⊞ Dashboards ▾</button>
     <div class="nav-dropdown">
@@ -1281,8 +1340,20 @@ function filtrarBloqueios() {{
             && (!status || st === status)
             && (!transp || tp === transp);
     tr.style.display = ok ? '' : 'none';
+    // se pai foi escondido, esconde subrow de histórico também
+    const nx = tr.nextElementSibling;
+    if (nx && nx.classList.contains('bl-hist-row') && !ok) nx.style.display = 'none';
   }});
   updateBloqueiosCards();
+}}
+
+function toggleBl(id) {{
+  const el = document.getElementById(id);
+  const ar = document.getElementById(id + '_arrow');
+  if (!el) return;
+  const show = el.style.display === 'none';
+  el.style.display = show ? '' : 'none';
+  if (ar) ar.textContent = show ? '▼' : '▶';
 }}
 
 function updateBloqueiosCards() {{
@@ -1305,7 +1376,6 @@ function updateBloqueiosCards() {{
   set('bl-cv-bloqueados', counts['Bloqueado']  || 0);
   set('bl-cv-solicitados',counts['Solicitado'] || 0);
   set('bl-cv-monitorados',counts['Monitorado'] || 0);
-  set('bl-cv-recusados',  counts['Recusado']   || 0);
   set('bl-cv-gmv', '$' + gmv.toLocaleString('en-US', {{minimumFractionDigits:2,maximumFractionDigits:2}}));
   if (_chartBlStatus) {{
     const labels = Object.keys(counts);
@@ -1661,10 +1731,6 @@ lucide.createIcons();
       <div class="card-header"><i data-lucide="eye" class="ci" width="14" height="14"></i><span class="cl">Monitorados</span></div>
       <div class="cv val-warn" id="bl-cv-monitorados">{d["bl"]["monitorados"]}</div><div class="cd">Em acompanhamento</div>
     </div>
-    <div class="card c-red">
-      <div class="card-header"><i data-lucide="x-circle" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Recusados</span></div>
-      <div class="cv red" id="bl-cv-recusados">{d["bl"]["recusados"]}</div><div class="cd">Não aprovados</div>
-    </div>
     <div class="card card-ok">
       <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">GMV Protegido</span></div>
       <div class="cv val-ok" id="bl-cv-gmv">${d["bl"]["gmv_protegido"]:,.2f}</div><div class="cd">Bloqueados confirmados</div>
@@ -1684,7 +1750,6 @@ lucide.createIcons();
         <option value="Bloqueado">Bloqueado</option>
         <option value="Solicitado">Solicitado</option>
         <option value="Monitorado">Monitorado</option>
-        <option value="Recusado">Recusado</option>
       </select>
       <select id="bl_transp" onchange="filtrarBloqueios()" class="filter-select">
         <option value="">Todas as transportadoras</option>
