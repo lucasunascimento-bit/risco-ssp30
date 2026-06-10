@@ -1,0 +1,48 @@
+name: Atualizar Dashboard Fraude
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # a cada 5 minutos
+  workflow_dispatch:          # permite rodar manualmente pelo GitHub
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Configurar credenciais Google
+        run: echo '${{ secrets.GCLOUD_SA_KEY }}' > /tmp/gcloud-key.json
+
+      - name: Gerar dashboard
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-key.json
+          CI: "true"
+        run: python analise_fraude.py
+
+      - name: Publicar se houve mudança
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fraude.html
+          if git diff --staged --quiet; then
+            echo "Sem mudanças no dashboard."
+          else
+            git commit -m "Auto-update: $(date -u '+%d/%m/%Y %H:%M UTC')"
+            git push
+          fi
