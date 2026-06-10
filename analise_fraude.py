@@ -312,6 +312,86 @@ def carregar_block_list(gs):
         print(f"  Aviso Block List: {e}")
         return []
 
+def sincronizar_status_block_list(gs, bq, bl_rows):
+    """Consulta BQ e atualiza status na planilha para drivers Solicitado/Monitorado."""
+    ATUALIZAR = {'solicitado', 'monitorado'}
+    def _st(r): return r.get('Status', r.get('status', '')).strip().lower()
+    def _did(r): return str(r.get('Driver ID', r.get('driver_id', ''))).strip()
+    pendentes = {_did(r) for r in bl_rows if _st(r) in ATUALIZAR and _did(r)}
+    if not pendentes:
+        print("  Nenhum driver pendente para sincronizar.")
+        return
+
+    print(f"  Sincronizando status de {len(pendentes)} drivers com BQ...")
+
+    def col_letter(n):
+        s = ''
+        while n > 0:
+            n, r = divmod(n - 1, 26)
+            s = chr(65 + r) + s
+        return s
+
+    query = """
+    SELECT DISTINCT DRIVER_ID, DRIVER_STATUS
+    FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+    WHERE DATE_BPP >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+      AND DRIVER_ID IN UNNEST(@ids)
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY DRIVER_ID ORDER BY DATE_BPP DESC) = 1
+    """
+    job_cfg = bigquery.QueryJobConfig(query_parameters=[
+        bigquery.ArrayQueryParameter('ids', 'STRING', list(pendentes))
+    ])
+    try:
+        status_bq = {str(r['DRIVER_ID']): r['DRIVER_STATUS']
+                     for r in bq.query(query, job_config=job_cfg).result()}
+    except Exception as e:
+        print(f"  Aviso BQ status: {e}")
+        return
+
+    def mapear(s):
+        if s == 'blocked':                             return 'Bloqueado'
+        if s == 'active':                              return 'Monitorado'
+        if s in ('inactive', 'removed', 'disabled'):  return 'Inativo'
+        return None
+
+    try:
+        pl       = gs.open_by_key(BLOCK_LIST_ID)
+        ws       = pl.worksheet(ABA_BLOQUEIOS)
+        all_vals = ws.get_all_values()
+        header   = all_vals[0] if all_vals else []
+        col_id     = header.index('Driver ID') + 1 if 'Driver ID' in header else None
+        col_status = header.index('Status')    + 1 if 'Status'    in header else None
+        if not col_id or not col_status:
+            print("  Colunas não encontradas na planilha.")
+            return
+
+        updates     = []
+        status_memo = {}
+        for i, row_vals in enumerate(all_vals[1:], start=2):
+            did     = row_vals[col_id - 1].strip()     if len(row_vals) >= col_id     else ''
+            current = row_vals[col_status - 1].strip() if len(row_vals) >= col_status else ''
+            if did not in status_bq:
+                continue
+            novo = mapear(status_bq[did])
+            if novo and novo != current:
+                updates.append({'range': f'{col_letter(col_status)}{i}', 'values': [[novo]]})
+                status_memo[did] = novo
+
+        if updates:
+            ws.batch_update(updates)
+            print(f"  {len(updates)} status atualizados na planilha.")
+            for r in bl_rows:
+                did = _did(r)
+                if did in status_memo:
+                    # atualiza tanto a chave bruta quanto a processada
+                    if 'Status' in r:    r['Status']    = status_memo[did]
+                    if 'status' in r:    r['status']    = status_memo[did]
+        else:
+            print("  Nenhuma alteração de status necessária.")
+    except Exception as e:
+        print(f"  Aviso ao atualizar planilha: {e}")
+
+
 def processar_block_list(rows):
     if not rows:
         return {
@@ -328,6 +408,7 @@ def processar_block_list(rows):
         if 'solicitado' in s: return 'Solicitado'
         if 'sendo' in s or 'monit' in s: return 'Monitorado'
         if 'recusado' in s: return 'Recusado'
+        if 'inativo'  in s: return 'Inativo'
         return s.title()
 
     total = len(rows)
@@ -732,7 +813,8 @@ def rows_drivers(drivers, cruzados):
 
 def status_bl_badge(s):
     cores = {'Bloqueado':('#064e3b','#4ade80'), 'Solicitado':('#1e3a5f','#60a5fa'),
-             'Monitorado':('#713f12','#fde68a'), 'Recusado':('#7f1d1d','#fca5a5')}
+             'Monitorado':('#713f12','#fde68a'), 'Recusado':('#7f1d1d','#fca5a5'),
+             'Inativo':('#1f2937','#6b7280')}
     bg, fg = cores.get(s, ('#1f2937','#9ca3af'))
     return f'<span style="background:{bg};color:{fg};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{s}</span>'
 
@@ -1605,7 +1687,8 @@ if __name__ == '__main__':
     df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
     df_damaged   = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
 
-    bl_rows    = carregar_block_list(gs)
+    bl_rows = carregar_block_list(gs)
+    sincronizar_status_block_list(gs, bq, bl_rows)
 
     print("\nProcessando...")
     dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
