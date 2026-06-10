@@ -1013,7 +1013,7 @@ def gerar_html(d):
   <div class="tab" onclick="showTab('dxp',this)">Driver × Place (<span id="tab-count-dxp">{len(d["dxp"])}</span>)</div>
   <div class="tab" onclick="showTab('places',this)">Ofensores Places (<span id="tab-count-places">{d["total_places"]}</span>)</div>
   <div class="tab" onclick="showTab('damaged',this)">Damaged (<span id="tab-count-damaged">{len(d["damaged"])}</span>)</div>
-  <div class="tab" onclick="showTab('bloqueios',this)" style="color:#4ade80">Bloqueios ({d["bl"]["total"]})</div>
+  <div class="tab" onclick="showTab('bloqueios',this)" style="color:#4ade80">Bloqueios (<span id="tab-count-bloqueios">{d["bl"]["total"]}</span>)</div>
 </div>
 
 <!-- BARRA DE PERÍODO — sempre visível em todas as abas -->
@@ -1429,6 +1429,32 @@ function setPeriodo() {{
   document.getElementById('pd_label').textContent = (!de && !ate) ? '' : '📅 ' + lbl;
 
   applyPeriodoToTab(_currentTab);
+  _updateAllTabCounts();
+}}
+
+// Atualiza contadores de todas as abas sem mexer nas linhas das abas inativas
+function _updateAllTabCounts() {{
+  const _set = (id, v) => {{ const e = document.getElementById(id); if (e) e.textContent = v; }};
+  const countMonths = (tblId) => {{
+    let n = 0;
+    const tbl = document.getElementById(tblId);
+    if (!tbl) return 0;
+    tbl.querySelectorAll('tbody > tr[data-months]').forEach(tr => {{
+      const months = (tr.dataset.months||'').split(' ');
+      if ((!_periodDe && !_periodAte) || months.some(m => (!_periodDe||m>=_periodDe)&&(!_periodAte||m<=_periodAte))) n++;
+    }});
+    return n;
+  }};
+  _set('tab-count-drivers', countMonths('tbl_drivers'));
+  _set('tab-count-dxp',     countMonths('tbl_dxp'));
+  _set('tab-count-places',  countMonths('tbl_places'));
+  _set('tab-count-damaged', countMonths('tbl_damaged'));
+  let blCount = 0;
+  document.querySelectorAll('.bl-row').forEach(tr => {{
+    const ym = (tr.dataset.data||'').substring(0,7);
+    if ((!_periodDe||ym>=_periodDe)&&(!_periodAte||ym<=_periodAte)) blCount++;
+  }});
+  _set('tab-count-bloqueios', blCount);
 }}
 
 function resetPeriodo() {{
