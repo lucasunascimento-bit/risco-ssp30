@@ -840,6 +840,7 @@ def rows_block_list(rows):
             <td style="text-align:center">{r["shp"] or "—"}</td>
             <td style="color:#10b981;font-weight:600">${r["usd"]:,.2f}</td>
             <td>{status_bl_badge(r["status"])}</td>
+            <td style="font-size:11px;color:#9ca3af">{r["motivo"] or "—"}</td>
             <td style="font-size:11px;color:#6b7280">{r["data"] or "—"}</td>
             <td style="font-size:11px;color:#6b7280">Sem {r["semana"]}</td>
         </tr>'''
@@ -1657,7 +1658,7 @@ lucide.createIcons();
     <div class="tbl-scroll"><table>
       <thead><tr>
         <th>Driver ID</th><th>Nome</th><th>Transportadora</th><th>Placa</th>
-        <th>SHP</th><th>USD$</th><th>Status</th><th>Data Solicitação</th><th>Semana</th>
+        <th>SHP</th><th>USD$</th><th>Status</th><th>Motivo</th><th>Data Solicitação</th><th>Semana</th>
       </tr></thead>
       <tbody>{rows_block_list(d["bl"]["rows"])}</tbody>
     </table></div>
