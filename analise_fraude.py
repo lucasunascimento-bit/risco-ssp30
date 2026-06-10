@@ -896,7 +896,7 @@ def gerar_html(d):
         dam = next((x for x in d['damaged'] if x['id'] == did), None)
         if drv and dam:
             score = drv['score']
-            rows_cruzados += f'''<tr style="background:#160a0a">
+            rows_cruzados += f'''<tr style="background:#160a0a" data-months="{drv.get("months","")}">
                 <td style="font-weight:800;color:#fca5a5">{did}</td>
                 <td>{prio_badge(drv["prio"])}</td>
                 <td style="text-align:center;color:#ef4444;font-weight:700">{drv["fraude"]}</td>
@@ -1009,10 +1009,10 @@ def gerar_html(d):
 
 <div class="tabs">
   <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
-  <div class="tab" onclick="showTab('drivers',this)">Risco por Driver ({len(d["drivers"])})</div>
-  <div class="tab" onclick="showTab('dxp',this)">Driver × Place ({len(d["dxp"])})</div>
-  <div class="tab" onclick="showTab('places',this)">Ofensores Places ({d["total_places"]})</div>
-  <div class="tab" onclick="showTab('damaged',this)">Damaged ({len(d["damaged"])})</div>
+  <div class="tab" onclick="showTab('drivers',this)">Risco por Driver (<span id="tab-count-drivers">{len(d["drivers_ativos"])}</span>)</div>
+  <div class="tab" onclick="showTab('dxp',this)">Driver × Place (<span id="tab-count-dxp">{len(d["dxp"])}</span>)</div>
+  <div class="tab" onclick="showTab('places',this)">Ofensores Places (<span id="tab-count-places">{d["total_places"]}</span>)</div>
+  <div class="tab" onclick="showTab('damaged',this)">Damaged (<span id="tab-count-damaged">{len(d["damaged"])}</span>)</div>
   <div class="tab" onclick="showTab('bloqueios',this)" style="color:#4ade80">Bloqueios ({d["bl"]["total"]})</div>
 </div>
 
@@ -1069,14 +1069,14 @@ def gerar_html(d):
   </div>
 
   {"" if not d["cruzados"] else f'''
-  <div class="alerta-box">
-    <div class="num">{len(d["cruzados"])}</div>
-    <div class="txt"><strong>drivers aparecem em AMBAS as análises (Fraude + Damaged)</strong><br>
+  <div class="alerta-box" id="alerta-cruzados">
+    <div class="num" id="num-cruzados-alert">{len(d["cruzados"])}</div>
+    <div class="txt"><strong><span id="num-cruzados-txt">{len(d["cruzados"])}</span> drivers aparecem em AMBAS as análises (Fraude + Damaged)</strong><br>
     Estes são os principais alvos para investigação e bloqueio.</div>
   </div>
-  <div class="tbl-wrap">
+  <div class="tbl-wrap" id="wrap-cruzados">
     <div class="tbl-title">Drivers com Fraude + Damaged (maior risco)</div>
-    <div class="tbl-scroll"><table>
+    <div class="tbl-scroll"><table id="tbl_cruzados">
       <thead><tr><th>Driver ID</th><th>Prioridade</th><th>Fraudes</th><th>Damaged</th><th>Score</th><th>BPP Total</th></tr></thead>
       <tbody>''' + rows_cruzados + '''</tbody></table></div>
   </div>'''}
@@ -1098,7 +1098,7 @@ def gerar_html(d):
   </div>''' if d["total_bloqueados"] > 0 else ''}
 
   <div class="tbl-wrap">
-    <div class="tbl-title">Ranking Ativo — Drivers em Atuação ({len(d["drivers_ativos"])})</div>
+    <div class="tbl-title">Ranking Ativo — Drivers em Atuação (<span id="count-drivers-ativos">{len(d["drivers_ativos"])}</span>)</div>
     <!-- Filtros -->
     <div class="filter-bar">
       <span class="filter-label">Filtrar:</span>
@@ -1403,7 +1403,7 @@ function setPeriodo() {{
   document.getElementById('sub-bpp').textContent = 'Cashout ' + lbl;
   document.getElementById('pd_label').textContent = (!de && !ate) ? '' : '📅 ' + lbl;
 
-  ['tbl_dxp','tbl_places','tbl_damaged'].forEach(tblId => {{
+  ['tbl_dxp','tbl_places','tbl_damaged','tbl_cruzados'].forEach(tblId => {{
     const tbl = document.getElementById(tblId);
     if (!tbl) return;
     tbl.querySelectorAll('tbody > tr[data-months]').forEach(tr => {{
@@ -1426,28 +1426,48 @@ function resetPeriodo() {{
 }}
 
 function updateCountCards() {{
-  let criticos = 0;
+  function vis(sel) {{
+    let n = 0;
+    document.querySelectorAll(sel).forEach(tr => {{ if (tr.style.display !== 'none') n++; }});
+    return n;
+  }}
+  function set(id, v) {{ const e = document.getElementById(id); if (e) e.textContent = v; }}
+
+  // Drivers críticos e ranking ativo
+  let criticos = 0, ativos = 0;
   document.querySelectorAll('#tbl_drivers > tbody > tr[data-prio]').forEach(tr => {{
-    if (tr.style.display !== 'none' && (tr.dataset.prio === 'prioridade maxima' || tr.dataset.prio === 'alta')) criticos++;
+    if (tr.style.display !== 'none') {{
+      ativos++;
+      if (tr.dataset.prio === 'prioridade maxima' || tr.dataset.prio === 'alta') criticos++;
+    }}
   }});
-  const elCrit = document.getElementById('cv-criticos');
-  if (elCrit) elCrit.textContent = criticos;
-  const elSubCrit = document.getElementById('sub-criticos');
-  if (elSubCrit) elSubCrit.textContent = 'Prioridade Alta ou Máxima';
+  set('cv-criticos', criticos);
+  set('count-drivers-ativos', ativos);
+  set('tab-count-drivers', ativos);
 
-  let places = 0;
-  document.querySelectorAll('#tbl_places > tbody > tr[data-months]').forEach(tr => {{
-    if (tr.style.display !== 'none') places++;
-  }});
-  const elPl = document.getElementById('cv-places');
-  if (elPl) elPl.textContent = places;
+  // Places
+  const placesN = vis('#tbl_places > tbody > tr[data-months]');
+  set('cv-places', placesN);
+  set('tab-count-places', placesN);
 
+  // DxP
+  set('tab-count-dxp', vis('#tbl_dxp > tbody > tr[data-months]'));
+
+  // Damaged
+  set('tab-count-damaged', vis('#tbl_damaged > tbody > tr[data-months]'));
+
+  // Cruzados F+D — filtra tabela e alerta
   let cruzados = 0;
-  document.querySelectorAll('#tbl_drivers > tbody > tr[data-cruzado="1"]').forEach(tr => {{
+  document.querySelectorAll('#tbl_cruzados > tbody > tr[data-months]').forEach(tr => {{
     if (tr.style.display !== 'none') cruzados++;
   }});
-  const elCruz = document.getElementById('cv-cruzados');
-  if (elCruz) elCruz.textContent = cruzados;
+  set('cv-cruzados', cruzados);
+  set('num-cruzados-alert', cruzados);
+  set('num-cruzados-txt', cruzados);
+  const alerta = document.getElementById('alerta-cruzados');
+  const wrapCruz = document.getElementById('wrap-cruzados');
+  if (alerta)   alerta.style.display   = cruzados > 0 ? '' : 'none';
+  if (wrapCruz) wrapCruz.style.display = cruzados > 0 ? '' : 'none';
 }}
 
 // Inicializa: intervalo completo disponível
