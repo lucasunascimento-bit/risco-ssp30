@@ -245,25 +245,6 @@ WHERE f.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
 ORDER BY p.SHP_AGEN_DESC, f.BPP_CASHOUT_USD DESC
 """
 
-QUERY_MONTHLY_KPI = f"""
--- KPIs mensais para filtro por período na Visão Geral
-SELECT
-    FORMAT_DATE('%Y-%m', date_bpp)             AS MES,
-    FORMAT_DATE('%b/%Y', date_bpp)             AS MES_LABEL,
-    COUNT(DISTINCT SHIPMENT_ID)                AS TOTAL_INCIDENTES,
-    ROUND(SUM(BPP_CASHOUT_USD), 2)             AS TOTAL_BPP,
-    COUNTIF(Classification_LM IN (
-        'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-        'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'))  AS TOTAL_FRAUDE,
-    COUNTIF(Classification_LM LIKE 'DAMAGED%') AS TOTAL_DAMAGED
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
-  AND date_bpp >= '{ANO_INICIO}'
-  AND date_bpp <= CURRENT_DATE()
-GROUP BY 1, 2
-ORDER BY 1
-"""
-
 QUERY_DAMAGED = f"""
 -- Damaged por driver — usa DRIVER_ID direto da tabela
 SELECT
@@ -606,6 +587,26 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
     for dmg in damaged:
         dmg['months'] = ' '.join(sorted({_ym(s['data']) for s in shp_por_driver.get(dmg['id'], []) if s.get('data') and 'DAMAGED' in s.get('class','')}))
 
+    # Agrega KPIs por mês — mesmo escopo dos top-60 (consistente com os cards)
+    ids_top60   = {d['id'] for d in drivers}
+    monthly_agg = {}
+    for did, shps in shp_por_driver.items():
+        if did not in ids_top60:
+            continue
+        for s in shps:
+            ym = _ym(s['data'])
+            if not ym:
+                continue
+            if ym not in monthly_agg:
+                monthly_agg[ym] = {'fraudes': 0, 'damaged': 0, 'bpp': 0.0, 'total': 0}
+            cls = s.get('class', '')
+            monthly_agg[ym]['total'] += 1
+            monthly_agg[ym]['bpp']   += s.get('bpp', 0.0)
+            if any(x in cls for x in ('LOST', 'FRAUD')):
+                monthly_agg[ym]['fraudes'] += 1
+            elif 'DAMAGED' in cls:
+                monthly_agg[ym]['damaged'] += 1
+
     # ---- Conjunto de IDs que aparecem nas duas análises ----
     ids_fraude   = {d['id'] for d in drivers if d['fraude'] > 0}
     ids_damaged  = {d['id'] for d in damaged}
@@ -654,6 +655,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         'top10_fraud_c': top10_fraud_c,
         'top10_places_labels': top10_places_labels,
         'top10_places_vals':   top10_places_vals,
+        'monthly_agg':         monthly_agg,
     }
 
 # ============================================================
@@ -706,7 +708,9 @@ def rows_drivers(drivers, cruzados):
             data-id="{d["id"]}"
             data-transp="{d.get("transportadora","").lower()}"
             data-ativ="{d.get("atividade","").lower()}"
-            data-months="{d.get("months","")}">
+            data-months="{d.get("months","")}"
+            data-prio="{d.get("prio","").lower()}"
+            data-cruzado="{'1' if d['id'] in cruzados else '0'}">
             <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta} {cruz}</td>
             <td>{prio_badge(d["prio"])}</td>
             <td style="font-size:11px;color:#9ca3af">{d.get("transportadora","—")}</td>
@@ -1029,8 +1033,8 @@ def gerar_html(d):
   <div class="cards">
     <div class="card c-red">
       <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Drivers Críticos</span></div>
-      <div class="cv red">{d["criticos"]}</div>
-      <div class="cd">Prioridade Alta ou Máxima</div>
+      <div class="cv red" id="cv-criticos">{d["criticos"]}</div>
+      <div class="cd" id="sub-criticos">Prioridade Alta ou Máxima</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="package-x" class="ci" width="14" height="14"></i><span class="cl">Total Fraudes/Lost</span></div>
@@ -1049,12 +1053,12 @@ def gerar_html(d):
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="map-pin" class="ci" width="14" height="14"></i><span class="cl">Places Suspeitos</span></div>
-      <div class="cv">{d["total_places"]}</div>
+      <div class="cv" id="cv-places">{d["total_places"]}</div>
       <div class="cd">Com fraude/lost</div>
     </div>
     <div class="card c-red">
       <div class="card-header"><i data-lucide="zap" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Cruzados F+D</span></div>
-      <div class="cv red">{len(d["cruzados"])}</div>
+      <div class="cv red" id="cv-cruzados">{len(d["cruzados"])}</div>
       <div class="cd">Fraude + Damaged</div>
     </div>
     <div class="card card-ok card-link" onclick="irPara('bloqueios')">
@@ -1240,6 +1244,7 @@ function filtrarDrivers() {{
     const nextSibling = tr.nextElementSibling;
     if (nextSibling && nextSibling.tagName === 'TBODY' && !ok) nextSibling.style.display = 'none';
   }});
+  updateCountCards();
 }}
 
 // Expandir/recolher SHP IDs do driver
@@ -1365,7 +1370,11 @@ function initBlCharts() {{
 
 // ---- Filtro de período ----
 const MONTHLY = {j(d.get("monthly", []))};
-const ANNUAL  = {{ fraudes:{d["total_fraudes"]}, damaged:{d["total_damaged"]}, bpp:{d["total_bpp"]} }};
+const ANNUAL  = {{
+  fraudes: MONTHLY.reduce((s,m)=>s+m.fraudes,0),
+  damaged: MONTHLY.reduce((s,m)=>s+m.damaged,0),
+  bpp:     MONTHLY.reduce((s,m)=>s+m.bpp,0)
+}};
 let _periodDe = '', _periodAte = '';
 
 function setPeriodo() {{
@@ -1409,17 +1418,44 @@ function setPeriodo() {{
 }}
 
 function resetPeriodo() {{
-  document.getElementById('pd_de').value  = '';
-  document.getElementById('pd_ate').value = '';
+  const first = MONTHLY.length > 0 ? MONTHLY[0].key                   : '';
+  const last  = MONTHLY.length > 0 ? MONTHLY[MONTHLY.length-1].key   : '';
+  document.getElementById('pd_de').value  = first;
+  document.getElementById('pd_ate').value = last;
   setPeriodo();
 }}
 
-// Inicializa: De = Jan/ano, Até = mês atual
+function updateCountCards() {{
+  let criticos = 0;
+  document.querySelectorAll('#tbl_drivers > tbody > tr[data-prio]').forEach(tr => {{
+    if (tr.style.display !== 'none' && (tr.dataset.prio === 'prioridade maxima' || tr.dataset.prio === 'alta')) criticos++;
+  }});
+  const elCrit = document.getElementById('cv-criticos');
+  if (elCrit) elCrit.textContent = criticos;
+  const elSubCrit = document.getElementById('sub-criticos');
+  if (elSubCrit) elSubCrit.textContent = 'Prioridade Alta ou Máxima';
+
+  let places = 0;
+  document.querySelectorAll('#tbl_places > tbody > tr[data-months]').forEach(tr => {{
+    if (tr.style.display !== 'none') places++;
+  }});
+  const elPl = document.getElementById('cv-places');
+  if (elPl) elPl.textContent = places;
+
+  let cruzados = 0;
+  document.querySelectorAll('#tbl_drivers > tbody > tr[data-cruzado="1"]').forEach(tr => {{
+    if (tr.style.display !== 'none') cruzados++;
+  }});
+  const elCruz = document.getElementById('cv-cruzados');
+  if (elCruz) elCruz.textContent = cruzados;
+}}
+
+// Inicializa: intervalo completo disponível
 (function() {{
-  const hoje = new Date();
-  const mk = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
-  document.getElementById('pd_de').value  = '{d["ano"]}-01';
-  document.getElementById('pd_ate').value = mk;
+  const first = MONTHLY.length > 0 ? MONTHLY[0].key                 : '';
+  const last  = MONTHLY.length > 0 ? MONTHLY[MONTHLY.length-1].key : '';
+  document.getElementById('pd_de').value  = first;
+  document.getElementById('pd_ate').value = last;
   setPeriodo();
 }})();
 
@@ -1513,22 +1549,25 @@ if __name__ == '__main__':
     df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
     df_damaged   = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
 
-    df_monthly = buscar(bq, QUERY_MONTHLY_KPI,   'KPIs Mensais')
     bl_rows    = carregar_block_list(gs)
 
     print("\nProcessando...")
     dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
     dados['bl'] = processar_block_list(bl_rows)
 
+    MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
+                 7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
     monthly = []
-    for _, r in df_monthly.iterrows():
+    for ym in sorted(dados.get('monthly_agg', {})):
+        agg = dados['monthly_agg'][ym]
+        mo, yr = int(ym[5:7]), int(ym[:4])
         monthly.append({
-            'key':    str(r['MES']),
-            'label':  str(r['MES_LABEL']),
-            'fraudes': int(r.get('TOTAL_FRAUDE',  0) or 0),
-            'damaged': int(r.get('TOTAL_DAMAGED', 0) or 0),
-            'bpp':    flt(r.get('TOTAL_BPP', 0)),
-            'total':  int(r.get('TOTAL_INCIDENTES', 0) or 0),
+            'key':     ym,
+            'label':   f"{MONTHS_PT[mo]}/{yr}",
+            'fraudes': agg['fraudes'],
+            'damaged': agg['damaged'],
+            'bpp':     round(agg['bpp'], 2),
+            'total':   agg['total'],
         })
     dados['monthly'] = monthly
 
