@@ -953,8 +953,8 @@ def gerar_html(d):
   .pbtn:hover{{background:#111827;color:#e2e8f0;border-color:#374151}}
   .pbtn.ativo{{background:#ef4444;border-color:#ef4444;color:#fff;font-weight:600}}
   /* DATE PICKER */
-  input[type="date"]{{background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:7px 12px;color:#9ca3af;font-size:12px;outline:none;cursor:pointer;transition:border-color .3s ease;color-scheme:dark}}
-  input[type="date"]:focus{{border-color:#374151;color:#e2e8f0}}
+  input[type="date"],input[type="month"]{{background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:7px 12px;color:#9ca3af;font-size:12px;outline:none;cursor:pointer;transition:border-color .3s ease;color-scheme:dark}}
+  input[type="date"]:focus,input[type="month"]:focus{{border-color:#374151;color:#e2e8f0}}
   /* FILTROS */
   .filter-bar{{display:flex;gap:8px;padding:12px 20px;flex-wrap:wrap;border-bottom:1px solid #111827;align-items:center;background:#080d19}}
   .filter-input{{background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:8px 14px;color:#e2e8f0;font-size:12px;flex:1;min-width:180px;outline:none;transition:border-color .3s ease}}
@@ -1016,10 +1016,14 @@ def gerar_html(d):
 <div id="tab-geral" class="content active">
 
   <!-- Filtro de período -->
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
     <span class="filter-label">Período:</span>
-    <button class="pbtn" data-key="all" onclick="setPeriodo(this)">Ano {d["ano"]}</button>
-    {''.join(f'<button class="pbtn" data-key="{m["key"]}" onclick="setPeriodo(this)">{m["label"]}</button>' for m in d.get("monthly",[]))}
+    <span style="font-size:11px;color:#6b7280">De</span>
+    <input type="month" id="pd_de" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["ano"]}-12" style="max-width:150px">
+    <span style="font-size:11px;color:#6b7280">Até</span>
+    <input type="month" id="pd_ate" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["ano"]}-12" style="max-width:150px">
+    <button onclick="resetPeriodo()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer">Limpar</button>
+    <span id="pd_label" style="font-size:12px;font-weight:600;color:#60a5fa"></span>
   </div>
 
   <div class="cards">
@@ -1227,7 +1231,7 @@ function filtrarDrivers() {{
     const id    = (tr.dataset.id    || '').toLowerCase();
     const tp    = (tr.dataset.transp|| '').toLowerCase();
     const at    = (tr.dataset.ativ  || '').toLowerCase();
-    const periodOk = _periodKey === 'all' || (tr.dataset.months||'').split(' ').includes(_periodKey);
+    const periodOk = (!_periodDe && !_periodAte) || (tr.dataset.months||'').split(' ').some(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
     const ok = periodOk
             && (!busca  || id.includes(busca))
             && (!transp || tp.includes(transp))
@@ -1362,27 +1366,40 @@ function initBlCharts() {{
 // ---- Filtro de período ----
 const MONTHLY = {j(d.get("monthly", []))};
 const ANNUAL  = {{ fraudes:{d["total_fraudes"]}, damaged:{d["total_damaged"]}, bpp:{d["total_bpp"]} }};
-let _periodKey = 'all';
+let _periodDe = '', _periodAte = '';
 
-function setPeriodo(btn) {{
-  document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('ativo'));
-  btn.classList.add('ativo');
-  const key = btn.dataset.key;
-  _periodKey = key;
-  const dt  = key === 'all' ? ANNUAL : (MONTHLY.find(m => m.key === key) || ANNUAL);
+function setPeriodo() {{
+  const de  = document.getElementById('pd_de').value;
+  const ate = document.getElementById('pd_ate').value;
+  _periodDe  = de;
+  _periodAte = ate;
+
+  const meses = MONTHLY.filter(m => (!de || m.key >= de) && (!ate || m.key <= ate));
+  const dt = (!de && !ate) ? ANNUAL
+    : meses.length > 0
+      ? {{ fraudes: meses.reduce((s,m)=>s+m.fraudes,0), damaged: meses.reduce((s,m)=>s+m.damaged,0), bpp: meses.reduce((s,m)=>s+m.bpp,0) }}
+      : {{ fraudes:0, damaged:0, bpp:0 }};
+
   document.getElementById('cv-fraudes').textContent = dt.fraudes.toLocaleString('pt-BR');
   document.getElementById('cv-damaged').textContent = dt.damaged.toLocaleString('pt-BR');
   document.getElementById('cv-bpp').textContent = '$' + dt.bpp.toLocaleString('en-US', {{minimumFractionDigits:2, maximumFractionDigits:2}});
-  const lbl = key === 'all' ? '{d["ano"]}' : (MONTHLY.find(m => m.key === key)?.label || '{d["ano"]}');
+
+  const lbl_de  = de  ? (MONTHLY.find(m=>m.key===de)?.label  || de)  : '';
+  const lbl_ate = ate ? (MONTHLY.find(m=>m.key===ate)?.label || ate) : '';
+  const lbl = (!de && !ate) ? '{d["ano"]}'
+    : (lbl_de && lbl_ate) ? lbl_de + ' → ' + lbl_ate
+    : lbl_de || lbl_ate;
   document.getElementById('sub-fraudes').textContent = lbl;
   document.getElementById('sub-damaged').textContent = lbl;
   document.getElementById('sub-bpp').textContent = 'Cashout ' + lbl;
-  // Filtra linhas em todas as abas
+  document.getElementById('pd_label').textContent = (!de && !ate) ? '' : '📅 ' + lbl;
+
   ['tbl_dxp','tbl_places','tbl_damaged'].forEach(tblId => {{
     const tbl = document.getElementById(tblId);
     if (!tbl) return;
     tbl.querySelectorAll('tbody > tr[data-months]').forEach(tr => {{
-      const show = key === 'all' || (tr.dataset.months||'').split(' ').includes(key);
+      const months = (tr.dataset.months||'').split(' ');
+      const show = !de && !ate ? true : months.some(m => (!de || m >= de) && (!ate || m <= ate));
       tr.style.display = show ? '' : 'none';
       const nx = tr.nextElementSibling;
       if (nx && nx.tagName === 'TBODY' && !show) nx.style.display = 'none';
@@ -1391,13 +1408,19 @@ function setPeriodo(btn) {{
   filtrarDrivers();
 }}
 
-// Seleciona mês atual por padrão
+function resetPeriodo() {{
+  document.getElementById('pd_de').value  = '';
+  document.getElementById('pd_ate').value = '';
+  setPeriodo();
+}}
+
+// Inicializa: De = Jan/ano, Até = mês atual
 (function() {{
   const hoje = new Date();
-  const mk   = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
-  const btn  = document.querySelector('.pbtn[data-key="' + mk + '"]')
-            || document.querySelector('.pbtn[data-key="all"]');
-  if (btn) setPeriodo(btn);
+  const mk = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
+  document.getElementById('pd_de').value  = '{d["ano"]}-01';
+  document.getElementById('pd_ate').value = mk;
+  setPeriodo();
 }})();
 
 lucide.createIcons();
