@@ -1204,7 +1204,7 @@ function showTab(name, el) {{
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
-  if (name === 'bloqueios') {{ setTimeout(initBloqueisFiltro, 50); }}
+  if (name === 'bloqueios') {{ setTimeout(initBloqueisFiltro, 50); initBlCharts(); }}
 }}
 window.addEventListener('load', () => {{
   const h = window.location.hash.replace('#','');
@@ -1291,7 +1291,7 @@ function initBlCharts() {{
       datasets: [{{ data: {j(list(d["bl"]["por_status"].values()))},
         backgroundColor: ['#10b981','#3b82f6','#f59e0b','#ef4444','#6b7280'], borderWidth:0 }}]
     }},
-    options: {{ ...defOpts, cutout:'40%' }}
+    options: {{ responsive:true, plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:11}} }} }} }}, cutout:'40%' }}
   }});
   new Chart(document.getElementById('cBlTransp'), {{
     type: 'bar',
@@ -1309,8 +1309,6 @@ function initBlCharts() {{
 }}
 
 lucide.createIcons();
-// Cria gráficos de Bloqueios na carga da página
-initBlCharts();
 </script>
 
 <!-- ABA BLOQUEIOS -->
