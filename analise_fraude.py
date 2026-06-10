@@ -245,6 +245,25 @@ WHERE f.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
 ORDER BY p.SHP_AGEN_DESC, f.BPP_CASHOUT_USD DESC
 """
 
+QUERY_MONTHLY_KPI = f"""
+-- KPIs mensais para filtro por período na Visão Geral
+SELECT
+    FORMAT_DATE('%Y-%m', date_bpp)             AS MES,
+    FORMAT_DATE('%b/%Y', date_bpp)             AS MES_LABEL,
+    COUNT(DISTINCT SHIPMENT_ID)                AS TOTAL_INCIDENTES,
+    ROUND(SUM(BPP_CASHOUT_USD), 2)             AS TOTAL_BPP,
+    COUNTIF(Classification_LM IN (
+        'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
+        'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'))  AS TOTAL_FRAUDE,
+    COUNTIF(Classification_LM LIKE 'DAMAGED%') AS TOTAL_DAMAGED
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  AND date_bpp >= '{ANO_INICIO}'
+  AND date_bpp <= CURRENT_DATE()
+GROUP BY 1, 2
+ORDER BY 1
+"""
+
 QUERY_DAMAGED = f"""
 -- Damaged por driver — usa DRIVER_ID direto da tabela
 SELECT
@@ -913,6 +932,10 @@ def gerar_html(d):
   tr:hover td{{background:#111827!important}}
   tr:last-child td{{border-bottom:none}}
   .tbl-scroll{{overflow-x:auto}}
+  /* PERIOD BUTTONS */
+  .pbtn{{background:#0d1321;border:1px solid #1f2937;border-radius:20px;padding:5px 14px;color:#6b7280;font-size:11px;cursor:pointer;transition:all .2s ease;white-space:nowrap}}
+  .pbtn:hover{{background:#111827;color:#e2e8f0;border-color:#374151}}
+  .pbtn.ativo{{background:#ef4444;border-color:#ef4444;color:#fff;font-weight:600}}
   /* DATE PICKER */
   input[type="date"]{{background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:7px 12px;color:#9ca3af;font-size:12px;outline:none;cursor:pointer;transition:border-color .3s ease;color-scheme:dark}}
   input[type="date"]:focus{{border-color:#374151;color:#e2e8f0}}
@@ -975,6 +998,14 @@ def gerar_html(d):
 
 <!-- VISÃO GERAL -->
 <div id="tab-geral" class="content active">
+
+  <!-- Filtro de período -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+    <span class="filter-label">Período:</span>
+    <button class="pbtn" data-key="all" onclick="setPeriodo(this)">Ano {d["ano"]}</button>
+    {''.join(f'<button class="pbtn" data-key="{m["key"]}" onclick="setPeriodo(this)">{m["label"]}</button>' for m in d.get("monthly",[]))}
+  </div>
+
   <div class="cards">
     <div class="card c-red">
       <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Drivers Críticos</span></div>
@@ -983,18 +1014,18 @@ def gerar_html(d):
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="package-x" class="ci" width="14" height="14"></i><span class="cl">Total Fraudes/Lost</span></div>
-      <div class="cv">{d["total_fraudes"]}</div>
-      <div class="cd">{d["ano"]}</div>
+      <div class="cv" id="cv-fraudes">{d["total_fraudes"]}</div>
+      <div class="cd" id="sub-fraudes">{d["ano"]}</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="box" class="ci" width="14" height="14"></i><span class="cl">Total Damaged</span></div>
-      <div class="cv amber">{d["total_damaged"]}</div>
-      <div class="cd">{d["ano"]}</div>
+      <div class="cv amber" id="cv-damaged">{d["total_damaged"]}</div>
+      <div class="cd" id="sub-damaged">{d["ano"]}</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14"></i><span class="cl">BPP Total</span></div>
-      <div class="cv green">${d["total_bpp"]:,.2f}</div>
-      <div class="cd">Cashout {d["ano"]}</div>
+      <div class="cv green" id="cv-bpp">${d["total_bpp"]:,.2f}</div>
+      <div class="cd" id="sub-bpp">Cashout {d["ano"]}</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="map-pin" class="ci" width="14" height="14"></i><span class="cl">Places Suspeitos</span></div>
@@ -1311,6 +1342,33 @@ function initBlCharts() {{
   }});
 }}
 
+// ---- Filtro de período ----
+const MONTHLY = {j(d.get("monthly", []))};
+const ANNUAL  = {{ fraudes:{d["total_fraudes"]}, damaged:{d["total_damaged"]}, bpp:{d["total_bpp"]} }};
+
+function setPeriodo(btn) {{
+  document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  const key = btn.dataset.key;
+  const dt  = key === 'all' ? ANNUAL : (MONTHLY.find(m => m.key === key) || ANNUAL);
+  document.getElementById('cv-fraudes').textContent = dt.fraudes.toLocaleString('pt-BR');
+  document.getElementById('cv-damaged').textContent = dt.damaged.toLocaleString('pt-BR');
+  document.getElementById('cv-bpp').textContent = '$' + dt.bpp.toLocaleString('en-US', {{minimumFractionDigits:2, maximumFractionDigits:2}});
+  const lbl = key === 'all' ? '{d["ano"]}' : (MONTHLY.find(m => m.key === key)?.label || '{d["ano"]}');
+  document.getElementById('sub-fraudes').textContent = lbl;
+  document.getElementById('sub-damaged').textContent = lbl;
+  document.getElementById('sub-bpp').textContent = 'Cashout ' + lbl;
+}}
+
+// Seleciona mês atual por padrão
+(function() {{
+  const hoje = new Date();
+  const mk   = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
+  const btn  = document.querySelector('.pbtn[data-key="' + mk + '"]')
+            || document.querySelector('.pbtn[data-key="all"]');
+  if (btn) setPeriodo(btn);
+}})();
+
 lucide.createIcons();
 </script>
 
@@ -1401,11 +1459,24 @@ if __name__ == '__main__':
     df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
     df_damaged   = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
 
-    bl_rows = carregar_block_list(gs)
+    df_monthly = buscar(bq, QUERY_MONTHLY_KPI,   'KPIs Mensais')
+    bl_rows    = carregar_block_list(gs)
 
     print("\nProcessando...")
     dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
     dados['bl'] = processar_block_list(bl_rows)
+
+    monthly = []
+    for _, r in df_monthly.iterrows():
+        monthly.append({
+            'key':    str(r['MES']),
+            'label':  str(r['MES_LABEL']),
+            'fraudes': int(r.get('TOTAL_FRAUDE',  0) or 0),
+            'damaged': int(r.get('TOTAL_DAMAGED', 0) or 0),
+            'bpp':    flt(r.get('TOTAL_BPP', 0)),
+            'total':  int(r.get('TOTAL_INCIDENTES', 0) or 0),
+        })
+    dados['monthly'] = monthly
 
     print("Gerando dashboard...")
     html = gerar_html(dados)
