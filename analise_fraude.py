@@ -830,7 +830,7 @@ def rows_block_list(rows):
                 from datetime import datetime as dt
                 data_iso = dt.strptime(r["data"].strip(), '%d/%m/%Y').strftime('%Y-%m-%d')
             except: pass
-        out += f'''<tr class="bl-row" data-data="{data_iso}" data-status="{r["status"]}" data-transp="{r["mlp"]}">
+        out += f'''<tr class="bl-row" data-data="{data_iso}" data-status="{r["status"]}" data-transp="{r["mlp"]}" data-usd="{r["usd"]}">
             <td style="font-weight:700">
               <a href="{link}" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">{did or "—"}</a>
             </td>
@@ -1282,6 +1282,43 @@ function filtrarBloqueios() {{
             && (!transp || tp === transp);
     tr.style.display = ok ? '' : 'none';
   }});
+  updateBloqueiosCards();
+}}
+
+function updateBloqueiosCards() {{
+  const set = (id, v) => {{ const e = document.getElementById(id); if(e) e.textContent = v; }};
+  const counts = {{}};
+  const byTransp = {{}};
+  let total = 0, gmv = 0;
+  document.querySelectorAll('.bl-row').forEach(tr => {{
+    if (tr.style.display !== 'none') {{
+      total++;
+      const st  = tr.dataset.status || '';
+      const tp  = tr.dataset.transp || '';
+      const usd = parseFloat(tr.dataset.usd || '0') || 0;
+      counts[st]  = (counts[st]  || 0) + 1;
+      byTransp[tp] = (byTransp[tp] || 0) + 1;
+      if (st === 'Bloqueado') gmv += usd;
+    }}
+  }});
+  set('bl-cv-total',      total);
+  set('bl-cv-bloqueados', counts['Bloqueado']  || 0);
+  set('bl-cv-solicitados',counts['Solicitado'] || 0);
+  set('bl-cv-monitorados',counts['Monitorado'] || 0);
+  set('bl-cv-recusados',  counts['Recusado']   || 0);
+  set('bl-cv-gmv', '$' + gmv.toLocaleString('en-US', {{minimumFractionDigits:2,maximumFractionDigits:2}}));
+  if (_chartBlStatus) {{
+    const labels = Object.keys(counts);
+    _chartBlStatus.data.labels = labels;
+    _chartBlStatus.data.datasets[0].data = labels.map(k => counts[k]);
+    _chartBlStatus.update();
+  }}
+  if (_chartBlTransp) {{
+    const sorted = Object.entries(byTransp).sort((a,b) => b[1]-a[1]);
+    _chartBlTransp.data.labels = sorted.map(e => e[0]);
+    _chartBlTransp.data.datasets[0].data = sorted.map(e => e[1]);
+    _chartBlTransp.update();
+  }}
 }}
 
 // Menu Dashboards — abre/fecha com click, fecha ao clicar fora
@@ -1425,11 +1462,11 @@ new Chart(document.getElementById('cPlacesBar'), {{
 }});
 
 // Gráficos de Bloqueios — criados na 1ª vez que a aba abre
-let _blDone = false;
+let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
 function initBlCharts() {{
   if (_blDone) return;
   _blDone = true;
-  new Chart(document.getElementById('cBlStatus'), {{
+  _chartBlStatus = new Chart(document.getElementById('cBlStatus'), {{
     type: 'doughnut',
     data: {{
       labels: {j(list(d["bl"]["por_status"].keys()))},
@@ -1438,7 +1475,7 @@ function initBlCharts() {{
     }},
     options: {{ responsive:true, plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:11}} }} }} }}, cutout:'40%' }}
   }});
-  new Chart(document.getElementById('cBlTransp'), {{
+  _chartBlTransp = new Chart(document.getElementById('cBlTransp'), {{
     type: 'bar',
     data: {{
       labels: {j(list(d["bl"]["por_transp"].keys()))},
@@ -1610,27 +1647,27 @@ lucide.createIcons();
   <div class="cards">
     <div class="card">
       <div class="card-header"><i data-lucide="list" class="ci" width="14" height="14"></i><span class="cl">Total Solicitações</span></div>
-      <div class="cv">{d["bl"]["total"]}</div><div class="cd">2026</div>
+      <div class="cv" id="bl-cv-total">{d["bl"]["total"]}</div><div class="cd">2026</div>
     </div>
     <div class="card card-ok">
       <div class="card-header"><i data-lucide="shield-check" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">Bloqueados</span></div>
-      <div class="cv val-ok">{d["bl"]["bloqueados"]}</div><div class="cd">Confirmados</div>
+      <div class="cv val-ok" id="bl-cv-bloqueados">{d["bl"]["bloqueados"]}</div><div class="cd">Confirmados</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="clock" class="ci" width="14" height="14"></i><span class="cl">Solicitados</span></div>
-      <div class="cv" style="color:#60a5fa">{d["bl"]["solicitados"]}</div><div class="cd">Aguardando</div>
+      <div class="cv" style="color:#60a5fa" id="bl-cv-solicitados">{d["bl"]["solicitados"]}</div><div class="cd">Aguardando</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="eye" class="ci" width="14" height="14"></i><span class="cl">Monitorados</span></div>
-      <div class="cv val-warn">{d["bl"]["monitorados"]}</div><div class="cd">Em acompanhamento</div>
+      <div class="cv val-warn" id="bl-cv-monitorados">{d["bl"]["monitorados"]}</div><div class="cd">Em acompanhamento</div>
     </div>
     <div class="card c-red">
       <div class="card-header"><i data-lucide="x-circle" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Recusados</span></div>
-      <div class="cv red">{d["bl"]["recusados"]}</div><div class="cd">Não aprovados</div>
+      <div class="cv red" id="bl-cv-recusados">{d["bl"]["recusados"]}</div><div class="cd">Não aprovados</div>
     </div>
     <div class="card card-ok">
       <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">GMV Protegido</span></div>
-      <div class="cv val-ok">${d["bl"]["gmv_protegido"]:,.2f}</div><div class="cd">Bloqueados confirmados</div>
+      <div class="cv val-ok" id="bl-cv-gmv">${d["bl"]["gmv_protegido"]:,.2f}</div><div class="cd">Bloqueados confirmados</div>
     </div>
   </div>
 
