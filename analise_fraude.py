@@ -1155,7 +1155,7 @@ def gerar_html(d):
     </div>""" for i, p in enumerate(d["places"][:3]))}
   </div>
 
-  <div class="box mb16"><div class="bt">Top 15 Places por Total de Fraudes</div><canvas id="cPlacesBar" height="300"></canvas></div>
+  <div class="box mb16"><div class="bt">Top 8 Places — Total de Fraudes/Lost</div><canvas id="cPlacesBar" height="200"></canvas></div>
 
   <div class="tbl-wrap">
     <div class="tbl-title">Ranking completo — Places Ofensores</div>
@@ -1321,20 +1321,35 @@ new Chart(document.getElementById('cPlaces'), {{
 new Chart(document.getElementById('cPlacesBar'), {{
   type: 'bar',
   data: {{
-    labels: {j([p["nome"][:28]+"…" if len(p["nome"])>28 else p["nome"] for p in d["places"][:15]])},
+    labels: {j([p["nome"][:22]+"…" if len(p["nome"])>22 else p["nome"] for p in d["places"][:8]])},
     datasets: [
-      {{ label:'Fraudes/Lost', data:{j([p["total"]-p["fraud"] for p in d["places"][:15]])},
-         backgroundColor:'rgba(239,68,68,0.75)', borderRadius:4 }},
-      {{ label:'Fraud Confirmado', data:{j([p["fraud"] for p in d["places"][:15]])},
-         backgroundColor:'rgba(168,85,247,0.75)', borderRadius:4 }},
+      {{
+        label: 'Fraudes/Lost',
+        data: {j([p["total"] for p in d["places"][:8]])},
+        backgroundColor: [
+          'rgba(239,68,68,0.9)','rgba(239,68,68,0.82)','rgba(239,68,68,0.74)',
+          'rgba(239,68,68,0.66)','rgba(239,68,68,0.58)','rgba(239,68,68,0.50)',
+          'rgba(239,68,68,0.42)','rgba(239,68,68,0.34)'
+        ],
+        borderRadius: 6,
+        barThickness: 18,
+      }}
     ]
   }},
   options: {{
-    indexAxis:'y', responsive:true,
-    plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:11}} }} }} }},
-    scales:{{
-      x:{{ stacked:true, ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }},
-      y:{{ stacked:true, ticks:{{color:'#8a8a8a',font:{{size:10}}}}, grid:{{display:false}} }}
+    indexAxis: 'y',
+    responsive: true,
+    plugins: {{
+      legend: {{ display: false }},
+      tooltip: {{
+        callbacks: {{
+          label: ctx => ` ${{ctx.parsed.x}} incidentes`
+        }}
+      }}
+    }},
+    scales: {{
+      x: {{ ticks: {{color:'#6b7280',font:{{size:10}}}}, grid: {{color:'#1e293b'}} }},
+      y: {{ ticks: {{color:'#d1d5db',font:{{size:11}}}}, grid: {{display:false}} }}
     }}
   }}
 }});
