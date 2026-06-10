@@ -292,6 +292,11 @@ def norm_id(s):
     try:    return str(int(float(str(s).strip())))
     except: return str(s).strip()
 
+def _ym(d):
+    """'dd/mm/yyyy' → 'yyyy-mm'"""
+    try: return d[6:10]+'-'+d[3:5] if len(str(d)) >= 10 else ''
+    except: return ''
+
 def conectar():
     print("Conectando ao BigQuery e Google Sheets...")
     scopes = [
@@ -591,6 +596,16 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
     for d in drivers:
         d['shps'] = shp_por_driver.get(d['id'], [])
 
+    # Meses ativos por entidade (para filtro por período cross-tab)
+    for d in drivers:
+        d['months'] = ' '.join(sorted({_ym(s['data']) for s in d['shps'] if s.get('data')}))
+    for r in dxp:
+        r['months'] = ' '.join(sorted({_ym(s['data']) for s in shp_dxp.get((r['driver'], r['place']), []) if s.get('data')}))
+    for p in places:
+        p['months'] = ' '.join(sorted({_ym(s['data']) for s in shp_por_place.get(p['nome'], []) if s.get('data')}))
+    for dmg in damaged:
+        dmg['months'] = ' '.join(sorted({_ym(s['data']) for s in shp_por_driver.get(dmg['id'], []) if s.get('data') and 'DAMAGED' in s.get('class','')}))
+
     # ---- Conjunto de IDs que aparecem nas duas análises ----
     ids_fraude   = {d['id'] for d in drivers if d['fraude'] > 0}
     ids_damaged  = {d['id'] for d in damaged}
@@ -690,7 +705,8 @@ def rows_drivers(drivers, cruzados):
         out += f'''<tr {toggle}
             data-id="{d["id"]}"
             data-transp="{d.get("transportadora","").lower()}"
-            data-ativ="{d.get("atividade","").lower()}">
+            data-ativ="{d.get("atividade","").lower()}"
+            data-months="{d.get("months","")}">
             <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta} {cruz}</td>
             <td>{prio_badge(d["prio"])}</td>
             <td style="font-size:11px;color:#9ca3af">{d.get("transportadora","—")}</td>
@@ -789,7 +805,7 @@ def rows_dxp(dxp, shp_por_driver, shp_dxp):
             </tr>'''
         seta   = f' <span id="arrow_dxp_{i}" style="font-size:10px;color:#4b5563">▶ {len(shps)} pacotes</span>' if shps else ''
         toggle = f'onclick="toggleDriver(\'dxp_{i}\')" style="cursor:pointer"' if shps else ''
-        out += f'''<tr style="{bg}" {toggle}>
+        out += f'''<tr style="{bg}" {toggle} data-months="{r.get("months","")}">
             <td style="font-weight:700;color:{"#fca5a5" if alert else "#f9fafb"}">{r["driver"]}{seta}</td>
             <td>{r["place"]}</td>
             <td style="text-align:center;font-weight:800;color:{"#ef4444" if alert else "#f9fafb"}">{r["total"]}</td>
@@ -819,7 +835,7 @@ def rows_places(places, shp_por_place):
             </tr>'''
         seta   = f' <span id="arrow_pl_{i}" style="font-size:10px;color:#4b5563">▶ {len(shps)} ids</span>' if shps else ''
         toggle = f'onclick="toggleDriver(\'pl_{i}\')" style="cursor:pointer"' if shps else ''
-        out += f'''<tr {toggle}>
+        out += f'''<tr {toggle} data-months="{p.get("months","")}">
             <td style="font-weight:600;color:#f9fafb">{p["nome"]}{seta}</td>
             <td style="text-align:center;font-weight:700;color:#f9fafb">{p["total"]}</td>
             <td style="color:#10b981">${p["bpp"]:,.2f}</td>
@@ -852,7 +868,7 @@ def rows_damaged(damaged, cruzados_fraude, shp_por_driver):
             </tr>'''
         seta   = f' <span id="arrow_dmg_{i}" style="font-size:10px;color:#4b5563">▶ {len(shps)} ids</span>' if shps else ''
         toggle = f'onclick="toggleDriver(\'dmg_{i}\')" style="cursor:pointer"' if shps else ''
-        out += f'''<tr {toggle}>
+        out += f'''<tr {toggle} data-months="{d.get("months","")}">
             <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta}{cruz}</td>
             <td style="text-align:center;font-weight:700;color:#f59e0b">{d["total"]}</td>
             <td style="color:#10b981">${d["bpp"]:,.2f}</td>
@@ -1110,7 +1126,7 @@ def gerar_html(d):
 <div id="tab-dxp" class="content">
   <div class="tbl-wrap">
     <div class="tbl-title">Driver × Place — Combinações com 2+ Fraudes em Comum</div>
-    <div class="tbl-scroll"><table>
+    <div class="tbl-scroll"><table id="tbl_dxp">
       <thead><tr><th>Driver ID</th><th>Place</th><th>Total</th><th>Fraudes</th><th>Damaged</th><th>BPP Total</th></tr></thead>
       <tbody>{rows_dxp(d["dxp"], d["shp_por_driver"], d["shp_dxp"])}</tbody>
     </table></div>
@@ -1135,7 +1151,7 @@ def gerar_html(d):
 
   <div class="tbl-wrap">
     <div class="tbl-title">Ranking completo — Places Ofensores</div>
-    <div class="tbl-scroll"><table>
+    <div class="tbl-scroll"><table id="tbl_places">
       <thead><tr>
         <th>Place</th><th>Total</th><th>BPP</th>
         <th>Lost Route</th><th>Lost Way</th><th>Lost Station</th><th>Lost ENE</th><th>Fraud Confirm.</th>
@@ -1149,7 +1165,7 @@ def gerar_html(d):
 <div id="tab-damaged" class="content">
   <div class="tbl-wrap">
     <div class="tbl-title">Damaged por Driver — ⚠️ indica driver que também tem fraudes</div>
-    <div class="tbl-scroll"><table>
+    <div class="tbl-scroll"><table id="tbl_damaged">
       <thead><tr>
         <th>Driver ID</th><th>Total Damaged</th><th>BPP Total</th>
         <th>On Route</th><th>At Station</th><th>ENE</th>
@@ -1211,11 +1227,12 @@ function filtrarDrivers() {{
     const id    = (tr.dataset.id    || '').toLowerCase();
     const tp    = (tr.dataset.transp|| '').toLowerCase();
     const at    = (tr.dataset.ativ  || '').toLowerCase();
-    const ok = (!busca  || id.includes(busca))
+    const periodOk = _periodKey === 'all' || (tr.dataset.months||'').split(' ').includes(_periodKey);
+    const ok = periodOk
+            && (!busca  || id.includes(busca))
             && (!transp || tp.includes(transp))
             && (!ativ   || at.includes(ativ));
     tr.style.display = ok ? '' : 'none';
-    // esconde também o tbody expandido do driver quando filtrado
     const nextSibling = tr.nextElementSibling;
     if (nextSibling && nextSibling.tagName === 'TBODY' && !ok) nextSibling.style.display = 'none';
   }});
@@ -1345,11 +1362,13 @@ function initBlCharts() {{
 // ---- Filtro de período ----
 const MONTHLY = {j(d.get("monthly", []))};
 const ANNUAL  = {{ fraudes:{d["total_fraudes"]}, damaged:{d["total_damaged"]}, bpp:{d["total_bpp"]} }};
+let _periodKey = 'all';
 
 function setPeriodo(btn) {{
   document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('ativo'));
   btn.classList.add('ativo');
   const key = btn.dataset.key;
+  _periodKey = key;
   const dt  = key === 'all' ? ANNUAL : (MONTHLY.find(m => m.key === key) || ANNUAL);
   document.getElementById('cv-fraudes').textContent = dt.fraudes.toLocaleString('pt-BR');
   document.getElementById('cv-damaged').textContent = dt.damaged.toLocaleString('pt-BR');
@@ -1358,6 +1377,18 @@ function setPeriodo(btn) {{
   document.getElementById('sub-fraudes').textContent = lbl;
   document.getElementById('sub-damaged').textContent = lbl;
   document.getElementById('sub-bpp').textContent = 'Cashout ' + lbl;
+  // Filtra linhas em todas as abas
+  ['tbl_dxp','tbl_places','tbl_damaged'].forEach(tblId => {{
+    const tbl = document.getElementById(tblId);
+    if (!tbl) return;
+    tbl.querySelectorAll('tbody > tr[data-months]').forEach(tr => {{
+      const show = key === 'all' || (tr.dataset.months||'').split(' ').includes(key);
+      tr.style.display = show ? '' : 'none';
+      const nx = tr.nextElementSibling;
+      if (nx && nx.tagName === 'TBODY' && !show) nx.style.display = 'none';
+    }});
+  }});
+  filtrarDrivers();
 }}
 
 // Seleciona mês atual por padrão
