@@ -1016,19 +1016,19 @@ def gerar_html(d):
   <div class="tab" onclick="showTab('bloqueios',this)" style="color:#4ade80">Bloqueios ({d["bl"]["total"]})</div>
 </div>
 
+<!-- BARRA DE PERÍODO — sempre visível em todas as abas -->
+<div style="background:#080d19;border-bottom:1px solid #1f2937;padding:10px 32px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+  <span class="filter-label">Período:</span>
+  <span style="font-size:11px;color:#6b7280">De</span>
+  <input type="month" id="pd_de" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["ano"]}-12" style="max-width:150px">
+  <span style="font-size:11px;color:#6b7280">Até</span>
+  <input type="month" id="pd_ate" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["ano"]}-12" style="max-width:150px">
+  <button onclick="resetPeriodo()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer">Limpar</button>
+  <span id="pd_label" style="font-size:12px;font-weight:600;color:#60a5fa"></span>
+</div>
+
 <!-- VISÃO GERAL -->
 <div id="tab-geral" class="content active">
-
-  <!-- Filtro de período -->
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
-    <span class="filter-label">Período:</span>
-    <span style="font-size:11px;color:#6b7280">De</span>
-    <input type="month" id="pd_de" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["ano"]}-12" style="max-width:150px">
-    <span style="font-size:11px;color:#6b7280">Até</span>
-    <input type="month" id="pd_ate" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["ano"]}-12" style="max-width:150px">
-    <button onclick="resetPeriodo()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer">Limpar</button>
-    <span id="pd_label" style="font-size:12px;font-weight:600;color:#60a5fa"></span>
-  </div>
 
   <div class="cards">
     <div class="card c-red">
