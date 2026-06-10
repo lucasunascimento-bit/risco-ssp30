@@ -27,11 +27,12 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Configurar credenciais Google
-        run: echo '${{ secrets.GCLOUD_SA_KEY }}' > /tmp/gcloud-key.json
+        run: |
+          mkdir -p ~/.config/gcloud
+          echo '${{ secrets.GOOGLE_ADC_CREDENTIALS }}' > ~/.config/gcloud/application_default_credentials.json
 
       - name: Gerar dashboard
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-key.json
           CI: "true"
         run: python analise_fraude.py
 
