@@ -408,8 +408,7 @@ def processar_block_list(rows):
         if 'solicitado' in s: return 'Solicitado'
         if 'sendo' in s or 'monit' in s: return 'Monitorado'
         if 'recusado' in s: return 'Recusado'
-        if 'inativo'  in s: return 'Inativo'
-        return s.title()
+        return 'Inativo'
 
     total = len(rows)
     bloqueados  = sum(1 for r in rows if 'bloqueado' in r.get('Status','').lower())
