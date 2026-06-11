@@ -1380,7 +1380,7 @@ function updateBloqueiosCards() {{
   set('bl-cv-monitorados',counts['Monitorado'] || 0);
   set('bl-cv-gmv', '$' + gmv.toLocaleString('en-US', {{minimumFractionDigits:2,maximumFractionDigits:2}}));
   if (_chartBlStatus) {{
-    const labels = Object.keys(counts).filter(k => k !== 'Recusado');
+    const labels = Object.keys(counts).filter(k => BL_COLORS[k]);
     _chartBlStatus.data.labels = labels;
     _chartBlStatus.data.datasets[0].data = labels.map(k => counts[k]);
     _chartBlStatus.data.datasets[0].backgroundColor = _blColors(labels);
@@ -1543,8 +1543,8 @@ let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
 function initBlCharts() {{
   if (_blDone) return;
   _blDone = true;
-  const _stLabels = {j([k for k in d["bl"]["por_status"].keys() if k != 'Recusado'])};
-  const _stData   = {j([v for k, v in d["bl"]["por_status"].items() if k != 'Recusado'])};
+  const _stLabels = {j([k for k in d["bl"]["por_status"].keys() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
+  const _stData   = {j([v for k, v in d["bl"]["por_status"].items() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
   _chartBlStatus = new Chart(document.getElementById('cBlStatus'), {{
     type: 'doughnut',
     data: {{
