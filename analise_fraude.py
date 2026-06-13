@@ -866,7 +866,8 @@ def rows_block_list(rows):
               <a href="{link}" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">{did or "—"}</a>
             </td>'''
 
-        out += f'''<tr class="bl-row" data-data="{data_iso}" data-status="{r["status"]}" data-transp="{r["mlp"]}" data-usd="{r["usd"]}">
+        search_txt = f'{did} {r["nome"]}'.lower()
+        out += f'''<tr class="bl-row" data-data="{data_iso}" data-status="{r["status"]}" data-transp="{r["mlp"]}" data-usd="{r["usd"]}" data-search="{search_txt}">
             {driver_cell}
             <td style="font-size:12px;color:#d1d5db">{r["nome"] or "—"}</td>
             <td style="font-size:11px;color:#9ca3af">{r["mlp"]}</td>
@@ -1134,7 +1135,7 @@ def gerar_html(d):
     <div class="header-accent"></div>
     <div>
       <div class="header-title">Análise de Fraude — SSP30</div>
-      <div class="header-sub">Base {d["ano"]} · Gerado em {d["gerado"]}</div>
+      <div class="header-sub">Base {d["ano"]} · <span id="upd-badge">Gerado em {d["gerado"]}</span><span id="upd-ts" data-ts="{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}" style="display:none"></span></div>
     </div>
   </div>
   <a href="https://github.com/lucasunascimento-bit/risco-ssp30/actions/workflows/update-dashboard.yml"
@@ -1329,24 +1330,87 @@ def gerar_html(d):
 <script>
 // Filtro da aba Bloqueios — usa período global _periodDe/_periodAte
 function filtrarBloqueios() {{
-  const status = document.getElementById('bl_status')?.value|| '';
-  const transp = document.getElementById('bl_transp')?.value|| '';
+  const status = document.getElementById('bl_status')?.value || '';
+  const transp = document.getElementById('bl_transp')?.value || '';
+  const search = (document.getElementById('bl_search')?.value || '').toLowerCase();
   document.querySelectorAll('.bl-row').forEach(tr => {{
-    const d  = tr.dataset.data   || '';
-    const ym = d.substring(0,7);
-    const st = tr.dataset.status || '';
-    const tp = tr.dataset.transp || '';
-    const ok = (!_periodDe || ym >= _periodDe)
-            && (!_periodAte || ym <= _periodAte)
-            && (!status || st === status)
-            && (!transp || tp === transp);
+    const d   = tr.dataset.data   || '';
+    const ym  = d.substring(0,7);
+    const st  = tr.dataset.status || '';
+    const tp  = tr.dataset.transp || '';
+    const src = tr.dataset.search || '';
+    const ok  = (!_periodDe || ym >= _periodDe)
+             && (!_periodAte || ym <= _periodAte)
+             && (!status || st === status)
+             && (!transp || tp === transp)
+             && (!search || src.includes(search));
     tr.style.display = ok ? '' : 'none';
-    // se pai foi escondido, esconde subrow de histórico também
     const nx = tr.nextElementSibling;
     if (nx && nx.classList.contains('bl-hist-row') && !ok) nx.style.display = 'none';
   }});
   updateBloqueiosCards();
 }}
+
+// Exportar linhas visíveis como CSV
+function exportBlCSV() {{
+  const cols = ['Driver ID','Nome','Transportadora','Placa','SHP','USD$','Status','Motivo','Data','Semana'];
+  const rows = [cols.join(',')];
+  document.querySelectorAll('.bl-row').forEach(tr => {{
+    if (tr.style.display === 'none') return;
+    const tds = [...tr.querySelectorAll('td')];
+    const vals = tds.map(td => '"' + td.textContent.trim().replace(/"/g,'""') + '"');
+    rows.push(vals.join(','));
+  }});
+  const blob = new Blob([rows.join('\n')], {{type:'text/csv;charset=utf-8;'}});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'block_list_ssp30.csv';
+  a.click();
+}}
+
+// Ordenação das colunas
+let _blSortCol = null, _blSortDir = 1;
+function sortBl(col) {{
+  if (_blSortCol === col) _blSortDir *= -1; else {{ _blSortCol = col; _blSortDir = 1; }}
+  ['did','usd','status','data'].forEach(c => {{
+    const el = document.getElementById('bl-sort-' + c);
+    if (el) el.textContent = c === col ? (_blSortDir === 1 ? ' ↑' : ' ↓') : '';
+  }});
+  const tbody = document.getElementById('bl-tbody');
+  if (!tbody) return;
+  const all = [...tbody.children];
+  const units = [];
+  let i = 0;
+  while (i < all.length) {{
+    const main = all[i];
+    const nx   = all[i+1];
+    if (nx && nx.classList.contains('bl-hist-row')) {{ units.push([main, nx]); i += 2; }}
+    else {{ units.push([main]); i++; }}
+  }}
+  const getVal = (tr) => {{
+    if (col === 'usd')    return parseFloat(tr.dataset.usd || '0');
+    if (col === 'status') return tr.dataset.status || '';
+    if (col === 'data')   return tr.dataset.data   || '';
+    if (col === 'did')    return (tr.dataset.search || '').split(' ')[0];
+    return '';
+  }};
+  units.sort((a,b) => {{
+    const va = getVal(a[0]), vb = getVal(b[0]);
+    return (va < vb ? -1 : va > vb ? 1 : 0) * _blSortDir;
+  }});
+  units.forEach(u => u.forEach(tr => tbody.appendChild(tr)));
+}}
+
+// Badge "atualizado há X min"
+function _updBadge() {{
+  const ts = document.getElementById('upd-ts')?.dataset.ts;
+  const badge = document.getElementById('upd-badge');
+  if (!ts || !badge) return;
+  const diff = Math.round((Date.now() - new Date(ts).getTime()) / 60000);
+  badge.textContent = diff < 1 ? 'Atualizado agora' : `Atualizado há ${{diff}} min`;
+}}
+_updBadge();
+setInterval(_updBadge, 60000);
 
 function toggleBl(id) {{
   const el = document.getElementById(id);
@@ -1753,6 +1817,7 @@ lucide.createIcons();
   <div class="tbl-wrap">
     <div class="tbl-title">Lista Completa — Block List 2026</div>
     <div class="filter-bar">
+      <input id="bl_search" type="text" oninput="filtrarBloqueios()" class="filter-select" placeholder="🔍 Driver ID ou Nome..." style="width:180px">
       <select id="bl_status" onchange="filtrarBloqueios()" class="filter-select">
         <option value="">Todos os status</option>
         <option value="Bloqueado">Bloqueado</option>
@@ -1763,14 +1828,20 @@ lucide.createIcons();
         <option value="">Todas as transportadoras</option>
         {''.join(f'<option value="{t}">{t}</option>' for t in sorted(t for t in set(r["mlp"] for r in d["bl"]["rows"]) if t and t not in ("N/A","")))}
       </select>
-      <button onclick="document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
+      <button onclick="document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';document.getElementById('bl_search').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
+      <button onclick="exportBlCSV()" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer;margin-left:auto">⬇ Exportar CSV</button>
     </div>
-    <div class="tbl-scroll"><table>
+    <div class="tbl-scroll"><table id="bl-table">
       <thead><tr>
-        <th>Driver ID</th><th>Nome</th><th>Transportadora</th><th>Placa</th>
-        <th>SHP</th><th>USD$</th><th>Status</th><th>Motivo</th><th>Data Solicitação</th><th>Semana</th>
+        <th onclick="sortBl('did')" style="cursor:pointer">Driver ID <span id="bl-sort-did"></span></th>
+        <th>Nome</th><th>Transportadora</th><th>Placa</th><th>SHP</th>
+        <th onclick="sortBl('usd')" style="cursor:pointer">USD$ <span id="bl-sort-usd"></span></th>
+        <th onclick="sortBl('status')" style="cursor:pointer">Status <span id="bl-sort-status"></span></th>
+        <th>Motivo</th>
+        <th onclick="sortBl('data')" style="cursor:pointer">Data <span id="bl-sort-data"></span></th>
+        <th>Semana</th>
       </tr></thead>
-      <tbody>{rows_block_list(d["bl"]["rows"])}</tbody>
+      <tbody id="bl-tbody">{rows_block_list(d["bl"]["rows"])}</tbody>
     </table></div>
   </div>
 </div>
