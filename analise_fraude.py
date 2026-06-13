@@ -1421,7 +1421,7 @@ function exportBlCSV() {{
     const vals = tds.map(td => '"' + td.textContent.trim().replace(/"/g,'""') + '"');
     rows.push(vals.join(','));
   }});
-  const blob = new Blob([rows.join('\n')], {{type:'text/csv;charset=utf-8;'}});
+  const blob = new Blob([rows.join('\\n')], {{type:'text/csv;charset=utf-8;'}});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'block_list_ssp30.csv';
