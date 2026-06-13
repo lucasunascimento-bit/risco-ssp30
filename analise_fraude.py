@@ -264,7 +264,8 @@ SELECT
   CAST(shp.SHP_SENDER_ID   AS STRING)     AS SELLER_ID,
   CAST(shp.SHP_RECEIVER_ID AS STRING)     AS BUYER_ID,
   COUNT(DISTINCT f.SHP_ID)                AS QTD_FRAUDES,
-  STRING_AGG(DISTINCT f.DRIVER_ID, ', ')  AS DRIVERS
+  STRING_AGG(DISTINCT f.DRIVER_ID, ',')   AS DRIVERS,
+  STRING_AGG(DISTINCT f.SHP_ID, ',')      AS SHP_IDS
 FROM fraudes f
 INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
   ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = f.SHP_ID
@@ -516,9 +517,15 @@ def processar_cruzamento(df):
                       for v in seller_map.values()], key=lambda x:-x['qtd'])
     buyers  = sorted([{**v,'sellers':len(v['sellers']),'drivers':len(v['drivers'])}
                       for v in buyer_map.values()],  key=lambda x:-x['qtd'])
-    pares   = [{'seller_id':str(r['SELLER_ID']),'buyer_id':str(r['BUYER_ID']),
-                'qtd':int(r['QTD_FRAUDES']),
-                'drivers':str(r.get('DRIVERS','')).replace('None','—') or '—'} for r in rows]
+    def _clean(v): return str(v) if v and str(v) not in ('None','nan','') else ''
+    pares = []
+    for r in rows:
+        shp_raw = _clean(r.get('SHP_IDS',''))
+        shp_ids = [s.strip() for s in shp_raw.split(',') if s.strip()] if shp_raw else []
+        pares.append({'seller_id':str(r['SELLER_ID']),'buyer_id':str(r['BUYER_ID']),
+                      'qtd':int(r['QTD_FRAUDES']),
+                      'drivers':_clean(r.get('DRIVERS','')) or '—',
+                      'shp_ids':shp_ids})
     all_drv = set(); [all_drv.update(_drivers(r.get('DRIVERS',''))) for r in rows]
     return {'sellers':sellers,'buyers':buyers,'pares':pares,
             'total_sellers':len(seller_map),'total_buyers':len(buyer_map),
@@ -1217,7 +1224,7 @@ def gerar_html(d):
   <div class="tab" onclick="showTab('places',this)">Ofensores Places (<span id="tab-count-places">{d["total_places"]}</span>)</div>
   <div class="tab" onclick="showTab('damaged',this)">Damaged (<span id="tab-count-damaged">{len(d["damaged"])}</span>)</div>
   <div class="tab" onclick="showTab('bloqueios',this)" style="color:#4ade80">Bloqueios (<span id="tab-count-bloqueios">{d["bl"]["total"]}</span>)</div>
-  <div class="tab" onclick="showTab('cruzamento',this)" style="color:#f59e0b">Cruzamento ({d["crz"]["total_pares"]})</div>
+  <div class="tab" onclick="showTab('cruzamento',this)" style="color:#f59e0b">BSD ({d["crz"]["total_pares"]})</div>
 </div>
 
 <!-- BARRA DE PERÍODO — sempre visível em todas as abas -->
@@ -1907,7 +1914,7 @@ lucide.createIcons();
   </div>
 </div>
 
-<!-- ===== ABA CRUZAMENTO ===== -->
+<!-- ===== ABA BSD (Buyer Seller Driver) ===== -->
 <div id="tab-cruzamento" class="content">
   <div class="cards-grid" style="grid-template-columns:repeat(4,1fr)">
     <div class="card">
@@ -1960,10 +1967,10 @@ lucide.createIcons();
   </div>
 
   <div class="tbl-wrap">
-    <div class="tbl-title">Cruzamento Seller × Buyer × Drivers</div>
+    <div class="tbl-title">BSD — Buyer × Seller × Driver × Pacotes</div>
     <div class="tbl-scroll"><table>
       <thead><tr>
-        <th>#</th><th>Seller ID</th><th>Buyer ID</th><th>Fraudes</th><th>Drivers Envolvidos</th>
+        <th>#</th><th>Seller ID</th><th>Buyer ID</th><th>Fraudes</th><th>Drivers</th><th>Pacotes (SHP IDs)</th>
       </tr></thead>
       <tbody>
         {''.join(f"""<tr>
@@ -1972,6 +1979,7 @@ lucide.createIcons();
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">{p["buyer_id"]}</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">{p["qtd"]}</td>
           <td style="font-size:11px;color:#9ca3af">{p["drivers"]}</td>
+          <td style="font-size:11px">{' '.join(f'<a href="{MELI_URL}/{s}" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">{s}</a>' for s in p["shp_ids"])}</td>
         </tr>""" for i,p in enumerate(d["crz"]["pares"]))}
       </tbody>
     </table></div>
