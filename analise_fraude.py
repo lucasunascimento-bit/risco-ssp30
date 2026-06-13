@@ -245,6 +245,35 @@ WHERE f.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
 ORDER BY p.SHP_AGEN_DESC, f.BPP_CASHOUT_USD DESC
 """
 
+QUERY_CRUZAMENTO = f"""
+-- Sellers e Buyers ofensores cruzados com drivers de fraude
+WITH fraudes AS (
+  SELECT
+    CAST(SHIPMENT_ID AS STRING)    AS SHP_ID,
+    SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+    AND date_bpp >= '{ANO_INICIO}'
+    AND date_bpp <= CURRENT_DATE()
+    AND Classification_LM IN (
+      'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
+    )
+)
+SELECT
+  CAST(shp.SHP_SENDER_ID   AS STRING)     AS SELLER_ID,
+  CAST(shp.SHP_RECEIVER_ID AS STRING)     AS BUYER_ID,
+  COUNT(DISTINCT f.SHP_ID)                AS QTD_FRAUDES,
+  STRING_AGG(DISTINCT f.DRIVER_ID, ', ')  AS DRIVERS
+FROM fraudes f
+INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
+  ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = f.SHP_ID
+GROUP BY 1, 2
+HAVING COUNT(DISTINCT f.SHP_ID) >= 2
+ORDER BY 3 DESC
+LIMIT 200
+"""
+
 QUERY_DAMAGED = f"""
 -- Damaged por driver — usa DRIVER_ID direto da tabela
 SELECT
@@ -464,6 +493,36 @@ def processar_block_list(rows):
         'por_transp': por_transp, 'por_status': por_status,
         'rows': final_rows,
     }
+
+def processar_cruzamento(df):
+    if df is None or df.empty:
+        return {'sellers':[],'buyers':[],'pares':[],
+                'total_sellers':0,'total_buyers':0,'total_pares':0,'total_drivers':0}
+    rows = df.to_dict('records')
+    def _drivers(raw):
+        if not raw or str(raw) in ('None','nan',''): return set()
+        return {d.strip() for d in str(raw).split(',') if d.strip() and d.strip() != 'None'}
+
+    seller_map, buyer_map = {}, {}
+    for r in rows:
+        sid = str(r['SELLER_ID']); bid = str(r['BUYER_ID']); qtd = int(r['QTD_FRAUDES'])
+        drv = _drivers(r.get('DRIVERS',''))
+        if sid not in seller_map: seller_map[sid] = {'seller_id':sid,'qtd':0,'buyers':set(),'drivers':set()}
+        seller_map[sid]['qtd'] += qtd; seller_map[sid]['buyers'].add(bid); seller_map[sid]['drivers'] |= drv
+        if bid not in buyer_map:  buyer_map[bid]  = {'buyer_id':bid, 'qtd':0,'sellers':set(),'drivers':set()}
+        buyer_map[bid]['qtd']  += qtd; buyer_map[bid]['sellers'].add(sid); buyer_map[bid]['drivers']  |= drv
+
+    sellers = sorted([{**v,'buyers':len(v['buyers']),'drivers':len(v['drivers'])}
+                      for v in seller_map.values()], key=lambda x:-x['qtd'])
+    buyers  = sorted([{**v,'sellers':len(v['sellers']),'drivers':len(v['drivers'])}
+                      for v in buyer_map.values()],  key=lambda x:-x['qtd'])
+    pares   = [{'seller_id':str(r['SELLER_ID']),'buyer_id':str(r['BUYER_ID']),
+                'qtd':int(r['QTD_FRAUDES']),
+                'drivers':str(r.get('DRIVERS','')).replace('None','—') or '—'} for r in rows]
+    all_drv = set(); [all_drv.update(_drivers(r.get('DRIVERS',''))) for r in rows]
+    return {'sellers':sellers,'buyers':buyers,'pares':pares,
+            'total_sellers':len(seller_map),'total_buyers':len(buyer_map),
+            'total_pares':len(pares),'total_drivers':len(all_drv)}
 
 def buscar(bq, query, nome):
     print(f"  Buscando {nome}...")
@@ -1158,6 +1217,7 @@ def gerar_html(d):
   <div class="tab" onclick="showTab('places',this)">Ofensores Places (<span id="tab-count-places">{d["total_places"]}</span>)</div>
   <div class="tab" onclick="showTab('damaged',this)">Damaged (<span id="tab-count-damaged">{len(d["damaged"])}</span>)</div>
   <div class="tab" onclick="showTab('bloqueios',this)" style="color:#4ade80">Bloqueios (<span id="tab-count-bloqueios">{d["bl"]["total"]}</span>)</div>
+  <div class="tab" onclick="showTab('cruzamento',this)" style="color:#f59e0b">Cruzamento ({d["crz"]["total_pares"]})</div>
 </div>
 
 <!-- BARRA DE PERÍODO — sempre visível em todas as abas -->
@@ -1661,7 +1721,8 @@ function applyPeriodoToTab(name) {{
   else if (name === 'dxp')      {{ filterByMonths('tbl_dxp'); }}
   else if (name === 'places')   {{ filterByMonths('tbl_places'); }}
   else if (name === 'damaged')  {{ filterByMonths('tbl_damaged'); }}
-  else if (name === 'bloqueios') {{ filtrarBloqueios(); }}
+  else if (name === 'bloqueios')   {{ filtrarBloqueios(); }}
+  // cruzamento: sem filtro de período (dados estáticos do BQ)
 }}
 
 function setPeriodo() {{
@@ -1846,6 +1907,77 @@ lucide.createIcons();
   </div>
 </div>
 
+<!-- ===== ABA CRUZAMENTO ===== -->
+<div id="tab-cruzamento" class="content">
+  <div class="cards-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="card">
+      <div class="card-header"><i data-lucide="store" class="ci" width="14" height="14"></i><span class="cl">Sellers Ofensores</span></div>
+      <div class="cv" style="color:#f59e0b">{d["crz"]["total_sellers"]}</div><div class="cd">Vendedores c/ ≥2 fraudes</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="user" class="ci" width="14" height="14"></i><span class="cl">Buyers Ofensores</span></div>
+      <div class="cv" style="color:#60a5fa">{d["crz"]["total_buyers"]}</div><div class="cd">Compradores c/ ≥2 fraudes</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="git-merge" class="ci" width="14" height="14"></i><span class="cl">Pares Seller×Buyer</span></div>
+      <div class="cv">{d["crz"]["total_pares"]}</div><div class="cd">Combinações suspeitas</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="truck" class="ci" width="14" height="14"></i><span class="cl">Drivers Conectados</span></div>
+      <div class="cv" style="color:#4ade80">{d["crz"]["total_drivers"]}</div><div class="cd">Motoristas envolvidos</div>
+    </div>
+  </div>
+
+  <div class="grid2 mb16">
+    <div class="tbl-wrap">
+      <div class="tbl-title" style="color:#f59e0b">Top Sellers Ofensores</div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>Seller ID</th><th>Fraudes</th><th>Buyers</th><th>Drivers</th></tr></thead>
+        <tbody>
+          {''.join(f"""<tr style="background:{'#1a100a' if i==0 else ''}">
+            <td style="font-family:monospace;font-size:12px;color:#f59e0b">{s["seller_id"]}</td>
+            <td style="font-weight:700;color:#ef4444;text-align:center">{s["qtd"]}</td>
+            <td style="text-align:center;color:#9ca3af">{s["buyers"]}</td>
+            <td style="text-align:center;color:#4ade80">{s["drivers"]}</td>
+          </tr>""" for i,s in enumerate(d["crz"]["sellers"][:30]))}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="tbl-wrap">
+      <div class="tbl-title" style="color:#60a5fa">Top Buyers Ofensores</div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>Buyer ID</th><th>Fraudes</th><th>Sellers</th><th>Drivers</th></tr></thead>
+        <tbody>
+          {''.join(f"""<tr style="background:{'#0a0f1a' if i==0 else ''}">
+            <td style="font-family:monospace;font-size:12px;color:#60a5fa">{b["buyer_id"]}</td>
+            <td style="font-weight:700;color:#ef4444;text-align:center">{b["qtd"]}</td>
+            <td style="text-align:center;color:#9ca3af">{b["sellers"]}</td>
+            <td style="text-align:center;color:#4ade80">{b["drivers"]}</td>
+          </tr>""" for i,b in enumerate(d["crz"]["buyers"][:30]))}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-title">Cruzamento Seller × Buyer × Drivers</div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>#</th><th>Seller ID</th><th>Buyer ID</th><th>Fraudes</th><th>Drivers Envolvidos</th>
+      </tr></thead>
+      <tbody>
+        {''.join(f"""<tr>
+          <td style="color:#4b5563;font-size:11px;text-align:center">{i+1}</td>
+          <td style="font-family:monospace;font-size:12px;color:#f59e0b">{p["seller_id"]}</td>
+          <td style="font-family:monospace;font-size:12px;color:#60a5fa">{p["buyer_id"]}</td>
+          <td style="font-weight:700;color:#ef4444;text-align:center">{p["qtd"]}</td>
+          <td style="font-size:11px;color:#9ca3af">{p["drivers"]}</td>
+        </tr>""" for i,p in enumerate(d["crz"]["pares"]))}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
 </body>
 </html>'''
 
@@ -1867,14 +1999,16 @@ if __name__ == '__main__':
     df_dxp       = buscar(bq, QUERY_DRIVER_PLACE,    'Driver x Place')
     df_places    = buscar(bq, QUERY_PLACES,           'Places')
     df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
-    df_damaged   = buscar(bq, QUERY_DAMAGED,           'Damaged por Driver')
+    df_damaged      = buscar(bq, QUERY_DAMAGED,      'Damaged por Driver')
+    df_cruzamento   = buscar(bq, QUERY_CRUZAMENTO,   'Sellers/Buyers Ofensores')
 
     bl_rows = carregar_block_list(gs)
     sincronizar_status_block_list(gs, bq, bl_rows)
 
     print("\nProcessando...")
     dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
-    dados['bl'] = processar_block_list(bl_rows)
+    dados['bl']  = processar_block_list(bl_rows)
+    dados['crz'] = processar_cruzamento(df_cruzamento)
 
     MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
                  7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
