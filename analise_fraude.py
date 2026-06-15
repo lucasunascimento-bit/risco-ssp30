@@ -1304,12 +1304,20 @@ def gerar_html(d):
   .header-title{{font-size:16px;font-weight:700;color:#ffffff}}
   .header-sub{{font-size:11px;color:#374151;margin-top:2px}}
   .app-body{{display:flex;flex:1;overflow:hidden}}
-  .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:12px 0;display:flex;flex-direction:column}}
-  .sb-divider{{height:1px;background:#111827;margin:8px 0;flex-shrink:0}}
+  .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:0;display:flex;flex-direction:column}}
+  .sb-header{{padding:12px 14px 10px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:9px;flex-shrink:0}}
+  .sb-logo{{width:24px;height:24px;border-radius:5px;background:#ef4444;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}}
+  .sb-brand-name{{font-size:11px;font-weight:600;color:#e2e8f0;letter-spacing:.2px}}
+  .sb-brand-sub{{font-size:9px;color:#4b5563;letter-spacing:.6px;text-transform:uppercase;margin-top:1px}}
+  .sb-divider{{height:1px;background:#111827;margin:6px 0;flex-shrink:0}}
   .sb-section-header{{padding:10px 16px 4px;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#374151;font-weight:700;flex-shrink:0}}
   .sb-item{{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:12px;color:#6b7280;cursor:pointer;transition:all .2s;border-left:2px solid transparent;white-space:nowrap;flex-shrink:0}}
   .sb-item:hover{{background:#0d1321;color:#e2e8f0}}
-  .sb-item.active{{background:#0d1321;color:#ffffff;border-left-color:#ef4444;font-weight:600}}
+  .sb-item.active{{background:linear-gradient(90deg,rgba(239,68,68,.15),transparent);color:#ffffff;border-left-color:#ef4444;font-weight:600}}
+  .sb-badge{{margin-left:auto;background:rgba(239,68,68,.2);color:#f87171;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0}}
+  .sb-badge.green{{background:rgba(74,222,128,.15);color:#4ade80}}
+  .sb-badge.amber{{background:rgba(245,158,11,.15);color:#f59e0b}}
+  .sb-badge.purple{{background:rgba(167,139,250,.15);color:#a78bfa}}
   .main-content{{flex:1;overflow-y:auto}}
   .content{{display:none;padding:28px 32px}}
   .content.active{{display:block}}
@@ -1392,6 +1400,14 @@ def gerar_html(d):
 
 <div class="app-body">
 <nav class="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo">F</div>
+    <div>
+      <div class="sb-brand-name">Fraude SSP30</div>
+      <div class="sb-brand-sub">Análise</div>
+    </div>
+  </div>
+  <div style="padding-top:6px">
   <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
     <i data-lucide="bar-chart-2" width="14" height="14" class="ci"></i> Visão Geral
   </div>
@@ -1399,35 +1415,36 @@ def gerar_html(d):
   <div class="sb-section-header">Análise de Risco</div>
   <div class="sb-item" data-tab="drivers" onclick="showTab('drivers',this)">
     <i data-lucide="user" width="14" height="14" class="ci"></i>
-    Por Driver (<span id="tab-count-drivers">{len(d["drivers_ativos"])}</span>)
+    Por Driver <span class="sb-badge" id="tab-count-drivers">{len(d["drivers_ativos"])}</span>
   </div>
   <div class="sb-item" data-tab="dxp" onclick="showTab('dxp',this)">
     <i data-lucide="map-pin" width="14" height="14" class="ci"></i>
-    Driver × Place (<span id="tab-count-dxp">{len(d["dxp"])}</span>)
+    Driver × Place <span class="sb-badge" id="tab-count-dxp">{len(d["dxp"])}</span>
   </div>
   <div class="sb-item" data-tab="places" onclick="showTab('places',this)">
     <i data-lucide="building-2" width="14" height="14" class="ci"></i>
-    Ofensores Places (<span id="tab-count-places">{d["total_places"]}</span>)
+    Places <span class="sb-badge" id="tab-count-places">{d["total_places"]}</span>
   </div>
   <div class="sb-item" data-tab="damaged" onclick="showTab('damaged',this)">
     <i data-lucide="package-x" width="14" height="14" class="ci"></i>
-    Damaged (<span id="tab-count-damaged">{len(d["damaged"])}</span>)
+    Damaged <span class="sb-badge" id="tab-count-damaged">{len(d["damaged"])}</span>
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Block List</div>
-  <div class="sb-item" data-tab="bloqueios" onclick="showTab('bloqueios',this)" style="color:#4ade80">
+  <div class="sb-item" data-tab="bloqueios" onclick="showTab('bloqueios',this)">
     <i data-lucide="shield" width="14" height="14" class="ci"></i>
-    Bloqueios (<span id="tab-count-bloqueios">{d["bl"]["total"]}</span>)
+    Bloqueios <span class="sb-badge green" id="tab-count-bloqueios">{d["bl"]["total"]}</span>
   </div>
-  <div class="sb-item" data-tab="cruzamento" onclick="showTab('cruzamento',this)" style="color:#f59e0b">
+  <div class="sb-item" data-tab="cruzamento" onclick="showTab('cruzamento',this)">
     <i data-lucide="git-merge" width="14" height="14" class="ci"></i>
-    BSD ({d["crz"]["total_pares"]})
+    BSD <span class="sb-badge amber">{d["crz"]["total_pares"]}</span>
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Investigações</div>
-  <div class="sb-item" data-tab="cftv" onclick="showTab('cftv',this)" style="color:#a78bfa">
+  <div class="sb-item" data-tab="cftv" onclick="showTab('cftv',this)">
     <i data-lucide="camera" width="14" height="14" class="ci"></i>
-    CFTV ({d["cftv"]["total"]})
+    CFTV <span class="sb-badge purple">{d["cftv"]["total"]}</span>
+  </div>
   </div>
 </nav>
 <main class="main-content">

@@ -491,13 +491,19 @@ def gerar_html(d):
   .countdown-txt{{font-size:11px;color:#4b5563}}
   /* SIDEBAR */
   .app-body{{display:flex;flex:1;overflow:hidden}}
-  .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:12px 0;display:flex;flex-direction:column}}
-  .sb-divider{{height:1px;background:#111827;margin:8px 0;flex-shrink:0}}
+  .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:0;display:flex;flex-direction:column}}
+  .sb-header{{padding:12px 14px 10px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:9px;flex-shrink:0}}
+  .sb-logo{{width:24px;height:24px;border-radius:5px;background:#FFE600;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000;flex-shrink:0}}
+  .sb-brand-name{{font-size:11px;font-weight:600;color:#e2e8f0;letter-spacing:.2px}}
+  .sb-brand-sub{{font-size:9px;color:#4b5563;letter-spacing:.6px;text-transform:uppercase;margin-top:1px}}
+  .sb-divider{{height:1px;background:#111827;margin:6px 0;flex-shrink:0}}
   .sb-section-header{{padding:10px 16px 4px;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#374151;font-weight:700;flex-shrink:0}}
   .sb-item{{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:12px;color:#6b7280;cursor:pointer;transition:all .2s;border-left:2px solid transparent;white-space:nowrap;flex-shrink:0}}
   .sb-item:hover{{background:#0d1321;color:#e2e8f0}}
-  .sb-item.active{{background:#0d1321;color:#ffffff;border-left-color:#FFE600;font-weight:600}}
+  .sb-item.active{{background:linear-gradient(90deg,rgba(255,230,0,.12),transparent);color:#ffffff;border-left-color:#FFE600;font-weight:600}}
   .sb-item.sb-alert{{color:#ef4444!important}}
+  .sb-badge{{margin-left:auto;background:rgba(255,230,0,.15);color:#FFE600;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0}}
+  .sb-badge.red{{background:rgba(239,68,68,.2);color:#f87171}}
   .ci{{flex-shrink:0}}
   .main-content{{flex:1;overflow-y:auto}}
   /* CONTENT */
@@ -624,19 +630,30 @@ def gerar_html(d):
 
 <div class="app-body">
 <nav class="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo">R</div>
+    <div>
+      <div class="sb-brand-name">Risco SSP30</div>
+      <div class="sb-brand-sub">Controle</div>
+    </div>
+  </div>
+  <div style="padding-top:6px">
   <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
     <i data-lucide="bar-chart-2" width="14" height="14" class="ci"></i> Visão Geral
   </div>
   <div class="sb-item {'sb-alert' if d['criticos'] else ''}" data-tab="criticos" onclick="showTab('criticos',this)">
-    <i data-lucide="alert-triangle" width="14" height="14" class="ci"></i> Críticos ({len(d["criticos"])})
+    <i data-lucide="alert-triangle" width="14" height="14" class="ci"></i>
+    Críticos {'<span class="sb-badge red">' + str(len(d["criticos"])) + '</span>' if d["criticos"] else ''}
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Monitoramento</div>
   <div class="sb-item" data-tab="route" onclick="showTab('route',this)">
-    <i data-lucide="package" width="14" height="14" class="ci"></i> ON ROUTE ({d["r_total"]})
+    <i data-lucide="package" width="14" height="14" class="ci"></i>
+    ON ROUTE <span class="sb-badge">{d["r_total"]}</span>
   </div>
   <div class="sb-item" data-tab="way" onclick="showTab('way',this)">
-    <i data-lucide="truck" width="14" height="14" class="ci"></i> ON WAY ({d["w_total"]})
+    <i data-lucide="truck" width="14" height="14" class="ci"></i>
+    ON WAY <span class="sb-badge">{d["w_total"]}</span>
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Análise</div>
@@ -645,6 +662,7 @@ def gerar_html(d):
   </div>
   <div class="sb-item" data-tab="hist" onclick="showTab('hist',this)">
     <i data-lucide="clock" width="14" height="14" class="ci"></i> Histórico
+  </div>
   </div>
 </nav>
 <main class="main-content">
