@@ -14,6 +14,8 @@ ANO_INICIO     = '2026-01-01'
 OUTPUT         = os.path.join(os.path.dirname(__file__), 'fraude.html')
 BLOCK_LIST_ID  = '1521Ek2wn8qYLj7g6dh0aBBMmpVYHjCp2hftGKNG9bO0'
 ABA_BLOQUEIOS  = 'Drivers Bloqueados'
+CFTV_SHEET_ID  = '18isURInofILBi-RS9YrCQyYcnb6JeU_stNqnspxiqLM'
+CFTV_ABA       = 'Respostas ao formulário 1'
 
 # ============================================================
 # QUERIES
@@ -342,6 +344,21 @@ def carregar_block_list(gs):
         print(f"  Aviso Block List: {e}")
         return []
 
+def carregar_cftv(gs):
+    print("  Lendo planilha CFTV...")
+    try:
+        pl   = gs.open_by_key(CFTV_SHEET_ID)
+        data = pl.worksheet(CFTV_ABA).get_all_values()
+        if len(data) <= 1:
+            return []
+        header = data[0]
+        rows   = [dict(zip(header, r)) for r in data[1:] if any(r)]
+        print(f"  {len(rows)} solicitações CFTV")
+        return rows
+    except Exception as e:
+        print(f"  Aviso CFTV: {e}")
+        return []
+
 def sincronizar_status_block_list(gs, bq, bl_rows):
     """Consulta BQ e atualiza status na planilha para drivers Solicitado/Monitorado."""
     ATUALIZAR = {'solicitado', 'monitorado'}
@@ -530,6 +547,58 @@ def processar_cruzamento(df):
     return {'sellers':sellers,'buyers':buyers,'pares':pares,
             'total_sellers':len(seller_map),'total_buyers':len(buyer_map),
             'total_pares':len(pares),'total_drivers':len(all_drv)}
+
+def processar_cftv(rows):
+    def _valor(v):
+        try:
+            return float(str(v).replace('R$','').replace('\xa0','').replace('.','').replace(',','.').strip() or 0)
+        except:
+            return 0.0
+    def _status(s):
+        s = s.strip().lower()
+        if 'conclu' in s: return 'Concluído'
+        if 'expira' in s or 'expid' in s: return 'SLA Vencido'
+        return 'Em Andamento'
+
+    out = []
+    for r in rows:
+        ts       = r.get('Carimbo de data/hora', '')
+        data     = ts.split(' ')[0] if ts else ''
+        data_iso = ''
+        if data and len(data) == 10:
+            try: data_iso = f"{data[6:]}-{data[3:5]}-{data[:2]}"
+            except: pass
+        status = _status(r.get('Status', ''))
+        out.append({
+            'data':          data,
+            'data_iso':      data_iso,
+            'week':          str(r.get('Week', '')).strip(),
+            'solicitante':   r.get('Solicitante', '').strip(),
+            'operacao':      r.get('Operação', '').strip(),
+            'shp':           str(r.get('Shipment', '')).strip(),
+            'produto':       str(r.get('Informe a descrição do ID', '')).strip()[:60],
+            'valor':         _valor(r.get('Valor em R$', '')),
+            'prioridade':    r.get('Nivel de Prioridade', '').strip(),
+            'status':        status,
+            'data_inicio':   r.get('Data Inicio', '').strip(),
+            'data_conclusao':r.get('Data Conclusão', '').strip(),
+            'sla':           str(r.get('SLA', '') or '').strip(),
+            'responsavel':   r.get('Responsável', '').strip(),
+            'conclusao':     r.get('Conclusão', '').strip(),
+            'driver':        str(r.get('Driver', '') or '').strip(),
+            'placa':         str(r.get('Placa', '') or '').strip(),
+            'mlp':           str(r.get('MLP', '') or '').strip(),
+        })
+    out.sort(key=lambda x: x['data_iso'], reverse=True)
+    total      = len(out)
+    concluidos = sum(1 for r in out if r['status'] == 'Concluído')
+    sla_venc   = sum(1 for r in out if r['status'] == 'SLA Vencido')
+    em_and     = total - concluidos - sla_venc
+    return {
+        'total': total, 'concluidos': concluidos,
+        'em_andamento': em_and, 'sla_vencido': sla_venc,
+        'rows': out,
+    }
 
 def buscar(bq, query, nome):
     print(f"  Buscando {nome}...")
@@ -975,6 +1044,36 @@ def rows_block_list(rows):
             </tr>'''
     return out
 
+def rows_cftv(rows):
+    STATUS_COR  = {{'Concluído':'#10b981','Em Andamento':'#3b82f6','SLA Vencido':'#ef4444'}}
+    PRIO_COR    = {{'Alto':'#ef4444','Moderado':'#f59e0b'}}
+    CONCL_COR   = {{'Conclusivo':'#10b981','Inconclusivo':'#ef4444'}}
+    out = ''
+    for r in rows:
+        st_cor  = STATUS_COR.get(r['status'], '#9ca3af')
+        pr_cor  = PRIO_COR.get(r['prioridade'], '#9ca3af')
+        co_cor  = CONCL_COR.get(r['conclusao'], '#6b7280')
+        shp_link = (f'<a href="{MELI_URL}/{r["shp"]}" target="_blank" '
+                    f'style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">{r["shp"]}</a>'
+                    if r['shp'] else '—')
+        search_txt = f'{r["shp"]} {r["driver"]} {r["solicitante"]} {r["produto"]}'.lower()
+        prod_esc   = r['produto'].replace('"', '&quot;')
+        out += f'''<tr class="cftv-row" data-operacao="{r["operacao"]}" data-status="{r["status"]}" data-prio="{r["prioridade"]}" data-search="{search_txt}">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">{r["data"]}</td>
+          <td style="font-size:11px;color:#6b7280">W{r["week"]}</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">{r["operacao"]}</span></td>
+          <td>{shp_link}</td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{prod_esc}">{r["produto"]}</td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R${r["valor"]:,.2f}</td>
+          <td><span style="color:{pr_cor};font-size:11px;font-weight:600">{r["prioridade"] or "—"}</span></td>
+          <td><span style="color:{st_cor};font-size:11px;font-weight:600">{r["status"]}</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">{r["sla"] or "—"}</td>
+          <td style="font-size:11px;color:#d1d5db">{r["responsavel"] or "—"}</td>
+          <td><span style="color:{co_cor};font-size:11px">{r["conclusao"] or "—"}</span></td>
+          <td style="font-size:11px;color:#9ca3af">{r["driver"] or "—"}</td>
+        </tr>'''
+    return out
+
 def rows_historico_bloqueios(bloqueados):
     if not bloqueados:
         return ''
@@ -1225,6 +1324,7 @@ def gerar_html(d):
   <div class="tab" onclick="showTab('damaged',this)">Damaged (<span id="tab-count-damaged">{len(d["damaged"])}</span>)</div>
   <div class="tab" onclick="showTab('bloqueios',this)" style="color:#4ade80">Bloqueios (<span id="tab-count-bloqueios">{d["bl"]["total"]}</span>)</div>
   <div class="tab" onclick="showTab('cruzamento',this)" style="color:#f59e0b">BSD ({d["crz"]["total_pares"]})</div>
+  <div class="tab" onclick="showTab('cftv',this)" style="color:#a78bfa">CFTV ({d["cftv"]["total"]})</div>
 </div>
 
 <!-- BARRA DE PERÍODO — sempre visível em todas as abas -->
@@ -1850,6 +1950,20 @@ function updateCountCards() {{
 }})();
 
 lucide.createIcons();
+
+function filtrarCftv() {{
+  const op     = document.getElementById('cftv_op')?.value     || '';
+  const status = document.getElementById('cftv_status')?.value || '';
+  const prio   = document.getElementById('cftv_prio')?.value   || '';
+  const search = (document.getElementById('cftv_search')?.value || '').toLowerCase();
+  document.querySelectorAll('.cftv-row').forEach(tr => {{
+    const ok = (!op     || tr.dataset.operacao === op)
+            && (!status || tr.dataset.status   === status)
+            && (!prio   || tr.dataset.prio     === prio)
+            && (!search || (tr.dataset.search || '').includes(search));
+    tr.style.display = ok ? '' : 'none';
+  }});
+}}
 </script>
 
 <!-- ABA BLOQUEIOS -->
@@ -1986,6 +2100,61 @@ lucide.createIcons();
   </div>
 </div>
 
+<!-- ===== ABA CFTV ===== -->
+<div id="tab-cftv" class="content">
+  <div class="cards-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="card">
+      <div class="card-header"><i data-lucide="camera" class="ci" width="14" height="14"></i><span class="cl">Solicitações</span></div>
+      <div class="cv">{d["cftv"]["total"]}</div><div class="cd">Total de solicitações</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="check-circle" class="ci" width="14" height="14"></i><span class="cl">Concluídos</span></div>
+      <div class="cv green">{d["cftv"]["concluidos"]}</div><div class="cd">Investigações encerradas</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="clock" class="ci" width="14" height="14"></i><span class="cl">Em Andamento</span></div>
+      <div class="cv" style="color:#3b82f6">{d["cftv"]["em_andamento"]}</div><div class="cd">Aguardando conclusão</div>
+    </div>
+    <div class="card c-red">
+      <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14"></i><span class="cl">SLA Vencido</span></div>
+      <div class="cv red">{d["cftv"]["sla_vencido"]}</div><div class="cd">Prazo expirado</div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="filter-bar">
+      <span class="filter-label">Operação</span>
+      <select id="cftv_op" class="filter-select" onchange="filtrarCftv()">
+        <option value="">Todas</option>
+        <option value="SSP30">SSP30</option>
+        <option value="XSP10">XSP10</option>
+      </select>
+      <span class="filter-label">Status</span>
+      <select id="cftv_status" class="filter-select" onchange="filtrarCftv()">
+        <option value="">Todos</option>
+        <option value="Concluído">Concluído</option>
+        <option value="Em Andamento">Em Andamento</option>
+        <option value="SLA Vencido">SLA Vencido</option>
+      </select>
+      <span class="filter-label">Prioridade</span>
+      <select id="cftv_prio" class="filter-select" onchange="filtrarCftv()">
+        <option value="">Todas</option>
+        <option value="Alto">Alto</option>
+        <option value="Moderado">Moderado</option>
+      </select>
+      <input id="cftv_search" type="text" oninput="filtrarCftv()" class="filter-select" placeholder="🔍 SHP / Driver / Solicitante..." style="width:220px">
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>Data</th><th>Wk</th><th>Op</th><th>Shipment</th><th>Produto</th>
+        <th style="text-align:right">Valor R$</th><th>Prioridade</th><th>Status</th>
+        <th>SLA</th><th>Responsável</th><th>Conclusão</th><th>Driver</th>
+      </tr></thead>
+      <tbody id="cftv-tbody">{rows_cftv(d["cftv"]["rows"])}</tbody>
+    </table></div>
+  </div>
+</div>
+
 </body>
 </html>'''
 
@@ -2010,13 +2179,15 @@ if __name__ == '__main__':
     df_damaged      = buscar(bq, QUERY_DAMAGED,      'Damaged por Driver')
     df_cruzamento   = buscar(bq, QUERY_CRUZAMENTO,   'Sellers/Buyers Ofensores')
 
-    bl_rows = carregar_block_list(gs)
+    bl_rows   = carregar_block_list(gs)
+    cftv_rows = carregar_cftv(gs)
     sincronizar_status_block_list(gs, bq, bl_rows)
 
     print("\nProcessando...")
     dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
-    dados['bl']  = processar_block_list(bl_rows)
-    dados['crz'] = processar_cruzamento(df_cruzamento)
+    dados['bl']   = processar_block_list(bl_rows)
+    dados['crz']  = processar_cruzamento(df_cruzamento)
+    dados['cftv'] = processar_cftv(cftv_rows)
 
     MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
                  7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
