@@ -1045,9 +1045,9 @@ def rows_block_list(rows):
     return out
 
 def rows_cftv(rows):
-    STATUS_COR  = {{'Concluído':'#10b981','Em Andamento':'#3b82f6','SLA Vencido':'#ef4444'}}
-    PRIO_COR    = {{'Alto':'#ef4444','Moderado':'#f59e0b'}}
-    CONCL_COR   = {{'Conclusivo':'#10b981','Inconclusivo':'#ef4444'}}
+    STATUS_COR  = {'Concluído':'#10b981','Em Andamento':'#3b82f6','SLA Vencido':'#ef4444'}
+    PRIO_COR    = {'Alto':'#ef4444','Moderado':'#f59e0b'}
+    CONCL_COR   = {'Conclusivo':'#10b981','Inconclusivo':'#ef4444'}
     out = ''
     for r in rows:
         st_cor  = STATUS_COR.get(r['status'], '#9ca3af')
