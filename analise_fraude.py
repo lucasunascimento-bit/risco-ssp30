@@ -277,6 +277,30 @@ ORDER BY 3 DESC
 LIMIT 200
 """
 
+QUERY_CRUZAMENTO_MES = f"""
+WITH fraudes AS (
+  SELECT CAST(SHIPMENT_ID AS STRING) AS SHP_ID,
+    FORMAT_DATE('%Y-%m', date_bpp) AS MES
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+    AND date_bpp >= '{ANO_INICIO}'
+    AND date_bpp <= CURRENT_DATE()
+    AND Classification_LM IN (
+      'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
+    )
+)
+SELECT f.MES,
+  CAST(shp.SHP_SENDER_ID   AS STRING) AS SELLER_ID,
+  CAST(shp.SHP_RECEIVER_ID AS STRING) AS BUYER_ID,
+  COUNT(DISTINCT f.SHP_ID)            AS QTD_FRAUDES
+FROM fraudes f
+INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
+  ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = f.SHP_ID
+GROUP BY 1, 2, 3
+ORDER BY 1 DESC, 4 DESC
+"""
+
 QUERY_DAMAGED = f"""
 -- Damaged por driver — usa DRIVER_ID direto da tabela
 SELECT
@@ -547,6 +571,25 @@ def processar_cruzamento(df):
     return {'sellers':sellers,'buyers':buyers,'pares':pares,
             'total_sellers':len(seller_map),'total_buyers':len(buyer_map),
             'total_pares':len(pares),'total_drivers':len(all_drv)}
+
+def processar_cruzamento_mes(df):
+    if df is None or df.empty:
+        return {}
+    seller_by_mes, buyer_by_mes = {}, {}
+    for _, r in df.iterrows():
+        mes = str(r.get('MES', ''))
+        sid = str(r['SELLER_ID']); bid = str(r['BUYER_ID']); qtd = int(r['QTD_FRAUDES'])
+        if mes not in seller_by_mes:
+            seller_by_mes[mes] = {}; buyer_by_mes[mes] = {}
+        seller_by_mes[mes][sid] = seller_by_mes[mes].get(sid, 0) + qtd
+        buyer_by_mes[mes][bid]  = buyer_by_mes[mes].get(bid, 0)  + qtd
+    result = {}
+    for mes in seller_by_mes:
+        result[mes] = {
+            'sellers': sorted([{'id':k,'qtd':v} for k,v in seller_by_mes[mes].items()], key=lambda x:-x['qtd'])[:10],
+            'buyers':  sorted([{'id':k,'qtd':v} for k,v in buyer_by_mes[mes].items()],  key=lambda x:-x['qtd'])[:10],
+        }
+    return result
 
 def processar_cftv(rows):
     def _valor(v):
@@ -841,6 +884,32 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
             elif 'DAMAGED' in cls:
                 monthly_agg[ym]['damaged'] += 1
 
+    # Ranking de drivers por mês
+    monthly_dr_raw = {}
+    for did, shps in shp_por_driver.items():
+        for s in shps:
+            ym = _ym(s['data'])
+            if not ym:
+                continue
+            if ym not in monthly_dr_raw:
+                monthly_dr_raw[ym] = {}
+            if did not in monthly_dr_raw[ym]:
+                monthly_dr_raw[ym][did] = {'fraudes': 0, 'damaged': 0, 'bpp': 0.0}
+            cls = s.get('class', '')
+            monthly_dr_raw[ym][did]['bpp'] = round(monthly_dr_raw[ym][did]['bpp'] + s.get('bpp', 0.0), 2)
+            if any(x in cls for x in ('LOST', 'FRAUD')):
+                monthly_dr_raw[ym][did]['fraudes'] += 1
+            elif 'DAMAGED' in cls:
+                monthly_dr_raw[ym][did]['damaged'] += 1
+    monthly_dr = {
+        ym: sorted(
+            [{'id': did, **v, 'score': v['fraudes']*3 + v['damaged']}
+             for did, v in drv.items() if v['fraudes'] + v['damaged'] > 0],
+            key=lambda x: -x['score']
+        )[:10]
+        for ym, drv in monthly_dr_raw.items()
+    }
+
     # ---- Conjunto de IDs que aparecem nas duas análises ----
     ids_fraude   = {d['id'] for d in drivers if d['fraude'] > 0}
     ids_damaged  = {d['id'] for d in damaged}
@@ -890,6 +959,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         'top10_places_labels': top10_places_labels,
         'top10_places_vals':   top10_places_vals,
         'monthly_agg':         monthly_agg,
+        'monthly_dr':          monthly_dr,
     }
 
 # ============================================================
@@ -1435,6 +1505,20 @@ def gerar_html(d):
 
 <!-- RISCO POR DRIVER -->
 <div id="tab-drivers" class="content">
+
+  <!-- Top Ofensores do Mês -->
+  <div class="box" style="margin-bottom:18px">
+    <div class="box-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span><i data-lucide="trophy" width="12" height="12" class="ci" style="margin-right:6px;color:#FFE600"></i>TOP OFENSORES DO MÊS</span>
+      <select id="dr_mes_sel" class="filter-select" style="font-size:11px;padding:4px 8px"></select>
+    </div>
+    <table style="width:100%;font-size:12px">
+      <thead><tr>
+        <th style="width:40px">#</th><th>Driver ID</th><th>Fraudes</th><th>Damaged</th><th>BPP USD</th><th>Score</th>
+      </tr></thead>
+      <tbody id="dr-mes-tbody"></tbody>
+    </table>
+  </div>
 
   <!-- Banner de bloqueados -->
   {f'''<div class="alerta-box" style="background:#0a1f0a;border-color:#166534">
@@ -1986,6 +2070,41 @@ function updateCountCards() {{
   setPeriodo();
 }})();
 
+// Ofensores do Mês
+const _drMes  = {j(d["monthly_dr"])};
+const _crzMes = {j(d["crz_mes"])};
+function _buildMesSel(id, data, onChange) {{
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const meses = Object.keys(data).sort().reverse();
+  meses.forEach(m => {{ const o = document.createElement('option'); o.value = m; o.text = m; sel.appendChild(o); }});
+  sel.addEventListener('change', onChange);
+}}
+function renderDrMes() {{
+  const mes  = document.getElementById('dr_mes_sel')?.value;
+  const rows = (_drMes[mes] || []);
+  const tb   = document.getElementById('dr-mes-tbody');
+  if (!tb) return;
+  tb.innerHTML = rows.length ? rows.map((r,i) =>
+    `<tr><td style="color:#6b7280">#${{i+1}}</td><td style="color:#e2e8f0;font-weight:500">${{r.id}}</td><td style="color:#ef4444">${{r.fraudes}}</td><td style="color:#f59e0b">${{r.damaged}}</td><td>${{r.bpp.toFixed(2)}}</td><td style="color:#FFE600;font-weight:700">${{r.score}}</td></tr>`
+  ).join('') : '<tr><td colspan="6" style="color:#6b7280;text-align:center;padding:16px">Sem dados para este mês</td></tr>';
+}}
+function renderCrzMes() {{
+  const mes  = document.getElementById('crz_mes_sel')?.value;
+  const data = _crzMes[mes] || {{sellers:[], buyers:[]}};
+  const tbS  = document.getElementById('crz-sellers-mes-tbody');
+  const tbB  = document.getElementById('crz-buyers-mes-tbody');
+  if (tbS) tbS.innerHTML = data.sellers.length ? data.sellers.map((r,i) =>
+    `<tr><td style="color:#6b7280">#${{i+1}}</td><td style="color:#e2e8f0">${{r.id}}</td><td style="color:#f59e0b;font-weight:700">${{r.qtd}}</td></tr>`
+  ).join('') : '<tr><td colspan="3" style="color:#6b7280;text-align:center;padding:12px">Sem dados</td></tr>';
+  if (tbB) tbB.innerHTML = data.buyers.length ? data.buyers.map((r,i) =>
+    `<tr><td style="color:#6b7280">#${{i+1}}</td><td style="color:#e2e8f0">${{r.id}}</td><td style="color:#60a5fa;font-weight:700">${{r.qtd}}</td></tr>`
+  ).join('') : '<tr><td colspan="3" style="color:#6b7280;text-align:center;padding:12px">Sem dados</td></tr>';
+}}
+_buildMesSel('dr_mes_sel',  _drMes,  renderDrMes);
+_buildMesSel('crz_mes_sel', _crzMes, renderCrzMes);
+renderDrMes(); renderCrzMes();
+
 lucide.createIcons();
 
 function filtrarCftv() {{
@@ -2067,6 +2186,29 @@ function filtrarCftv() {{
 
 <!-- ===== ABA BSD (Buyer Seller Driver) ===== -->
 <div id="tab-cruzamento" class="content">
+
+  <!-- Top Sellers & Buyers do Mês -->
+  <div class="box" style="margin-bottom:18px">
+    <div class="box-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span><i data-lucide="trophy" width="12" height="12" class="ci" style="margin-right:6px;color:#FFE600"></i>TOP SELLERS & BUYERS DO MÊS</span>
+      <select id="crz_mes_sel" class="filter-select" style="font-size:11px;padding:4px 8px"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div style="font-size:10px;color:#6b7280;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.6px">Sellers Ofensores</div>
+        <table style="width:100%;font-size:12px"><thead><tr>
+          <th style="width:40px">#</th><th>Seller ID</th><th>Fraudes</th>
+        </tr></thead><tbody id="crz-sellers-mes-tbody"></tbody></table>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#6b7280;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.6px">Buyers Ofensores</div>
+        <table style="width:100%;font-size:12px"><thead><tr>
+          <th style="width:40px">#</th><th>Buyer ID</th><th>Fraudes</th>
+        </tr></thead><tbody id="crz-buyers-mes-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
   <div class="cards-grid" style="grid-template-columns:repeat(4,1fr)">
     <div class="card">
       <div class="card-header"><i data-lucide="store" class="ci" width="14" height="14"></i><span class="cl">Sellers Ofensores</span></div>
@@ -2217,7 +2359,8 @@ if __name__ == '__main__':
     df_places    = buscar(bq, QUERY_PLACES,           'Places')
     df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
     df_damaged      = buscar(bq, QUERY_DAMAGED,      'Damaged por Driver')
-    df_cruzamento   = buscar(bq, QUERY_CRUZAMENTO,   'Sellers/Buyers Ofensores')
+    df_cruzamento     = buscar(bq, QUERY_CRUZAMENTO,     'Sellers/Buyers Ofensores')
+    df_cruzamento_mes = buscar(bq, QUERY_CRUZAMENTO_MES, 'Sellers/Buyers por Mês')
 
     bl_rows   = carregar_block_list(gs)
     cftv_rows = carregar_cftv(gs)
@@ -2226,8 +2369,9 @@ if __name__ == '__main__':
     print("\nProcessando...")
     dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
     dados['bl']   = processar_block_list(bl_rows)
-    dados['crz']  = processar_cruzamento(df_cruzamento)
-    dados['cftv'] = processar_cftv(cftv_rows)
+    dados['crz']     = processar_cruzamento(df_cruzamento)
+    dados['crz_mes'] = processar_cruzamento_mes(df_cruzamento_mes)
+    dados['cftv']    = processar_cftv(cftv_rows)
 
     MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
                  7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
