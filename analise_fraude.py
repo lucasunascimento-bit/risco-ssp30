@@ -572,6 +572,65 @@ def processar_cruzamento(df):
             'total_sellers':len(seller_map),'total_buyers':len(buyer_map),
             'total_pares':len(pares),'total_drivers':len(all_drv)}
 
+def detectar_alertas_bl(bl, shp_por_driver, min_bpp=200.0, janela_dias=15):
+    from datetime import datetime, timedelta
+    hoje  = datetime.now().date()
+    limite = hoje - timedelta(days=janela_dias)
+    alertas = []
+    for row in bl.get('rows', []):
+        did    = row.get('driver_id', '').strip()
+        status = row.get('status', '')
+        if not did or status in ('Recusado', 'Inativo'):
+            continue
+        recentes = []
+        for s in shp_por_driver.get(did, []):
+            try:
+                raw = s['data'][:10]
+                fmt = '%d/%m/%Y' if '/' in raw else '%Y-%m-%d'
+                dt  = datetime.strptime(raw, fmt).date()
+            except Exception:
+                continue
+            if dt >= limite and s.get('bpp', 0) >= min_bpp:
+                recentes.append({
+                    'shp_id':     s['id'],
+                    'bpp':        s['bpp'],
+                    'data':       dt.strftime('%d/%m/%Y'),
+                    'dias_atras': (hoje - dt).days,
+                    'class':      s.get('class', ''),
+                })
+        if recentes:
+            recentes.sort(key=lambda x: -x['bpp'])
+            alertas.append({
+                'driver_id':  did,
+                'nome':       row.get('nome', ''),
+                'status_bl':  status,
+                'shps':       recentes,
+                'max_bpp':    max(x['bpp'] for x in recentes),
+                'total_shps': len(recentes),
+            })
+    alertas.sort(key=lambda x: -x['max_bpp'])
+    return alertas
+
+def rows_alertas_bl(alertas):
+    if not alertas:
+        return ''
+    STATUS_COR = {'Bloqueado':'#ef4444','Solicitado':'#60a5fa','Monitorado':'#f59e0b'}
+    out = []
+    for a in alertas:
+        for s in a['shps'][:3]:
+            cor = STATUS_COR.get(a['status_bl'], '#9ca3af')
+            nome_tag = f' <span style="color:#6b7280;font-size:10px">({a["nome"]})</span>' if a['nome'] else ''
+            out.append(
+                f'<tr style="border-top:1px solid #1f2937">'
+                f'<td style="padding:6px 0;color:#e2e8f0;font-weight:500">{a["driver_id"]}{nome_tag}</td>'
+                f'<td style="padding:6px 0"><span style="color:{cor};font-size:11px;font-weight:600">{a["status_bl"]}</span></td>'
+                f'<td style="padding:6px 0;color:#9ca3af">{s["shp_id"]}</td>'
+                f'<td style="padding:6px 0;text-align:right;color:#f87171;font-weight:700">${s["bpp"]:,.2f}</td>'
+                f'<td style="padding:6px 0;text-align:right;color:#6b7280">{s["data"]} <span style="color:#4b5563">({s["dias_atras"]}d)</span></td>'
+                f'</tr>'
+            )
+    return ''.join(out)
+
 def processar_cruzamento_mes(df):
     if df is None or df.empty:
         return {}
@@ -2128,6 +2187,25 @@ function filtrarCftv() {{
 
 <!-- ABA BLOQUEIOS -->
 <div id="tab-bloqueios" class="content">
+
+  {f'''<div style="background:#0f0606;border:1px solid #7f1d1d;border-radius:8px;padding:14px 18px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <i data-lucide="alert-triangle" width="16" height="16" style="color:#ef4444;flex-shrink:0"></i>
+      <span style="font-size:13px;font-weight:600;color:#f87171">{len(d["alertas_bl"])} driver(s) da Block List com SHP de alto valor nos últimos 15 dias</span>
+      <span style="margin-left:auto;background:#450a0a;color:#f87171;font-size:10px;font-weight:700;padding:3px 9px;border-radius:3px;white-space:nowrap">≥ $200 USD</span>
+    </div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead><tr>
+        <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">Driver</th>
+        <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">Status BL</th>
+        <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">SHP ID</th>
+        <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">BPP</th>
+        <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">Data</th>
+      </tr></thead>
+      <tbody>{rows_alertas_bl(d["alertas_bl"])}</tbody>
+    </table>
+  </div>''' if d["alertas_bl"] else ''}
+
   <div class="cards">
     <div class="card">
       <div class="card-header"><i data-lucide="list" class="ci" width="14" height="14"></i><span class="cl">Total Solicitações</span></div>
@@ -2372,7 +2450,8 @@ if __name__ == '__main__':
 
     print("\nProcessando...")
     dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
-    dados['bl']   = processar_block_list(bl_rows)
+    dados['bl']        = processar_block_list(bl_rows)
+    dados['alertas_bl'] = detectar_alertas_bl(dados['bl'], dados['shp_por_driver'])
     dados['crz']     = processar_cruzamento(df_cruzamento)
     dados['crz_mes'] = processar_cruzamento_mes(df_cruzamento_mes)
     dados['cftv']    = processar_cftv(cftv_rows)
