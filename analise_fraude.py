@@ -1227,17 +1227,21 @@ def gerar_html(d):
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
-  body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
-  .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #7f1d1d}}
+  body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}}
+  .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #7f1d1d;flex-shrink:0}}
   .header-brand{{display:flex;align-items:center;gap:10px}}
   .header-accent{{width:3px;height:28px;background:#ef4444;border-radius:2px}}
   .header-title{{font-size:16px;font-weight:700;color:#ffffff}}
   .header-sub{{font-size:11px;color:#374151;margin-top:2px}}
-  .tabs{{background:#080d19;border-bottom:1px solid #111827;padding:0 32px;display:flex;gap:0;overflow-x:auto}}
-  .tab{{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;transition:all .3s ease;white-space:nowrap}}
-  .tab:hover{{color:#f9fafb}}
-  .tab.active{{color:#ffffff;border-bottom-color:#ef4444;font-weight:600}}
-  .content{{display:none;padding:28px 32px;max-width:1480px;margin:0 auto}}
+  .app-body{{display:flex;flex:1;overflow:hidden}}
+  .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:12px 0;display:flex;flex-direction:column}}
+  .sb-divider{{height:1px;background:#111827;margin:8px 0;flex-shrink:0}}
+  .sb-section-header{{padding:10px 16px 4px;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#374151;font-weight:700;flex-shrink:0}}
+  .sb-item{{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:12px;color:#6b7280;cursor:pointer;transition:all .2s;border-left:2px solid transparent;white-space:nowrap;flex-shrink:0}}
+  .sb-item:hover{{background:#0d1321;color:#e2e8f0}}
+  .sb-item.active{{background:#0d1321;color:#ffffff;border-left-color:#ef4444;font-weight:600}}
+  .main-content{{flex:1;overflow-y:auto}}
+  .content{{display:none;padding:28px 32px}}
   .content.active{{display:block}}
   .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}}
   .card{{background:#0d1321;border-radius:8px;padding:18px 20px;border:1px solid #111827;transition:all .3s ease;display:flex;flex-direction:column;min-height:90px}}
@@ -1316,16 +1320,47 @@ def gerar_html(d):
   </div>
 </div>
 
-<div class="tabs">
-  <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
-  <div class="tab" onclick="showTab('drivers',this)">Risco por Driver (<span id="tab-count-drivers">{len(d["drivers_ativos"])}</span>)</div>
-  <div class="tab" onclick="showTab('dxp',this)">Driver × Place (<span id="tab-count-dxp">{len(d["dxp"])}</span>)</div>
-  <div class="tab" onclick="showTab('places',this)">Ofensores Places (<span id="tab-count-places">{d["total_places"]}</span>)</div>
-  <div class="tab" onclick="showTab('damaged',this)">Damaged (<span id="tab-count-damaged">{len(d["damaged"])}</span>)</div>
-  <div class="tab" onclick="showTab('bloqueios',this)" style="color:#4ade80">Bloqueios (<span id="tab-count-bloqueios">{d["bl"]["total"]}</span>)</div>
-  <div class="tab" onclick="showTab('cruzamento',this)" style="color:#f59e0b">BSD ({d["crz"]["total_pares"]})</div>
-  <div class="tab" onclick="showTab('cftv',this)" style="color:#a78bfa">CFTV ({d["cftv"]["total"]})</div>
-</div>
+<div class="app-body">
+<nav class="sidebar">
+  <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
+    <i data-lucide="bar-chart-2" width="14" height="14" class="ci"></i> Visão Geral
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section-header">Análise de Risco</div>
+  <div class="sb-item" data-tab="drivers" onclick="showTab('drivers',this)">
+    <i data-lucide="user" width="14" height="14" class="ci"></i>
+    Por Driver (<span id="tab-count-drivers">{len(d["drivers_ativos"])}</span>)
+  </div>
+  <div class="sb-item" data-tab="dxp" onclick="showTab('dxp',this)">
+    <i data-lucide="map-pin" width="14" height="14" class="ci"></i>
+    Driver × Place (<span id="tab-count-dxp">{len(d["dxp"])}</span>)
+  </div>
+  <div class="sb-item" data-tab="places" onclick="showTab('places',this)">
+    <i data-lucide="building-2" width="14" height="14" class="ci"></i>
+    Ofensores Places (<span id="tab-count-places">{d["total_places"]}</span>)
+  </div>
+  <div class="sb-item" data-tab="damaged" onclick="showTab('damaged',this)">
+    <i data-lucide="package-x" width="14" height="14" class="ci"></i>
+    Damaged (<span id="tab-count-damaged">{len(d["damaged"])}</span>)
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section-header">Block List</div>
+  <div class="sb-item" data-tab="bloqueios" onclick="showTab('bloqueios',this)" style="color:#4ade80">
+    <i data-lucide="shield" width="14" height="14" class="ci"></i>
+    Bloqueios (<span id="tab-count-bloqueios">{d["bl"]["total"]}</span>)
+  </div>
+  <div class="sb-item" data-tab="cruzamento" onclick="showTab('cruzamento',this)" style="color:#f59e0b">
+    <i data-lucide="git-merge" width="14" height="14" class="ci"></i>
+    BSD ({d["crz"]["total_pares"]})
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section-header">Investigações</div>
+  <div class="sb-item" data-tab="cftv" onclick="showTab('cftv',this)" style="color:#a78bfa">
+    <i data-lucide="camera" width="14" height="14" class="ci"></i>
+    CFTV ({d["cftv"]["total"]})
+  </div>
+</nav>
+<main class="main-content">
 
 <!-- BARRA DE PERÍODO — sempre visível em todas as abas -->
 <div style="background:#080d19;border-bottom:1px solid #1f2937;padding:10px 32px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -1665,11 +1700,11 @@ function toggleDriver(id) {{
   if (ar) ar.textContent = ar.textContent.replace(open ? '▶' : '▼', open ? '▼' : '▶');
 }}
 
-const TAB_ORDER = ['geral','drivers','dxp','places','damaged','bloqueios'];
+const ALL_TABS = ['geral','drivers','dxp','places','damaged','bloqueios','cruzamento','cftv'];
 function showTab(name, el) {{
   _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(e => e.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
@@ -1678,8 +1713,10 @@ function showTab(name, el) {{
 }}
 window.addEventListener('load', () => {{
   const h = window.location.hash.replace('#','');
-  const i = TAB_ORDER.indexOf(h);
-  if (i >= 0) showTab(h, document.querySelectorAll('.tab')[i]);
+  if (ALL_TABS.includes(h)) {{
+    const el = document.querySelector(`.sb-item[data-tab="${{h}}"]`);
+    if (el) showTab(h, el);
+  }}
 }});
 
 Chart.defaults.plugins.tooltip.backgroundColor = '#0d1321';
@@ -2153,6 +2190,9 @@ function filtrarCftv() {{
       <tbody id="cftv-tbody">{rows_cftv(d["cftv"]["rows"])}</tbody>
     </table></div>
   </div>
+</div>
+
+</main>
 </div>
 
 </body>
