@@ -1304,11 +1304,7 @@ def gerar_html(d):
   .header-title{{font-size:16px;font-weight:700;color:#ffffff}}
   .header-sub{{font-size:11px;color:#374151;margin-top:2px}}
   .app-body{{display:flex;flex:1;overflow:hidden}}
-  .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:0;display:flex;flex-direction:column}}
-  .sb-header{{padding:12px 14px 10px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:9px;flex-shrink:0}}
-  .sb-logo{{width:24px;height:24px;border-radius:5px;background:#ef4444;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}}
-  .sb-brand-name{{font-size:11px;font-weight:600;color:#e2e8f0;letter-spacing:.2px}}
-  .sb-brand-sub{{font-size:9px;color:#4b5563;letter-spacing:.6px;text-transform:uppercase;margin-top:1px}}
+  .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:6px 0;display:flex;flex-direction:column}}
   .sb-divider{{height:1px;background:#111827;margin:6px 0;flex-shrink:0}}
   .sb-section-header{{padding:10px 16px 4px;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#374151;font-weight:700;flex-shrink:0}}
   .sb-item{{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:12px;color:#6b7280;cursor:pointer;transition:all .2s;border-left:2px solid transparent;white-space:nowrap;flex-shrink:0}}
@@ -1400,14 +1396,6 @@ def gerar_html(d):
 
 <div class="app-body">
 <nav class="sidebar">
-  <div class="sb-header">
-    <div class="sb-logo">F</div>
-    <div>
-      <div class="sb-brand-name">Fraude SSP30</div>
-      <div class="sb-brand-sub">Análise</div>
-    </div>
-  </div>
-  <div style="padding-top:6px">
   <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
     <i data-lucide="bar-chart-2" width="14" height="14" class="ci"></i> Visão Geral
   </div>
@@ -1444,7 +1432,6 @@ def gerar_html(d):
   <div class="sb-item" data-tab="cftv" onclick="showTab('cftv',this)">
     <i data-lucide="camera" width="14" height="14" class="ci"></i>
     CFTV <span class="sb-badge purple">{d["cftv"]["total"]}</span>
-  </div>
   </div>
 </nav>
 <main class="main-content">
