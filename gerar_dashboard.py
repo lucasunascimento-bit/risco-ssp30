@@ -478,9 +478,9 @@ def gerar_html(d):
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
-  body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh}}
+  body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}}
   /* HEADER */
-  .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1f2937}}
+  .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1f2937;flex-shrink:0}}
   .header-brand{{display:flex;align-items:center;gap:10px}}
   .header-accent{{width:3px;height:28px;background:#FFE600;border-radius:2px}}
   .header-title{{font-size:16px;font-weight:700;color:#ffffff;letter-spacing:-0.3px}}
@@ -489,14 +489,19 @@ def gerar_html(d):
   .status-dot{{width:7px;height:7px;border-radius:50%;background:#FFE600;animation:pulse 2.5s infinite}}
   @keyframes pulse{{0%,100%{{opacity:1;box-shadow:0 0 0 0 rgba(255,230,0,.4)}}50%{{opacity:.6;box-shadow:0 0 0 5px rgba(255,230,0,0)}}}}
   .countdown-txt{{font-size:11px;color:#4b5563}}
-  /* TABS */
-  .tabs{{background:#080d19;border-bottom:1px solid #111827;padding:0 32px;display:flex;gap:0;overflow-x:auto}}
-  .tab{{padding:14px 20px;cursor:pointer;font-size:12px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;transition:background-color .3s ease,color .3s ease,border-color .3s ease,box-shadow .3s ease,transform .2s ease;white-space:nowrap;letter-spacing:.2px}}
-  .tab:hover{{color:#f9fafb}}
-  .tab.active{{color:#ffffff;border-bottom-color:#FFE600;font-weight:600}}
-  .tab-alert{{color:#ef4444!important}}
+  /* SIDEBAR */
+  .app-body{{display:flex;flex:1;overflow:hidden}}
+  .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:12px 0;display:flex;flex-direction:column}}
+  .sb-divider{{height:1px;background:#111827;margin:8px 0;flex-shrink:0}}
+  .sb-section-header{{padding:10px 16px 4px;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#374151;font-weight:700;flex-shrink:0}}
+  .sb-item{{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:12px;color:#6b7280;cursor:pointer;transition:all .2s;border-left:2px solid transparent;white-space:nowrap;flex-shrink:0}}
+  .sb-item:hover{{background:#0d1321;color:#e2e8f0}}
+  .sb-item.active{{background:#0d1321;color:#ffffff;border-left-color:#FFE600;font-weight:600}}
+  .sb-item.sb-alert{{color:#ef4444!important}}
+  .ci{{flex-shrink:0}}
+  .main-content{{flex:1;overflow-y:auto}}
   /* CONTENT */
-  .content{{display:none;padding:28px 32px;max-width:1480px;margin:0 auto}}
+  .content{{display:none;padding:28px 32px}}
   .content.active{{display:block}}
   /* CARDS */
   .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:24px;align-items:stretch}}
@@ -617,15 +622,32 @@ def gerar_html(d):
   </div>
 </div>
 
-<!-- TABS -->
-<div class="tabs">
-  <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
-  <div class="tab {'tab-alert' if d['criticos'] else ''}" onclick="showTab('criticos',this)">Críticos ({len(d["criticos"])})</div>
-  <div class="tab" onclick="showTab('route',this)">ON ROUTE ({d["r_total"]})</div>
-  <div class="tab" onclick="showTab('way',this)">ON WAY ({d["w_total"]})</div>
-  <div class="tab" onclick="showTab('gmv',this)">Top GMV</div>
-  <div class="tab" onclick="showTab('hist',this)">Histórico</div>
-</div>
+<div class="app-body">
+<nav class="sidebar">
+  <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
+    <i data-lucide="bar-chart-2" width="14" height="14" class="ci"></i> Visão Geral
+  </div>
+  <div class="sb-item {'sb-alert' if d['criticos'] else ''}" data-tab="criticos" onclick="showTab('criticos',this)">
+    <i data-lucide="alert-triangle" width="14" height="14" class="ci"></i> Críticos ({len(d["criticos"])})
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section-header">Monitoramento</div>
+  <div class="sb-item" data-tab="route" onclick="showTab('route',this)">
+    <i data-lucide="package" width="14" height="14" class="ci"></i> ON ROUTE ({d["r_total"]})
+  </div>
+  <div class="sb-item" data-tab="way" onclick="showTab('way',this)">
+    <i data-lucide="truck" width="14" height="14" class="ci"></i> ON WAY ({d["w_total"]})
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section-header">Análise</div>
+  <div class="sb-item" data-tab="gmv" onclick="showTab('gmv',this)">
+    <i data-lucide="dollar-sign" width="14" height="14" class="ci"></i> Top GMV
+  </div>
+  <div class="sb-item" data-tab="hist" onclick="showTab('hist',this)">
+    <i data-lucide="clock" width="14" height="14" class="ci"></i> Histórico
+  </div>
+</nav>
+<main class="main-content">
 
 <!-- ===================== ABA 1: VISÃO GERAL ===================== -->
 <div id="tab-geral" class="content active">
@@ -868,7 +890,7 @@ document.addEventListener('click', () => {{
 const TAB_ORDER = ['geral','criticos','route','way','gmv','hist'];
 function showTab(name, el) {{
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(e => e.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null, '', '#' + name);
@@ -877,21 +899,16 @@ function showTab(name, el) {{
 // Abre aba pelo hash da URL (ex: #criticos)
 window.addEventListener('load', () => {{
   const hash = window.location.hash.replace('#','');
-  const idx  = TAB_ORDER.indexOf(hash);
-  if (idx >= 0) {{
-    const tabs = document.querySelectorAll('.tab');
-    if (tabs[idx]) showTab(hash, tabs[idx]);
+  if (TAB_ORDER.includes(hash)) {{
+    const el = document.querySelector(`.sb-item[data-tab="${{hash}}"]`);
+    if (el) showTab(hash, el);
   }}
 }});
 
 // Navega para uma aba ao clicar num card
 function irPara(tabName) {{
-  const idx = TAB_ORDER.indexOf(tabName);
-  if (idx >= 0) {{
-    const el = document.querySelectorAll('.tab')[idx];
-    if (el) showTab(tabName, el);
-    window.scrollTo({{top:0, behavior:'smooth'}});
-  }}
+  const el = document.querySelector(`.sb-item[data-tab="${{tabName}}"]`);
+  if (el) {{ showTab(tabName, el); window.scrollTo({{top:0, behavior:'smooth'}}); }}
 }}
 
 // Filtro por mês no Histórico
@@ -1018,7 +1035,7 @@ const defOpts = {{
 function onClickChart(evt, elements, chart, tabId, sitSelectId) {{
   if (!elements.length) return;
   const label = chart.data.labels[elements[0].index];
-  showTab(tabId, document.querySelector('.tab:nth-child(' + (tabId==='route'?2:3) + ')'));
+  const _el = document.querySelector(`.sb-item[data-tab="${{tabId}}"]`); if (_el) showTab(tabId, _el);
   const sel = document.getElementById(sitSelectId);
   if (sel) {{ sel.value = label.toLowerCase(); filtrar(tabId); }}
 }}
@@ -1123,6 +1140,8 @@ new Chart(document.getElementById('cTop'), {{
 // Inicializa ícones Lucide
 lucide.createIcons();
 </script>
+</main>
+</div>
 </body>
 </html>'''
 
