@@ -1571,9 +1571,8 @@ def gerar_html(d):
 
   <!-- Top Ofensores do Mês -->
   <div class="box" style="margin-bottom:18px">
-    <div class="box-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <span><i data-lucide="trophy" width="12" height="12" class="ci" style="margin-right:6px;color:#FFE600"></i>TOP OFENSORES DO MÊS</span>
-      <select id="dr_mes_sel" class="filter-select" style="font-size:11px;padding:4px 8px"></select>
+    <div class="box-title" style="margin-bottom:12px">
+      <i data-lucide="trophy" width="12" height="12" class="ci" style="margin-right:6px;color:#FFE600"></i>TOP OFENSORES DO PERÍODO
     </div>
     <table style="width:100%;font-size:12px">
       <thead><tr>
@@ -2044,6 +2043,7 @@ function setPeriodo() {{
 
   applyPeriodoToTab(_currentTab);
   _updateAllTabCounts();
+  renderDrMes(); renderCrzMes();
 }}
 
 // Atualiza contadores de todas as abas sem mexer nas linhas das abas inativas
@@ -2124,6 +2124,10 @@ function updateCountCards() {{
   if (wrapCruz) wrapCruz.style.display = cruzados > 0 ? '' : 'none';
 }}
 
+// Dados para Ofensores do Período (precisa estar antes do IIFE que chama setPeriodo)
+const _drMes  = {j(d["monthly_dr"])};
+const _crzMes = {j(d["crz_mes"])};
+
 // Inicializa: intervalo completo disponível
 (function() {{
   const first = MONTHLY.length > 0 ? MONTHLY[0].key                 : '';
@@ -2133,40 +2137,47 @@ function updateCountCards() {{
   setPeriodo();
 }})();
 
-// Ofensores do Mês
-const _drMes  = {j(d["monthly_dr"])};
-const _crzMes = {j(d["crz_mes"])};
-function _buildMesSel(id, data, onChange) {{
-  const sel = document.getElementById(id);
-  if (!sel) return;
-  const meses = Object.keys(data).sort().reverse();
-  meses.forEach(m => {{ const o = document.createElement('option'); o.value = m; o.text = m; sel.appendChild(o); }});
-  sel.addEventListener('change', onChange);
-}}
+// Ofensores do Período — reage ao filtro global pd_de/pd_ate
 function renderDrMes() {{
-  const mes  = document.getElementById('dr_mes_sel')?.value;
-  const rows = (_drMes[mes] || []);
-  const tb   = document.getElementById('dr-mes-tbody');
+  const meses = Object.keys(_drMes).filter(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
+  const acc = {{}};
+  meses.forEach(m => {{
+    (_drMes[m] || []).forEach(r => {{
+      if (!acc[r.id]) acc[r.id] = {{id: r.id, fraudes: 0, damaged: 0, bpp: 0}};
+      acc[r.id].fraudes += r.fraudes;
+      acc[r.id].damaged += r.damaged;
+      acc[r.id].bpp     += r.bpp;
+    }});
+  }});
+  const rows = Object.values(acc)
+    .map(r => ({{...r, score: r.fraudes * 3 + r.damaged}}))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+  const tb = document.getElementById('dr-mes-tbody');
   if (!tb) return;
-  tb.innerHTML = rows.length ? rows.map((r,i) =>
+  tb.innerHTML = rows.length ? rows.map((r, i) =>
     `<tr><td style="color:#6b7280">#${{i+1}}</td><td style="color:#e2e8f0;font-weight:500">${{r.id}}</td><td style="color:#ef4444">${{r.fraudes}}</td><td style="color:#f59e0b">${{r.damaged}}</td><td>${{r.bpp.toFixed(2)}}</td><td style="color:#FFE600;font-weight:700">${{r.score}}</td></tr>`
-  ).join('') : '<tr><td colspan="6" style="color:#6b7280;text-align:center;padding:16px">Sem dados para este mês</td></tr>';
+  ).join('') : '<tr><td colspan="6" style="color:#6b7280;text-align:center;padding:16px">Sem dados para este período</td></tr>';
 }}
 function renderCrzMes() {{
-  const mes  = document.getElementById('crz_mes_sel')?.value;
-  const data = _crzMes[mes] || {{sellers:[], buyers:[]}};
-  const tbS  = document.getElementById('crz-sellers-mes-tbody');
-  const tbB  = document.getElementById('crz-buyers-mes-tbody');
-  if (tbS) tbS.innerHTML = data.sellers.length ? data.sellers.map((r,i) =>
+  const meses = Object.keys(_crzMes).filter(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
+  const accS = {{}}, accB = {{}};
+  meses.forEach(m => {{
+    const data = _crzMes[m] || {{sellers:[], buyers:[]}};
+    data.sellers.forEach(r => {{ accS[r.id] = (accS[r.id] || 0) + r.qtd; }});
+    data.buyers.forEach(r  => {{ accB[r.id] = (accB[r.id] || 0) + r.qtd; }});
+  }});
+  const toRows = acc => Object.entries(acc).map(([id, qtd]) => ({{id, qtd}})).sort((a, b) => b.qtd - a.qtd).slice(0, 10);
+  const sellers = toRows(accS), buyers = toRows(accB);
+  const tbS = document.getElementById('crz-sellers-mes-tbody');
+  const tbB = document.getElementById('crz-buyers-mes-tbody');
+  if (tbS) tbS.innerHTML = sellers.length ? sellers.map((r, i) =>
     `<tr><td style="color:#6b7280">#${{i+1}}</td><td style="color:#e2e8f0">${{r.id}}</td><td style="color:#f59e0b;font-weight:700">${{r.qtd}}</td></tr>`
   ).join('') : '<tr><td colspan="3" style="color:#6b7280;text-align:center;padding:12px">Sem dados</td></tr>';
-  if (tbB) tbB.innerHTML = data.buyers.length ? data.buyers.map((r,i) =>
+  if (tbB) tbB.innerHTML = buyers.length ? buyers.map((r, i) =>
     `<tr><td style="color:#6b7280">#${{i+1}}</td><td style="color:#e2e8f0">${{r.id}}</td><td style="color:#60a5fa;font-weight:700">${{r.qtd}}</td></tr>`
   ).join('') : '<tr><td colspan="3" style="color:#6b7280;text-align:center;padding:12px">Sem dados</td></tr>';
 }}
-_buildMesSel('dr_mes_sel',  _drMes,  renderDrMes);
-_buildMesSel('crz_mes_sel', _crzMes, renderCrzMes);
-renderDrMes(); renderCrzMes();
 
 lucide.createIcons();
 
@@ -2271,9 +2282,8 @@ function filtrarCftv() {{
 
   <!-- Top Sellers & Buyers do Mês -->
   <div class="box" style="margin-bottom:18px">
-    <div class="box-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <span><i data-lucide="trophy" width="12" height="12" class="ci" style="margin-right:6px;color:#FFE600"></i>TOP SELLERS & BUYERS DO MÊS</span>
-      <select id="crz_mes_sel" class="filter-select" style="font-size:11px;padding:4px 8px"></select>
+    <div class="box-title" style="margin-bottom:12px">
+      <i data-lucide="trophy" width="12" height="12" class="ci" style="margin-right:6px;color:#FFE600"></i>TOP SELLERS & BUYERS DO PERÍODO
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
       <div>
