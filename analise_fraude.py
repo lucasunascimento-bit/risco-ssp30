@@ -554,9 +554,15 @@ def processar_cruzamento(df):
         if bid not in buyer_map:  buyer_map[bid]  = {'buyer_id':bid, 'qtd':0,'sellers':set(),'drivers':set()}
         buyer_map[bid]['qtd']  += qtd; buyer_map[bid]['sellers'].add(sid); buyer_map[bid]['drivers']  |= drv
 
-    sellers = sorted([{**v,'buyers':len(v['buyers']),'drivers':len(v['drivers'])}
+    sellers = sorted([{**v,
+                       'buyers':len(v['buyers']),
+                       'n_drivers':len(v['drivers']),
+                       'driver_ids':sorted(v['drivers'])[:6]}
                       for v in seller_map.values()], key=lambda x:-x['qtd'])
-    buyers  = sorted([{**v,'sellers':len(v['sellers']),'drivers':len(v['drivers'])}
+    buyers  = sorted([{**v,
+                       'sellers':len(v['sellers']),
+                       'n_drivers':len(v['drivers']),
+                       'driver_ids':sorted(v['drivers'])[:6]}
                       for v in buyer_map.values()],  key=lambda x:-x['qtd'])
     def _clean(v): return str(v) if v and str(v) not in ('None','nan','') else ''
     pares = []
@@ -567,8 +573,25 @@ def processar_cruzamento(df):
                       'qtd':int(r['QTD_FRAUDES']),
                       'drivers':_clean(r.get('DRIVERS','')) or '—',
                       'shp_ids':shp_ids})
+    # Driver × Seller/Buyer cross-reference
+    driver_map = {}
+    for r in rows:
+        sid = str(r['SELLER_ID']); bid = str(r['BUYER_ID']); qtd = int(r['QTD_FRAUDES'])
+        for drv in _drivers(r.get('DRIVERS', '')):
+            if drv not in driver_map:
+                driver_map[drv] = {'driver_id': drv, 'qtd': 0, 'sellers': set(), 'buyers': set()}
+            driver_map[drv]['qtd']     += qtd
+            driver_map[drv]['sellers'].add(sid)
+            driver_map[drv]['buyers'].add(bid)
+    driver_crz = sorted(
+        [{'driver_id': k, 'qtd': v['qtd'],
+          'n_sellers': len(v['sellers']), 'n_buyers': len(v['buyers']),
+          'sellers': sorted(v['sellers'])[:5], 'buyers': sorted(v['buyers'])[:5]}
+         for k, v in driver_map.items()],
+        key=lambda x: -x['qtd']
+    )
     all_drv = set(); [all_drv.update(_drivers(r.get('DRIVERS',''))) for r in rows]
-    return {'sellers':sellers,'buyers':buyers,'pares':pares,
+    return {'sellers':sellers,'buyers':buyers,'pares':pares,'driver_crz':driver_crz,
             'total_sellers':len(seller_map),'total_buyers':len(buyer_map),
             'total_pares':len(pares),'total_drivers':len(all_drv)}
 
@@ -1193,7 +1216,7 @@ def rows_cftv(rows):
                     if r['shp'] else '—')
         search_txt = f'{r["shp"]} {r["driver"]} {r["solicitante"]} {r["produto"]}'.lower()
         prod_esc   = r['produto'].replace('"', '&quot;')
-        out += f'''<tr class="cftv-row" data-operacao="{r["operacao"]}" data-status="{r["status"]}" data-prio="{r["prioridade"]}" data-search="{search_txt}">
+        out += f'''<tr class="cftv-row" data-operacao="{r["operacao"]}" data-status="{r["status"]}" data-prio="{r["prioridade"]}" data-resp="{r["responsavel"]}" data-search="{search_txt}">
           <td style="font-size:11px;color:#9ca3af;white-space:nowrap">{r["data"]}</td>
           <td style="font-size:11px;color:#6b7280">W{r["week"]}</td>
           <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">{r["operacao"]}</span></td>
@@ -1394,6 +1417,7 @@ def gerar_html(d):
   .cv.amber{{color:#f59e0b}}
   .cv.green{{color:#10b981}}
   .cd{{font-size:11px;color:#374151;margin-top:auto;padding-top:6px}}
+  .cards-grid{{display:grid;gap:14px;margin-bottom:18px}}
   .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}}
   @media(max-width:900px){{.grid2{{grid-template-columns:1fr}}}}
   .box{{background:#0d1321;border-radius:8px;padding:20px;border:1px solid #111827;margin-bottom:14px}}
@@ -1423,11 +1447,12 @@ def gerar_html(d):
   .filter-label{{font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}}
   /* NAV */
   .mod-nav{{display:flex;gap:4px;align-items:center}}
-  .mod-btn{{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:all .2s;color:#6b7280;background:transparent;display:flex;align-items:center;gap:6px}}
-  .mod-btn:hover{{background:#1f2937;color:#e2e8f0}}
+  .mod-btn{{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1f2937;text-decoration:none;transition:all .2s;color:#9ca3af;background:#0d1321;display:flex;align-items:center;gap:6px}}
+  .mod-btn:hover{{background:#1f2937;color:#e2e8f0;border-color:#374151}}
   .mod-btn.m-fraude{{color:#ef4444;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}}
   .mod-btn.m-risco{{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}}
   .mod-btn.m-isca{{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}}
+  .mod-btn.m-cftv{{color:#60a5fa;background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2)}}
   .mod-btn.m-disabled{{opacity:.35;cursor:not-allowed;pointer-events:none}}
   .alerta-box{{background:#160a0a;border:1px solid #7f1d1d;border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px}}
   .alerta-box .num{{font-size:28px;font-weight:800;color:#fca5a5}}
@@ -1455,9 +1480,12 @@ def gerar_html(d):
     <a href="./index.html" class="mod-btn">
       <i data-lucide="truck" width="12" height="12"></i> Risco
     </a>
-    <span class="mod-btn m-disabled">
+    <a href="./isca.html" class="mod-btn">
       <i data-lucide="fish" width="12" height="12"></i> Isca
-    </span>
+    </a>
+    <a href="./cftv.html" class="mod-btn m-cftv">
+      <i data-lucide="camera" width="12" height="12"></i> CFTV
+    </a>
   </div>
 </div>
 
@@ -1497,12 +1525,6 @@ def gerar_html(d):
   <div class="sb-item" data-tab="cruzamento" onclick="showTab('cruzamento',this)">
     <i data-lucide="git-merge" width="14" height="14" class="ci"></i>
     BSD <span class="sb-badge amber">{d["crz"]["total_pares"]}</span>
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section-header">Investigações</div>
-  <div class="sb-item" data-tab="cftv" onclick="showTab('cftv',this)">
-    <i data-lucide="camera" width="14" height="14" class="ci"></i>
-    CFTV <span class="sb-badge purple">{d["cftv"]["total"]}</span>
   </div>
 </nav>
 <main class="main-content">
@@ -1864,7 +1886,7 @@ function toggleDriver(id) {{
   if (ar) ar.textContent = ar.textContent.replace(open ? '▶' : '▼', open ? '▼' : '▶');
 }}
 
-const ALL_TABS = ['geral','drivers','dxp','places','damaged','tendencia','bloqueios','cruzamento','cftv'];
+const ALL_TABS = ['geral','drivers','dxp','places','damaged','tendencia','bloqueios','cruzamento'];
 function showTab(name, el) {{
   _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
@@ -2277,19 +2299,7 @@ function renderTendencia() {{
 
 lucide.createIcons();
 
-function filtrarCftv() {{
-  const op     = document.getElementById('cftv_op')?.value     || '';
-  const status = document.getElementById('cftv_status')?.value || '';
-  const prio   = document.getElementById('cftv_prio')?.value   || '';
-  const search = (document.getElementById('cftv_search')?.value || '').toLowerCase();
-  document.querySelectorAll('.cftv-row').forEach(tr => {{
-    const ok = (!op     || tr.dataset.operacao === op)
-            && (!status || tr.dataset.status   === status)
-            && (!prio   || tr.dataset.prio     === prio)
-            && (!search || (tr.dataset.search || '').includes(search));
-    tr.style.display = ok ? '' : 'none';
-  }});
-}}
+
 </script>
 
 <!-- ABA BLOQUEIOS -->
@@ -2420,13 +2430,14 @@ function filtrarCftv() {{
     <div class="tbl-wrap">
       <div class="tbl-title" style="color:#f59e0b">Top Sellers Ofensores</div>
       <div class="tbl-scroll"><table>
-        <thead><tr><th>Seller ID</th><th>Fraudes</th><th>Buyers</th><th>Drivers</th></tr></thead>
+        <thead><tr><th>Seller ID</th><th>Fraudes</th><th>Buyers</th><th>Drivers</th><th>Drivers Associados</th></tr></thead>
         <tbody>
           {''.join(f"""<tr style="background:{'#1a100a' if i==0 else ''}">
             <td style="font-family:monospace;font-size:12px;color:#f59e0b">{s["seller_id"]}</td>
             <td style="font-weight:700;color:#ef4444;text-align:center">{s["qtd"]}</td>
             <td style="text-align:center;color:#9ca3af">{s["buyers"]}</td>
-            <td style="text-align:center;color:#4ade80">{s["drivers"]}</td>
+            <td style="text-align:center;color:#4ade80">{s["n_drivers"]}</td>
+            <td style="font-size:10px;color:#6b7280">{' '.join(f'<span style="background:#1a2035;padding:1px 5px;border-radius:3px;color:#9ca3af">{dr}</span>' for dr in s["driver_ids"])}</td>
           </tr>""" for i,s in enumerate(d["crz"]["sellers"][:30]))}
         </tbody>
       </table></div>
@@ -2434,13 +2445,14 @@ function filtrarCftv() {{
     <div class="tbl-wrap">
       <div class="tbl-title" style="color:#60a5fa">Top Buyers Ofensores</div>
       <div class="tbl-scroll"><table>
-        <thead><tr><th>Buyer ID</th><th>Fraudes</th><th>Sellers</th><th>Drivers</th></tr></thead>
+        <thead><tr><th>Buyer ID</th><th>Fraudes</th><th>Sellers</th><th>Drivers</th><th>Drivers Associados</th></tr></thead>
         <tbody>
           {''.join(f"""<tr style="background:{'#0a0f1a' if i==0 else ''}">
             <td style="font-family:monospace;font-size:12px;color:#60a5fa">{b["buyer_id"]}</td>
             <td style="font-weight:700;color:#ef4444;text-align:center">{b["qtd"]}</td>
             <td style="text-align:center;color:#9ca3af">{b["sellers"]}</td>
-            <td style="text-align:center;color:#4ade80">{b["drivers"]}</td>
+            <td style="text-align:center;color:#4ade80">{b["n_drivers"]}</td>
+            <td style="font-size:10px;color:#6b7280">{' '.join(f'<span style="background:#1a2035;padding:1px 5px;border-radius:3px;color:#9ca3af">{dr}</span>' for dr in b["driver_ids"])}</td>
           </tr>""" for i,b in enumerate(d["crz"]["buyers"][:30]))}
         </tbody>
       </table></div>
@@ -2465,59 +2477,30 @@ function filtrarCftv() {{
       </tbody>
     </table></div>
   </div>
-</div>
 
-<!-- ===== ABA CFTV ===== -->
-<div id="tab-cftv" class="content">
-  <div class="cards-grid" style="grid-template-columns:repeat(4,1fr)">
-    <div class="card">
-      <div class="card-header"><i data-lucide="camera" class="ci" width="14" height="14"></i><span class="cl">Solicitações</span></div>
-      <div class="cv">{d["cftv"]["total"]}</div><div class="cd">Total de solicitações</div>
+  <div class="tbl-wrap" style="margin-top:18px">
+    <div class="tbl-title" style="display:flex;align-items:center;gap:8px">
+      <i data-lucide="git-merge" width="14" height="14" style="color:#a78bfa"></i>
+      <span style="color:#a78bfa">Driver × Seller / Buyer — Conexões Suspeitas</span>
     </div>
-    <div class="card">
-      <div class="card-header"><i data-lucide="check-circle" class="ci" width="14" height="14"></i><span class="cl">Concluídos</span></div>
-      <div class="cv green">{d["cftv"]["concluidos"]}</div><div class="cd">Investigações encerradas</div>
-    </div>
-    <div class="card">
-      <div class="card-header"><i data-lucide="clock" class="ci" width="14" height="14"></i><span class="cl">Em Andamento</span></div>
-      <div class="cv" style="color:#3b82f6">{d["cftv"]["em_andamento"]}</div><div class="cd">Aguardando conclusão</div>
-    </div>
-    <div class="card c-red">
-      <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14"></i><span class="cl">SLA Vencido</span></div>
-      <div class="cv red">{d["cftv"]["sla_vencido"]}</div><div class="cd">Prazo expirado</div>
-    </div>
-  </div>
-
-  <div class="tbl-wrap">
-    <div class="filter-bar">
-      <span class="filter-label">Operação</span>
-      <select id="cftv_op" class="filter-select" onchange="filtrarCftv()">
-        <option value="">Todas</option>
-        <option value="SSP30">SSP30</option>
-        <option value="XSP10">XSP10</option>
-      </select>
-      <span class="filter-label">Status</span>
-      <select id="cftv_status" class="filter-select" onchange="filtrarCftv()">
-        <option value="">Todos</option>
-        <option value="Concluído">Concluído</option>
-        <option value="Em Andamento">Em Andamento</option>
-        <option value="SLA Vencido">SLA Vencido</option>
-      </select>
-      <span class="filter-label">Prioridade</span>
-      <select id="cftv_prio" class="filter-select" onchange="filtrarCftv()">
-        <option value="">Todas</option>
-        <option value="Alto">Alto</option>
-        <option value="Moderado">Moderado</option>
-      </select>
-      <input id="cftv_search" type="text" oninput="filtrarCftv()" class="filter-select" placeholder="🔍 SHP / Driver / Solicitante..." style="width:220px">
-    </div>
+    <div style="font-size:11px;color:#4b5563;padding:0 18px 10px">Drivers que aparecem em múltiplos pares Seller×Buyer — possível conluio.</div>
     <div class="tbl-scroll"><table>
       <thead><tr>
-        <th>Data</th><th>Wk</th><th>Op</th><th>Shipment</th><th>Produto</th>
-        <th style="text-align:right">Valor R$</th><th>Prioridade</th><th>Status</th>
-        <th>SLA</th><th>Responsável</th><th>Conclusão</th><th>Driver</th>
+        <th>#</th><th>Driver ID</th><th>Fraudes</th>
+        <th style="color:#f59e0b">Sellers</th><th style="color:#60a5fa">Buyers</th>
+        <th style="color:#f59e0b">Top Sellers</th><th style="color:#60a5fa">Top Buyers</th>
       </tr></thead>
-      <tbody id="cftv-tbody">{rows_cftv(d["cftv"]["rows"])}</tbody>
+      <tbody>
+        {''.join(f"""<tr style="border-top:1px solid #111827">
+          <td style="padding:7px 10px;color:#4b5563;font-size:11px">#{i+1}</td>
+          <td style="padding:7px 10px;font-family:monospace;font-size:12px;color:#e2e8f0">{dc["driver_id"]}</td>
+          <td style="padding:7px 10px;font-weight:700;color:#ef4444;text-align:center">{dc["qtd"]}</td>
+          <td style="padding:7px 10px;text-align:center;color:#f59e0b;font-weight:600">{dc["n_sellers"]}</td>
+          <td style="padding:7px 10px;text-align:center;color:#60a5fa;font-weight:600">{dc["n_buyers"]}</td>
+          <td style="padding:7px 10px;font-size:10px">{' '.join(f'<span style="background:rgba(245,158,11,.12);color:#f59e0b;padding:2px 5px;border-radius:3px;margin-right:3px">{s}</span>' for s in dc["sellers"])}</td>
+          <td style="padding:7px 10px;font-size:10px">{' '.join(f'<span style="background:rgba(96,165,250,.12);color:#60a5fa;padding:2px 5px;border-radius:3px;margin-right:3px">{b}</span>' for b in dc["buyers"])}</td>
+        </tr>""" for i,dc in enumerate(d["crz"]["driver_crz"][:40]))}
+      </tbody>
     </table></div>
   </div>
 </div>
@@ -2589,7 +2572,6 @@ if __name__ == '__main__':
     df_cruzamento_mes = buscar(bq, QUERY_CRUZAMENTO_MES, 'Sellers/Buyers por Mês')
 
     bl_rows   = carregar_block_list(gs)
-    cftv_rows = carregar_cftv(gs)
     sincronizar_status_block_list(gs, bq, bl_rows)
 
     print("\nProcessando...")
@@ -2598,7 +2580,6 @@ if __name__ == '__main__':
     dados['alertas_bl'] = detectar_alertas_bl(dados['bl'], dados['shp_por_driver'])
     dados['crz']     = processar_cruzamento(df_cruzamento)
     dados['crz_mes'] = processar_cruzamento_mes(df_cruzamento_mes)
-    dados['cftv']    = processar_cftv(cftv_rows)
 
     MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
                  7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}

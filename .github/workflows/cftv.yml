@@ -1,0 +1,41 @@
+name: CFTV SSP30
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *'   # Todo dia às 11:00 BRT (14:00 UTC)
+
+permissions:
+  contents: write
+
+jobs:
+  gerar-cftv:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Configurar credenciais Google
+        run: |
+          mkdir -p ~/.config/gcloud
+          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > ~/.config/gcloud/application_default_credentials.json
+
+      - name: Gerar dashboard CFTV
+        run: python gerar_cftv.py
+
+      - name: Publicar no GitHub Pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cftv.html
+          git diff --staged --quiet || git commit -m "Auto-update CFTV: $(date +'%d/%m/%Y %H:%M UTC')"
+          git push

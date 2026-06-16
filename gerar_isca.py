@@ -196,11 +196,12 @@ body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemF
 .header-brand{{display:flex;align-items:center;gap:10px;flex:1}}
 /* MODULE NAV */
 .mod-nav{{display:flex;gap:4px;align-items:center}}
-.mod-btn{{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:all .2s;color:#6b7280;background:transparent;display:flex;align-items:center;gap:6px}}
-.mod-btn:hover{{background:#1f2937;color:#e2e8f0}}
+.mod-btn{{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1f2937;text-decoration:none;transition:all .2s;color:#9ca3af;background:#0d1321;display:flex;align-items:center;gap:6px}}
+.mod-btn:hover{{background:#1f2937;color:#e2e8f0;border-color:#374151}}
 .mod-btn.m-fraude{{color:#ef4444;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}}
 .mod-btn.m-risco{{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}}
 .mod-btn.m-isca{{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}}
+.mod-btn.m-cftv{{color:#60a5fa;background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2)}}
 .mod-btn.m-disabled{{opacity:.35;cursor:not-allowed;pointer-events:none}}
 /* LAYOUT */
 .app-body{{display:flex;flex:1;overflow:hidden}}
@@ -260,6 +261,9 @@ th{{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;let
     </a>
     <a href="./isca.html" class="mod-btn m-isca">
       <i data-lucide="fish" width="12" height="12"></i> Isca
+    </a>
+    <a href="./cftv.html" class="mod-btn m-cftv">
+      <i data-lucide="camera" width="12" height="12"></i> CFTV
     </a>
   </div>
 </div>

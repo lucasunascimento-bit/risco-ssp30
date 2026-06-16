@@ -52,6 +52,7 @@
   .card-value.val-warn{color:#f59e0b}
   .card-delta{font-size:11px;color:#374151;margin-top:6px;line-height:1.4}
   /* GRIDS */
+  .cards-grid{display:grid;gap:14px;margin-bottom:18px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
   @media(max-width:900px){.grid2{grid-template-columns:1fr}}
   /* CHART BOX */
@@ -95,11 +96,12 @@
   .mb16{margin-bottom:16px}
   /* MODULE NAV */
   .mod-nav{display:flex;gap:4px;align-items:center}
-  .mod-btn{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:all .2s;color:#6b7280;background:transparent;display:flex;align-items:center;gap:6px}
-  .mod-btn:hover{background:#1f2937;color:#e2e8f0}
+  .mod-btn{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1f2937;text-decoration:none;transition:all .2s;color:#9ca3af;background:#0d1321;display:flex;align-items:center;gap:6px}
+  .mod-btn:hover{background:#1f2937;color:#e2e8f0;border-color:#374151}
   .mod-btn.m-fraude{color:#ef4444;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}
   .mod-btn.m-risco{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}
   .mod-btn.m-isca{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}
+  .mod-btn.m-cftv{color:#60a5fa;background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2)}
   .mod-btn.m-disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
   /* CARD CLICÁVEL */
   .card-link{cursor:pointer;position:relative}
@@ -137,7 +139,7 @@
     <div class="header-accent"></div>
     <div>
       <div class="header-title">Risco SSP30</div>
-      <div class="header-sub">Planilha de Controle · Gerado em 16/06/2026 12:08</div>
+      <div class="header-sub">Planilha de Controle · Gerado em 16/06/2026 15:17</div>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:14px">
@@ -152,6 +154,9 @@
       </a>
       <a href="./isca.html" class="mod-btn">
         <i data-lucide="fish" width="12" height="12"></i> Isca
+      </a>
+      <a href="./cftv.html" class="mod-btn m-cftv">
+        <i data-lucide="camera" width="12" height="12"></i> CFTV
       </a>
     </div>
   </div>
@@ -193,7 +198,7 @@
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="package" class="card-icon" width="14" height="14"></i><span class="card-label">ON ROUTE</span></div>
       <div class="card-value">48</div>
-      <div class="card-delta">+0 novos · <span style="color:#94a3b8">➡ estável hoje</span></div>
+      <div class="card-delta">+2 novos · <span style="color:#EF4444;font-weight:700">▲ +2 vs ontem</span></div>
     </div>
     <div class="card card-link" onclick="irPara('way')">
       <div class="card-header"><i data-lucide="truck" class="card-icon" width="14" height="14"></i><span class="card-label">ON WAY</span></div>
@@ -202,7 +207,7 @@
     </div>
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON ROUTE</span></div>
-      <div class="card-value">$25,190</div>
+      <div class="card-value">$25,301</div>
     </div>
     <div class="card card-link" onclick="irPara('way')">
       <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON WAY</span></div>
@@ -210,7 +215,7 @@
     </div>
     <div class="card card-alert card-link" onclick="irPara('gmv')">
       <div class="card-header"><i data-lucide="alert-triangle" class="card-icon" width="14" height="14" style="color:#7f1d1d"></i><span class="card-label">GMV EM RISCO</span></div>
-      <div class="card-value val-alert">$55,831</div>
+      <div class="card-value val-alert">$55,942</div>
     </div>
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="camera" class="card-icon" width="14" height="14"></i><span class="card-label">CFTV Solicitado</span></div>
@@ -1422,11 +1427,11 @@
 <div id="tab-route" class="content">
   <div class="cards">
     <div class="card yellow"><div class="label">Total</div><div class="value">48</div></div>
-    <div class="card green"><div class="label">GMV Total</div><div class="value">$25,190</div></div>
+    <div class="card green"><div class="label">GMV Total</div><div class="value">$25,301</div></div>
     <div class="card red"><div class="label">Possivel Lost</div><div class="value">32</div></div>
     <div class="card orange"><div class="label">Procurar Pacote</div><div class="value">16</div></div>
     <div class="card blue"><div class="label">CFTV Solicitado</div><div class="value">4</div></div>
-    <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">0</div></div>
+    <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">2</div></div>
   </div>
   <div class="tbl-wrap">
     <div class="tbl-title">📦 Pacotes ON ROUTE — ordenados por GMV</div>
@@ -1562,19 +1567,32 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">12/06/2026</td>
-        </tr><tr style="background:#2d1f0e" class="data-row"
-            data-id="47191318945"
+        </tr><tr style="" class="data-row"
+            data-id="47277533232"
             data-sit="procurar pacote"
             data-status=""
             data-resp="">
-            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47191318945" target="_blank" class="shp-link">47191318945</a></td>
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47277533232" target="_blank" class="shp-link">47277533232</a></td>
             <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$650.37</td>
+            <td style="font-weight:700;color:#10B981">$579.18</td>
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">16/06/2026</td>
+        </tr><tr style="" class="data-row"
+            data-id="47291455141"
+            data-sit="procurar pacote"
+            data-status=""
+            data-resp="">
+            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47291455141" target="_blank" class="shp-link">47291455141</a></td>
+            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
+            <td style="font-weight:700;color:#10B981">$568.11</td>
+            <td>—</td>
+            <td style="text-align:center">❌</td>
+            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px;color:#9CA3AF">16/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47145689534"
             data-sit="possivel lost"
@@ -1757,19 +1775,6 @@
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
             <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
-        </tr><tr style="" class="data-row"
-            data-id="47284598187"
-            data-sit="procurar pacote"
-            data-status=""
-            data-resp="">
-            <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47284598187" target="_blank" class="shp-link">47284598187</a></td>
-            <td><span class="pill" style="background:#7c3c14;color:#fdba74">Procurar Pacote</span></td>
-            <td style="font-weight:700;color:#10B981">$385.41</td>
-            <td>—</td>
-            <td style="text-align:center">❌</td>
-            <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
-            <td style="font-size:11px;color:#9CA3AF">15/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47136323446"
             data-sit="possivel lost"
@@ -4767,10 +4772,10 @@ checkEmpty('cStatus', cStatus);
 new Chart(document.getElementById('cGmvEvo'), {
   type: 'bar',
   data: {
-    labels: ["27/05", "29/05", "30/05", "31/05", "01/06", "02/06", "04/06", "05/06", "06/06", "07/06", "11/06", "12/06", "14/06", "15/06"],
+    labels: ["27/05", "29/05", "30/05", "31/05", "01/06", "02/06", "04/06", "05/06", "06/06", "07/06", "11/06", "12/06", "14/06", "15/06", "16/06"],
     datasets: [
-      { label:'GMV ON ROUTE', data:[4416.67, 999.09, 1265.15, 2197.5, 444.74, 480.14, 437.33, 0, 0, 468.96, 5030.52, 1723.49, 2999.79, 4726.49], backgroundColor:'#3B82F6', borderRadius:4 },
-      { label:'GMV ON WAY',   data:[7599.4, 180.49, 299.57, 0, 0, 149.57, 0, 1806.05, 20605.73, 0, 0, 0, 0, 0], backgroundColor:'#10B981', borderRadius:4 },
+      { label:'GMV ON ROUTE', data:[4416.67, 999.09, 1265.15, 2197.5, 444.74, 480.14, 437.33, 0, 0, 468.96, 4380.15, 1723.49, 2999.79, 4341.08, 1147.29], backgroundColor:'#3B82F6', borderRadius:4 },
+      { label:'GMV ON WAY',   data:[7599.4, 180.49, 299.57, 0, 0, 149.57, 0, 1806.05, 20605.73, 0, 0, 0, 0, 0, 0], backgroundColor:'#10B981', borderRadius:4 },
     ]
   },
   options: { ...defOpts,
@@ -4784,10 +4789,10 @@ new Chart(document.getElementById('cGmvEvo'), {
 new Chart(document.getElementById('cEvo'), {
   type: 'bar',
   data: {
-    labels: ["27/05", "29/05", "30/05", "31/05", "01/06", "02/06", "04/06", "05/06", "06/06", "07/06", "11/06", "12/06", "14/06", "15/06"],
+    labels: ["27/05", "29/05", "30/05", "31/05", "01/06", "02/06", "04/06", "05/06", "06/06", "07/06", "11/06", "12/06", "14/06", "15/06", "16/06"],
     datasets: [
-      { label:'ON ROUTE', data:[5, 3, 1, 1, 1, 1, 1, 0, 0, 1, 11, 6, 13, 4], backgroundColor:'rgba(59,130,246,0.7)', borderRadius:4 },
-      { label:'ON WAY',   data:[17, 1, 2, 0, 0, 1, 0, 3, 30, 0, 0, 0, 0, 0], backgroundColor:'rgba(16,185,129,0.7)', borderRadius:4 },
+      { label:'ON ROUTE', data:[5, 3, 1, 1, 1, 1, 1, 0, 0, 1, 10, 6, 13, 3, 2], backgroundColor:'rgba(59,130,246,0.7)', borderRadius:4 },
+      { label:'ON WAY',   data:[17, 1, 2, 0, 0, 1, 0, 3, 30, 0, 0, 0, 0, 0, 0], backgroundColor:'rgba(16,185,129,0.7)', borderRadius:4 },
     ]
   },
   options: { ...defOpts,
@@ -4797,8 +4802,8 @@ new Chart(document.getElementById('cEvo'), {
 });
 
 // Heatmap dias da semana
-const hmColors = [14, 6, 47, 23, 48, 50, 15].map(v => {
-  const max = Math.max(...[14, 6, 47, 23, 48, 50, 15]);
+const hmColors = [13, 8, 47, 22, 48, 50, 15].map(v => {
+  const max = Math.max(...[13, 8, 47, 22, 48, 50, 15]);
   const ratio = max > 0 ? v / max : 0;
   const r = Math.round(59  + (239-59)  * ratio);
   const g = Math.round(130 + (68-130)  * ratio);
@@ -4807,7 +4812,7 @@ const hmColors = [14, 6, 47, 23, 48, 50, 15].map(v => {
 });
 new Chart(document.getElementById('cHeatmap'), {
   type: 'bar',
-  data: { labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"], datasets:[{ data:[14, 6, 47, 23, 48, 50, 15],
+  data: { labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"], datasets:[{ data:[13, 8, 47, 22, 48, 50, 15],
     backgroundColor: hmColors, borderRadius:8 }] },
   options: {
     responsive:true,
