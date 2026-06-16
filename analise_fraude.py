@@ -1050,7 +1050,13 @@ def rows_drivers(drivers, cruzados):
         shp_rows = ''
         for s in d.get('shps', []):
             cls_cor = '#ef4444' if 'FRAUD' in s['class'] else '#f59e0b' if 'DAMAGED' in s['class'] else '#94a3b8'
-            shp_rows += f'''<tr style="background:#060c1a">
+            raw_dt = s.get('data', '')
+            if '/' in raw_dt and len(raw_dt) >= 10:
+                parts = raw_dt.split('/')
+                shp_ym = f'{parts[2][:4]}-{parts[1]}'
+            else:
+                shp_ym = raw_dt[:7]
+            shp_rows += f'''<tr data-ym="{shp_ym}" style="background:#060c1a">
                 <td colspan="2" style="padding:6px 16px 6px 40px;font-family:monospace;font-size:12px">
                   <a href="{MELI_URL}/{s["id"]}" target="_blank" style="color:#60a5fa;text-decoration:none">{s["id"]}</a>
                 </td>
@@ -1832,6 +1838,21 @@ function filtrarDrivers() {{
     tr.style.display = ok ? '' : 'none';
     const nextSibling = tr.nextElementSibling;
     if (nextSibling && nextSibling.tagName === 'TBODY' && !ok) nextSibling.style.display = 'none';
+    // Atualiza contador "X pacotes" conforme período
+    if (ok) {{
+      const rowId  = 'dr_' + tr.dataset.id;
+      const arrow  = document.getElementById('arrow_' + rowId);
+      const shpTbody = document.getElementById(rowId);
+      if (arrow && shpTbody) {{
+        let count = 0;
+        shpTbody.querySelectorAll('tr[data-ym]').forEach(shpTr => {{
+          const ym = shpTr.dataset.ym;
+          if ((!_periodDe || ym >= _periodDe) && (!_periodAte || ym <= _periodAte)) count++;
+        }});
+        const sym = /^[▶▼]/.exec(arrow.textContent)?.[0] || '▶';
+        arrow.textContent = sym + ' ' + count + ' pacotes';
+      }}
+    }}
   }});
   updateCountCards();
 }}
