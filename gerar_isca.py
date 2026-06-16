@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Gestão de Iscas SSP30 — gera isca.html a partir do Google Sheets."""
 
-import json, os, webbrowser
+import json, os, re, webbrowser
 from datetime import datetime
 from collections import defaultdict
 from google.auth import default
@@ -35,16 +35,24 @@ def _norm_resultado(raw):
         return 'Devolvida'
     return 'Em aberto'
 
+def _parse_hyperlink(raw):
+    """Extrai (url, texto) de =HYPERLINK("url","texto"), ou ('', raw) se não for fórmula."""
+    m = re.match(r'=HYPERLINK\("([^"]+)","([^"]+)"\)', raw.strip(), re.IGNORECASE)
+    if m:
+        return m.group(1), m.group(2)
+    return '', raw.strip()
+
 def carregar_iscas(gs):
     print("  Lendo planilha Gestão de Iscas...")
     pl   = gs.open_by_key(ISCA_SHEET_ID)
     ws   = pl.worksheet(ABA_ISCAS)
-    data = ws.get_all_values()
+    data = ws.get_all_values(value_render_option='FORMULA')
     rows = []
     for r in data[1:]:
-        g = lambda i: r[i].strip() if i < len(r) else ''
+        g = lambda i: str(r[i]).strip() if i < len(r) else ''
         if not g(COL['data']) and not g(COL['shp_id']):
             continue
+        rota_url, rota_txt = _parse_hyperlink(g(COL['rota']))
         rows.append({
             'responsavel':  g(COL['responsavel']),
             'descricao':    g(COL['descricao']),
@@ -55,7 +63,8 @@ def carregar_iscas(gs):
             'status_rota':  g(COL['status_rota']),
             'shp_id':       g(COL['shp_id']),
             'mlp':          g(COL['mlp']),
-            'rota':         g(COL['rota']),
+            'rota':         rota_txt or g(COL['rota']),
+            'rota_url':     rota_url,
             'placa':        g(COL['placa']),
             'motorista':    g(COL['motorista']),
             'motorista_id': g(COL['motorista_id']),
@@ -130,8 +139,10 @@ def rows_table(rows, cols, max_rows=500):
         tds = ''
         for c in cols:
             v = r.get(c, '—') or '—'
-            if c == 'shp_id' and v != '—':
-                v = f'<a href="{SHP_URL}/{v}" target="_blank" style="color:#60a5fa;text-decoration:none">{v}</a>'
+            if c == 'rota':
+                url = r.get('rota_url', '')
+                if url:
+                    v = f'<a href="{url}" target="_blank" style="color:#4ade80;text-decoration:none">{v}</a>'
             elif c == 'resultado':
                 v = res_badge(v)
             elif c == 'motorista' and r.get('motorista_id'):
