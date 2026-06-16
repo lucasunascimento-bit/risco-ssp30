@@ -1482,6 +1482,10 @@ def gerar_html(d):
     <i data-lucide="package-x" width="14" height="14" class="ci"></i>
     Damaged <span class="sb-badge" id="tab-count-damaged">{len(d["damaged"])}</span>
   </div>
+  <div class="sb-item" data-tab="tendencia" onclick="showTab('tendencia',this)">
+    <i data-lucide="trending-up" width="14" height="14" class="ci"></i>
+    Tendência
+  </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Block List</div>
   <div class="sb-item" data-tab="bloqueios" onclick="showTab('bloqueios',this)">
@@ -1867,7 +1871,7 @@ function toggleDriver(id) {{
   if (ar) ar.textContent = ar.textContent.replace(open ? '▶' : '▼', open ? '▼' : '▶');
 }}
 
-const ALL_TABS = ['geral','drivers','dxp','places','damaged','bloqueios','cruzamento','cftv'];
+const ALL_TABS = ['geral','drivers','dxp','places','damaged','tendencia','bloqueios','cruzamento','cftv'];
 function showTab(name, el) {{
   _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
@@ -2027,12 +2031,13 @@ function applyPeriodoToTab(name) {{
       if (nx && nx.tagName === 'TBODY' && !show) nx.style.display = 'none';
     }});
   }};
-  if      (name === 'geral')    {{ filterByMonths('tbl_cruzados'); updateCountCards(); }}
-  else if (name === 'drivers')  {{ filtrarDrivers(); }}
-  else if (name === 'dxp')      {{ filterByMonths('tbl_dxp'); }}
-  else if (name === 'places')   {{ filterByMonths('tbl_places'); }}
-  else if (name === 'damaged')  {{ filterByMonths('tbl_damaged'); }}
-  else if (name === 'bloqueios')   {{ filtrarBloqueios(); }}
+  if      (name === 'geral')      {{ filterByMonths('tbl_cruzados'); updateCountCards(); }}
+  else if (name === 'drivers')    {{ filtrarDrivers(); }}
+  else if (name === 'dxp')        {{ filterByMonths('tbl_dxp'); }}
+  else if (name === 'places')     {{ filterByMonths('tbl_places'); }}
+  else if (name === 'damaged')    {{ filterByMonths('tbl_damaged'); }}
+  else if (name === 'bloqueios')  {{ filtrarBloqueios(); }}
+  else if (name === 'tendencia')  {{ renderTendencia(); }}
   // cruzamento: sem filtro de período (dados estáticos do BQ)
 }}
 
@@ -2198,6 +2203,83 @@ function renderCrzMes() {{
   if (tbB) tbB.innerHTML = buyers.length ? buyers.map((r, i) =>
     `<tr><td style="color:#6b7280">#${{i+1}}</td><td style="color:#e2e8f0">${{r.id}}</td><td style="color:#60a5fa;font-weight:700">${{r.qtd}}</td></tr>`
   ).join('') : '<tr><td colspan="3" style="color:#6b7280;text-align:center;padding:12px">Sem dados</td></tr>';
+}}
+
+// Tendência — Gráfico combo barras (Fraudes+Damaged) + linha (BPP)
+let _tendChart = null;
+function renderTendencia() {{
+  const meses = MONTHLY.filter(m => (!_periodDe || m.key >= _periodDe) && (!_periodAte || m.key <= _periodAte));
+  if (!meses.length) return;
+
+  const labels  = meses.map(m => m.label);
+  const fraudes = meses.map(m => m.fraudes);
+  const damaged = meses.map(m => m.damaged);
+  const bpp     = meses.map(m => m.bpp);
+
+  const totF = fraudes.reduce((s,v) => s+v, 0);
+  const totD = damaged.reduce((s,v) => s+v, 0);
+  const totB = bpp.reduce((s,v) => s+v, 0);
+  const pico  = meses.reduce((a, m) => m.fraudes > a.fraudes ? m : a, meses[0]);
+
+  const _s = (id, v) => {{ const e = document.getElementById(id); if (e) e.textContent = v; }};
+  _s('tend-cv-fraudes', totF.toLocaleString('pt-BR'));
+  _s('tend-cv-damaged', totD.toLocaleString('pt-BR'));
+  _s('tend-cv-bpp', '$' + totB.toLocaleString('en-US', {{minimumFractionDigits:2, maximumFractionDigits:2}}));
+  _s('tend-cv-pico',  pico.fraudes.toLocaleString('pt-BR'));
+  _s('tend-cd-pico',  pico.label);
+
+  // Tabela de detalhe
+  const tb = document.getElementById('tend-tbody');
+  if (tb) tb.innerHTML = meses.map(m => {{
+    const score = m.fraudes * 3 + m.damaged;
+    const isPico = m.key === pico.key;
+    return `<tr style="${{isPico ? 'background:#1a0e0e' : ''}}">
+      <td style="color:${{isPico ? '#f87171' : '#e2e8f0'}};font-weight:${{isPico ? '600' : '400'}}">${{m.label}}${{isPico ? ' ★' : ''}}</td>
+      <td style="text-align:right;color:#ef4444">${{m.fraudes}}</td>
+      <td style="text-align:right;color:#f59e0b">${{m.damaged}}</td>
+      <td style="text-align:right;color:#FFE600">$${{m.bpp.toLocaleString('en-US', {{minimumFractionDigits:2, maximumFractionDigits:2}})}}</td>
+      <td style="text-align:right;color:#9ca3af">${{score}}</td>
+    </tr>`;
+  }}).join('');
+
+  const canvas = document.getElementById('cTendencia');
+  if (!canvas) return;
+
+  const datasets = [
+    {{label:'Fraudes', data:fraudes, backgroundColor:'rgba(239,68,68,0.75)', stack:'s', order:2}},
+    {{label:'Damaged', data:damaged, backgroundColor:'rgba(245,158,11,0.65)', stack:'s', order:2}},
+    {{type:'line', label:'BPP USD', data:bpp, borderColor:'#FFE600', backgroundColor:'transparent',
+      tension:0.4, pointRadius:4, pointBackgroundColor:'#FFE600', borderWidth:2, yAxisID:'y2', order:1}}
+  ];
+
+  if (_tendChart) {{
+    _tendChart.data.labels = labels;
+    _tendChart.data.datasets.forEach((ds, i) => {{ ds.data = datasets[i].data; }});
+    _tendChart.update();
+  }} else {{
+    _tendChart = new Chart(canvas, {{
+      type:'bar',
+      data:{{labels, datasets}},
+      options:{{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{{mode:'index', intersect:false}},
+        plugins:{{
+          legend:{{display:true, position:'top', labels:{{color:'#9ca3af', font:{{size:11}}, boxWidth:12}}}},
+          tooltip:{{callbacks:{{label: ctx => ctx.dataset.label === 'BPP USD'
+            ? ' BPP: $' + ctx.raw.toLocaleString('en-US', {{minimumFractionDigits:2}})
+            : ' ' + ctx.dataset.label + ': ' + ctx.raw}}}}
+        }},
+        scales:{{
+          x:{{grid:{{display:false}}, ticks:{{color:'#6b7280', font:{{size:11}}}}}},
+          y:{{stacked:true, grid:{{color:'rgba(255,255,255,0.04)'}}, ticks:{{color:'#6b7280', font:{{size:11}}}},
+             title:{{display:true, text:'Ocorrências', color:'#4b5563', font:{{size:10}}}}}},
+          y2:{{position:'right', grid:{{display:false}},
+              ticks:{{color:'#b5a205', font:{{size:11}}, callback: v => '$' + Math.round(v).toLocaleString('en-US')}},
+              title:{{display:true, text:'BPP USD', color:'#b5a205', font:{{size:10}}}}}}
+        }}
+      }}
+    }});
+  }}
 }}
 
 lucide.createIcons();
@@ -2444,6 +2526,44 @@ function filtrarCftv() {{
       </tr></thead>
       <tbody id="cftv-tbody">{rows_cftv(d["cftv"]["rows"])}</tbody>
     </table></div>
+  </div>
+</div>
+
+<!-- ABA TENDÊNCIA -->
+<div id="tab-tendencia" class="content">
+  <div class="cards-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="card">
+      <div class="card-header"><i data-lucide="trending-up" class="ci" width="14" height="14"></i><span class="cl">Fraudes</span></div>
+      <div class="cv red" id="tend-cv-fraudes">—</div><div class="cd">no período selecionado</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="package-x" class="ci" width="14" height="14"></i><span class="cl">Damaged</span></div>
+      <div class="cv" style="color:#f59e0b" id="tend-cv-damaged">—</div><div class="cd">no período selecionado</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14"></i><span class="cl">BPP Total</span></div>
+      <div class="cv" style="color:#FFE600" id="tend-cv-bpp">—</div><div class="cd">cashout no período</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="calendar" class="ci" width="14" height="14"></i><span class="cl">Pico Mensal</span></div>
+      <div class="cv" style="color:#f87171" id="tend-cv-pico">—</div><div class="cd" id="tend-cd-pico">mês com mais fraudes</div>
+    </div>
+  </div>
+
+  <div class="box" style="margin-top:18px">
+    <div class="bt">Evolução Mensal — Fraudes, Damaged e BPP em Risco</div>
+    <div style="position:relative;height:300px"><canvas id="cTendencia"></canvas></div>
+  </div>
+
+  <div class="box" style="margin-top:18px">
+    <div class="bt">Detalhamento por Mês</div>
+    <table style="width:100%;font-size:12px">
+      <thead><tr>
+        <th>Mês</th><th style="text-align:right">Fraudes</th><th style="text-align:right">Damaged</th>
+        <th style="text-align:right">BPP USD</th><th style="text-align:right">Score Total</th>
+      </tr></thead>
+      <tbody id="tend-tbody"></tbody>
+    </table>
   </div>
 </div>
 
