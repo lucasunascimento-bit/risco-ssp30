@@ -93,16 +93,14 @@
   .divider{height:1px;background:#111827;margin:20px 0}
   /* mb utils */
   .mb16{margin-bottom:16px}
-  /* NAV DROPDOWN */
-  .nav-wrap{position:relative}
-  .nav-btn{background:#111827;color:#9ca3af;border:1px solid #1f2937;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .3s ease}
-  .nav-btn:hover{background:#1f2937;color:#e2e8f0}
-  .nav-dropdown{display:none;position:absolute;right:0;top:calc(100% + 6px);background:#0d1321;border:1px solid #1f2937;border-radius:8px;overflow:hidden;min-width:220px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.6)}
-  .nav-dropdown.open{display:block}
-  .nav-dropdown a{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:12px;color:#d1d5db;text-decoration:none;transition:background .2s;border-bottom:1px solid #111827}
-  .nav-dropdown a:last-child{border-bottom:none}
-  .nav-dropdown a:hover{background:#1f2937;color:#ffffff}
-  .nav-dropdown a.nav-active{color:#FFE600;font-weight:600}
+  /* MODULE NAV */
+  .mod-nav{display:flex;gap:4px;align-items:center}
+  .mod-btn{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:all .2s;color:#6b7280;background:transparent;display:flex;align-items:center;gap:6px}
+  .mod-btn:hover{background:#1f2937;color:#e2e8f0}
+  .mod-btn.m-fraude{color:#ef4444;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}
+  .mod-btn.m-risco{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}
+  .mod-btn.m-isca{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}
+  .mod-btn.m-disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
   /* CARD CLICÁVEL */
   .card-link{cursor:pointer;position:relative}
   .card-link::after{content:'↗';position:absolute;top:14px;right:14px;font-size:10px;color:#1f2937;transition:color .3s ease}
@@ -139,18 +137,22 @@
     <div class="header-accent"></div>
     <div>
       <div class="header-title">Risco SSP30</div>
-      <div class="header-sub">Planilha de Controle · Gerado em 15/06/2026 18:00</div>
+      <div class="header-sub">Planilha de Controle · Gerado em 16/06/2026 11:32</div>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:14px">
     <span class="status-dot"></span>
     <span class="countdown-txt" id="countdown">Calculando...</span>
-    <div class="nav-wrap">
-      <button class="nav-btn" onclick="toggleNav(event)">⊞ Dashboards ▾</button>
-      <div class="nav-dropdown">
-        <a href="./index.html" class="nav-active">🔔 Risco SSP30 — ON ROUTE / ON WAY</a>
-        <a href="./fraude.html">🔍 Análise de Fraude SSP30</a>
-      </div>
+    <div class="mod-nav">
+      <a href="./fraude.html" class="mod-btn">
+        <i data-lucide="shield-alert" width="12" height="12"></i> Fraude
+      </a>
+      <a href="./index.html" class="mod-btn m-risco">
+        <i data-lucide="truck" width="12" height="12"></i> Risco
+      </a>
+      <span class="mod-btn m-disabled">
+        <i data-lucide="fish" width="12" height="12"></i> Isca
+      </span>
     </div>
   </div>
 </div>
@@ -191,7 +193,7 @@
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="package" class="card-icon" width="14" height="14"></i><span class="card-label">ON ROUTE</span></div>
       <div class="card-value">48</div>
-      <div class="card-delta">+4 novos · <span style="color:#EF4444;font-weight:700">▲ +4 vs ontem</span></div>
+      <div class="card-delta">+0 novos · <span style="color:#94a3b8">➡ estável hoje</span></div>
     </div>
     <div class="card card-link" onclick="irPara('way')">
       <div class="card-header"><i data-lucide="truck" class="card-icon" width="14" height="14"></i><span class="card-label">ON WAY</span></div>
@@ -217,7 +219,7 @@
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="clock" class="card-icon" width="14" height="14"></i><span class="card-label">Dias médio carteira</span></div>
-      <div class="card-value">9.6</div>
+      <div class="card-value">10.6</div>
       <div class="card-delta">pacotes ativos</div>
     </div>
     <div class="card card-ok card-link" onclick="irPara('hist')">
@@ -272,7 +274,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$1,265.15</span>
-        <span style="color:#EF4444;font-weight:700">16d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">17d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -290,7 +292,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$1,217.48</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -308,7 +310,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$744.34</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -326,7 +328,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$554.54</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -344,7 +346,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$2,850.28</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -362,7 +364,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$2,542.67</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -380,7 +382,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$2,197.50</span>
-        <span style="color:#EF4444;font-weight:700">15d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">16d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -398,7 +400,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$974.68</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -416,7 +418,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$872.56</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -434,7 +436,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$872.56</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -452,7 +454,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$863.90</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -470,7 +472,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$857.06</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -488,7 +490,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$852.72</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -506,7 +508,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$852.72</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -524,7 +526,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$832.89</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -542,7 +544,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$793.22</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -560,7 +562,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$793.22</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -578,7 +580,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$793.22</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -596,7 +598,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$763.46</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -614,7 +616,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$735.76</span>
-        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">11d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -632,7 +634,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$718.04</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -650,7 +652,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$717.84</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -668,7 +670,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$620.70</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -686,7 +688,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$594.86</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -704,7 +706,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$594.86</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -722,7 +724,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$594.86</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -740,7 +742,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$594.86</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -758,7 +760,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$582.96</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -776,7 +778,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$573.28</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -794,7 +796,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$569.36</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -812,7 +814,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$568.95</span>
-        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">11d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -830,7 +832,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$563.05</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -848,7 +850,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$555.19</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -866,7 +868,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$555.19</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -884,7 +886,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$553.57</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -902,7 +904,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$553.50</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -920,7 +922,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$525.64</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -938,7 +940,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$508.58</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -956,7 +958,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$507.18</span>
-        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -974,7 +976,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$501.34</span>
-        <span style="color:#EF4444;font-weight:700">10d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">11d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -992,7 +994,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$494.05</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1010,7 +1012,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$480.14</span>
-        <span style="color:#EF4444;font-weight:700">13d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">14d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1028,7 +1030,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$468.96</span>
-        <span style="color:#EF4444;font-weight:700">8d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">9d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1046,7 +1048,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$444.74</span>
-        <span style="color:#EF4444;font-weight:700">14d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">15d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1064,7 +1066,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$443.93</span>
-        <span style="color:#EF4444;font-weight:700">17d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">18d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1082,7 +1084,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$437.33</span>
-        <span style="color:#EF4444;font-weight:700">11d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">12d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1100,7 +1102,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$380.73</span>
-        <span style="color:#EF4444;font-weight:700">17d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">18d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1118,7 +1120,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$267.98</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1136,7 +1138,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$258.94</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1154,7 +1156,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$237.99</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1172,7 +1174,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$180.49</span>
-        <span style="color:#EF4444;font-weight:700">17d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">18d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1190,7 +1192,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$177.30</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1208,7 +1210,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$174.43</span>
-        <span style="color:#EF4444;font-weight:700">17d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">18d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1226,7 +1228,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$171.47</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1244,7 +1246,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$169.65</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1262,7 +1264,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$169.37</span>
-        <span style="color:#EF4444;font-weight:700">16d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">17d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1280,7 +1282,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$167.42</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1298,7 +1300,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$150.19</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1316,7 +1318,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$149.57</span>
-        <span style="color:#EF4444;font-weight:700">13d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">14d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1334,7 +1336,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$130.20</span>
-        <span style="color:#EF4444;font-weight:700">16d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">17d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1352,7 +1354,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$112.73</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#374151;color:#9CA3AF">—</span>
       </div>
     </div>
@@ -1370,7 +1372,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$108.87</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1388,7 +1390,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$102.32</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1406,7 +1408,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <span style="font-size:20px;font-weight:800;color:#10B981">$100.41</span>
-        <span style="color:#EF4444;font-weight:700">19d</span> na carteira
+        <span style="color:#EF4444;font-weight:700">20d</span> na carteira
         <span class="pill" style="background:#10B981;color:#fff">Concluido</span>
       </div>
     </div>
@@ -1424,7 +1426,7 @@
     <div class="card red"><div class="label">Possivel Lost</div><div class="value">32</div></div>
     <div class="card orange"><div class="label">Procurar Pacote</div><div class="value">16</div></div>
     <div class="card blue"><div class="label">CFTV Solicitado</div><div class="value">4</div></div>
-    <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">4</div></div>
+    <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">0</div></div>
   </div>
   <div class="tbl-wrap">
     <div class="tbl-title">📦 Pacotes ON ROUTE — ordenados por GMV</div>
@@ -1467,7 +1469,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47215429931"
@@ -1480,7 +1482,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">15/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47176942580"
@@ -1493,7 +1495,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">15d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">16d</span></td>
             <td style="font-size:11px;color:#9CA3AF">31/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47257737775"
@@ -1506,7 +1508,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">15/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47238868500"
@@ -1519,7 +1521,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47166311471"
@@ -1532,7 +1534,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">16d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">17d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47239930133"
@@ -1545,9 +1547,9 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
-        </tr><tr style="" class="data-row"
+        </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47262692838"
             data-sit="procurar pacote"
             data-status=""
@@ -1558,7 +1560,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">12/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47191318945"
@@ -1571,7 +1573,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47145689534"
@@ -1584,7 +1586,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47211978016"
@@ -1597,7 +1599,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">15/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47186145045"
@@ -1610,7 +1612,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">13d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
             <td style="font-size:11px;color:#9CA3AF">02/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47244375952"
@@ -1623,7 +1625,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47237982431"
@@ -1636,7 +1638,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
             <td style="font-size:11px;color:#9CA3AF">07/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47039557019"
@@ -1649,7 +1651,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47247116916"
@@ -1662,7 +1664,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47091434844"
@@ -1675,7 +1677,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47190258123"
@@ -1688,7 +1690,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">15d</span></td>
             <td style="font-size:11px;color:#9CA3AF">01/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47161278266"
@@ -1701,7 +1703,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">17d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">18d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47205855916"
@@ -1714,7 +1716,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">12d</span></td>
             <td style="font-size:11px;color:#9CA3AF">04/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47229452745"
@@ -1727,7 +1729,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47152669204"
@@ -1740,7 +1742,7 @@
             <td>Lucas Nascimento</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47153427889"
@@ -1753,7 +1755,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47284598187"
@@ -1766,7 +1768,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
             <td style="font-size:11px;color:#9CA3AF">15/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47136323446"
@@ -1779,7 +1781,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">17d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">18d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47162916696"
@@ -1792,9 +1794,9 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
-        </tr><tr style="" class="data-row"
+        </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47172321233"
             data-sit="possivel lost"
             data-status=""
@@ -1805,7 +1807,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">12/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47128315746"
@@ -1818,7 +1820,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47167535756"
@@ -1831,7 +1833,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47182349991"
@@ -1844,7 +1846,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47161029115"
@@ -1857,7 +1859,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47104339370"
@@ -1870,7 +1872,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47163119823"
@@ -1883,7 +1885,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47168174514"
@@ -1896,9 +1898,9 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
-        </tr><tr style="" class="data-row"
+        </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47108997742"
             data-sit="possivel lost"
             data-status=""
@@ -1909,7 +1911,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">12/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47176174587"
@@ -1922,7 +1924,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47201295075"
@@ -1935,7 +1937,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47122893530"
@@ -1948,7 +1950,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">17d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">18d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47156698473"
@@ -1961,7 +1963,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47091433897"
@@ -1974,7 +1976,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47031291578"
@@ -1987,7 +1989,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47169239787"
@@ -2000,7 +2002,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47167055382"
@@ -2013,7 +2015,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47142332303"
@@ -2026,7 +2028,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
             <td style="font-size:11px;color:#9CA3AF">11/06/2026</td>
         </tr><tr style="" class="data-row"
             data-id="47161616955"
@@ -2039,9 +2041,9 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">2d</span></td>
             <td style="font-size:11px;color:#9CA3AF">14/06/2026</td>
-        </tr><tr style="" class="data-row"
+        </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47152047876"
             data-sit="possivel lost"
             data-status=""
@@ -2052,9 +2054,9 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">12/06/2026</td>
-        </tr><tr style="" class="data-row"
+        </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47142965573"
             data-sit="possivel lost"
             data-status=""
@@ -2065,9 +2067,9 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">12/06/2026</td>
-        </tr><tr style="" class="data-row"
+        </tr><tr style="background:#2d1f0e" class="data-row"
             data-id="47150689306"
             data-sit="possivel lost"
             data-status=""
@@ -2078,7 +2080,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
             <td style="font-size:11px;color:#9CA3AF">12/06/2026</td>
         </tr></tbody>
     </table>
@@ -2139,7 +2141,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47012996990"
@@ -2153,7 +2155,7 @@
             <td>null</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47210972413"
@@ -2167,7 +2169,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47229607697"
@@ -2181,7 +2183,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47230977047"
@@ -2195,7 +2197,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47227920566"
@@ -2209,7 +2211,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47213578392"
@@ -2223,7 +2225,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47225952558"
@@ -2237,7 +2239,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47227183807"
@@ -2251,7 +2253,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47231853176"
@@ -2265,7 +2267,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47226711111"
@@ -2279,7 +2281,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47227496479"
@@ -2293,7 +2295,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47218944558"
@@ -2307,7 +2309,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47229469770"
@@ -2321,7 +2323,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46885962511"
@@ -2335,7 +2337,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47198631990"
@@ -2349,7 +2351,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
             <td style="font-size:11px;color:#9CA3AF">05/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47222281289"
@@ -2363,7 +2365,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47231777734"
@@ -2377,7 +2379,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47189418542"
@@ -2391,7 +2393,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47230057669"
@@ -2405,7 +2407,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47231338498"
@@ -2419,7 +2421,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47227193327"
@@ -2433,7 +2435,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47231082359"
@@ -2447,7 +2449,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47229096322"
@@ -2461,7 +2463,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47184732145"
@@ -2475,7 +2477,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47228973629"
@@ -2489,7 +2491,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47207404888"
@@ -2503,7 +2505,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
             <td style="font-size:11px;color:#9CA3AF">05/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47210172513"
@@ -2517,7 +2519,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47230888873"
@@ -2531,7 +2533,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47230918512"
@@ -2545,7 +2547,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47210458632"
@@ -2559,7 +2561,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47188973539"
@@ -2573,7 +2575,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47226420893"
@@ -2587,7 +2589,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47225861773"
@@ -2601,7 +2603,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47233436439"
@@ -2615,7 +2617,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
             <td style="font-size:11px;color:#9CA3AF">06/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47207775229"
@@ -2629,7 +2631,7 @@
             <td>—</td>
             <td style="text-align:center">❌</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
             <td style="font-size:11px;color:#9CA3AF">05/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46927258373"
@@ -2643,7 +2645,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46855434089"
@@ -2657,7 +2659,7 @@
             <td>ADYGE</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46855434089"
@@ -2671,7 +2673,7 @@
             <td>ADYGE</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46994743959"
@@ -2685,7 +2687,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46918540469"
@@ -2699,7 +2701,7 @@
             <td>DV3</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47072653552"
@@ -2713,7 +2715,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">17d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">18d</span></td>
             <td style="font-size:11px;color:#9CA3AF">29/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46935801844"
@@ -2727,7 +2729,7 @@
             <td>JOMED</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46879619854"
@@ -2741,7 +2743,7 @@
             <td>GAS TRANSPORTES</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47036107033"
@@ -2755,7 +2757,7 @@
             <td>MARONITRANSP</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47027648159"
@@ -2769,7 +2771,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">16d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">17d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47049354601"
@@ -2783,7 +2785,7 @@
             <td>MONFREDINI TRANSPORTES</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46961814688"
@@ -2797,7 +2799,7 @@
             <td>null</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47120523767"
@@ -2811,7 +2813,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">13d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
             <td style="font-size:11px;color:#9CA3AF">02/06/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47092766316"
@@ -2825,7 +2827,7 @@
             <td>—</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">16d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">17d</span></td>
             <td style="font-size:11px;color:#9CA3AF">30/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46993835378"
@@ -2839,7 +2841,7 @@
             <td>RN EXPRESS</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="47016539135"
@@ -2853,7 +2855,7 @@
             <td>2026-05-25 00:48:31</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46937855725"
@@ -2867,7 +2869,7 @@
             <td>null</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr><tr style="background:#3b1a1a" class="data-row"
             data-id="46889167588"
@@ -2881,7 +2883,7 @@
             <td>AXON TRANSPORTES</td>
             <td style="text-align:center">✅</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
             <td style="font-size:11px;color:#9CA3AF">27/05/2026</td>
         </tr></tbody>
     </table>
@@ -2908,7 +2910,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,850.28</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
         </tr><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">2</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
@@ -2917,7 +2919,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,542.67</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
         </tr><tr style="">
             <td style="text-align:center;font-weight:700;color:#FFE600">3</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
@@ -2926,7 +2928,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,332.34</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
         </tr><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">4</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
@@ -2935,7 +2937,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$2,197.50</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">15d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">16d</span></td>
         </tr><tr style="">
             <td style="text-align:center;font-weight:700;color:#FFE600">5</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
@@ -2944,7 +2946,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,518.33</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
         </tr><tr style="background:#2d1f0e">
             <td style="text-align:center;font-weight:700;color:#FFE600">6</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
@@ -2953,7 +2955,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,292.63</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
         </tr><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">7</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
@@ -2962,7 +2964,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,265.15</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">16d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">17d</span></td>
         </tr><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">8</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
@@ -2971,7 +2973,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$1,217.48</td>
             <td>Lucas Nascimento</td>
             <td><span class="pill" style="background:#10B981;color:#fff">Concluido</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
         </tr><tr style="background:#2d1f0e">
             <td style="text-align:center;font-weight:700;color:#FFE600">9</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
@@ -2980,7 +2982,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$995.04</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
         </tr><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">10</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
@@ -2989,8 +2991,8 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$974.68</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
-        </tr><tr style="">
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
+        </tr><tr style="background:#2d1f0e">
             <td style="text-align:center;font-weight:700;color:#FFE600">11</td>
             <td><span style="background:#1D4ED8;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON ROUTE</span></td>
             <td style="font-family:monospace;font-size:12px"><a href="https://envios.adminml.com/logistics/package-management/package/47262692838" target="_blank" class="shp-link">47262692838</a></td>
@@ -2998,7 +3000,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$885.77</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
         </tr><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">12</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
@@ -3007,7 +3009,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$872.56</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
         </tr><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">13</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
@@ -3016,7 +3018,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$872.56</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
         </tr><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">14</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
@@ -3025,7 +3027,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$863.90</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
         </tr><tr style="background:#3b1a1a">
             <td style="text-align:center;font-weight:700;color:#FFE600">15</td>
             <td><span style="background:#065F46;color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">ON WAY</span></td>
@@ -3034,7 +3036,7 @@
             <td style="font-weight:700;color:#10B981;font-size:14px">$857.06</td>
             <td>—</td>
             <td><span class="pill" style="background:#374151;color:#9CA3AF">—</span></td>
-            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
         </tr></tbody>
     </table>
     </div>
@@ -4576,16 +4578,6 @@
 
 <!-- ===================== SCRIPTS ===================== -->
 <script>
-// Menu Dashboards — abre/fecha com click, fecha ao clicar fora
-function toggleNav(e) {
-  e.stopPropagation();
-  const dd = document.querySelector('.nav-dropdown');
-  dd.classList.toggle('open');
-}
-document.addEventListener('click', () => {
-  document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
-});
-
 // Troca de abas + atualiza URL hash para link direto
 const TAB_ORDER = ['geral','criticos','route','way','gmv','hist'];
 function showTab(name, el) {

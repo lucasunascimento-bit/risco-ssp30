@@ -562,16 +562,14 @@ def gerar_html(d):
   .divider{{height:1px;background:#111827;margin:20px 0}}
   /* mb utils */
   .mb16{{margin-bottom:16px}}
-  /* NAV DROPDOWN */
-  .nav-wrap{{position:relative}}
-  .nav-btn{{background:#111827;color:#9ca3af;border:1px solid #1f2937;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .3s ease}}
-  .nav-btn:hover{{background:#1f2937;color:#e2e8f0}}
-  .nav-dropdown{{display:none;position:absolute;right:0;top:calc(100% + 6px);background:#0d1321;border:1px solid #1f2937;border-radius:8px;overflow:hidden;min-width:220px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.6)}}
-  .nav-dropdown.open{{display:block}}
-  .nav-dropdown a{{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:12px;color:#d1d5db;text-decoration:none;transition:background .2s;border-bottom:1px solid #111827}}
-  .nav-dropdown a:last-child{{border-bottom:none}}
-  .nav-dropdown a:hover{{background:#1f2937;color:#ffffff}}
-  .nav-dropdown a.nav-active{{color:#FFE600;font-weight:600}}
+  /* MODULE NAV */
+  .mod-nav{{display:flex;gap:4px;align-items:center}}
+  .mod-btn{{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:all .2s;color:#6b7280;background:transparent;display:flex;align-items:center;gap:6px}}
+  .mod-btn:hover{{background:#1f2937;color:#e2e8f0}}
+  .mod-btn.m-fraude{{color:#ef4444;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}}
+  .mod-btn.m-risco{{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}}
+  .mod-btn.m-isca{{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}}
+  .mod-btn.m-disabled{{opacity:.35;cursor:not-allowed;pointer-events:none}}
   /* CARD CLICÁVEL */
   .card-link{{cursor:pointer;position:relative}}
   .card-link::after{{content:'↗';position:absolute;top:14px;right:14px;font-size:10px;color:#1f2937;transition:color .3s ease}}
@@ -614,12 +612,16 @@ def gerar_html(d):
   <div style="display:flex;align-items:center;gap:14px">
     <span class="status-dot"></span>
     <span class="countdown-txt" id="countdown">Calculando...</span>
-    <div class="nav-wrap">
-      <button class="nav-btn" onclick="toggleNav(event)">⊞ Dashboards ▾</button>
-      <div class="nav-dropdown">
-        <a href="./index.html" class="nav-active">🔔 Risco SSP30 — ON ROUTE / ON WAY</a>
-        <a href="./fraude.html">🔍 Análise de Fraude SSP30</a>
-      </div>
+    <div class="mod-nav">
+      <a href="./fraude.html" class="mod-btn">
+        <i data-lucide="shield-alert" width="12" height="12"></i> Fraude
+      </a>
+      <a href="./index.html" class="mod-btn m-risco">
+        <i data-lucide="truck" width="12" height="12"></i> Risco
+      </a>
+      <span class="mod-btn m-disabled">
+        <i data-lucide="fish" width="12" height="12"></i> Isca
+      </span>
     </div>
   </div>
 </div>
@@ -881,16 +883,6 @@ def gerar_html(d):
 
 <!-- ===================== SCRIPTS ===================== -->
 <script>
-// Menu Dashboards — abre/fecha com click, fecha ao clicar fora
-function toggleNav(e) {{
-  e.stopPropagation();
-  const dd = document.querySelector('.nav-dropdown');
-  dd.classList.toggle('open');
-}}
-document.addEventListener('click', () => {{
-  document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
-}});
-
 // Troca de abas + atualiza URL hash para link direto
 const TAB_ORDER = ['geral','criticos','route','way','gmv','hist'];
 function showTab(name, el) {{
