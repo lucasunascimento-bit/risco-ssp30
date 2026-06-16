@@ -6,6 +6,7 @@ from datetime import datetime
 from collections import defaultdict
 from google.auth import default
 import gspread
+from googleapiclient.discovery import build
 
 # ── Config ────────────────────────────────────────────────────────────────────
 ISCA_SHEET_ID = '1Y2xydLcUEtxvM1fx3obqdysg3NgVYWWQTzStnVpdXGU'
@@ -24,7 +25,8 @@ def autenticar():
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/drive',
     ])
-    return gspread.authorize(creds)
+    gc = gspread.authorize(creds)
+    return gc, creds
 
 # ── Leitura ───────────────────────────────────────────────────────────────────
 def _norm_resultado(raw):
@@ -35,24 +37,45 @@ def _norm_resultado(raw):
         return 'Devolvida'
     return 'Em aberto'
 
-def _parse_hyperlink(raw):
-    """Extrai (url, texto) de =HYPERLINK("url","texto"), ou ('', raw) se não for fórmula."""
-    m = re.match(r'=HYPERLINK\("([^"]+)","([^"]+)"\)', raw.strip(), re.IGNORECASE)
-    if m:
-        return m.group(1), m.group(2)
-    return '', raw.strip()
+def _get_rota_hyperlinks(creds, num_data_rows):
+    """Lê a coluna Rota via Sheets API v4 para extrair hyperlinks inseridos pela UI."""
+    service = build('sheets', 'v4', credentials=creds)
+    col = chr(ord('A') + COL['rota'])  # índice 10 → 'K'
+    range_ = f"'{ABA_ISCAS}'!{col}2:{col}{num_data_rows + 1}"
+    result = service.spreadsheets().get(
+        spreadsheetId=ISCA_SHEET_ID,
+        ranges=[range_],
+        includeGridData=True,
+        fields='sheets.data.rowData.values(hyperlink,textFormatRuns)'
+    ).execute()
+    rows_raw = result['sheets'][0]['data'][0].get('rowData', [])
+    urls = []
+    for row in rows_raw:
+        vals = row.get('values', [])
+        cell = vals[0] if vals else {}
+        # Tenta campo simples primeiro, depois textFormatRuns (UI-inserted links)
+        url = cell.get('hyperlink', '')
+        if not url:
+            for run in cell.get('textFormatRuns', []):
+                u = run.get('format', {}).get('link', {}).get('uri', '')
+                if u:
+                    url = u
+                    break
+        urls.append(url)
+    return urls
 
-def carregar_iscas(gs):
+def carregar_iscas(gs, creds):
     print("  Lendo planilha Gestão de Iscas...")
     pl   = gs.open_by_key(ISCA_SHEET_ID)
     ws   = pl.worksheet(ABA_ISCAS)
-    data = ws.get_all_values(value_render_option='FORMULA')
+    data = ws.get_all_values()
+    print("  Extraindo hyperlinks da coluna Rota...")
+    rota_urls = _get_rota_hyperlinks(creds, len(data) - 1)
     rows = []
-    for r in data[1:]:
+    for idx, r in enumerate(data[1:]):
         g = lambda i: str(r[i]).strip() if i < len(r) else ''
         if not g(COL['data']) and not g(COL['shp_id']):
             continue
-        rota_url, rota_txt = _parse_hyperlink(g(COL['rota']))
         rows.append({
             'responsavel':  g(COL['responsavel']),
             'descricao':    g(COL['descricao']),
@@ -63,8 +86,8 @@ def carregar_iscas(gs):
             'status_rota':  g(COL['status_rota']),
             'shp_id':       g(COL['shp_id']),
             'mlp':          g(COL['mlp']),
-            'rota':         rota_txt or g(COL['rota']),
-            'rota_url':     rota_url,
+            'rota':         g(COL['rota']),
+            'rota_url':     rota_urls[idx] if idx < len(rota_urls) else '',
             'placa':        g(COL['placa']),
             'motorista':    g(COL['motorista']),
             'motorista_id': g(COL['motorista_id']),
@@ -486,8 +509,8 @@ lucide.createIcons();
 if __name__ == '__main__':
     print("Gestão de Iscas SSP30")
     print("-" * 40)
-    gs   = autenticar()
-    rows = carregar_iscas(gs)
+    gs, creds = autenticar()
+    rows = carregar_iscas(gs, creds)
     print(f"  {len(rows)} registros carregados")
     d    = processar(rows)
     print(f"  Violadas: {d['violadas']} | Devolvidas: {d['devolvidas']} | Em aberto: {d['em_aberto']}")
