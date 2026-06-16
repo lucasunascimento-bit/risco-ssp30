@@ -619,9 +619,9 @@ def gerar_html(d):
       <a href="./index.html" class="mod-btn m-risco">
         <i data-lucide="truck" width="12" height="12"></i> Risco
       </a>
-      <span class="mod-btn m-disabled">
+      <a href="./isca.html" class="mod-btn">
         <i data-lucide="fish" width="12" height="12"></i> Isca
-      </span>
+      </a>
     </div>
   </div>
 </div>
