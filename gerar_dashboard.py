@@ -477,9 +477,64 @@ def processar_places(rows):
         'acao_cnt': acao_cnt,
         'acao_gmv': {k: round(v, 2) for k, v in acao_gmv.items()},
         'rows': rows,
+        'ranking': processar_places_ranking(rows),
     }
 
+def processar_places_ranking(rows):
+    places = {}
+    for r in rows:
+        pid   = str(r.get('SHP_DESTINATION_ID') or 'N/A')
+        tramo = str(r.get('SHP_TRAMO') or '')
+        if pid not in places:
+            places[pid] = {'tramo': tramo, 'qtd': 0, 'gmv': 0.0, 'dias': []}
+        places[pid]['qtd']  += 1
+        places[pid]['gmv']  += float(r.get('SHP_ORDER_COST_USD') or 0)
+        places[pid]['dias'].append(int(r.get('DAYS_HANDLING_SVC') or 0))
+    result = []
+    for pid, d in places.items():
+        qtd     = d['qtd']
+        gmv     = round(d['gmv'], 2)
+        max_d   = max(d['dias']) if d['dias'] else 0
+        avg_d   = round(sum(d['dias']) / len(d['dias']), 1) if d['dias'] else 0
+        gmv_pkg = round(gmv / qtd, 2) if qtd else 0
+        result.append({'place_id': pid, 'tramo': d['tramo'], 'qtd': qtd,
+                       'gmv': gmv, 'gmv_pkg': gmv_pkg,
+                       'max_dias': max_d, 'avg_dias': avg_d})
+    return sorted(result, key=lambda x: x['gmv'], reverse=True)
+
 ROTA_URL_PLACES = 'https://envios.adminml.com/logistics/monitoring-distribution/detail/{id}?site=MLB'
+
+def rows_ranking_places(ranking):
+    out = ''
+    for i, p in enumerate(ranking):
+        tramo     = p['tramo']
+        tramo_lbl = tramo if tramo == 'NEX' else 'XPT/DC'
+        tramo_bg  = 'rgba(96,165,250,.15)'  if tramo == 'NEX' else 'rgba(167,139,250,.15)'
+        tramo_cl  = '#60a5fa'               if tramo == 'NEX' else '#a78bfa'
+        tramo_pill = f'<span style="background:{tramo_bg};color:{tramo_cl};padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">{tramo_lbl}</span>'
+
+        # alerta: alto valor/pkg OU muitos dias parado
+        alert = ''
+        if p['gmv_pkg'] >= 300:
+            alert = '<span title="Alto valor por pacote" style="color:#f87171;font-weight:700">● ALTO VALOR</span>'
+        elif p['max_dias'] >= 20:
+            alert = '<span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span>'
+
+        row_bg = 'background:#1a0808' if p['gmv_pkg'] >= 300 else ('background:#160f04' if p['max_dias'] >= 20 else '')
+        rank_badge = f'<span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#{i+1}</span>'
+
+        out += f'''<tr style="{row_bg}">
+            <td style="text-align:center">{rank_badge}</td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">{p["place_id"]}</td>
+            <td>{tramo_pill}</td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">{p["qtd"]}</td>
+            <td style="font-weight:700;color:#10B981">${p["gmv"]:,.2f}</td>
+            <td style="font-weight:700;color:#{"f87171" if p["gmv_pkg"]>=300 else "fbbf24" if p["gmv_pkg"]>=100 else "9ca3af"}">${p["gmv_pkg"]:,.2f}</td>
+            <td style="text-align:center">{dias_badge(p["max_dias"])}</td>
+            <td style="text-align:center">{dias_badge(int(p["avg_dias"]))}</td>
+            <td style="font-size:11px">{alert}</td>
+        </tr>'''
+    return out
 
 def rows_table_places(rows):
     out = ''
@@ -1067,6 +1122,25 @@ def gerar_html(d):
   <div class="grid2 mb16">
     <div class="box"><div class="box-title">Pacotes por Ação</div><div style="position:relative;height:220px"><canvas id="cPlAcao"></canvas></div></div>
     <div class="box"><div class="box-title">Distribuição NEX / DC</div><div style="position:relative;height:220px"><canvas id="cPlTramo"></canvas></div></div>
+  </div>
+
+  <div class="tbl-wrap" style="margin-bottom:18px">
+    <div class="tbl-title">🏆 Places Ofensores — Ranking por GMV (SSP30)</div>
+    <div class="tbl-scroll">
+    <table id="tbl_places_rank" style="min-width:750px">
+      <thead><tr>
+        <th style="width:40px">#</th>
+        <th>Place ID</th><th>Tramo</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',3)">Pkgs</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',4)">GMV Total</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',5)">GMV/pkg</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',6)">Max Dias</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',7)">Avg Dias</th>
+        <th>Alerta</th>
+      </tr></thead>
+      <tbody>{rows_ranking_places(d["places"]["ranking"])}</tbody>
+    </table>
+    </div>
   </div>
 
   <div class="tbl-wrap">

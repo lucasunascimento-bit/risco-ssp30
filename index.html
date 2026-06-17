@@ -139,7 +139,7 @@
     <div class="header-accent"></div>
     <div>
       <div class="header-title">Risco SSP30</div>
-      <div class="header-sub">Planilha de Controle · Gerado em 17/06/2026 17:37</div>
+      <div class="header-sub">Planilha de Controle · Gerado em 17/06/2026 17:45</div>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:14px">
@@ -4609,6 +4609,545 @@
   <div class="grid2 mb16">
     <div class="box"><div class="box-title">Pacotes por Ação</div><div style="position:relative;height:220px"><canvas id="cPlAcao"></canvas></div></div>
     <div class="box"><div class="box-title">Distribuição NEX / DC</div><div style="position:relative;height:220px"><canvas id="cPlTramo"></canvas></div></div>
+  </div>
+
+  <div class="tbl-wrap" style="margin-bottom:18px">
+    <div class="tbl-title">🏆 Places Ofensores — Ranking por GMV (SSP30)</div>
+    <div class="tbl-scroll">
+    <table id="tbl_places_rank" style="min-width:750px">
+      <thead><tr>
+        <th style="width:40px">#</th>
+        <th>Place ID</th><th>Tramo</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',3)">Pkgs</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',4)">GMV Total</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',5)">GMV/pkg</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',6)">Max Dias</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',7)">Avg Dias</th>
+        <th>Alerta</th>
+      </tr></thead>
+      <tbody><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#1</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP342</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">11</td>
+            <td style="font-weight:700;color:#10B981">$3,202.06</td>
+            <td style="font-weight:700;color:#fbbf24">$291.10</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">21d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">16d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#2</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP14011</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">230</td>
+            <td style="font-weight:700;color:#10B981">$2,644.96</td>
+            <td style="font-weight:700;color:#9ca3af">$11.50</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">30d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#1a0808">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#3</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP354</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">3</td>
+            <td style="font-weight:700;color:#10B981">$1,470.84</td>
+            <td style="font-weight:700;color:#f87171">$490.28</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">15d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
+            <td style="font-size:11px"><span title="Alto valor por pacote" style="color:#f87171;font-weight:700">● ALTO VALOR</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#4</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP140</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">13</td>
+            <td style="font-weight:700;color:#10B981">$1,431.73</td>
+            <td style="font-weight:700;color:#fbbf24">$110.13</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">27d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#5</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP369</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">12</td>
+            <td style="font-weight:700;color:#10B981">$1,409.25</td>
+            <td style="font-weight:700;color:#fbbf24">$117.44</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">27d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#6</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP961</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">14</td>
+            <td style="font-weight:700;color:#10B981">$1,355.99</td>
+            <td style="font-weight:700;color:#9ca3af">$96.86</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">27d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">12d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#7</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP787</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">35</td>
+            <td style="font-weight:700;color:#10B981">$1,250.27</td>
+            <td style="font-weight:700;color:#9ca3af">$35.72</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">26d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#8</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP549</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">3</td>
+            <td style="font-weight:700;color:#10B981">$857.72</td>
+            <td style="font-weight:700;color:#fbbf24">$285.91</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">35d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">23d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#9</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP951</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">11</td>
+            <td style="font-weight:700;color:#10B981">$794.61</td>
+            <td style="font-weight:700;color:#9ca3af">$72.24</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">41d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">18d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#10</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP0200</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">14</td>
+            <td style="font-weight:700;color:#10B981">$673.84</td>
+            <td style="font-weight:700;color:#9ca3af">$48.13</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">23d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">15d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#11</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP45</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">15</td>
+            <td style="font-weight:700;color:#10B981">$492.51</td>
+            <td style="font-weight:700;color:#9ca3af">$32.83</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">24d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#12</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP595</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">11</td>
+            <td style="font-weight:700;color:#10B981">$477.54</td>
+            <td style="font-weight:700;color:#9ca3af">$43.41</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">26d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#13</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP13978</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">17</td>
+            <td style="font-weight:700;color:#10B981">$359.47</td>
+            <td style="font-weight:700;color:#9ca3af">$21.15</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">13d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#14</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP437</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">11</td>
+            <td style="font-weight:700;color:#10B981">$346.90</td>
+            <td style="font-weight:700;color:#9ca3af">$31.54</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">25d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#15</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP060</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">15</td>
+            <td style="font-weight:700;color:#10B981">$325.04</td>
+            <td style="font-weight:700;color:#9ca3af">$21.67</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">22d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#16</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP721</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">10</td>
+            <td style="font-weight:700;color:#10B981">$319.28</td>
+            <td style="font-weight:700;color:#9ca3af">$31.93</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#17</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP659</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">9</td>
+            <td style="font-weight:700;color:#10B981">$318.16</td>
+            <td style="font-weight:700;color:#9ca3af">$35.35</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">19d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#18</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP200</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">12</td>
+            <td style="font-weight:700;color:#10B981">$239.60</td>
+            <td style="font-weight:700;color:#9ca3af">$19.97</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">79d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">41d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#19</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP107</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">4</td>
+            <td style="font-weight:700;color:#10B981">$238.18</td>
+            <td style="font-weight:700;color:#9ca3af">$59.55</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#20</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP393</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">16</td>
+            <td style="font-weight:700;color:#10B981">$213.98</td>
+            <td style="font-weight:700;color:#9ca3af">$13.37</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#21</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP14074</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">12</td>
+            <td style="font-weight:700;color:#10B981">$172.22</td>
+            <td style="font-weight:700;color:#9ca3af">$14.35</td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#22</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP0258</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">3</td>
+            <td style="font-weight:700;color:#10B981">$154.49</td>
+            <td style="font-weight:700;color:#9ca3af">$51.50</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">21d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">13d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#23</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP488</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">7</td>
+            <td style="font-weight:700;color:#10B981">$153.14</td>
+            <td style="font-weight:700;color:#9ca3af">$21.88</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">30d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">22d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#24</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP854</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">5</td>
+            <td style="font-weight:700;color:#10B981">$135.03</td>
+            <td style="font-weight:700;color:#9ca3af">$27.01</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">20d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#25</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP228</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">30</td>
+            <td style="font-weight:700;color:#10B981">$112.53</td>
+            <td style="font-weight:700;color:#9ca3af">$3.75</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">25d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#26</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP312</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">4</td>
+            <td style="font-weight:700;color:#10B981">$109.13</td>
+            <td style="font-weight:700;color:#9ca3af">$27.28</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">15d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">12d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#27</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP895</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">14</td>
+            <td style="font-weight:700;color:#10B981">$102.18</td>
+            <td style="font-weight:700;color:#9ca3af">$7.30</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">25d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#28</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP755</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">8</td>
+            <td style="font-weight:700;color:#10B981">$101.35</td>
+            <td style="font-weight:700;color:#9ca3af">$12.67</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">22d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#29</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP4</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">7</td>
+            <td style="font-weight:700;color:#10B981">$88.58</td>
+            <td style="font-weight:700;color:#9ca3af">$12.65</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">11d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#30</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP996</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">4</td>
+            <td style="font-weight:700;color:#10B981">$85.01</td>
+            <td style="font-weight:700;color:#9ca3af">$21.25</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">13d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#31</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP258</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">4</td>
+            <td style="font-weight:700;color:#10B981">$82.40</td>
+            <td style="font-weight:700;color:#9ca3af">$20.60</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#32</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP588</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">9</td>
+            <td style="font-weight:700;color:#10B981">$81.94</td>
+            <td style="font-weight:700;color:#9ca3af">$9.10</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#33</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP13953</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">2</td>
+            <td style="font-weight:700;color:#10B981">$58.59</td>
+            <td style="font-weight:700;color:#9ca3af">$29.30</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#34</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP13994</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">6</td>
+            <td style="font-weight:700;color:#10B981">$53.47</td>
+            <td style="font-weight:700;color:#9ca3af">$8.91</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#35</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP0721</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">3</td>
+            <td style="font-weight:700;color:#10B981">$50.85</td>
+            <td style="font-weight:700;color:#9ca3af">$16.95</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">35d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">17d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#36</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP0549</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">5</td>
+            <td style="font-weight:700;color:#10B981">$48.41</td>
+            <td style="font-weight:700;color:#9ca3af">$9.68</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">22d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#37</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP505</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">4</td>
+            <td style="font-weight:700;color:#10B981">$38.89</td>
+            <td style="font-weight:700;color:#9ca3af">$9.72</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#38</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP5268</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">3</td>
+            <td style="font-weight:700;color:#10B981">$31.49</td>
+            <td style="font-weight:700;color:#9ca3af">$10.50</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">23d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#39</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP764</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">1</td>
+            <td style="font-weight:700;color:#10B981">$29.10</td>
+            <td style="font-weight:700;color:#9ca3af">$29.10</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">13d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">13d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#40</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP326</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">2</td>
+            <td style="font-weight:700;color:#10B981">$27.60</td>
+            <td style="font-weight:700;color:#9ca3af">$13.80</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">8d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#41</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP231</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">4</td>
+            <td style="font-weight:700;color:#10B981">$26.77</td>
+            <td style="font-weight:700;color:#9ca3af">$6.69</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">14d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#42</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP14062</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">2</td>
+            <td style="font-weight:700;color:#10B981">$26.27</td>
+            <td style="font-weight:700;color:#9ca3af">$13.13</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">7d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="background:#160f04">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#43</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP649</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">2</td>
+            <td style="font-weight:700;color:#10B981">$18.38</td>
+            <td style="font-weight:700;color:#9ca3af">$9.19</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">49d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">28d</span></td>
+            <td style="font-size:11px"><span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#44</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP710</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">1</td>
+            <td style="font-weight:700;color:#10B981">$12.18</td>
+            <td style="font-weight:700;color:#9ca3af">$12.18</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#45</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP46</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">1</td>
+            <td style="font-weight:700;color:#10B981">$11.94</td>
+            <td style="font-weight:700;color:#9ca3af">$11.94</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#46</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP12843</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">2</td>
+            <td style="font-weight:700;color:#10B981">$11.67</td>
+            <td style="font-weight:700;color:#9ca3af">$5.83</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">16d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">10d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#47</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP13985</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">1</td>
+            <td style="font-weight:700;color:#10B981">$9.93</td>
+            <td style="font-weight:700;color:#9ca3af">$9.93</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">4d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#48</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP666</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">2</td>
+            <td style="font-weight:700;color:#10B981">$8.51</td>
+            <td style="font-weight:700;color:#9ca3af">$4.25</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">5d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">3d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#49</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP1106</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">1</td>
+            <td style="font-weight:700;color:#10B981">$7.80</td>
+            <td style="font-weight:700;color:#9ca3af">$7.80</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#50</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP14060</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">3</td>
+            <td style="font-weight:700;color:#10B981">$7.51</td>
+            <td style="font-weight:700;color:#9ca3af">$2.50</td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">1d</span></td>
+            <td style="text-align:center"><span style="color:#10B981;font-weight:700">0d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#51</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRDSP0854</td>
+            <td><span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">XPT/DC</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">1</td>
+            <td style="font-weight:700;color:#10B981">$3.90</td>
+            <td style="font-weight:700;color:#9ca3af">$3.90</td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="text-align:center"><span style="color:#F97316;font-weight:700">6d</span></td>
+            <td style="font-size:11px"></td>
+        </tr><tr style="">
+            <td style="text-align:center"><span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#52</span></td>
+            <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">BRNSP679</td>
+            <td><span style="background:rgba(96,165,250,.15);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">NEX</span></td>
+            <td style="text-align:center;font-weight:700;color:#e2e8f0">1</td>
+            <td style="font-weight:700;color:#10B981">$0.00</td>
+            <td style="font-weight:700;color:#9ca3af">$0.00</td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="text-align:center"><span style="color:#EF4444;font-weight:700">9d</span></td>
+            <td style="font-size:11px"></td>
+        </tr></tbody>
+    </table>
+    </div>
   </div>
 
   <div class="tbl-wrap">
