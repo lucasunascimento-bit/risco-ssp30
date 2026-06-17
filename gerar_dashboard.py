@@ -6,6 +6,7 @@
 import json, webbrowser, os
 from datetime import datetime
 from google.auth import default
+from google.cloud import bigquery
 import gspread
 
 # ============================================================
@@ -16,6 +17,26 @@ ABA_ON_ROUTE  = 'Tratativas Risco On Route (HV) - Lucas'
 ABA_ON_WAY    = 'Tratativas Risco On Way (HV) - Lucas'
 ABA_HISTORICO = 'Histórico'
 OUTPUT        = os.path.join(os.path.dirname(__file__), 'index.html')
+
+PLACES_QUERY = """
+SELECT
+  CAST(SHP_SHIPMENT_ID AS STRING)                                        AS SHP_SHIPMENT_ID,
+  SHP_TRAMO,
+  ACTION_DETAIL,
+  RISK_CLASIFICATION,
+  COALESCE(DAYS_HANDLING_SVC, 0)                                         AS DAYS_HANDLING_SVC,
+  COALESCE(DAYS_EXPIRED_PROMISE, 0)                                      AS DAYS_EXPIRED_PROMISE,
+  COALESCE(CAST(SHP_ORDER_COST_USD AS FLOAT64), 0)                       AS SHP_ORDER_COST_USD,
+  FLAG_BPP,
+  FLAG_SYSTEMS_CANCEL,
+  FORMAT_DATETIME('%d/%m/%Y %H:%M', SHP_LG_SHIPMENT_CHK_DT)             AS SHP_LG_SHIPMENT_CHK_DT,
+  COALESCE(SHP_COMPANY_NAME_LM, SHP_LG_CARRIER_NAME_LH)                 AS CARRIER,
+  CAST(SHP_LG_ROUTE_ID_LM AS STRING)                                     AS ROTA_ID
+FROM `meli-bi-data.WHOWNER.LK_SHP_MISSING_MANAGEMENT_PACKAGES`
+WHERE SHP_LG_FACILITY_ID = 'SSP30'
+  AND SHP_TRAMO IN ('NEX', 'DC')
+ORDER BY SHP_ORDER_COST_USD DESC
+"""
 MESES_PT      = {1:'jan',2:'fev',3:'mar',4:'abr',5:'mai',6:'jun',
                  7:'jul',8:'ago',9:'set',10:'out',11:'nov',12:'dez'}
 
@@ -42,7 +63,7 @@ def carregar():
         h_hi, hi = ler(ABA_HISTORICO)
     except Exception:
         h_hi, hi = [], []
-    return rt, wy, hi
+    return rt, wy, hi, creds
 
 # ============================================================
 # PROCESSAMENTO
@@ -411,6 +432,103 @@ def rows_table_hist(rows):
     return out
 
 # ============================================================
+# PLACES — BigQuery
+# ============================================================
+def carregar_places(creds):
+    client = bigquery.Client(project='meli-bi-data', credentials=creds)
+    job    = client.query(PLACES_QUERY)
+    return [dict(r) for r in job.result()]
+
+def extract_acao(action_detail):
+    if not action_detail:
+        return '—'
+    parts = str(action_detail).split('|')
+    return parts[-1].strip()
+
+def processar_places(rows):
+    total    = len(rows)
+    gmv_tot  = sum(float(r.get('SHP_ORDER_COST_USD') or 0) for r in rows)
+    nex_rows = [r for r in rows if r.get('SHP_TRAMO') == 'NEX']
+    dc_rows  = [r for r in rows if r.get('SHP_TRAMO') == 'DC']
+
+    risk_cnt, acao_cnt, acao_gmv = {}, {}, {}
+    for r in rows:
+        rk = str(r.get('RISK_CLASIFICATION') or '—').capitalize()
+        risk_cnt[rk] = risk_cnt.get(rk, 0) + 1
+        a  = extract_acao(r.get('ACTION_DETAIL') or '')
+        acao_cnt[a] = acao_cnt.get(a, 0) + 1
+        acao_gmv[a] = acao_gmv.get(a, 0) + float(r.get('SHP_ORDER_COST_USD') or 0)
+
+    return {
+        'total': total, 'gmv_total': round(gmv_tot, 2),
+        'nex': len(nex_rows), 'dc':  len(dc_rows),
+        'gmv_nex': round(sum(float(r.get('SHP_ORDER_COST_USD') or 0) for r in nex_rows), 2),
+        'gmv_dc':  round(sum(float(r.get('SHP_ORDER_COST_USD') or 0) for r in dc_rows),  2),
+        'critico':  risk_cnt.get('Crítico', 0),
+        'alto':     risk_cnt.get('Alto',    0),
+        'moderado': risk_cnt.get('Moderado',0),
+        'acao_cnt': acao_cnt,
+        'acao_gmv': {k: round(v, 2) for k, v in acao_gmv.items()},
+        'rows': rows,
+    }
+
+ROTA_URL_PLACES = 'https://envios.adminml.com/logistics/monitoring-distribution/detail/{id}?site=MLB'
+
+def rows_table_places(rows):
+    out = ''
+    for r in rows:
+        shp_id  = str(r.get('SHP_SHIPMENT_ID') or '')
+        tramo   = str(r.get('SHP_TRAMO') or '')
+        acao    = extract_acao(r.get('ACTION_DETAIL') or '')
+        risk    = str(r.get('RISK_CLASIFICATION') or '—').capitalize()
+        dias    = int(r.get('DAYS_HANDLING_SVC') or 0)
+        gmv     = float(r.get('SHP_ORDER_COST_USD') or 0)
+        carrier = str(r.get('CARRIER') or '—')
+        rota_id = str(r.get('ROTA_ID') or '')
+        chk_dt  = str(r.get('SHP_LG_SHIPMENT_CHK_DT') or '—')
+        bpp     = r.get('FLAG_BPP', False)
+        gmv_fmt = f'${gmv:,.2f}' if gmv else '—'
+
+        tramo_bg  = 'rgba(96,165,250,.15)'  if tramo == 'NEX' else 'rgba(167,139,250,.15)'
+        tramo_cl  = '#60a5fa'               if tramo == 'NEX' else '#a78bfa'
+        tramo_pill = f'<span style="background:{tramo_bg};color:{tramo_cl};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{tramo}</span>'
+
+        rk = risk.lower()
+        if 'cr' in rk:
+            risk_pill = f'<span class="pill" style="background:#7f1d1d;color:#fca5a5">{risk}</span>'
+            row_bg    = 'background:#1a0808'
+        elif 'alt' in rk:
+            risk_pill = f'<span class="pill" style="background:#713f12;color:#fde68a">{risk}</span>'
+            row_bg    = 'background:#160f04'
+        else:
+            risk_pill = f'<span class="pill" style="background:#1f2937;color:#9ca3af">{risk}</span>'
+            row_bg    = ''
+
+        if rota_id and rota_id not in ('None', ''):
+            rota_cell = f'<a href="{ROTA_URL_PLACES.format(id=rota_id)}" target="_blank" style="color:#4ade80;text-decoration:none;font-family:monospace;font-size:11px">{rota_id}</a>'
+        else:
+            rota_cell = '—'
+
+        carrier_cell = 'BPP ✓' if bpp else (carrier if carrier not in ('None', '') else '—')
+
+        out += f'''<tr style="{row_bg}" class="pl-row"
+            data-id="{shp_id}"
+            data-tramo="{tramo.lower()}"
+            data-acao="{acao.lower()}"
+            data-risk="{rk}">
+            <td style="font-family:monospace;font-size:12px">{id_link(shp_id)}</td>
+            <td>{tramo_pill}</td>
+            <td style="font-size:12px;color:#d1d5db">{acao}</td>
+            <td>{risk_pill}</td>
+            <td style="text-align:center">{dias_badge(dias)}</td>
+            <td style="font-weight:700;color:#10B981">{gmv_fmt}</td>
+            <td style="font-size:11px;color:#9ca3af">{carrier_cell}</td>
+            <td>{rota_cell}</td>
+            <td style="font-size:10px;color:#64748b">{chk_dt}</td>
+        </tr>'''
+    return out
+
+# ============================================================
 # GERAÇÃO DO HTML
 # ============================================================
 def filtros_html(tab_id, sits):
@@ -651,6 +769,12 @@ def gerar_html(d):
     ON WAY <span class="sb-badge">{d["w_total"]}</span>
   </div>
   <div class="sb-divider"></div>
+  <div class="sb-section-header">Places</div>
+  <div class="sb-item" data-tab="places" onclick="showTab('places',this)">
+    <i data-lucide="map-pin" width="14" height="14" class="ci"></i>
+    NEX / DC <span class="sb-badge">{d["places"]["total"]}</span>
+  </div>
+  <div class="sb-divider"></div>
   <div class="sb-section-header">Análise</div>
   <div class="sb-item" data-tab="gmv" onclick="showTab('gmv',this)">
     <i data-lucide="dollar-sign" width="14" height="14" class="ci"></i> Top GMV
@@ -886,10 +1010,82 @@ def gerar_html(d):
   </div>
 </div>
 
+<!-- ===================== ABA: PLACES (NEX/DC) ===================== -->
+<div id="tab-places" class="content">
+  <div class="cards">
+    <div class="card">
+      <div class="card-header"><i data-lucide="map-pin" class="card-icon" width="14" height="14"></i><span class="card-label">Total Places</span></div>
+      <div class="card-value">{d["places"]["total"]}</div>
+      <div class="card-delta">NEX + DC · SSP30</div>
+    </div>
+    <div class="card" style="border-color:rgba(96,165,250,.2)">
+      <div class="card-header"><i data-lucide="navigation" class="card-icon" width="14" height="14" style="color:#60a5fa"></i><span class="card-label">NEX</span></div>
+      <div class="card-value" style="color:#60a5fa">{d["places"]["nex"]}</div>
+      <div class="card-delta">${d["places"]["gmv_nex"]:,.0f} USD</div>
+    </div>
+    <div class="card" style="border-color:rgba(167,139,250,.2)">
+      <div class="card-header"><i data-lucide="building-2" class="card-icon" width="14" height="14" style="color:#a78bfa"></i><span class="card-label">DC</span></div>
+      <div class="card-value" style="color:#a78bfa">{d["places"]["dc"]}</div>
+      <div class="card-delta">${d["places"]["gmv_dc"]:,.0f} USD</div>
+    </div>
+    <div class="card card-alert">
+      <div class="card-header"><i data-lucide="alert-triangle" class="card-icon" width="14" height="14" style="color:#7f1d1d"></i><span class="card-label">Crítico</span></div>
+      <div class="card-value val-alert">{d["places"]["critico"]}</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="alert-circle" class="card-icon" width="14" height="14" style="color:#f59e0b"></i><span class="card-label">Alto</span></div>
+      <div class="card-value val-warn">{d["places"]["alto"]}</div>
+    </div>
+    <div class="card card-alert" style="border-color:#022c22;background:#060f0d">
+      <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Total</span></div>
+      <div class="card-value val-ok">${d["places"]["gmv_total"]:,.0f}</div>
+    </div>
+  </div>
+
+  <div class="grid2 mb16">
+    <div class="box"><div class="box-title">Pacotes por Ação</div><div style="position:relative;height:220px"><canvas id="cPlAcao"></canvas></div></div>
+    <div class="box"><div class="box-title">Distribuição NEX / DC</div><div style="position:relative;height:220px"><canvas id="cPlTramo"></canvas></div></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-title">📍 Pacotes nos Places (NEX + DC) — SSP30 · ordenados por GMV</div>
+    <div class="filter-bar">
+      <input type="text" id="busca_places" placeholder="🔍 Buscar por SHP ID..." oninput="filtrarPlaces()" class="filter-input" style="max-width:260px">
+      <select id="tramo_places" onchange="filtrarPlaces()" class="filter-select">
+        <option value="">NEX + DC</option>
+        <option value="nex">NEX</option>
+        <option value="dc">DC</option>
+      </select>
+      <select id="acao_places" onchange="filtrarPlaces()" class="filter-select">
+        <option value="">Todas as Ações</option>
+        {''.join(f'<option value="{a.lower()}">{a}</option>' for a in d["places"]["acao_cnt"].keys())}
+      </select>
+      <select id="risk_places" onchange="filtrarPlaces()" class="filter-select">
+        <option value="">Todos os Riscos</option>
+        <option value="cr">Crítico</option>
+        <option value="alt">Alto</option>
+        <option value="mod">Moderado</option>
+      </select>
+      <button onclick="exportCSV('tbl_places', 'places_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
+    </div>
+    <div class="tbl-scroll">
+    <table id="tbl_places">
+      <thead><tr>
+        <th>SHP ID</th><th>Tramo</th><th>Ação</th><th>Risco</th>
+        <th class="sortable" onclick="sortTable('tbl_places',4)">Dias S/ Mov</th>
+        <th class="sortable" onclick="sortTable('tbl_places',5)">GMV USD</th>
+        <th>Transportadora</th><th>Rota</th><th>Último Status</th>
+      </tr></thead>
+      <tbody>{rows_table_places(d["places"]["rows"])}</tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== SCRIPTS ===================== -->
 <script>
 // Troca de abas + atualiza URL hash para link direto
-const TAB_ORDER = ['geral','criticos','route','way','gmv','hist'];
+const TAB_ORDER = ['geral','criticos','route','way','places','gmv','hist'];
 function showTab(name, el) {{
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(e => e.classList.remove('active'));
@@ -1139,6 +1335,60 @@ new Chart(document.getElementById('cTop'), {{
               y:{{ ticks:{{ color:'#94a3b8', font:{{ size:11 }} }}, grid:{{ display:false }} }} }}
   }}
 }});
+// ---- Places: filtro ----
+function filtrarPlaces() {{
+  const busca = (document.getElementById('busca_places')?.value || '').toLowerCase();
+  const tramo = (document.getElementById('tramo_places')?.value || '').toLowerCase();
+  const acao  = (document.getElementById('acao_places')?.value  || '').toLowerCase();
+  const risk  = (document.getElementById('risk_places')?.value  || '').toLowerCase();
+  document.querySelectorAll('#tbl_places .pl-row').forEach(tr => {{
+    const id  = tr.dataset.id    || '';
+    const tr_ = tr.dataset.tramo || '';
+    const ac  = tr.dataset.acao  || '';
+    const rk  = tr.dataset.risk  || '';
+    const ok  = (!busca || id.includes(busca))
+             && (!tramo || tr_.includes(tramo))
+             && (!acao  || ac.includes(acao))
+             && (!risk  || rk.includes(risk));
+    tr.style.display = ok ? '' : 'none';
+  }});
+}}
+
+// ---- Places: gráficos ----
+let _plDone = false;
+function initPlCharts() {{
+  if (_plDone) return; _plDone = true;
+  setTimeout(function() {{
+    const _acaoLabels = {j(list(d["places"]["acao_cnt"].keys()))};
+    const _acaoVals   = {j(list(d["places"]["acao_cnt"].values()))};
+    new Chart(document.getElementById('cPlAcao'), {{
+      type: 'bar',
+      data: {{ labels: _acaoLabels, datasets: [{{ data: _acaoVals,
+        backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4 }}] }},
+      options: {{ responsive:true, maintainAspectRatio:false,
+        plugins:{{ legend:{{ display:false }} }},
+        scales:{{ x:{{ ticks:{{ color:'#8a8a8a', maxRotation:35, font:{{size:10}} }}, grid:{{ color:'#1e293b' }} }},
+                  y:{{ ticks:{{ color:'#8a8a8a' }}, grid:{{ color:'#334155' }} }} }} }}
+    }});
+    new Chart(document.getElementById('cPlTramo'), {{
+      type: 'doughnut',
+      data: {{ labels: ['NEX','DC'],
+               datasets: [{{ data: [{d["places"]["nex"]},{d["places"]["dc"]}],
+                 backgroundColor: ['rgba(96,165,250,.75)','rgba(167,139,250,.75)'],
+                 borderWidth: 0 }}] }},
+      options: {{ responsive:true, maintainAspectRatio:false, cutout:'40%',
+        plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:12}} }} }} }} }}
+    }});
+  }}, 0);
+}}
+
+// Inicializa gráficos ao abrir a aba Places
+const _origShowTab = showTab;
+function showTab(name, el) {{
+  _origShowTab(name, el);
+  if (name === 'places') initPlCharts();
+}}
+
 // Inicializa ícones Lucide
 lucide.createIcons();
 </script>
@@ -1152,10 +1402,18 @@ lucide.createIcons();
 # ============================================================
 if __name__ == '__main__':
     print("Lendo planilha...")
-    rt, wy, hi = carregar()
+    rt, wy, hi, creds = carregar()
     print(f"  ON ROUTE: {len(rt)} | ON WAY: {len(wy)} | Histórico: {len(hi)}")
+    print("Lendo Places (BigQuery)...")
+    try:
+        places_rows = carregar_places(creds)
+        print(f"  Places: {len(places_rows)} pacotes (NEX+DC)")
+    except Exception as e:
+        print(f"  [AVISO] Places BQ falhou: {e}")
+        places_rows = []
     print("Processando dados...")
     dados = processar(rt, wy, hi)
+    dados['places'] = processar_places(places_rows)
     print("Gerando HTML...")
     html = gerar_html(dados)
     with open(OUTPUT, 'w', encoding='utf-8') as f:
