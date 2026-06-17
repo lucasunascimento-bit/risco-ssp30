@@ -486,10 +486,17 @@ def processar_places_ranking(rows):
         pid   = str(r.get('SHP_DESTINATION_ID') or 'N/A')
         tramo = str(r.get('SHP_TRAMO') or '')
         if pid not in places:
-            places[pid] = {'tramo': tramo, 'qtd': 0, 'gmv': 0.0, 'dias': []}
+            places[pid] = {'tramo': tramo, 'qtd': 0, 'gmv': 0.0, 'dias': [], 'pkgs': []}
         places[pid]['qtd']  += 1
         places[pid]['gmv']  += float(r.get('SHP_ORDER_COST_USD') or 0)
         places[pid]['dias'].append(int(r.get('DAYS_HANDLING_SVC') or 0))
+        places[pid]['pkgs'].append({
+            'id':   str(r.get('SHP_SHIPMENT_ID') or ''),
+            'gmv':  float(r.get('SHP_ORDER_COST_USD') or 0),
+            'acao': extract_acao(r.get('ACTION_DETAIL') or ''),
+            'dias': int(r.get('DAYS_HANDLING_SVC') or 0),
+            'risk': norm_risk(r.get('RISK_CLASIFICATION') or ''),
+        })
     result = []
     for pid, d in places.items():
         qtd     = d['qtd']
@@ -497,9 +504,10 @@ def processar_places_ranking(rows):
         max_d   = max(d['dias']) if d['dias'] else 0
         avg_d   = round(sum(d['dias']) / len(d['dias']), 1) if d['dias'] else 0
         gmv_pkg = round(gmv / qtd, 2) if qtd else 0
+        pkgs_sorted = sorted(d['pkgs'], key=lambda x: x['gmv'], reverse=True)
         result.append({'place_id': pid, 'tramo': d['tramo'], 'qtd': qtd,
                        'gmv': gmv, 'gmv_pkg': gmv_pkg,
-                       'max_dias': max_d, 'avg_dias': avg_d})
+                       'max_dias': max_d, 'avg_dias': avg_d, 'pkgs': pkgs_sorted})
     return sorted(result, key=lambda x: x['gmv'], reverse=True)
 
 ROTA_URL_PLACES = 'https://envios.adminml.com/logistics/monitoring-distribution/detail/{id}?site=MLB'
@@ -513,18 +521,41 @@ def rows_ranking_places(ranking):
         tramo_cl  = '#60a5fa'               if tramo == 'NEX' else '#a78bfa'
         tramo_pill = f'<span style="background:{tramo_bg};color:{tramo_cl};padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600">{tramo_lbl}</span>'
 
-        # alerta: alto valor/pkg OU muitos dias parado
         alert = ''
         if p['gmv_pkg'] >= 300:
-            alert = '<span title="Alto valor por pacote" style="color:#f87171;font-weight:700">● ALTO VALOR</span>'
+            alert = '<span style="color:#f87171;font-weight:700">● ALTO VALOR</span>'
         elif p['max_dias'] >= 20:
-            alert = '<span title="Pacote parado há muito tempo" style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span>'
+            alert = '<span style="color:#fbbf24;font-weight:700">● LONGA ESPERA</span>'
 
-        row_bg = 'background:#1a0808' if p['gmv_pkg'] >= 300 else ('background:#160f04' if p['max_dias'] >= 20 else '')
+        row_bg   = 'background:#1a0808' if p['gmv_pkg'] >= 300 else ('background:#160f04' if p['max_dias'] >= 20 else '')
+        safe_pid = p['place_id'].replace(' ', '_')
         rank_badge = f'<span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#{i+1}</span>'
+        toggle_btn = f'<button onclick="togglePlaceRow(\'{safe_pid}\')" id="pbtn-{safe_pid}" style="background:none;border:1px solid #374151;color:#9ca3af;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:11px">▶</button>'
 
-        out += f'''<tr style="{row_bg}">
-            <td style="text-align:center">{rank_badge}</td>
+        # sub-row com lista de IDs
+        pkg_chips = ''
+        for pkg in p['pkgs']:
+            rk_low = pkg['risk'].lower()
+            rc = '#f87171' if 'cr' in rk_low else ('#fbbf24' if 'alt' in rk_low else '#9ca3af')
+            pkg_chips += f'''<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:#0d1321;border-radius:4px;border:1px solid #1f2937">
+                <a href="https://www.mercadolivre.com.br/envios/admin/shipments/{pkg["id"]}" target="_blank" style="color:#60a5fa;font-family:monospace;font-size:11px;font-weight:600;text-decoration:none">{pkg["id"]}</a>
+                <span style="color:#10B981;font-size:11px;font-weight:600">${pkg["gmv"]:,.2f}</span>
+                <span style="color:{rc};font-size:10px">{pkg["risk"]}</span>
+                <span style="color:#6b7280;font-size:10px">{dias_badge(pkg["dias"])}</span>
+                <span style="color:#94a3b8;font-size:10px">{pkg["acao"]}</span>
+            </div>'''
+
+        detail_row = f'''<tr id="pdr-{safe_pid}" style="display:none">
+            <td colspan="9" style="padding:8px 12px;background:#080e1a;border-top:1px solid #1f2937">
+              <div style="font-size:11px;color:#64748b;margin-bottom:6px;font-weight:600">
+                {p["qtd"]} pacote(s) em {p["place_id"]} — ordenados por GMV
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">{pkg_chips}</div>
+            </td>
+        </tr>'''
+
+        out += f'''<tr style="{row_bg}" class="rank-row">
+            <td style="text-align:center">{toggle_btn} {rank_badge}</td>
             <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">{p["place_id"]}</td>
             <td>{tramo_pill}</td>
             <td style="text-align:center;font-weight:700;color:#e2e8f0">{p["qtd"]}</td>
@@ -533,7 +564,7 @@ def rows_ranking_places(ranking):
             <td style="text-align:center">{dias_badge(p["max_dias"])}</td>
             <td style="text-align:center">{dias_badge(int(p["avg_dias"]))}</td>
             <td style="font-size:11px">{alert}</td>
-        </tr>'''
+        </tr>{detail_row}'''
     return out
 
 def rows_table_places(rows):
@@ -1204,6 +1235,16 @@ window.addEventListener('load', () => {{
 function irPara(tabName) {{
   const el = document.querySelector(`.sb-item[data-tab="${{tabName}}"]`);
   if (el) {{ showTab(tabName, el); window.scrollTo({{top:0, behavior:'smooth'}}); }}
+}}
+
+// Expand/collapse pacotes de um place no ranking
+function togglePlaceRow(pid) {{
+  const row = document.getElementById('pdr-' + pid);
+  const btn = document.getElementById('pbtn-' + pid);
+  if (!row) return;
+  const open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : 'table-row';
+  if (btn) btn.textContent = open ? '▶' : '▼';
 }}
 
 // Filtro por mês no Histórico
