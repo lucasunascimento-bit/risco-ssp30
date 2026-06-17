@@ -538,7 +538,7 @@ def rows_ranking_places(ranking):
             rk_low = pkg['risk'].lower()
             rc = '#f87171' if 'cr' in rk_low else ('#fbbf24' if 'alt' in rk_low else '#9ca3af')
             pkg_chips += f'''<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:#0d1321;border-radius:4px;border:1px solid #1f2937">
-                <a href="https://www.mercadolivre.com.br/envios/admin/shipments/{pkg["id"]}" target="_blank" style="color:#60a5fa;font-family:monospace;font-size:11px;font-weight:600;text-decoration:none">{pkg["id"]}</a>
+                {id_link(pkg["id"])}
                 <span style="color:#10B981;font-size:11px;font-weight:600">${pkg["gmv"]:,.2f}</span>
                 <span style="color:{rc};font-size:10px">{pkg["risk"]}</span>
                 <span style="color:#6b7280;font-size:10px">{dias_badge(pkg["dias"])}</span>
