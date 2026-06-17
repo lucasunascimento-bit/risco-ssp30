@@ -532,14 +532,8 @@ def gerar_report_places_txt(dados):
         alert = '  🚨 ALTO VALOR' if pl['gmv_pkg'] >= 300 else ('  ⏰ LONGA ESPERA' if pl['max_dias'] >= 20 else '')
         lines.append(
             f"{i+1}. {pl['place_id']} ({tramo_lbl}) — "
-            f"{pl['qtd']} pkgs  |  ${pl['gmv']:,.2f}  |  max {pl['max_dias']}d{alert}"
+            f"{pl['qtd']} pkgs  |  ${pl['gmv']:,.2f}{alert}"
         )
-        for pkg in pl['pkgs'][:3]:
-            lines.append(f"   • {pkg['id']}  ${pkg['gmv']:,.2f}  {pkg['risk']}  {pkg['dias']}d")
-        if pl['qtd'] > 3:
-            lines.append(f"   ... e mais {pl['qtd'] - 3} pacote(s)")
-    lines += ["", "━━━━━━━━━━━━━━━━━━━━━━━━━━",
-              "Dashboard: https://lucasunascimento-bit.github.io/risco-ssp30/"]
     return '\n'.join(lines)
 
 def rows_ranking_places(ranking):
