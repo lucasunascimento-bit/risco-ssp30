@@ -1109,6 +1109,7 @@ function showTab(name, el) {{
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null, '', '#' + name);
+  if (name === 'places') initPlCharts();
 }}
 
 // Abre aba pelo hash da URL (ex: #criticos)
@@ -1399,12 +1400,7 @@ function initPlCharts() {{
   }}, 0);
 }}
 
-// Inicializa gráficos ao abrir a aba Places
-const _origShowTab = showTab;
-function showTab(name, el) {{
-  _origShowTab(name, el);
-  if (name === 'places') initPlCharts();
-}}
+// Gráficos Places já inicializados dentro de showTab
 
 // Inicializa ícones Lucide
 lucide.createIcons();

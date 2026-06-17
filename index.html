@@ -139,7 +139,7 @@
     <div class="header-accent"></div>
     <div>
       <div class="header-title">Risco SSP30</div>
-      <div class="header-sub">Planilha de Controle · Gerado em 17/06/2026 17:29</div>
+      <div class="header-sub">Planilha de Controle · Gerado em 17/06/2026 17:31</div>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:14px">
@@ -14576,6 +14576,7 @@ function showTab(name, el) {
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null, '', '#' + name);
+  if (name === 'places') initPlCharts();
 }
 
 // Abre aba pelo hash da URL (ex: #criticos)
@@ -14866,12 +14867,7 @@ function initPlCharts() {
   }, 0);
 }
 
-// Inicializa gráficos ao abrir a aba Places
-const _origShowTab = showTab;
-function showTab(name, el) {
-  _origShowTab(name, el);
-  if (name === 'places') initPlCharts();
-}
+// Gráficos Places já inicializados dentro de showTab
 
 // Inicializa ícones Lucide
 lucide.createIcons();
