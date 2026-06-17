@@ -1138,7 +1138,7 @@ def rows_block_list(rows):
     out = ''
     for idx, r in enumerate(rows):
         did      = r['driver_id']
-        link     = f'https://shipping-bo.adminml.com/sauron/shipments/shipment/{did}' if did else '#'
+        link     = f'https://envios.adminml.com/logistics/drivers-management/drivers/{did}' if did else '#'
         data_iso = _iso(r["data"]) if r["data"] else ''
         n_sol    = r.get('n_solicitacoes', 1)
         row_id   = f'blh_{idx}'
