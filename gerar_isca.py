@@ -262,7 +262,7 @@ th{{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;let
     <a href="./isca.html" class="mod-btn m-isca">
       <i data-lucide="fish" width="12" height="12"></i> Isca
     </a>
-    <a href="./cftv.html" class="mod-btn m-cftv">
+    <a href="./cftv.html" class="mod-btn">
       <i data-lucide="camera" width="12" height="12"></i> CFTV
     </a>
   </div>
