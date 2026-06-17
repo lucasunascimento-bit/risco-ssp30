@@ -441,6 +441,11 @@ def carregar_places(creds):
     job    = client.query(PLACES_QUERY)
     return [dict(r) for r in job.result()]
 
+RISK_LABEL = {'CRITICO': 'Crítico', 'ALTO': 'Alto', 'MODERADO': 'Moderado'}
+def norm_risk(val):
+    v = str(val or '').strip().upper()
+    return RISK_LABEL.get(v, val.capitalize() if val else '—')
+
 def extract_acao(action_detail):
     if not action_detail:
         return '—'
@@ -455,7 +460,7 @@ def processar_places(rows):
 
     risk_cnt, acao_cnt, acao_gmv = {}, {}, {}
     for r in rows:
-        rk = str(r.get('RISK_CLASIFICATION') or '—').capitalize()
+        rk = norm_risk(r.get('RISK_CLASIFICATION') or '')
         risk_cnt[rk] = risk_cnt.get(rk, 0) + 1
         a  = extract_acao(r.get('ACTION_DETAIL') or '')
         acao_cnt[a] = acao_cnt.get(a, 0) + 1
@@ -466,9 +471,9 @@ def processar_places(rows):
         'nex': len(nex_rows), 'dc':  len(dc_rows),
         'gmv_nex': round(sum(float(r.get('SHP_ORDER_COST_USD') or 0) for r in nex_rows), 2),
         'gmv_dc':  round(sum(float(r.get('SHP_ORDER_COST_USD') or 0) for r in dc_rows),  2),
-        'critico':  risk_cnt.get('Crítico', 0),
-        'alto':     risk_cnt.get('Alto',    0),
-        'moderado': risk_cnt.get('Moderado',0),
+        'critico':  risk_cnt.get('Crítico',  0),
+        'alto':     risk_cnt.get('Alto',     0),
+        'moderado': risk_cnt.get('Moderado', 0),
         'acao_cnt': acao_cnt,
         'acao_gmv': {k: round(v, 2) for k, v in acao_gmv.items()},
         'rows': rows,
@@ -482,7 +487,7 @@ def rows_table_places(rows):
         shp_id     = str(r.get('SHP_SHIPMENT_ID') or '')
         tramo      = str(r.get('SHP_TRAMO') or '')
         acao       = extract_acao(r.get('ACTION_DETAIL') or '')
-        risk       = str(r.get('RISK_CLASIFICATION') or '—').capitalize()
+        risk       = norm_risk(r.get('RISK_CLASIFICATION') or '')
         dias       = int(r.get('DAYS_HANDLING_SVC') or 0)
         gmv        = float(r.get('SHP_ORDER_COST_USD') or 0)
         carrier    = str(r.get('CARRIER') or '—')
