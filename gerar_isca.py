@@ -6,6 +6,7 @@ from datetime import datetime
 from collections import defaultdict
 from google.auth import default
 import gspread
+from googleapiclient.discovery import build
 
 # ── Config ────────────────────────────────────────────────────────────────────
 ISCA_SHEET_ID = '1Y2xydLcUEtxvM1fx3obqdysg3NgVYWWQTzStnVpdXGU'
@@ -37,13 +38,41 @@ def _norm_resultado(raw):
         return 'Devolvida'
     return 'Em aberto'
 
-def carregar_iscas(gs):
+def _get_rota_hyperlinks(creds, num_data_rows):
+    """Lê hyperlinks inseridos pela UI na coluna K (Nome Rota) via Sheets API v4."""
+    service = build('sheets', 'v4', credentials=creds)
+    col = chr(ord('A') + COL['rota'])  # índice 10 → 'K'
+    range_ = f"'{ABA_ISCAS}'!{col}2:{col}{num_data_rows + 1}"
+    result = service.spreadsheets().get(
+        spreadsheetId=ISCA_SHEET_ID,
+        ranges=[range_],
+        includeGridData=True,
+        fields='sheets.data.rowData.values(hyperlink,textFormatRuns)'
+    ).execute()
+    rows_raw = result['sheets'][0]['data'][0].get('rowData', [])
+    urls = []
+    for row in rows_raw:
+        vals = row.get('values', [])
+        cell = vals[0] if vals else {}
+        url = cell.get('hyperlink', '')
+        if not url:
+            for run in cell.get('textFormatRuns', []):
+                u = run.get('format', {}).get('link', {}).get('uri', '')
+                if u:
+                    url = u
+                    break
+        urls.append(url)
+    return urls
+
+def carregar_iscas(gs, creds):
     print("  Lendo planilha Gestão de Iscas...")
     pl   = gs.open_by_key(ISCA_SHEET_ID)
     ws   = pl.worksheet(ABA_ISCAS)
     data = ws.get_all_values()
+    print("  Extraindo hyperlinks da coluna Rota (fallback)...")
+    rota_urls = _get_rota_hyperlinks(creds, len(data) - 1)
     rows = []
-    for r in data[1:]:
+    for idx, r in enumerate(data[1:]):
         g = lambda i: str(r[i]).strip() if i < len(r) else ''
         if not g(COL['data']) and not g(COL['shp_id']):
             continue
@@ -59,6 +88,7 @@ def carregar_iscas(gs):
             'mlp':          g(COL['mlp']),
             'rota':         g(COL['rota']),
             'id_rota':      g(COL['id_rota']),
+            'rota_url':     rota_urls[idx] if idx < len(rota_urls) else '',
             'placa':        g(COL['placa']),
             'motorista':    g(COL['motorista']),
             'motorista_id': g(COL['motorista_id']),
@@ -135,8 +165,8 @@ def rows_table(rows, cols, max_rows=500):
             v = r.get(c, '—') or '—'
             if c == 'rota':
                 id_rota = r.get('id_rota', '')
-                if id_rota:
-                    url = ROTA_URL.format(id=id_rota)
+                url = ROTA_URL.format(id=id_rota) if id_rota else r.get('rota_url', '')
+                if url:
                     v = f'<a href="{url}" target="_blank" style="color:#4ade80;text-decoration:none">{v}</a>'
             elif c == 'resultado':
                 v = res_badge(v)
@@ -485,8 +515,8 @@ lucide.createIcons();
 if __name__ == '__main__':
     print("Gestão de Iscas SSP30")
     print("-" * 40)
-    gs, _ = autenticar()
-    rows = carregar_iscas(gs)
+    gs, creds = autenticar()
+    rows = carregar_iscas(gs, creds)
     print(f"  {len(rows)} registros carregados")
     d    = processar(rows)
     print(f"  Violadas: {d['violadas']} | Devolvidas: {d['devolvidas']} | Em aberto: {d['em_aberto']}")
