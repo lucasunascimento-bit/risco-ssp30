@@ -512,6 +512,35 @@ def processar_places_ranking(rows):
 
 ROTA_URL_PLACES = 'https://envios.adminml.com/logistics/monitoring-distribution/detail/{id}?site=MLB'
 
+def gerar_report_places_txt(dados):
+    p        = dados['places']
+    ranking  = p['ranking']
+    today    = datetime.now().strftime('%d/%m/%Y')
+    lines    = [
+        f"📍 PLACES SSP30 — {today}",
+        "",
+        f"📦 {p['total']} pacotes parados (NEX + XPT/DC)",
+        f"💰 GMV em risco: ${p['gmv_total']:,.2f}",
+        f"🔴 Crítico: {p['critico']}  |  🟡 Alto: {p['alto']}  |  Moderado: {p['moderado']}",
+        "",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        "🏆 TOP PLACES OFENSORES",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    ]
+    for i, pl in enumerate(ranking[:15]):
+        tramo_lbl = pl['tramo'] if pl['tramo'] == 'NEX' else 'XPT/DC'
+        alert = '  🚨 ALTO VALOR' if pl['gmv_pkg'] >= 300 else ('  ⏰ LONGA ESPERA' if pl['max_dias'] >= 20 else '')
+        lines.append(
+            f"{i+1}. {pl['place_id']} ({tramo_lbl}) — "
+            f"{pl['qtd']} pkgs  |  ${pl['gmv']:,.2f}  |  max {pl['max_dias']}d{alert}"
+        )
+        if pl['qtd'] <= 3:
+            for pkg in pl['pkgs']:
+                lines.append(f"   • {pkg['id']}  ${pkg['gmv']:,.2f}  {pkg['risk']}  {pkg['dias']}d")
+    lines += ["", "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "Dashboard: https://lucasunascimento-bit.github.io/risco-ssp30/"]
+    return '\n'.join(lines)
+
 def rows_ranking_places(ranking):
     out = ''
     for i, p in enumerate(ranking):
@@ -1160,8 +1189,18 @@ def gerar_html(d):
     <div class="box"><div class="box-title">Distribuição NEX / DC</div><div style="position:relative;height:220px"><canvas id="cPlTramo"></canvas></div></div>
   </div>
 
+  <script>const PLACES_REPORT = {json.dumps(gerar_report_places_txt(d), ensure_ascii=False)};</script>
+
   <div class="tbl-wrap" style="margin-bottom:18px">
-    <div class="tbl-title">🏆 Places Ofensores — Ranking por GMV (SSP30)</div>
+    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>🏆 Places Ofensores — Ranking por GMV (SSP30)</span>
+      <button id="btn-report-places" onclick="copiarReportPlaces()"
+        style="background:rgba(255,230,0,.1);border:1px solid rgba(255,230,0,.3);color:#FFE600;
+               border-radius:6px;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:600;
+               display:flex;align-items:center;gap:6px">
+        📋 Copiar Relatório
+      </button>
+    </div>
     <div class="tbl-scroll">
     <table id="tbl_places_rank" style="min-width:750px">
       <thead><tr>
@@ -1240,6 +1279,21 @@ window.addEventListener('load', () => {{
 function irPara(tabName) {{
   const el = document.querySelector(`.sb-item[data-tab="${{tabName}}"]`);
   if (el) {{ showTab(tabName, el); window.scrollTo({{top:0, behavior:'smooth'}}); }}
+}}
+
+// Copia relatório de places para clipboard
+function copiarReportPlaces() {{
+  if (!navigator.clipboard) return;
+  navigator.clipboard.writeText(PLACES_REPORT).then(() => {{
+    const btn = document.getElementById('btn-report-places');
+    if (!btn) return;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅ Copiado!';
+    btn.style.background = 'rgba(74,222,128,.15)';
+    btn.style.borderColor = 'rgba(74,222,128,.4)';
+    btn.style.color = '#4ade80';
+    setTimeout(() => {{ btn.innerHTML = orig; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '#FFE600'; }}, 2500);
+  }});
 }}
 
 // Expand/collapse pacotes de um place no ranking
