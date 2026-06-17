@@ -519,7 +519,7 @@ def gerar_report_places_txt(dados):
     lines    = [
         f"📍 PLACES SSP30 — {today}",
         "",
-        f"📦 {p['total']} pacotes parados (NEX + XPT/DC)",
+        f"📦 {p['total']} SHP parados (NEX + XPT/DC)",
         f"💰 GMV em risco: ${p['gmv_total']:,.2f}",
         f"🔴 Crítico: {p['critico']}  |  🟡 Alto: {p['alto']}  |  Moderado: {p['moderado']}",
         "",
@@ -532,7 +532,7 @@ def gerar_report_places_txt(dados):
         alert = '  🚨 ALTO VALOR' if pl['gmv_pkg'] >= 300 else ('  ⏰ LONGA ESPERA' if pl['max_dias'] >= 20 else '')
         lines.append(
             f"{i+1}. {pl['place_id']} ({tramo_lbl}) — "
-            f"{pl['qtd']} pkgs  |  ${pl['gmv']:,.2f}{alert}"
+            f"{pl['qtd']} shp  |  ${pl['gmv']:,.2f}{alert}"
         )
     return '\n'.join(lines)
 
@@ -1201,7 +1201,7 @@ def gerar_html(d):
       <thead><tr>
         <th style="width:40px">#</th>
         <th>Place ID</th><th>Tramo</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',3)">Pkgs</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',3)">SHP</th>
         <th class="sortable" onclick="sortTable('tbl_places_rank',4)">GMV Total</th>
         <th class="sortable" onclick="sortTable('tbl_places_rank',5)">GMV/pkg</th>
         <th class="sortable" onclick="sortTable('tbl_places_rank',6)">Max Dias</th>
