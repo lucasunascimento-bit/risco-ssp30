@@ -31,7 +31,9 @@ SELECT
   FLAG_SYSTEMS_CANCEL,
   FORMAT_DATETIME('%d/%m/%Y %H:%M', SHP_LG_SHIPMENT_CHK_DT)             AS SHP_LG_SHIPMENT_CHK_DT,
   COALESCE(SHP_COMPANY_NAME_LM, SHP_LG_CARRIER_NAME_LH)                 AS CARRIER,
-  CAST(SHP_LG_ROUTE_ID_LM AS STRING)                                     AS ROTA_ID
+  CAST(SHP_LG_ROUTE_ID_LM AS STRING)                                     AS ROTA_ID,
+  SHP_DESTINATION_ID_LM                                                   AS SHP_DESTINATION_ID,
+  ATIVO_BUYER_ASSET_RETURN                                                AS RETORNO_ATIVO
 FROM `meli-bi-data.WHOWNER.LK_SHP_MISSING_MANAGEMENT_PACKAGES`
 WHERE SHP_LG_FACILITY_ID = 'SSP30'
   AND SHP_TRAMO IN ('NEX', 'DC')
@@ -477,21 +479,34 @@ ROTA_URL_PLACES = 'https://envios.adminml.com/logistics/monitoring-distribution/
 def rows_table_places(rows):
     out = ''
     for r in rows:
-        shp_id  = str(r.get('SHP_SHIPMENT_ID') or '')
-        tramo   = str(r.get('SHP_TRAMO') or '')
-        acao    = extract_acao(r.get('ACTION_DETAIL') or '')
-        risk    = str(r.get('RISK_CLASIFICATION') or '—').capitalize()
-        dias    = int(r.get('DAYS_HANDLING_SVC') or 0)
-        gmv     = float(r.get('SHP_ORDER_COST_USD') or 0)
-        carrier = str(r.get('CARRIER') or '—')
-        rota_id = str(r.get('ROTA_ID') or '')
-        chk_dt  = str(r.get('SHP_LG_SHIPMENT_CHK_DT') or '—')
-        bpp     = r.get('FLAG_BPP', False)
-        gmv_fmt = f'${gmv:,.2f}' if gmv else '—'
+        shp_id     = str(r.get('SHP_SHIPMENT_ID') or '')
+        tramo      = str(r.get('SHP_TRAMO') or '')
+        acao       = extract_acao(r.get('ACTION_DETAIL') or '')
+        risk       = str(r.get('RISK_CLASIFICATION') or '—').capitalize()
+        dias       = int(r.get('DAYS_HANDLING_SVC') or 0)
+        gmv        = float(r.get('SHP_ORDER_COST_USD') or 0)
+        carrier    = str(r.get('CARRIER') or '—')
+        rota_id    = str(r.get('ROTA_ID') or '')
+        chk_dt     = str(r.get('SHP_LG_SHIPMENT_CHK_DT') or '—')
+        bpp        = r.get('FLAG_BPP', False)
+        place_id   = str(r.get('SHP_DESTINATION_ID') or '—')
+        retorno    = str(r.get('RETORNO_ATIVO') or '—')
+        gmv_fmt    = f'${gmv:,.2f}' if gmv else '—'
 
+        tramo_label = tramo if tramo == 'NEX' else 'XPT/DC'
         tramo_bg  = 'rgba(96,165,250,.15)'  if tramo == 'NEX' else 'rgba(167,139,250,.15)'
         tramo_cl  = '#60a5fa'               if tramo == 'NEX' else '#a78bfa'
-        tramo_pill = f'<span style="background:{tramo_bg};color:{tramo_cl};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{tramo}</span>'
+        tramo_pill = f'<span style="background:{tramo_bg};color:{tramo_cl};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{tramo_label}</span>'
+
+        ret_low = retorno.upper()
+        if ret_low == 'SEM RETORNO':
+            retorno_cell = f'<span style="color:#f87171;font-size:11px;font-weight:600">{retorno}</span>'
+        elif ret_low == 'NÃO RECEBIDO':
+            retorno_cell = f'<span style="color:#fbbf24;font-size:11px;font-weight:600">{retorno}</span>'
+        elif ret_low == 'RECEBIDO':
+            retorno_cell = f'<span style="color:#4ade80;font-size:11px;font-weight:600">{retorno}</span>'
+        else:
+            retorno_cell = f'<span style="color:#6b7280;font-size:11px">{retorno}</span>'
 
         rk = risk.lower()
         if 'cr' in rk:
@@ -518,10 +533,12 @@ def rows_table_places(rows):
             data-risk="{rk}">
             <td style="font-family:monospace;font-size:12px">{id_link(shp_id)}</td>
             <td>{tramo_pill}</td>
+            <td style="font-family:monospace;font-size:11px;color:#a78bfa">{place_id}</td>
             <td style="font-size:12px;color:#d1d5db">{acao}</td>
             <td>{risk_pill}</td>
             <td style="text-align:center">{dias_badge(dias)}</td>
             <td style="font-weight:700;color:#10B981">{gmv_fmt}</td>
+            <td style="text-align:center">{retorno_cell}</td>
             <td style="font-size:11px;color:#9ca3af">{carrier_cell}</td>
             <td>{rota_cell}</td>
             <td style="font-size:10px;color:#64748b">{chk_dt}</td>
@@ -1071,10 +1088,10 @@ def gerar_html(d):
     <div class="tbl-scroll">
     <table id="tbl_places">
       <thead><tr>
-        <th>SHP ID</th><th>Tramo</th><th>Ação</th><th>Risco</th>
-        <th class="sortable" onclick="sortTable('tbl_places',4)">Dias S/ Mov</th>
-        <th class="sortable" onclick="sortTable('tbl_places',5)">GMV USD</th>
-        <th>Transportadora</th><th>Rota</th><th>Último Status</th>
+        <th>SHP ID</th><th>Tramo</th><th>Place ID</th><th>Ação</th><th>Risco</th>
+        <th class="sortable" onclick="sortTable('tbl_places',5)">Dias S/ Mov</th>
+        <th class="sortable" onclick="sortTable('tbl_places',6)">GMV USD</th>
+        <th>Retorno Ativo</th><th>Transportadora</th><th>Rota</th><th>Último Status</th>
       </tr></thead>
       <tbody>{rows_table_places(d["places"]["rows"])}</tbody>
     </table>
