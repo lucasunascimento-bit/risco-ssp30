@@ -530,32 +530,36 @@ def rows_ranking_places(ranking):
         row_bg   = 'background:#1a0808' if p['gmv_pkg'] >= 300 else ('background:#160f04' if p['max_dias'] >= 20 else '')
         safe_pid = p['place_id'].replace(' ', '_')
         rank_badge = f'<span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#{i+1}</span>'
-        toggle_btn = f'<button onclick="togglePlaceRow(\'{safe_pid}\')" id="pbtn-{safe_pid}" style="background:none;border:1px solid #374151;color:#9ca3af;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:11px">▶</button>'
 
-        # sub-row com lista de IDs
         pkg_chips = ''
         for pkg in p['pkgs']:
             rk_low = pkg['risk'].lower()
-            rc = '#f87171' if 'cr' in rk_low else ('#fbbf24' if 'alt' in rk_low else '#9ca3af')
-            pkg_chips += f'''<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:#0d1321;border-radius:4px;border:1px solid #1f2937">
+            if 'cr' in rk_low:
+                risk_bg, risk_cl = '#7f1d1d', '#fca5a5'
+            elif 'alt' in rk_low:
+                risk_bg, risk_cl = '#713f12', '#fde68a'
+            else:
+                risk_bg, risk_cl = '#1f2937', '#9ca3af'
+            dias_bg = '#7f1d1d' if pkg['dias'] >= 20 else ('#713f12' if pkg['dias'] >= 10 else '#1f2937')
+            dias_cl = '#fca5a5' if pkg['dias'] >= 20 else ('#fde68a' if pkg['dias'] >= 10 else '#9ca3af')
+            pkg_chips += f'''<div style="display:inline-flex;align-items:center;gap:7px;padding:5px 10px;background:#0d1321;border-radius:6px;border:1px solid #1f2937">
                 {id_link(pkg["id"])}
                 <span style="color:#10B981;font-size:11px;font-weight:600">${pkg["gmv"]:,.2f}</span>
-                <span style="color:{rc};font-size:10px">{pkg["risk"]}</span>
-                <span style="color:#6b7280;font-size:10px">{dias_badge(pkg["dias"])}</span>
-                <span style="color:#94a3b8;font-size:10px">{pkg["acao"]}</span>
+                <span style="background:{risk_bg};color:{risk_cl};font-size:10px;padding:1px 5px;border-radius:3px">{pkg["risk"]}</span>
+                <span style="background:{dias_bg};color:{dias_cl};font-size:10px;padding:1px 5px;border-radius:3px">{pkg["dias"]}d</span>
             </div>'''
 
         detail_row = f'''<tr id="pdr-{safe_pid}" style="display:none">
-            <td colspan="9" style="padding:8px 12px;background:#080e1a;border-top:1px solid #1f2937">
-              <div style="font-size:11px;color:#64748b;margin-bottom:6px;font-weight:600">
-                {p["qtd"]} pacote(s) em {p["place_id"]} — ordenados por GMV
+            <td colspan="10" style="padding:8px 16px 12px;background:#060c18;border-bottom:1px solid #1f2937">
+              <div style="font-size:10px;color:#4b5563;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">
+                {p["qtd"]} pacote(s) · {p["place_id"]} · ordenados por GMV
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:6px">{pkg_chips}</div>
             </td>
         </tr>'''
 
-        out += f'''<tr style="{row_bg}" class="rank-row">
-            <td style="text-align:center">{toggle_btn} {rank_badge}</td>
+        out += f'''<tr style="{row_bg};cursor:pointer" class="rank-row" onclick="togglePlaceRow('{safe_pid}')">
+            <td style="text-align:center">{rank_badge}</td>
             <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">{p["place_id"]}</td>
             <td>{tramo_pill}</td>
             <td style="text-align:center;font-weight:700;color:#e2e8f0">{p["qtd"]}</td>
@@ -564,6 +568,7 @@ def rows_ranking_places(ranking):
             <td style="text-align:center">{dias_badge(p["max_dias"])}</td>
             <td style="text-align:center">{dias_badge(int(p["avg_dias"]))}</td>
             <td style="font-size:11px">{alert}</td>
+            <td id="pbtn-{safe_pid}" style="color:#374151;font-size:16px;padding-right:10px;text-align:right;user-select:none">›</td>
         </tr>{detail_row}'''
     return out
 
@@ -1167,7 +1172,7 @@ def gerar_html(d):
         <th class="sortable" onclick="sortTable('tbl_places_rank',5)">GMV/pkg</th>
         <th class="sortable" onclick="sortTable('tbl_places_rank',6)">Max Dias</th>
         <th class="sortable" onclick="sortTable('tbl_places_rank',7)">Avg Dias</th>
-        <th>Alerta</th>
+        <th>Alerta</th><th style="width:24px"></th>
       </tr></thead>
       <tbody>{rows_ranking_places(d["places"]["ranking"])}</tbody>
     </table>
@@ -1244,7 +1249,7 @@ function togglePlaceRow(pid) {{
   if (!row) return;
   const open = row.style.display !== 'none';
   row.style.display = open ? 'none' : 'table-row';
-  if (btn) btn.textContent = open ? '▶' : '▼';
+  if (btn) {{ btn.textContent = open ? '›' : '⌄'; btn.style.color = open ? '#374151' : '#a78bfa'; }}
 }}
 
 // Filtro por mês no Histórico
