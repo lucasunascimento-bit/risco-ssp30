@@ -1992,34 +1992,37 @@ const BL_COLORS = {{Bloqueado:'#10b981',Solicitado:'#3b82f6',Monitorado:'#f59e0b
 function _blColors(labels) {{ return labels.map(l => BL_COLORS[l] || '#94a3b8'); }}
 
 // Gráficos de Bloqueios — criados na 1ª vez que a aba abre
+// setTimeout(0) garante reflow do CSS antes do Chart.js medir o canvas
 let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
 function initBlCharts() {{
   if (_blDone) return;
   _blDone = true;
-  const _stLabels = {j([k for k in d["bl"]["por_status"].keys() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
-  const _stData   = {j([v for k, v in d["bl"]["por_status"].items() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
-  _chartBlStatus = new Chart(document.getElementById('cBlStatus'), {{
-    type: 'doughnut',
-    data: {{
-      labels: _stLabels,
-      datasets: [{{ data: _stData,
-        backgroundColor: _blColors(_stLabels), borderWidth:0 }}]
-    }},
-    options: {{ responsive:true, plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:11}} }} }} }}, cutout:'40%' }}
-  }});
-  _chartBlTransp = new Chart(document.getElementById('cBlTransp'), {{
-    type: 'bar',
-    data: {{
-      labels: {j(list(d["bl"]["por_transp"].keys()))},
-      datasets: [{{ data: {j(list(d["bl"]["por_transp"].values()))},
-        backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }}]
-    }},
-    options: {{
-      responsive:true, plugins:{{ legend:{{display:false}} }},
-      scales:{{ x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#1e293b'}} }},
-                y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
-    }}
-  }});
+  setTimeout(function() {{
+    const _stLabels = {j([k for k in d["bl"]["por_status"].keys() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
+    const _stData   = {j([v for k, v in d["bl"]["por_status"].items() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
+    _chartBlStatus = new Chart(document.getElementById('cBlStatus'), {{
+      type: 'doughnut',
+      data: {{
+        labels: _stLabels,
+        datasets: [{{ data: _stData,
+          backgroundColor: _blColors(_stLabels), borderWidth:0 }}]
+      }},
+      options: {{ responsive:true, maintainAspectRatio:false, plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:11}} }} }} }}, cutout:'40%' }}
+    }});
+    _chartBlTransp = new Chart(document.getElementById('cBlTransp'), {{
+      type: 'bar',
+      data: {{
+        labels: {j(list(d["bl"]["por_transp"].keys()))},
+        datasets: [{{ data: {j(list(d["bl"]["por_transp"].values()))},
+          backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }}]
+      }},
+      options: {{
+        responsive:true, maintainAspectRatio:false, plugins:{{ legend:{{display:false}} }},
+        scales:{{ x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#1e293b'}} }},
+                  y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
+      }}
+    }});
+  }}, 0);
 }}
 
 // ---- Filtro de período ----
@@ -2347,8 +2350,8 @@ lucide.createIcons();
   </div>
 
   <div class="grid2 mb16">
-    <div class="box"><div class="bt">Por Status</div><canvas id="cBlStatus" height="220"></canvas></div>
-    <div class="box"><div class="bt">Por Transportadora</div><canvas id="cBlTransp" height="220"></canvas></div>
+    <div class="box"><div class="bt">Por Status</div><div style="position:relative;height:220px"><canvas id="cBlStatus"></canvas></div></div>
+    <div class="box"><div class="bt">Por Transportadora</div><div style="position:relative;height:220px"><canvas id="cBlTransp"></canvas></div></div>
   </div>
 
   <div class="tbl-wrap">
