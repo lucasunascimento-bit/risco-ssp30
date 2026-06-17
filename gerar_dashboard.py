@@ -534,9 +534,10 @@ def gerar_report_places_txt(dados):
             f"{i+1}. {pl['place_id']} ({tramo_lbl}) — "
             f"{pl['qtd']} pkgs  |  ${pl['gmv']:,.2f}  |  max {pl['max_dias']}d{alert}"
         )
-        if pl['qtd'] <= 3:
-            for pkg in pl['pkgs']:
-                lines.append(f"   • {pkg['id']}  ${pkg['gmv']:,.2f}  {pkg['risk']}  {pkg['dias']}d")
+        for pkg in pl['pkgs'][:3]:
+            lines.append(f"   • {pkg['id']}  ${pkg['gmv']:,.2f}  {pkg['risk']}  {pkg['dias']}d")
+        if pl['qtd'] > 3:
+            lines.append(f"   ... e mais {pl['qtd'] - 3} pacote(s)")
     lines += ["", "━━━━━━━━━━━━━━━━━━━━━━━━━━",
               "Dashboard: https://lucasunascimento-bit.github.io/risco-ssp30/"]
     return '\n'.join(lines)
