@@ -3,7 +3,7 @@
 # Como rodar: duplo clique em abrir_dashboard_html.bat
 # ============================================================
 
-import json, webbrowser, os
+import json, webbrowser, os, unicodedata
 from datetime import datetime
 from google.auth import default
 from google.cloud import bigquery
@@ -39,6 +39,46 @@ WHERE SHP_LG_FACILITY_ID = 'SSP30'
   AND SHP_TRAMO IN ('NEX', 'DC')
 ORDER BY SHP_ORDER_COST_USD DESC
 """
+DIT_QUERY = """
+WITH dit_dedup AS (
+  SELECT
+    SHP_SHIPMENT_ID,
+    SHP_DESTINATION_FACILITY_ID    AS place_id,
+    LM_DESTINATION_FACILITY_TYPE   AS tipo,
+    LT_DELAY_CAUSE_L2              AS causa,
+    SHP_LG_SUB_STATUS              AS sub_status,
+    DATE_DIFF(CURRENT_DATE(), SHP_DATE_HANDLING_ID, DAY) AS dias_parado
+  FROM (
+    SELECT *,
+      ROW_NUMBER() OVER (PARTITION BY SHP_SHIPMENT_ID ORDER BY AUD_UPD_DTTM DESC) AS rn
+    FROM `meli-bi-data.WHOWNER.BT_SHP_TRACKER_DELAY_CAUSE_DIT`
+    WHERE SHP_SITE_ID = 'MLB'
+      AND SHP_DATE_HANDLING_ID >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+      AND SHP_STATUS_ID NOT IN ('delivered','cancelled','not_delivered')
+      AND LM_DESTINATION_FACILITY_TYPE IN ('NEX','XPT','DC')
+      AND SHP_DESTINATION_FACILITY_ID IS NOT NULL
+  )
+  WHERE rn = 1
+),
+missing_ids AS (
+  SELECT DISTINCT SHP_SHIPMENT_ID
+  FROM `meli-bi-data.WHOWNER.LK_SHP_MISSING_MANAGEMENT_PACKAGES`
+  WHERE SIT_SITE_ID = 'MLB'
+)
+SELECT
+  d.place_id,
+  d.tipo,
+  COUNT(*)                                             AS dit_total,
+  COUNTIF(m.SHP_SHIPMENT_ID IS NULL)                  AS dit_blind_spot,
+  ROUND(AVG(d.dias_parado), 1)                        AS avg_dias_dit,
+  COUNTIF(d.sub_status = 'delivered_place'
+          AND m.SHP_SHIPMENT_ID IS NULL)              AS stuck_in_place
+FROM dit_dedup d
+LEFT JOIN missing_ids m USING (SHP_SHIPMENT_ID)
+GROUP BY 1, 2
+HAVING COUNT(*) >= 3
+"""
+
 MESES_PT      = {1:'jan',2:'fev',3:'mar',4:'abr',5:'mai',6:'jun',
                  7:'jul',8:'ago',9:'set',10:'out',11:'nov',12:'dez'}
 
@@ -57,7 +97,16 @@ def carregar():
         rows = pl.worksheet(nome).get_all_values()
         if len(rows) <= 1:
             return [], []
-        return rows[0], [r for r in rows[1:] if len(r) > 2 and r[2].strip()]
+        # preserva número da linha na planilha (1=header, 2=primeira linha de dados)
+        out = []
+        for i, r in enumerate(rows[1:], start=2):
+            if len(r) > 2 and r[2].strip():
+                r = list(r)
+                while len(r) < 35:
+                    r.append('')
+                r.append(i)  # índice -1 = número da linha na planilha
+                out.append(r)
+        return rows[0], out
 
     h_rt, rt = ler(ABA_ON_ROUTE)
     h_wy, wy = ler(ABA_ON_WAY)
@@ -136,6 +185,10 @@ def processar(rt, wy, hi):
             'status':        r[28] if len(r) > 28 else '',
             'entrada':       entrada,
             'dias_carteira': calc_dias(entrada),
+            'acao_lp':       r[22] if len(r) > 22 else '',
+            'link_email':    r[23] if len(r) > 23 else '',
+            'finalizacao':   r[29] if len(r) > 29 else '',
+            'sheet_row':     r[-1] if r else 0,
         })
     w_rows.sort(key=lambda x: -x['gmv'])
 
@@ -375,11 +428,40 @@ def rows_table_rt(rows):
         </tr>'''
     return out
 
+OW_STATUS_OPTS = ['', 'Em andamento', 'Concluído', 'Sem acompanhamento', 'Pendente']
+
+def _ow_norm(s):
+    """Normaliza string para comparação: minúsculo + remove acentos."""
+    s = (s or '').strip().lower()
+    return unicodedata.normalize('NFD', s).encode('ascii', 'ignore').decode('ascii')
+OW_FINAL_OPTS  = ['', 'BPP', 'Reversão']
+OW_ACAO_SUGEST = ['Cobrado Origem','Aguardando Retorno da Origem','Escalonado para Supervisão',
+                  'Sem Retorno da Origem','Pacote Localizado','Em Investigação','BPP Solicitado']
+
+def ow_status_select(r):
+    cur = _ow_norm(r.get('status'))
+    opts = ''.join(f'<option value="{o}"{"selected" if _ow_norm(o)==cur else ""}>{o or "— Status —"}</option>' for o in OW_STATUS_OPTS)
+    return (f'<select class="ow-edit" data-row="{r["sheet_row"]}" data-col="29" '
+            f'onchange="owSalvarSelect(this)" title="Salva automaticamente">{opts}</select>')
+
+def ow_final_select(r):
+    cur = _ow_norm(r.get('finalizacao'))
+    opts = ''.join(f'<option value="{o}"{"selected" if _ow_norm(o)==cur else ""}>{o or "— Final —"}</option>' for o in OW_FINAL_OPTS)
+    return (f'<select class="ow-edit" data-row="{r["sheet_row"]}" data-col="30" '
+            f'onchange="owSalvarSelect(this)" title="Salva automaticamente">{opts}</select>')
+
 def rows_table_wy(rows):
+    import json as _json
+    sugest_js = _json.dumps(OW_ACAO_SUGEST, ensure_ascii=False)
     out = ''
     for r in rows:
-        g   = f'${r["gmv"]:,.2f}' if r['gmv'] else '—'
-        bg  = row_bg(r['dias_carteira'])
+        g    = f'${r["gmv"]:,.2f}' if r['gmv'] else '—'
+        bg   = row_bg(r['dias_carteira'])
+        srow = r.get('sheet_row', 0)
+        acao = (r.get('acao_lp') or '').replace('"', '&quot;')
+        link = (r.get('link_email') or '').replace('"', '&quot;')
+        link_btn = (f'<a href="{r["link_email"]}" target="_blank" class="ow-link-btn" title="Abrir email">↗</a>'
+                    if r.get('link_email') else '')
         out += f'''<tr style="{bg}" class="data-row"
             data-id="{r["id"].lower()}"
             data-sit="{r["sit"].lower()}"
@@ -391,9 +473,36 @@ def rows_table_wy(rows):
             <td style="text-align:center;font-weight:700;color:#FBBF24">{r["dias_ow"] or "—"}</td>
             <td>{r["carrier"] or "—"}</td>
             <td style="text-align:center">{"✅" if r["cftv"]=="Sim" else "❌"}</td>
-            <td>{pill_status(r["status"])}</td>
+            <td>{ow_status_select(r)}</td>
             <td style="text-align:center">{dias_badge(r["dias_carteira"])}</td>
             <td style="font-size:11px;color:#9CA3AF">{r["entrada"] or "—"}</td>
+            <td>
+              <div class="ow-edit-wrap">
+                <input class="ow-edit ow-text" type="text" value="{acao}"
+                  placeholder="Ação ou escolha ⌄"
+                  data-row="{srow}" data-col="23"
+                  autocomplete="off"
+                  oninput="owSugest(this);owAgendar(this)"
+                  onblur="owFecharSugest(this);owSalvarImediato(this)"
+                  onfocus="owSugest(this)">
+                <span class="ow-dd-btn" onclick="owToggleSugest(this.previousElementSibling)">⌄</span>
+                <div class="ow-sugest" data-for="{srow}">
+                  {''.join(f'<div class="ow-sugest-item" onmousedown="owEscolher(event,{srow})">{s}</div>' for s in OW_ACAO_SUGEST)}
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ow-edit-wrap">
+                <input class="ow-edit ow-text" type="text" value="{link}"
+                  placeholder="https://..."
+                  data-row="{srow}" data-col="24"
+                  onblur="owSalvarImediato(this)"
+                  oninput="owAgendar(this);owAtualizarLink(this)"
+                  style="padding-right:22px">
+                {link_btn}
+              </div>
+            </td>
+            <td>{ow_final_select(r)}</td>
         </tr>'''
     return out
 
@@ -441,6 +550,27 @@ def carregar_places(creds):
     job    = client.query(PLACES_QUERY)
     return [dict(r) for r in job.result()]
 
+def carregar_dit(creds):
+    client = bigquery.Client(project='meli-bi-data', credentials=creds)
+    job    = client.query(DIT_QUERY)
+    return {r['place_id']: dict(r) for r in job.result()}
+
+def processar_dit_summary(dit_data, place_ids_tracked):
+    """Retorna métricas agregadas de DIT apenas para places que monitoramos."""
+    total_blind = sum(
+        v['dit_blind_spot'] for pid, v in dit_data.items()
+        if pid in place_ids_tracked
+    )
+    total_dit   = sum(
+        v['dit_total'] for pid, v in dit_data.items()
+        if pid in place_ids_tracked
+    )
+    total_stuck = sum(
+        v['stuck_in_place'] for pid, v in dit_data.items()
+        if pid in place_ids_tracked
+    )
+    return {'blind': total_blind, 'total': total_dit, 'stuck': total_stuck}
+
 RISK_LABEL = {'CRITICO': 'Crítico', 'ALTO': 'Alto', 'MODERADO': 'Moderado'}
 def norm_risk(val):
     v = str(val or '').strip().upper()
@@ -452,7 +582,8 @@ def extract_acao(action_detail):
     parts = str(action_detail).split('|')
     return parts[-1].strip()
 
-def processar_places(rows):
+def processar_places(rows, dit_data=None):
+    dit_data = dit_data or {}
     total    = len(rows)
     gmv_tot  = sum(float(r.get('SHP_ORDER_COST_USD') or 0) for r in rows)
     nex_rows = [r for r in rows if r.get('SHP_TRAMO') == 'NEX']
@@ -466,6 +597,10 @@ def processar_places(rows):
         acao_cnt[a] = acao_cnt.get(a, 0) + 1
         acao_gmv[a] = acao_gmv.get(a, 0) + float(r.get('SHP_ORDER_COST_USD') or 0)
 
+    ranking = processar_places_ranking(rows, dit_data)
+    place_ids = {p['place_id'] for p in ranking}
+    dit_sum   = processar_dit_summary(dit_data, place_ids)
+
     return {
         'total': total, 'gmv_total': round(gmv_tot, 2),
         'nex': len(nex_rows), 'dc':  len(dc_rows),
@@ -476,11 +611,15 @@ def processar_places(rows):
         'moderado': risk_cnt.get('Moderado', 0),
         'acao_cnt': acao_cnt,
         'acao_gmv': {k: round(v, 2) for k, v in acao_gmv.items()},
+        'dit_blind': dit_sum['blind'],
+        'dit_total': dit_sum['total'],
+        'dit_stuck': dit_sum['stuck'],
         'rows': rows,
-        'ranking': processar_places_ranking(rows),
+        'ranking': ranking,
     }
 
-def processar_places_ranking(rows):
+def processar_places_ranking(rows, dit_data=None):
+    dit_data = dit_data or {}
     places = {}
     for r in rows:
         pid   = str(r.get('SHP_DESTINATION_ID') or 'N/A')
@@ -505,9 +644,20 @@ def processar_places_ranking(rows):
         avg_d   = round(sum(d['dias']) / len(d['dias']), 1) if d['dias'] else 0
         gmv_pkg = round(gmv / qtd, 2) if qtd else 0
         pkgs_sorted = sorted(d['pkgs'], key=lambda x: x['gmv'], reverse=True)
-        result.append({'place_id': pid, 'tramo': d['tramo'], 'qtd': qtd,
-                       'gmv': gmv, 'gmv_pkg': gmv_pkg,
-                       'max_dias': max_d, 'avg_dias': avg_d, 'pkgs': pkgs_sorted})
+        dit = dit_data.get(pid, {})
+        result.append({
+            'place_id':      pid,
+            'tramo':         d['tramo'],
+            'qtd':           qtd,
+            'gmv':           gmv,
+            'gmv_pkg':       gmv_pkg,
+            'max_dias':      max_d,
+            'avg_dias':      avg_d,
+            'pkgs':          pkgs_sorted,
+            'dit_blind':     int(dit.get('dit_blind_spot', 0)),
+            'dit_avg_dias':  float(dit.get('avg_dias_dit', 0) or 0),
+            'dit_stuck':     int(dit.get('stuck_in_place', 0)),
+        })
     return sorted(result, key=lambda x: x['gmv'], reverse=True)
 
 ROTA_URL_PLACES = 'https://envios.adminml.com/logistics/monitoring-distribution/detail/{id}?site=MLB'
@@ -573,8 +723,33 @@ def rows_ranking_places(ranking):
                 <span style="background:{dias_bg};color:{dias_cl};font-size:10px;padding:1px 5px;border-radius:3px">{pkg["dias"]}d</span>
             </div>'''
 
+        # DIT blind spot cell
+        dit_b = p['dit_blind']
+        dit_d = p['dit_avg_dias']
+        dit_s = p['dit_stuck']
+        if dit_b >= 200:
+            dit_cl = '#f87171'; dit_bg_row = ';background:#1a0808' if not row_bg else ''
+        elif dit_b >= 50:
+            dit_cl = '#fbbf24'; dit_bg_row = ''
+        else:
+            dit_cl = '#4b5563'; dit_bg_row = ''
+        if dit_b > 0:
+            stuck_txt = f' <span style="color:#94a3b8;font-size:10px">({dit_s} preso)</span>' if dit_s else ''
+            dit_cell  = (f'<span style="color:{dit_cl};font-weight:700">{dit_b}</span>'
+                         f'<br><span style="color:#6b7280;font-size:10px">{dit_d}d avg</span>'
+                         f'{stuck_txt}')
+        else:
+            dit_cell = '<span style="color:#1f2937">—</span>'
+
+        if row_bg:
+            final_bg = row_bg
+        elif dit_b >= 200:
+            final_bg = 'background:#120a1a'
+        else:
+            final_bg = ''
+
         detail_row = f'''<tr id="pdr-{safe_pid}" style="display:none">
-            <td colspan="10" style="padding:8px 16px 12px;background:#060c18;border-bottom:1px solid #1f2937">
+            <td colspan="12" style="padding:8px 16px 12px;background:#060c18;border-bottom:1px solid #1f2937">
               <div style="font-size:10px;color:#4b5563;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">
                 {p["qtd"]} pacote(s) · {p["place_id"]} · ordenados por GMV
               </div>
@@ -582,7 +757,7 @@ def rows_ranking_places(ranking):
             </td>
         </tr>'''
 
-        out += f'''<tr style="{row_bg};cursor:pointer" class="rank-row" onclick="togglePlaceRow('{safe_pid}')">
+        out += f'''<tr style="{final_bg};cursor:pointer" class="rank-row" onclick="togglePlaceRow('{safe_pid}')">
             <td style="text-align:center">{rank_badge}</td>
             <td style="font-family:monospace;font-size:12px;color:#a78bfa;font-weight:600">{p["place_id"]}</td>
             <td>{tramo_pill}</td>
@@ -591,6 +766,7 @@ def rows_ranking_places(ranking):
             <td style="font-weight:700;color:#{"f87171" if p["gmv_pkg"]>=300 else "fbbf24" if p["gmv_pkg"]>=100 else "9ca3af"}">${p["gmv_pkg"]:,.2f}</td>
             <td style="text-align:center">{dias_badge(p["max_dias"])}</td>
             <td style="text-align:center">{dias_badge(int(p["avg_dias"]))}</td>
+            <td style="text-align:center;line-height:1.3">{dit_cell}</td>
             <td style="font-size:11px">{alert}</td>
             <td id="pbtn-{safe_pid}" style="color:#374151;font-size:16px;padding-right:10px;text-align:right;user-select:none">›</td>
         </tr>{detail_row}'''
@@ -831,6 +1007,22 @@ def gerar_html(d):
   .card-link{{cursor:pointer;position:relative}}
   .card-link::after{{content:'↗';position:absolute;top:14px;right:14px;font-size:10px;color:#1f2937;transition:color .3s ease}}
   .card-link:hover::after{{color:#6b7280}}
+  /* ON WAY editable fields */
+  .ow-edit-wrap{{position:relative;display:flex;align-items:center;gap:3px;min-width:160px}}
+  .ow-text{{background:#080d19;border:1px solid #1f2937;border-radius:5px;padding:5px 8px;color:#e2e8f0;font-size:12px;width:100%;outline:none;transition:border-color .2s}}
+  .ow-text:focus{{border-color:#374151}}
+  .ow-text.ow-saving{{border-color:#FBBF24!important}}
+  .ow-text.ow-saved{{border-color:#10B981!important}}
+  .ow-text.ow-err{{border-color:#ef4444!important}}
+  .ow-edit select{{background:#080d19;border:1px solid #1f2937;border-radius:5px;padding:5px 6px;color:#9ca3af;font-size:11px;cursor:pointer;outline:none;max-width:160px}}
+  .ow-edit select:focus{{border-color:#374151}}
+  .ow-dd-btn{{color:#6b7280;cursor:pointer;font-size:14px;padding:0 2px;user-select:none;flex-shrink:0}}
+  .ow-dd-btn:hover{{color:#e2e8f0}}
+  .ow-sugest{{display:none;position:absolute;top:calc(100% + 2px);left:0;min-width:200px;background:#111827;border:1px solid #1f2937;border-radius:6px;z-index:999;box-shadow:0 4px 16px #000a;overflow:hidden}}
+  .ow-sugest-item{{padding:7px 12px;font-size:12px;color:#d1d5db;cursor:pointer}}
+  .ow-sugest-item:hover{{background:#1f2937;color:#fff}}
+  .ow-link-btn{{color:#60a5fa;font-size:13px;text-decoration:none;flex-shrink:0;padding:2px 4px}}
+  .ow-link-btn:hover{{color:#93c5fd}}
   /* SELETOR DE MÊS */
   .mes-selector{{display:flex;gap:8px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid #111827;align-items:center}}
   .mes-btn{{background:#0d1321;color:#4b5563;border:1px solid #1f2937;border-radius:20px;padding:5px 14px;font-size:11px;font-weight:500;cursor:pointer;transition:background-color .3s ease,color .3s ease,border-color .3s ease,box-shadow .3s ease,transform .2s ease}}
@@ -1061,7 +1253,9 @@ def gerar_html(d):
     <div class="card orange"><div class="label">CFTV Solicitado</div><div class="value">{d["w_cftv"]}</div></div>
   </div>
   <div class="tbl-wrap">
-    <div class="tbl-title">🚛 Pacotes ON WAY — ordenados por GMV</div>
+    <div class="tbl-title">🚛 Pacotes ON WAY — ordenados por GMV
+      <span id="ow-server-status" style="float:right;font-size:10px;font-weight:400;color:#6b7280">verificando servidor...</span>
+    </div>
     {filtros_html("way", sits_wy)}
     <div class="tbl-scroll">
     <table id="tbl_way">
@@ -1075,6 +1269,9 @@ def gerar_html(d):
         <th class="sortable" onclick="sortTable('tbl_way',6)">Status Caso</th>
         <th class="sortable" onclick="sortTable('tbl_way',7)">Dias Cart.</th>
         <th class="sortable" onclick="sortTable('tbl_way',8)">Entrada</th>
+        <th style="min-width:200px">✏️ Ação LP</th>
+        <th style="min-width:130px">🔗 Link Email</th>
+        <th style="min-width:110px">Finalização</th>
       </tr></thead>
       <tbody>{rows_table_wy(d["w_rows"])}</tbody>
     </table>
@@ -1177,6 +1374,11 @@ def gerar_html(d):
       <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Total</span></div>
       <div class="card-value val-ok">${d["places"]["gmv_total"]:,.0f}</div>
     </div>
+    <div class="card" style="border-color:rgba(251,191,36,.2);background:#0d0c00">
+      <div class="card-header"><i data-lucide="eye-off" class="card-icon" width="14" height="14" style="color:#fbbf24"></i><span class="card-label">DIT Blind Spot</span></div>
+      <div class="card-value" style="color:#fbbf24">{d["places"]["dit_blind"]}</div>
+      <div class="card-delta">{d["places"]["dit_stuck"]} presos no place</div>
+    </div>
   </div>
 
   <div class="grid2 mb16">
@@ -1206,6 +1408,7 @@ def gerar_html(d):
         <th class="sortable" onclick="sortTable('tbl_places_rank',5)">GMV/pkg</th>
         <th class="sortable" onclick="sortTable('tbl_places_rank',6)">Max Dias</th>
         <th class="sortable" onclick="sortTable('tbl_places_rank',7)">Avg Dias</th>
+        <th class="sortable" onclick="sortTable('tbl_places_rank',8)" title="Pacotes em DIT delay não classificados como missing">DIT s/ flag ⓘ</th>
         <th>Alerta</th><th style="width:24px"></th>
       </tr></thead>
       <tbody>{rows_ranking_places(d["places"]["ranking"])}</tbody>
@@ -1576,6 +1779,107 @@ function initPlCharts() {{
 
 // Gráficos Places já inicializados dentro de showTab
 
+// ---- On Way: salvar campos editáveis ----
+const OW_SERVER = 'http://localhost:5000';
+
+(function verificarServidor() {{
+  const el = document.getElementById('ow-server-status');
+  if (!el) return;
+  fetch(OW_SERVER + '/ping', {{method:'GET', mode:'cors', signal: AbortSignal.timeout(2000)}})
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(() => {{ el.textContent = '🟢 servidor ativo — edições salvam automaticamente'; el.style.color = '#10B981'; }})
+    .catch(() => {{ el.innerHTML = '🔴 servidor offline — <a href="javascript:void(0)" onclick="owInstrucoesServidor()" style="color:#f87171">como ativar?</a>'; el.style.color = '#f87171'; }});
+}})();
+
+function owInstrucoesServidor() {{
+  alert('Para ativar o servidor:\\n\\n1. Abra o PowerShell\\n2. Execute:\\n   cd C:\\\\Users\\\\lucasn\\\\risco_ssp30\\n   python on_way_server.py\\n3. Recarregue a página\\n\\nSe o computador foi reiniciado recentemente, aguarde alguns segundos e recarregue — o servidor inicia automaticamente.');
+}}
+const _owTimers = {{}};
+
+async function owPost(row, col, value) {{
+  const resp = await fetch(OW_SERVER + '/update', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{row, col, value}})
+  }});
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+}}
+
+function owSalvarSelect(el) {{
+  const row = +el.dataset.row, col = +el.dataset.col;
+  const prev = el.dataset.prev ?? el.value;
+  el.dataset.prev = el.value;
+  owPost(row, col, el.value).catch(() => {{
+    alert('Servidor off-line. Abra on_way_server.py e tente novamente.');
+    el.value = prev;
+  }});
+}}
+
+function owAgendar(el) {{
+  const key = el.dataset.row + '_' + el.dataset.col;
+  clearTimeout(_owTimers[key]);
+  _owTimers[key] = setTimeout(() => owSalvarImediato(el), 1500);
+}}
+
+function owSalvarImediato(el) {{
+  const key = el.dataset.row + '_' + el.dataset.col;
+  clearTimeout(_owTimers[key]);
+  const row = +el.dataset.row, col = +el.dataset.col;
+  if (!row) return;
+  el.classList.add('ow-saving');
+  owPost(row, col, el.value)
+    .then(() => {{ el.classList.remove('ow-saving'); el.classList.add('ow-saved');
+                   setTimeout(() => el.classList.remove('ow-saved'), 1200); }})
+    .catch(() => {{ el.classList.remove('ow-saving'); el.classList.add('ow-err');
+                    setTimeout(() => el.classList.remove('ow-err'), 2000); }});
+}}
+
+function owSugest(el) {{
+  const q = el.value.trim().toLowerCase();
+  const wrap = el.parentElement;
+  const dd = wrap.querySelector('.ow-sugest');
+  if (!dd) return;
+  dd.querySelectorAll('.ow-sugest-item').forEach(item => {{
+    item.style.display = (!q || item.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  }});
+  dd.style.display = 'block';
+}}
+
+function owFecharSugest(el) {{
+  setTimeout(() => {{
+    const dd = el.parentElement?.querySelector('.ow-sugest');
+    if (dd) dd.style.display = 'none';
+  }}, 150);
+}}
+
+function owToggleSugest(inp) {{
+  const dd = inp.parentElement?.querySelector('.ow-sugest');
+  if (!dd) return;
+  if (dd.style.display === 'block') {{ dd.style.display = 'none'; }}
+  else {{ dd.querySelectorAll('.ow-sugest-item').forEach(i => i.style.display = ''); dd.style.display = 'block'; inp.focus(); }}
+}}
+
+function owEscolher(ev, row) {{
+  ev.preventDefault();
+  const item = ev.currentTarget;
+  const wrap = item.closest('.ow-edit-wrap');
+  const inp = wrap?.querySelector('.ow-text');
+  if (!inp) return;
+  inp.value = item.textContent;
+  wrap.querySelector('.ow-sugest').style.display = 'none';
+  owSalvarImediato(inp);
+}}
+
+function owAtualizarLink(el) {{
+  const wrap = el.parentElement;
+  let btn = wrap.querySelector('.ow-link-btn');
+  const url = el.value.trim();
+  if (url.startsWith('http')) {{
+    if (!btn) {{ btn = document.createElement('a'); btn.className = 'ow-link-btn'; btn.textContent = '↗'; wrap.appendChild(btn); }}
+    btn.href = url; btn.target = '_blank';
+  }} else if (btn) {{ btn.remove(); }}
+}}
+
 // Inicializa ícones Lucide
 lucide.createIcons();
 </script>
@@ -1598,9 +1902,16 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"  [AVISO] Places BQ falhou: {e}")
         places_rows = []
+    print("Lendo DIT Blind Spot (BigQuery)...")
+    try:
+        dit_data = carregar_dit(creds)
+        print(f"  DIT: {len(dit_data)} places com dados de delay")
+    except Exception as e:
+        print(f"  [AVISO] DIT BQ falhou: {e}")
+        dit_data = {}
     print("Processando dados...")
     dados = processar(rt, wy, hi)
-    dados['places'] = processar_places(places_rows)
+    dados['places'] = processar_places(places_rows, dit_data)
     print("Gerando HTML...")
     html = gerar_html(dados)
     with open(OUTPUT, 'w', encoding='utf-8') as f:
