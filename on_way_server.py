@@ -83,9 +83,10 @@ def _norm(s):
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 INDEX_HTML = os.path.join(BASE_DIR, 'index.html')
 
-# Cache separado por tab: {'ws': worksheet, 'idx': {shp_id: row_number}}
+# Cache separado por tab: {'ws': worksheet, 'idx': {shp_id: row_number}, 'ts': timestamp}
 _cache_wy = None
 _cache_rt = None
+_CACHE_TTL = 600  # 10 minutos — reler planilha se edição direta no Sheets
 
 # Cache do Diário de Bordo: {'ws': ws, 'idx': {(data, atividade): row_number}}
 _cache_diario     = None
@@ -130,9 +131,10 @@ def invalidate_cache(tab='wy'):
 
 
 def get_cache(tab='wy'):
+    import time
     global _cache_wy, _cache_rt
     cache = _cache_rt if tab == 'rt' else _cache_wy
-    if cache is None:
+    if cache is None or (time.time() - cache.get('ts', 0)) > _CACHE_TTL:
         aba  = _COLS[tab]['aba']
         creds, _ = default(scopes=['https://www.googleapis.com/auth/spreadsheets'])
         gc   = gspread.authorize(creds)
@@ -142,7 +144,7 @@ def get_cache(tab='wy'):
         for i, row in enumerate(rows[1:], start=2):
             if len(row) > 2 and row[2].strip():
                 idx[row[2].strip()] = i
-        cache = {'ws': ws, 'idx': idx}
+        cache = {'ws': ws, 'idx': idx, 'ts': time.time()}
         if tab == 'rt': _cache_rt = cache
         else:           _cache_wy = cache
     return cache
