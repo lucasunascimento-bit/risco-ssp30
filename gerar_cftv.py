@@ -142,6 +142,7 @@ body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemF
 .mod-btn.m-risco{{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}}
 .mod-btn.m-isca{{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}}
 .mod-btn.m-cftv{{color:#60a5fa;background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.3)}}
+  .mod-btn.m-sinistros{{color:#f97316;background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.2)}}
 {diario_css()}
 .main{{padding:20px;flex:1}}
 .cards-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}}
@@ -186,6 +187,9 @@ tr:hover td{{background:#0d1829}}
     </a>
     <a href="./cftv.html" class="mod-btn m-cftv">
       <i data-lucide="camera" width="12" height="12"></i> CFTV
+    </a>
+    <a href="./sinistros.html" class="mod-btn m-sinistros">
+      <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
     </a>
     {diario_nav_btn()}
   </div>
