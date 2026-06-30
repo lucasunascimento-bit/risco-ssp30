@@ -1668,12 +1668,19 @@ def _painel_dia_html(b, on_route, on_way):
         f'{d["n_meses"]} meses', 'r' if d['n_meses'] >= 4 else 'a',
         ext_href=f'./fraude.html#acumulo__{d["id"]}' if str(d["id"]) in _acumulo_ids else './fraude.html#acumulo')
         for d in bloqueio)
-    items_plc = ''.join(_item(
-        f'plc_{p["id"]}',
-        f'{p["tipo"]} {p["id"]}',
-        f'{p["total"]} passagens · ${p["gmv"]:,.0f} BPP',
-        f'{p["total"]} casos', 'b')
-        for p in top_plc)
+    items_plc = ''
+    for p in top_plc:
+        ids_html = (
+            '<div style="margin-top:5px;line-height:2">'
+            + ' &nbsp;'.join(
+                f'<a href="{MELI}/{s}" target="_blank" '
+                f'style="color:#60a5fa;font-family:monospace;font-size:10px;text-decoration:none">{s}</a>'
+                for s in p['shps']
+            )
+            + '</div>'
+        ) if p['shps'] else ''
+        sub_plc = f'{p["total"]} passagens · ${p["gmv"]:,.0f} BPP{ids_html}'
+        items_plc += _item(f'plc_{p["id"]}', f'{p["tipo"]} {p["id"]}', sub_plc, f'{p["total"]} casos', 'b')
 
     n_tot = len(urgentes) + len(ow_sem) + len(bloqueio) + len(top_plc)
     sec_rt  = _section('📦', 'ON ROUTE sem Ação LP', f'{len(urgentes)} urgentes',
