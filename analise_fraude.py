@@ -1999,6 +1999,41 @@ def rows_damaged(damaged, cruzados_fraude, shp_por_driver):
 def gerar_html(d):
     j = lambda x: json.dumps(x, ensure_ascii=False)
 
+    _week     = datetime.now().isocalendar()[1]
+    _ryear    = datetime.now().year
+    _sin      = d.get('sinistros', {})
+    _sin_total = _sin.get('total', 0)
+    _sin_bpp   = _sin.get('bpp_total', 0.0)
+    _sin_rec   = _sin.get('recuperados', 0)
+    _sin_bpp_r = _sin.get('bpp_recuperado', 0.0)
+    _sin_taxa  = round(_sin_rec / _sin_total * 100, 1) if _sin_total else 0.0
+    _bl        = d.get('bl', {})
+    _wp_base = (
+        f"📊 *Relatório LP SSP30 — W{_week}/{_ryear}*\n\n"
+        f"🔴 *SINISTROS*\n"
+        f"• Eventos: {_sin_total} | BPP: ${_sin_bpp:,.0f}\n"
+        f"• Recuperados: {_sin_rec} ({_sin_taxa:.1f}%) | BPP Rec.: ${_sin_bpp_r:,.0f}\n\n"
+        f"🛡️ *BLOCK LIST*\n"
+        f"• Bloqueados: {_bl.get('bloqueados',0)} | Monitorados: {_bl.get('monitorados',0)}\n"
+        f"• GMV Protegido: ${_bl.get('gmv_protegido',0.0):,.0f}\n\n"
+        f"📦 *FRAUDES/DAMAGED (acumulado {d['ano']})*\n"
+        f"• Fraudes: {d['total_fraudes']} | Damaged: {d['total_damaged']}\n"
+        f"• BPP Total: ${d['total_bpp']:,.0f}\n\n"
+        f"⚡ *ON WAY / ON ROUTE*\n"
+    )
+    _em_base = (
+        f"Relatório LP SSP30 — W{_week}/{_ryear}\n\n"
+        f"SINISTROS\n"
+        f"Eventos: {_sin_total} | BPP: ${_sin_bpp:,.0f}\n"
+        f"Recuperados: {_sin_rec} ({_sin_taxa:.1f}%) | BPP Rec.: ${_sin_bpp_r:,.0f}\n\n"
+        f"BLOCK LIST\n"
+        f"Bloqueados: {_bl.get('bloqueados',0)} | Monitorados: {_bl.get('monitorados',0)}\n"
+        f"GMV Protegido: ${_bl.get('gmv_protegido',0.0):,.0f}\n\n"
+        f"FRAUDES/DAMAGED (acumulado {d['ano']})\n"
+        f"Fraudes: {d['total_fraudes']} | Damaged: {d['total_damaged']} | BPP Total: ${d['total_bpp']:,.0f}\n\n"
+        f"ON WAY / ON ROUTE\n"
+    )
+
     cruzados_list = sorted(d['cruzados'])
     rows_cruzados = ''
     for did in cruzados_list:
@@ -2181,6 +2216,12 @@ def gerar_html(d):
   <div class="sb-item" data-tab="cruzamento" onclick="showTab('cruzamento',this)">
     <i data-lucide="git-merge" width="14" height="14" class="ci"></i>
     BSD <span class="sb-badge amber">{d["crz"]["total_pares"]}</span>
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section-header">Relatórios</div>
+  <div class="sb-item" data-tab="relatorio" onclick="showTab('relatorio',this)">
+    <i data-lucide="file-text" width="14" height="14" class="ci"></i>
+    Rel. Semanal
   </div>
 </nav>
 <main class="main-content">
@@ -2516,7 +2557,7 @@ function toggleDriver(id) {{
 
 const ACUMULO_DATA = {j(d.get("acumulo_bloqueio", []))};
 
-const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','bloqueios','cruzamento'];
+const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
   _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
@@ -2525,9 +2566,10 @@ function showTab(name, el) {{
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
   const bp = document.getElementById('barra-periodo');
-  if (bp) bp.style.display = (name === 'acumulo') ? 'none' : 'flex';
+  if (bp) bp.style.display = (name === 'acumulo' || name === 'relatorio') ? 'none' : 'flex';
   applyPeriodoToTab(name);
   if (name === 'bloqueios') initBlCharts();
+  if (name === 'relatorio') carregarTratados();
 }}
 function _handleHashNav(delay) {{
   const raw = window.location.hash.replace('#','');
@@ -3158,6 +3200,56 @@ async function gerarPptx(driverId) {{
 }}
 // ── FIM GERAR PPTX ──────────────────────────────────────────
 
+// === RELATÓRIO SEMANAL ===
+const WP_BASE = {j(_wp_base)};
+const EM_BASE = {j(_em_base)};
+var _wyCount = null, _rtCount = null;
+function carregarTratados() {{
+  const base = 'http://localhost:5000';
+  Promise.allSettled([
+    fetch(base + '/ow_values?tab=wy').then(r => r.json()),
+    fetch(base + '/ow_values?tab=rt').then(r => r.json())
+  ]).then(results => {{
+    const wyRes = results[0];
+    const rtRes = results[1];
+    const wyTrat = wyRes.status === 'fulfilled'
+      ? Object.values(wyRes.value).filter(v => (v.acao||'').trim() || (v.final||'').trim()).length
+      : null;
+    const rtTrat = rtRes.status === 'fulfilled'
+      ? Object.values(rtRes.value).filter(v => (v.acao||'').trim() || (v.final||'').trim()).length
+      : null;
+    _wyCount = wyTrat;
+    _rtCount = rtTrat;
+    const wyEl = document.getElementById('rel-wy-count');
+    const rtEl = document.getElementById('rel-rt-count');
+    if (wyEl) wyEl.textContent = wyTrat !== null ? wyTrat : '—';
+    if (rtEl) rtEl.textContent = 'ON ROUTE: ' + (rtTrat !== null ? rtTrat : '—');
+  }});
+}}
+function copiarRelatorio(modo) {{
+  const obs = (document.getElementById('rel-obs')?.value || '').trim();
+  const wy  = _wyCount !== null ? String(_wyCount) : '—';
+  const rt  = _rtCount !== null ? String(_rtCount) : '—';
+  let txt = modo === 'whatsapp' ? WP_BASE : EM_BASE;
+  if (modo === 'whatsapp') {{
+    txt += '• Tratados ON WAY: ' + wy + '\n• Tratados ON ROUTE: ' + rt;
+    if (obs) txt += '\n\n📝 *Observações:* ' + obs;
+  }} else {{
+    txt += 'Tratados ON WAY: ' + wy + ' | Tratados ON ROUTE: ' + rt;
+    if (obs) txt += '\n\nObservações: ' + obs;
+  }}
+  navigator.clipboard.writeText(txt).then(() => {{
+    const t = document.getElementById('rel-toast');
+    if (t) {{ t.style.display = 'block'; setTimeout(() => {{ t.style.display = 'none'; }}, 2000); }}
+  }}).catch(() => {{
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    const t = document.getElementById('rel-toast');
+    if (t) {{ t.style.display = 'block'; setTimeout(() => {{ t.style.display = 'none'; }}, 2000); }}
+  }});
+}}
+
 lucide.createIcons();
 {_SB_DRAG_JS}
 
@@ -3454,6 +3546,90 @@ lucide.createIcons();
   </div>
 </div>
 
+
+<!-- RELATÓRIO SEMANAL -->
+<div id="tab-relatorio" class="content">
+  <div style="padding:24px 32px;max-width:1100px">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#fff">Relatório LP — W{_week}/{_ryear}</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:4px">Gerado em {d["gerado"]} · dados acumulados {d["ano"]}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="copiarRelatorio('whatsapp')" style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">
+          <i data-lucide="message-circle" width="14" height="14"></i> Copiar WhatsApp
+        </button>
+        <button onclick="copiarRelatorio('email')" style="background:#1f2937;color:#e2e8f0;border:1px solid #374151;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">
+          <i data-lucide="mail" width="14" height="14"></i> Copiar Email
+        </button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px">
+      <div style="background:#0d1321;border:1px solid rgba(249,115,22,.3);border-radius:10px;padding:16px">
+        <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Sinistros</div>
+        <div style="font-size:28px;font-weight:800;color:#f97316">{_sin_total}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px">BPP: ${_sin_bpp:,.0f}</div>
+      </div>
+      <div style="background:#0d1321;border:1px solid rgba(74,222,128,.3);border-radius:10px;padding:16px">
+        <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">GMV Recuperado</div>
+        <div style="font-size:28px;font-weight:800;color:#4ade80">${_sin_bpp_r:,.0f}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px">{_sin_rec} eventos ({_sin_taxa:.1f}%)</div>
+      </div>
+      <div style="background:#0d1321;border:1px solid rgba(96,165,250,.3);border-radius:10px;padding:16px">
+        <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Bloqueados</div>
+        <div style="font-size:28px;font-weight:800;color:#60a5fa">{_bl.get("bloqueados",0)}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px">GMV: ${_bl.get("gmv_protegido",0.0):,.0f}</div>
+      </div>
+      <div style="background:#0d1321;border:1px solid rgba(167,139,250,.3);border-radius:10px;padding:16px">
+        <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">ON WAY tratados</div>
+        <div style="font-size:28px;font-weight:800;color:#a78bfa" id="rel-wy-count">—</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px" id="rel-rt-count">ON ROUTE: —</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div class="box">
+        <div class="bt">Sinistros — Detalhe</div>
+        <table style="width:100%;font-size:13px;border-collapse:collapse">
+          <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">Total de eventos</td><td style="text-align:right;font-weight:700;border-bottom:1px solid #1f2937">{_sin_total}</td></tr>
+          <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">BPP total</td><td style="text-align:right;color:#f97316;font-weight:700;border-bottom:1px solid #1f2937">${_sin_bpp:,.2f}</td></tr>
+          <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">Casos recuperados</td><td style="text-align:right;font-weight:700;border-bottom:1px solid #1f2937">{_sin_rec}</td></tr>
+          <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">BPP recuperado</td><td style="text-align:right;color:#4ade80;font-weight:700;border-bottom:1px solid #1f2937">${_sin_bpp_r:,.2f}</td></tr>
+          <tr><td style="padding:6px 0;color:#9ca3af">Taxa de recuperação</td><td style="text-align:right;font-weight:700">{_sin_taxa:.1f}%</td></tr>
+        </table>
+      </div>
+      <div class="box">
+        <div class="bt">Block List — Detalhe</div>
+        <table style="width:100%;font-size:13px;border-collapse:collapse">
+          <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">Total de registros</td><td style="text-align:right;font-weight:700;border-bottom:1px solid #1f2937">{_bl.get("total",0)}</td></tr>
+          <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">Bloqueados</td><td style="text-align:right;color:#60a5fa;font-weight:700;border-bottom:1px solid #1f2937">{_bl.get("bloqueados",0)}</td></tr>
+          <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">Monitorados</td><td style="text-align:right;color:#fbbf24;font-weight:700;border-bottom:1px solid #1f2937">{_bl.get("monitorados",0)}</td></tr>
+          <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">Solicitados</td><td style="text-align:right;font-weight:700;border-bottom:1px solid #1f2937">{_bl.get("solicitados",0)}</td></tr>
+          <tr><td style="padding:6px 0;color:#9ca3af">GMV protegido</td><td style="text-align:right;color:#4ade80;font-weight:700">${_bl.get("gmv_protegido",0.0):,.2f}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="box" style="margin-bottom:24px">
+      <div class="bt">Fraudes/Damaged — Acumulado {d["ano"]}</div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap;padding-top:8px">
+        <div><div style="font-size:11px;color:#6b7280;margin-bottom:4px">Fraudes/Lost</div><div style="font-size:22px;font-weight:800;color:#ef4444">{d["total_fraudes"]}</div></div>
+        <div><div style="font-size:11px;color:#6b7280;margin-bottom:4px">Damaged</div><div style="font-size:22px;font-weight:800;color:#f59e0b">{d["total_damaged"]}</div></div>
+        <div><div style="font-size:11px;color:#6b7280;margin-bottom:4px">BPP Total</div><div style="font-size:22px;font-weight:800;color:#34d399">${d["total_bpp"]:,.0f}</div></div>
+        <div><div style="font-size:11px;color:#6b7280;margin-bottom:4px">Cruzados F+D</div><div style="font-size:22px;font-weight:800;color:#f87171">{len(d["cruzados"])}</div></div>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="bt">Observações</div>
+      <textarea id="rel-obs" placeholder="Adicione observações para incluir no relatório..." style="width:100%;min-height:70px;background:#080d19;color:#e2e8f0;border:1px solid #374151;border-radius:6px;padding:10px;font-size:13px;resize:vertical;font-family:inherit;margin-top:8px"></textarea>
+    </div>
+
+  </div>
+  <div id="rel-toast" style="position:fixed;bottom:24px;right:24px;background:#0d1321;color:#4ade80;border:1px solid #4ade80;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;display:none;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.5)">✓ Copiado!</div>
+</div>
 
 </main>
 </div>
