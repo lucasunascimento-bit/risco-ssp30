@@ -1,18 +1,29 @@
 @echo off
-echo Instalando auto-start do servidor SSP30...
+echo Instalando auto-start do servidor SSP30 (via registro)...
 
-set STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup
-set VBS=C:\Users\lucasn\risco_ssp30\start_watchdog.vbs
-set ATALHO=%STARTUP%\servidor_ssp30.vbs
+set PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe
+set SCRIPT=C:\Users\lucasn\risco_ssp30\watchdog_server.ps1
+set CHAVE=HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+set NOME=ServidorSSP30
+set CMD="%PS%" -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File "%SCRIPT%"
 
-copy /Y "%VBS%" "%ATALHO%" >nul
+rem Remove entrada antiga (VBS) da pasta Startup, se existir
+set ATALHO=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\servidor_ssp30.vbs
+if exist "%ATALHO%" del /F /Q "%ATALHO%"
+
+rem Registra no HKCU Run — inicia junto com o login do usuario
+reg add "%CHAVE%" /v "%NOME%" /t REG_SZ /d %CMD% /f >nul
 
 echo.
-echo Verificando se o servidor ja esta rodando...
-powershell -Command "try { Invoke-RestMethod http://localhost:5000/ping -TimeoutSec 2 | Out-Null; Write-Host 'Servidor ja esta rodando.' } catch { Write-Host 'Iniciando servidor agora...'; Start-Process wscript.exe -ArgumentList '%ATALHO%' }"
+echo Registrado em: %CHAVE%\%NOME%
+echo Comando:       %CMD%
+echo.
+
+rem Inicia o watchdog agora (sem esperar pelo proximo login)
+powershell -Command "try { Invoke-RestMethod http://localhost:5000/ping -TimeoutSec 2 | Out-Null; Write-Host 'Servidor ja esta rodando.' } catch { Write-Host 'Iniciando watchdog...'; Start-Process -FilePath '%PS%' -ArgumentList '-ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File ""%SCRIPT%""' }"
 
 echo.
-echo Pronto! O servidor vai iniciar automaticamente com o Windows.
-echo Log de atividade: C:\Users\lucasn\risco_ssp30\server.log
+echo Pronto! O servidor iniciara automaticamente em todo login.
+echo Log: C:\Users\lucasn\risco_ssp30\server.log
 echo.
 pause
