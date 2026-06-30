@@ -1680,7 +1680,8 @@ def _painel_dia_html(b, on_route, on_way):
             + '</div>'
         ) if p['shps'] else ''
         sub_plc = f'{p["total"]} passagens · ${p["gmv"]:,.0f} BPP{ids_html}'
-        items_plc += _item(f'plc_{p["id"]}', f'{p["tipo"]} {p["id"]}', sub_plc, f'{p["total"]} casos', 'b')
+        items_plc += _item(f'plc_{p["id"]}', f'{p["tipo"]} {p["id"]}', sub_plc, f'{p["total"]} casos', 'b',
+                           ext_href='./fraude.html#places')
 
     n_tot = len(urgentes) + len(ow_sem) + len(bloqueio) + len(top_plc)
     sec_rt  = _section('📦', 'ON ROUTE sem Ação LP', f'{len(urgentes)} urgentes',
