@@ -1656,7 +1656,9 @@ def _painel_dia_html(b, on_route, on_way):
         f'ow_{r["id"]}',
         f'<a href="{MELI}/{r["id"]}" target="_blank" style="color:#60a5fa;font-family:monospace">{r["id"]}</a>'
         f' — ${r["gmv"]:,.0f}',
-        f'{r.get("sit","—")} · {r.get("carrier","") or "—"}',
+        f'{r.get("sit","—")} · {r.get("carrier","") or "—"}'
+        + (f'<div style="margin-top:3px;color:#9ca3af;font-size:10px">{r["descricao"]}</div>'
+           if r.get('descricao') else ''),
         f'{r["dias_carteira"]}d', 'r' if r['dias_carteira'] >= 8 else 'a',
         tab_id='way')
         for r in ow_sem)
