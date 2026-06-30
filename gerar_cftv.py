@@ -3,6 +3,7 @@
 
 import json, os, webbrowser
 from datetime import datetime
+from _diario_widget import diario_css, diario_nav_btn, diario_panel_html, diario_js
 from google.auth import default
 import gspread
 
@@ -141,6 +142,7 @@ body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemF
 .mod-btn.m-risco{{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}}
 .mod-btn.m-isca{{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}}
 .mod-btn.m-cftv{{color:#60a5fa;background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.3)}}
+{diario_css()}
 .main{{padding:20px;flex:1}}
 .cards-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}}
 .card{{background:#0d1321;border:1px solid #1f2937;border-radius:8px;padding:14px 18px}}
@@ -185,9 +187,10 @@ tr:hover td{{background:#0d1829}}
     <a href="./cftv.html" class="mod-btn m-cftv">
       <i data-lucide="camera" width="12" height="12"></i> CFTV
     </a>
+    {diario_nav_btn()}
   </div>
 </div>
-
+{diario_panel_html()}
 <div class="main">
   <div class="cards-grid">
     <div class="card">
@@ -264,6 +267,7 @@ function filtrar() {{
     tr.style.display = ok ? '' : 'none';
   }});
 }}
+{diario_js()}
 lucide.createIcons();
 </script>
 </body>

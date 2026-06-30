@@ -13,3 +13,6 @@ __pycache__/
 diagnostico.py
 diagnostico2.py
 ler_cabecalho.py
+
+# Cache BQ local
+_bq_cache/

@@ -328,6 +328,16 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv, bq_client, col_acao_lp
                 break
         next_row = last_row + 1
 
+        # garantir que a planilha tem linhas suficientes
+        rows_needed = next_row + len(linhas) - 1
+        sheet_props = sheet.spreadsheet.fetch_sheet_metadata()
+        for s in sheet_props.get('sheets', []):
+            if s['properties']['title'] == sheet.title:
+                current_rows = s['properties']['gridProperties']['rowCount']
+                if rows_needed > current_rows:
+                    sheet.add_rows(rows_needed - current_rows + 50)
+                break
+
         sheet.update(range_name=f'A{next_row}', values=linhas, value_input_option='USER_ENTERED')
 
         # registra a data de entrada em AF (após a última coluna AE)

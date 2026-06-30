@@ -3,6 +3,7 @@
 
 import json, os, re, webbrowser
 from datetime import datetime
+from _diario_widget import diario_css, diario_nav_btn, diario_panel_html, diario_js
 from collections import defaultdict
 from google.auth import default
 import gspread
@@ -10,6 +11,75 @@ import gspread
 # ── Config ────────────────────────────────────────────────────────────────────
 ISCA_SHEET_ID = '1Y2xydLcUEtxvM1fx3obqdysg3NgVYWWQTzStnVpdXGU'
 ABA_ISCAS     = 'Controle de Iscas'
+
+_SB_DRAG_JS = """
+(function(){
+var KEY='sb_order_'+(location.pathname.split('/').pop()||'idx');
+var dragEl=null,sb=null;
+function save(){
+  var dc=0,order=Array.from(sb.children).map(function(el){
+    if(el.classList.contains('sb-item'))return 'i:'+el.dataset.tab;
+    if(el.classList.contains('sb-divider'))return 'd:'+(dc++);
+    if(el.classList.contains('sb-section-header'))return 'h:'+el.textContent.trim();
+    return null;
+  }).filter(Boolean);
+  try{localStorage.setItem(KEY,JSON.stringify(order));}catch(e){}
+}
+function restore(){
+  try{
+    var saved=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(!saved||!saved.length)return;
+    var im={},hm={},da=[];
+    Array.from(sb.children).forEach(function(el){
+      if(el.classList.contains('sb-item'))im[el.dataset.tab]=el;
+      else if(el.classList.contains('sb-section-header'))hm[el.textContent.trim()]=el;
+      else if(el.classList.contains('sb-divider'))da.push(el);
+    });
+    var di=0;
+    saved.forEach(function(e){
+      var el=null;
+      if(e.startsWith('i:'))el=im[e.slice(2)];
+      else if(e.startsWith('h:'))el=hm[e.slice(2)];
+      else if(e.startsWith('d:'))el=da[di++];
+      if(el)sb.appendChild(el);
+    });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded',function(){
+  sb=document.querySelector('.sidebar');
+  if(!sb)return;
+  restore();
+  Array.from(sb.querySelectorAll('.sb-item')).forEach(function(el){
+    el.setAttribute('draggable','true');
+    var h=document.createElement('span');
+    h.className='sb-drag-handle';h.textContent='⠿';
+    el.insertBefore(h,el.firstChild);
+  });
+  sb.addEventListener('dragstart',function(e){
+    var t=e.target.closest('.sb-item');
+    if(!t)return;
+    dragEl=t;setTimeout(function(){t.classList.add('sb-dragging');},0);
+    e.dataTransfer.effectAllowed='move';
+  });
+  sb.addEventListener('dragend',function(){
+    if(dragEl){dragEl.classList.remove('sb-dragging');dragEl=null;}
+    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
+    save();
+  });
+  sb.addEventListener('dragover',function(e){
+    e.preventDefault();if(!dragEl)return;
+    var t=e.target.closest('.sb-item');
+    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
+    if(t&&t!==dragEl){
+      var r=t.getBoundingClientRect();
+      if(e.clientY<r.top+r.height/2){sb.insertBefore(dragEl,t);t.classList.add('sb-drop-before');}
+      else{sb.insertBefore(dragEl,t.nextSibling);}
+    }
+  });
+  sb.addEventListener('drop',function(e){e.preventDefault();});
+});
+})();
+"""
 OUTPUT_HTML   = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'isca.html')
 SHP_URL       = 'https://shipping-bo.adminml.com/sauron/shipments/shipment'
 ROTA_URL      = 'https://envios.adminml.com/logistics/monitoring-distribution/detail/{id}?site=MLB'
@@ -175,6 +245,7 @@ body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemF
 .mod-btn.m-isca{{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}}
 .mod-btn.m-cftv{{color:#60a5fa;background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2)}}
 .mod-btn.m-disabled{{opacity:.35;cursor:not-allowed;pointer-events:none}}
+{diario_css()}
 /* LAYOUT */
 .app-body{{display:flex;flex:1;overflow:hidden}}
 .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:6px 0;display:flex;flex-direction:column}}
@@ -183,6 +254,10 @@ body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemF
 .sb-item{{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:12px;color:#6b7280;cursor:pointer;transition:all .2s;border-left:2px solid transparent;white-space:nowrap;flex-shrink:0}}
 .sb-item:hover{{background:#0d1321;color:#e2e8f0}}
 .sb-item.active{{background:linear-gradient(90deg,rgba(74,222,128,.12),transparent);color:#ffffff;border-left-color:#4ade80;font-weight:600}}
+.sb-drag-handle{{opacity:0;cursor:grab;margin-right:5px;color:#374151;font-size:14px;flex-shrink:0;user-select:none;transition:opacity .15s}}
+.sb-item:hover .sb-drag-handle{{opacity:1}}
+.sb-item.sb-dragging{{opacity:.35}}
+.sb-item.sb-drop-before{{border-top:2px solid #4ade80!important}}
 .sb-badge{{margin-left:auto;background:rgba(74,222,128,.15);color:#4ade80;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0}}
 .sb-badge.red{{background:rgba(239,68,68,.2);color:#f87171}}
 .sb-badge.amber{{background:rgba(245,158,11,.15);color:#f59e0b}}
@@ -237,9 +312,10 @@ th{{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;let
     <a href="./cftv.html" class="mod-btn">
       <i data-lucide="camera" width="12" height="12"></i> CFTV
     </a>
+    {diario_nav_btn()}
   </div>
 </div>
-
+{diario_panel_html()}
 <div class="app-body">
 <nav class="sidebar">
   <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
@@ -476,7 +552,9 @@ function renderWeekly() {{
   }});
 }}
 
+{diario_js()}
 lucide.createIcons();
+{_SB_DRAG_JS}
 </script>
 </body>
 </html>'''

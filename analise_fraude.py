@@ -3,19 +3,92 @@
 # Como rodar: duplo clique em abrir_analise_fraude.bat
 # ============================================================
 
-import json, webbrowser, os
+import json, webbrowser, os, pickle, hashlib, time
 from datetime import datetime
+from _diario_widget import diario_css, diario_nav_btn, diario_panel_html, diario_js
 from google.cloud import bigquery
 from google.auth import default
 import gspread
 
 FACILITY_NAME  = 'Guarulhos Mega'
 ANO_INICIO     = '2026-01-01'
-OUTPUT         = os.path.join(os.path.dirname(__file__), 'fraude.html')
+
+_SB_DRAG_JS = """
+(function(){
+var KEY='sb_order_'+(location.pathname.split('/').pop()||'idx');
+var dragEl=null,sb=null;
+function save(){
+  var dc=0,order=Array.from(sb.children).map(function(el){
+    if(el.classList.contains('sb-item'))return 'i:'+el.dataset.tab;
+    if(el.classList.contains('sb-divider'))return 'd:'+(dc++);
+    if(el.classList.contains('sb-section-header'))return 'h:'+el.textContent.trim();
+    return null;
+  }).filter(Boolean);
+  try{localStorage.setItem(KEY,JSON.stringify(order));}catch(e){}
+}
+function restore(){
+  try{
+    var saved=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(!saved||!saved.length)return;
+    var im={},hm={},da=[];
+    Array.from(sb.children).forEach(function(el){
+      if(el.classList.contains('sb-item'))im[el.dataset.tab]=el;
+      else if(el.classList.contains('sb-section-header'))hm[el.textContent.trim()]=el;
+      else if(el.classList.contains('sb-divider'))da.push(el);
+    });
+    var di=0;
+    saved.forEach(function(e){
+      var el=null;
+      if(e.startsWith('i:'))el=im[e.slice(2)];
+      else if(e.startsWith('h:'))el=hm[e.slice(2)];
+      else if(e.startsWith('d:'))el=da[di++];
+      if(el)sb.appendChild(el);
+    });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded',function(){
+  sb=document.querySelector('.sidebar');
+  if(!sb)return;
+  restore();
+  Array.from(sb.querySelectorAll('.sb-item')).forEach(function(el){
+    el.setAttribute('draggable','true');
+    var h=document.createElement('span');
+    h.className='sb-drag-handle';h.textContent='⠿';
+    el.insertBefore(h,el.firstChild);
+  });
+  sb.addEventListener('dragstart',function(e){
+    var t=e.target.closest('.sb-item');
+    if(!t)return;
+    dragEl=t;setTimeout(function(){t.classList.add('sb-dragging');},0);
+    e.dataTransfer.effectAllowed='move';
+  });
+  sb.addEventListener('dragend',function(){
+    if(dragEl){dragEl.classList.remove('sb-dragging');dragEl=null;}
+    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
+    save();
+  });
+  sb.addEventListener('dragover',function(e){
+    e.preventDefault();if(!dragEl)return;
+    var t=e.target.closest('.sb-item');
+    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
+    if(t&&t!==dragEl){
+      var r=t.getBoundingClientRect();
+      if(e.clientY<r.top+r.height/2){sb.insertBefore(dragEl,t);t.classList.add('sb-drop-before');}
+      else{sb.insertBefore(dragEl,t.nextSibling);}
+    }
+  });
+  sb.addEventListener('drop',function(e){e.preventDefault();});
+});
+})();
+"""
+OUTPUT            = os.path.join(os.path.dirname(__file__), 'fraude.html')
+SINISTROS_OUTPUT  = os.path.join(os.path.dirname(__file__), 'sinistros.html')
 BLOCK_LIST_ID  = '1521Ek2wn8qYLj7g6dh0aBBMmpVYHjCp2hftGKNG9bO0'
 ABA_BLOQUEIOS  = 'Drivers Bloqueados'
 CFTV_SHEET_ID  = '18isURInofILBi-RS9YrCQyYcnb6JeU_stNqnspxiqLM'
-CFTV_ABA       = 'Respostas ao formulário 2'
+CFTV_ABA          = 'Respostas ao formulário 2'
+SINISTRO_SHEET_ID = '12-JUN1u4UfXBv0Mkeq9D3lsosG3e6OjbysMt4h7cpII'
+SINISTRO_ABA      = 'Eventos SVC'
 
 # ============================================================
 # QUERIES
@@ -224,6 +297,19 @@ GROUP BY 1, 2
 ORDER BY DIAS_SEM_ROTA DESC
 """
 
+QUERY_DRIVER_PLACA = f"""
+-- Placa mais recente por driver (SSP30, baseado em atribuições de rota)
+SELECT
+    CAST(DRIVER_ID AS STRING)                                                    AS DRIVER_ID,
+    LICENCE_PLATE
+FROM `meli-bi-data.WHOWNER.BT_SHP_CROWD_DASS_ASSIGNMENT`
+WHERE FACILITY_ID = 'SSP30'
+  AND DATE(CREATED_AT) >= '{ANO_INICIO}'
+  AND LICENCE_PLATE IS NOT NULL
+  AND LICENCE_PLATE != ''
+QUALIFY ROW_NUMBER() OVER (PARTITION BY DRIVER_ID ORDER BY CREATED_AT DESC) = 1
+"""
+
 QUERY_PLACE_SHIPMENTS = f"""
 -- SHP IDs por place (LOST + FRAUD apenas)
 SELECT
@@ -321,6 +407,53 @@ ORDER BY TOTAL_DAMAGED DESC
 LIMIT 60
 """
 
+QUERY_DC_NEX = f"""
+-- Pacotes da SSP30 (Guarulhos Mega) com perda confirmada que passaram por DC/NEX/XPT
+WITH lost_sssp30 AS (
+  SELECT
+    CAST(SHIPMENT_ID AS STRING)      AS shp_id,
+    ROUND(BPP_CASHOUT_USD, 2)        AS bpp,
+    Classification_LM                AS classificacao,
+    FORMAT_DATE('%d/%m/%Y', date_bpp) AS data_bpp
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+    AND date_bpp >= '{ANO_INICIO}'
+    AND date_bpp <= CURRENT_DATE()
+    AND Classification_LM IN (
+      'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE')
+),
+dc_nex AS (
+  SELECT
+    CAST(SHP_SHIPMENT_ID AS STRING)      AS shp_id,
+    CAST(SHP_DESTINATION_FACILITY_ID AS STRING) AS facility_id,
+    LM_DESTINATION_FACILITY_TYPE         AS tipo,
+    MAX(SHP_DATE_HANDLING_ID)            AS ultima_data
+  FROM `meli-bi-data.WHOWNER.BT_SHP_TRACKER_DELAY_CAUSE_DIT`
+  WHERE SHP_SITE_ID = 'MLB'
+    AND SHP_DATE_HANDLING_ID >= '{ANO_INICIO}'
+    AND LM_DESTINATION_FACILITY_TYPE IN ('NEX','DC','XPT')
+  GROUP BY 1, 2, 3
+)
+SELECT
+  l.shp_id,
+  l.classificacao,
+  l.bpp,
+  l.data_bpp,
+  d.facility_id,
+  d.tipo,
+  FORMAT_DATE('%d/%m/%Y', d.ultima_data) AS data_dc_nex,
+  CAST(pan.DRIVER_LM AS STRING)           AS driver_lm,
+  REGEXP_REPLACE(pan.SHP_AGEN_DESC, r'Ag[êe]ncia Mercado Livre - ', '') AS place_nome
+FROM lost_sssp30 l
+JOIN dc_nex d ON d.shp_id = l.shp_id
+LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` pan
+  ON CAST(pan.SHP_SHIPMENT_ID AS STRING) = l.shp_id
+  AND pan.SERVICE_TYPE = d.tipo
+ORDER BY l.bpp DESC
+LIMIT 300
+"""
+
 # ============================================================
 # CONEXÃO E CONSULTAS
 # ============================================================
@@ -347,6 +480,152 @@ def conectar():
     gs = gspread.authorize(creds)
     return bq, gs
 
+def processar_acumulo_bloqueio(drivers, shp_por_driver):
+    from datetime import datetime as _dta, timedelta as _td
+    STATUS_NAO_BLOQ = {'inactive','inativo','bloqueado','blocked','suspendido','suspended'}
+    cutoff = _dta.now() - _td(days=90)
+    result = []
+    for d in drivers:
+        did  = str(d.get('id','') or '').strip()
+        dst  = str(d.get('status','') or '').strip().lower()
+        if not did or dst in STATUS_NAO_BLOQ: continue
+        shps_all = shp_por_driver.get(did, [])
+        # Apenas FRAUD e LOST ON ROUTE nos últimos 90 dias
+        # DAMAGED, LOST AT STATION e LOST ON WAY excluídos
+        _CLASSES_VALIDAS = ('FRAUD', 'LOST ON ROUTE')
+        def _in_window(s):
+            try:
+                return _dta.strptime(s.get('data',''), '%d/%m/%Y') >= cutoff
+            except Exception:
+                return False
+        shps = [s for s in shps_all
+                if float(s.get('bpp',0) or 0) > 0
+                and _in_window(s)
+                and any(k in str(s.get('class','')) for k in _CLASSES_VALIDAS)]
+        if not shps: continue
+        meses = set()
+        for s in shps:
+            try:
+                dr = _dta.strptime(s.get('data',''), '%d/%m/%Y')
+                meses.add(f'{dr.month:02d}/{dr.year}')
+            except Exception: pass
+        if len(meses) < 3: continue
+        classes = [str(s.get('class','')) for s in shps]
+        has_fraud = any('FRAUD' in c for c in classes)
+        has_lost  = any('LOST'  in c for c in classes)
+        tipo = 'lost_fraude' if (has_fraud and has_lost) else ('fraude_pura' if has_fraud else 'outro')
+        total_bpp = round(sum(float(s.get('bpp',0) or 0) for s in shps), 2)
+        max_bpp   = round(max((float(s.get('bpp',0) or 0) for s in shps), default=0), 2)
+        residual  = round(total_bpp - max_bpp, 2)
+        n_pkgs    = len(shps)
+        apto, motivo = True, ''
+        if tipo in ('lost_fraude', 'fraude_pura'):
+            if n_pkgs < 5:
+                apto, motivo = False, f'Apenas {n_pkgs} pacotes (mínimo 5)'
+            elif residual < 300:
+                apto, motivo = False, f'Residual ${residual:.0f} abaixo de $300'
+        nome = str(d.get('nome','') or d.get('transportadora','') or '').strip()
+        transp = str(d.get('transportadora','') or '').strip()
+        result.append({
+            'id':did,'nome':nome,'transportadora':transp,'status':dst,
+            'n_meses':len(meses),'meses':sorted(meses),
+            'n_pkgs':n_pkgs,'total_bpp':total_bpp,'max_bpp':max_bpp,'residual':residual,
+            'tipo':tipo,'apto':apto,'motivo':motivo,
+            'shps':sorted(shps, key=lambda x: -float(x.get('bpp',0) or 0)),
+        })
+    result.sort(key=lambda x: (0 if x['apto'] else 1, -x['n_meses'], -x['total_bpp']))
+    return result
+
+def rows_acumulo_bloqueio(candidatos):
+    if not candidatos:
+        return '<div style="padding:32px;text-align:center;color:#6b7280">Nenhum driver com acúmulo BPP em 3+ meses encontrado.</div>'
+    TIPO_LBL = {'fraude_pura':'Fraude','lost_fraude':'Lost + Fraude','outro':'Outro'}
+    TIPO_COR  = {'fraude_pura':'#A32D2D;background:#FCEBEB','lost_fraude':'#0C447C;background:#E6F1FB','outro':'#5F5E5A;background:#F1EFE8'}
+    html = ''
+    for i, c in enumerate(candidatos):
+        tid = f'acbl_{c["id"]}'
+        tipo_lbl = TIPO_LBL.get(c['tipo'], c['tipo'])
+        tipo_cor  = TIPO_COR.get(c['tipo'], '#5F5E5A;background:#F1EFE8')
+        if c['apto']:
+            if c['tipo'] == 'fraude_pura':
+                apto_html = '<span style="background:#EAF3DE;color:#27500A;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✓ Acionar time de fraude</span>'
+            else:
+                apto_html = '<span style="background:#EAF3DE;color:#27500A;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✓ Apto para bloqueio</span>'
+        else:
+            apto_html = f'<span style="background:#F1EFE8;color:#5F5E5A;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✗ {c["motivo"]}</span>'
+        # Tabela de pacotes
+        rows_shp = ''
+        for s in c['shps']:
+            bpp_v = float(s.get('bpp',0) or 0)
+            is_max = abs(bpp_v - c['max_bpp']) < 0.01
+            max_tag = ' <span style="background:#FAEEDA;color:#633806;font-size:9px;padding:1px 5px;border-radius:4px">maior</span>' if is_max else ''
+            cls = str(s.get('class',''))
+            cls_cor = '#A32D2D' if 'FRAUD' in cls else ('#633806' if 'LOST' in cls else '#374151')
+            sem = str(s.get('semana',''))
+            # Converter SEMANA '2026-W15' -> 'S15'
+            if '-W' in sem:
+                sem = 'S' + sem.split('-W')[-1].lstrip('0') or 'S?'
+            shp_id = s.get('id','')
+            shp_link = (f'<a href="https://envios.adminml.com/logistics/package-management/package/{shp_id}" '
+                        f'target="_blank" style="color:#60a5fa;font-family:monospace;text-decoration:none">'
+                        f'{shp_id}</a>') if shp_id else '—'
+            rows_shp += (f'<tr><td style="font-size:11px;color:#6b7280">{sem}</td>'
+                         f'<td style="font-size:11px;color:{cls_cor}">{cls}</td>'
+                         f'<td style="font-size:11px">{shp_link}</td>'
+                         f'<td style="font-size:11px;text-align:right;font-weight:500">'
+                         f'${bpp_v:,.2f}{max_tag}</td></tr>')
+        residual_txt = (f'<b>BPP sem maior: ${c["residual"]:,.2f}</b>'
+                        + (' ≥ $300 ✓' if c["residual"]>=300 else ' &lt; $300 ✗')
+                        if c['tipo']=='lost_fraude' else
+                        'Fraude pura → acionar time de fraude para validação')
+        html += f'''<div style="border:0.5px solid #1a2035;border-radius:10px;margin-bottom:10px;overflow:hidden">
+  <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#0d1526;border-bottom:0.5px solid #1a2035;cursor:pointer" onclick="var el=document.getElementById('{tid}');el.style.display=el.style.display==='none'?'block':'none'">
+    <div style="flex:1">
+      <a href="{'https://envios.adminml.com/logistics/drivers-management/drivers/' + str(c['id']) if 'meli extra' in (c.get('transportadora') or '').lower() else 'https://envios.adminml.com/logistics/provider-management/drivers-block/list?searchType=id&searchValue=' + str(c['id'])}" target="_blank" onclick="event.stopPropagation()" style="font-size:15px;font-weight:700;color:#60a5fa;font-family:monospace;text-decoration:none">{c["id"]}</a>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">{c["nome"] or c["transportadora"] or "—"}</div>
+    </div>
+    <span style="color:{tipo_cor};font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">{tipo_lbl}</span>
+    {apto_html}
+    <button onclick="event.stopPropagation();gerarPptx('{c["id"]}')" title="Gerar apresentação .pptx"
+      style="font-size:10px;padding:3px 10px;border-radius:6px;border:1px solid #1f3050;background:#0d1526;
+             color:#60a5fa;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px">
+      📊 .pptx
+    </button>
+    <span style="color:#4b5563;font-size:14px">▾</span>
+  </div>
+  <div style="display:flex;gap:0;border-bottom:0.5px solid #1a2035">
+    <div style="flex:1;padding:8px 14px;border-right:0.5px solid #1a2035">
+      <div style="font-size:18px;font-weight:600;color:#f9fafb">{c["n_meses"]}</div>
+      <div style="font-size:10px;color:#6b7280">meses</div>
+    </div>
+    <div style="flex:1;padding:8px 14px;border-right:0.5px solid #1a2035">
+      <div style="font-size:18px;font-weight:600;color:#f9fafb">{c["n_pkgs"]}</div>
+      <div style="font-size:10px;color:#6b7280">pacotes</div>
+    </div>
+    <div style="flex:1;padding:8px 14px;border-right:0.5px solid #1a2035">
+      <div style="font-size:18px;font-weight:600;color:#E24B4A">${c["total_bpp"]:,.0f}</div>
+      <div style="font-size:10px;color:#6b7280">BPP total</div>
+    </div>
+    <div style="flex:1;padding:8px 14px">
+      <div style="font-size:13px;font-weight:600;color:{'#E24B4A' if c.get('data_solicitacao') else '#6b7280'}">{'Sim — ' + c['data_solicitacao'] if c.get('data_solicitacao') else 'Não'}</div>
+      <div style="font-size:10px;color:#6b7280">tentativa bloqueio</div>
+    </div>
+  </div>
+  <div id="{tid}" style="display:none">
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="border-bottom:0.5px solid #1a2035;background:#060c18">
+        <th style="padding:6px 14px;font-size:10px;color:#4b5563;font-weight:600;text-align:left">Semana</th>
+        <th style="padding:6px 14px;font-size:10px;color:#4b5563;font-weight:600;text-align:left">Tipo</th>
+        <th style="padding:6px 14px;font-size:10px;color:#4b5563;font-weight:600;text-align:left">Shipment ID</th>
+        <th style="padding:6px 14px;font-size:10px;color:#4b5563;font-weight:600;text-align:right">BPP</th>
+      </tr></thead>
+      <tbody>{rows_shp}</tbody>
+    </table>
+    <div style="padding:8px 14px;font-size:11px;color:#9ca3af;background:#060c18;border-top:0.5px solid #1a2035">{residual_txt}</div>
+  </div>
+</div>'''
+    return html
+
 def carregar_block_list(gs):
     print("  Lendo Block List...")
     try:
@@ -370,7 +649,7 @@ def carregar_block_list(gs):
 
 def carregar_cftv(gs):
     print("  Lendo planilha CFTV...")
-    try:
+    def _fetch():
         pl   = gs.open_by_key(CFTV_SHEET_ID)
         data = pl.worksheet(CFTV_ABA).get_all_values()
         if len(data) <= 1:
@@ -379,18 +658,115 @@ def carregar_cftv(gs):
         rows   = [dict(zip(header, r)) for r in data[1:] if any(r)]
         print(f"  {len(rows)} solicitações CFTV")
         return rows
+    try:
+        return _sheets_cache('cftv', _fetch)
     except Exception as e:
         print(f"  Aviso CFTV: {e}")
         return []
 
+def _sin_row_html(c):
+    rec_ok    = (c.get('recup_carga') or '').strip().lower() in ('sim', 'yes', 's')
+    tipo_val  = (c.get('tipo') or '').strip()
+    tipo_col  = '#f87171' if 'sinistro' in tipo_val.lower() else '#fbbf24'
+    bpp_val   = c.get('bpp', 0) or 0
+    bpp_fmt   = f"${bpp_val:,.2f}" if bpp_val else '—'
+    relato    = (c.get('relato') or '').strip()
+    relato    = (relato[:65] + '...') if len(relato) > 65 else relato
+    rec_color = '#4ade80' if rec_ok else '#f87171'
+    rec_txt   = 'Sim' if rec_ok else 'Não'
+    return (f'<tr style="border-top:1px solid #111827">'
+            f'<td style="padding:7px 10px;white-space:nowrap">{c.get("data","")}</td>'
+            f'<td style="padding:7px 10px;white-space:nowrap">{c.get("horario","")}</td>'
+            f'<td style="padding:7px 10px"><span style="background:{tipo_col}22;color:{tipo_col};padding:2px 6px;border-radius:4px;font-size:10px">{tipo_val or "—"}</span></td>'
+            f'<td style="padding:7px 10px"><span style="font-family:monospace;color:#60a5fa">{c.get("driver_id","")}</span>'
+            f'<br><span style="font-size:10px;color:#9ca3af">{c.get("nome","")}</span></td>'
+            f'<td style="padding:7px 10px;font-size:11px">{c.get("transportadora","") or "—"}</td>'
+            f'<td style="padding:7px 10px;font-family:monospace;font-size:11px">{c.get("placa","") or "—"}</td>'
+            f'<td style="padding:7px 10px;text-align:center">{c.get("qtd_shp","") or "—"}</td>'
+            f'<td style="padding:7px 10px;text-align:right;font-weight:600;color:#f87171">{bpp_fmt}</td>'
+            f'<td style="padding:7px 10px;text-align:center;color:{rec_color}">{rec_txt}</td>'
+            f'<td style="padding:7px 10px;font-size:10px;color:#9ca3af;max-width:200px">{relato}</td>'
+            f'</tr>')
+
+
+def carregar_sinistros(gs):
+    print("  Lendo planilha Sinistros (Eventos SVC)...")
+    def _fetch():
+        pl   = gs.open_by_key(SINISTRO_SHEET_ID)
+        data = pl.worksheet(SINISTRO_ABA).get_all_values()
+        if len(data) <= 1:
+            return {'casos': [], 'total': 0, 'bpp_total': 0.0, 'recuperados': 0, 'bpp_recuperado': 0.0}
+        header = data[0]
+        def _g(r, col):
+            try:
+                idx = next(i for i, h in enumerate(header) if h.strip() == col)
+                return r[idx].strip() if idx < len(r) else ''
+            except StopIteration:
+                return ''
+        casos = []
+        for r in data[1:]:
+            if not any(r): continue
+            try:
+                bpp = float((_g(r,'Bpp Cashout Usd') or '0').replace(',','.').replace('$','').replace(' ','') or '0')
+            except: bpp = 0.0
+            try:
+                rbpp = float((_g(r,'Recup. Cashout Usd') or '0').replace(',','.').replace('$','').replace(' ','') or '0')
+            except: rbpp = 0.0
+            casos.append({
+                'data':          _g(r,'Data'),
+                'horario':       _g(r,'Horario'),
+                'rota':          _g(r,'Rota'),
+                'driver_id':     _g(r,'Drive'),
+                'nome':          _g(r,'Nome Drive'),
+                'placa':         _g(r,'Placa'),
+                'tipo':          _g(r,'TIPO 2'),
+                'qtd_shp':       _g(r,'Qtde Shp'),
+                'bpp':           bpp,
+                'recup_carga':   _g(r,'Recup. da Carga?'),
+                'recup_shp':     _g(r,'Recup. Shp'),
+                'recup_bpp':     rbpp,
+                'cep':           _g(r,'CEP'),
+                'rua':           _g(r,'Rua'),
+                'transportadora':_g(r,'MLP'),
+                'veiculo':       _g(r,'Veículo') or _g(r,'Veiculo'),
+                'natureza':      _g(r,'Natureza do evento'),
+                'relato':        _g(r,'Relato'),
+            })
+        recuperados = sum(1 for c in casos if (c['recup_carga'] or '').strip().lower() in ('sim','yes','s'))
+        bpp_total   = sum(c['bpp'] for c in casos)
+        bpp_rec     = sum(c['recup_bpp'] for c in casos)
+        print(f"  {len(casos)} sinistros carregados")
+        return {
+            'casos':          casos,
+            'total':          len(casos),
+            'bpp_total':      round(bpp_total, 2),
+            'recuperados':    recuperados,
+            'bpp_recuperado': round(bpp_rec, 2),
+        }
+    try:
+        return _sheets_cache('sinistros', _fetch)
+    except Exception as e:
+        print(f"  Aviso Sinistros: {e}")
+        return {'casos': [], 'total': 0, 'bpp_total': 0.0, 'recuperados': 0, 'bpp_recuperado': 0.0}
+
+
 def sincronizar_status_block_list(gs, bq, bl_rows):
     """Consulta BQ e atualiza status na planilha para drivers Solicitado/Monitorado."""
+    _sync_flag = os.path.join(_CACHE_DIR, 'sh_sync_bl.pkl')
+    os.makedirs(_CACHE_DIR, exist_ok=True)
+    if os.path.exists(_sync_flag):
+        age = time.time() - os.path.getmtime(_sync_flag)
+        if age < _SYNC_TTL:
+            print(f"  Sync BL — pulando (rodou {int(age/60)}min atrás)")
+            return
+
     ATUALIZAR = {'solicitado', 'monitorado'}
     def _st(r): return r.get('Status', r.get('status', '')).strip().lower()
     def _did(r): return str(r.get('Driver ID', r.get('driver_id', ''))).strip()
     pendentes = {_did(r) for r in bl_rows if _st(r) in ATUALIZAR and _did(r)}
     if not pendentes:
         print("  Nenhum driver pendente para sincronizar.")
+        with open(_sync_flag, 'wb') as _f: pickle.dump(True, _f)
         return
 
     print(f"  Sincronizando status de {len(pendentes)} drivers com BQ...")
@@ -454,11 +830,11 @@ def sincronizar_status_block_list(gs, bq, bl_rows):
             for r in bl_rows:
                 did = _did(r)
                 if did in status_memo:
-                    # atualiza tanto a chave bruta quanto a processada
                     if 'Status' in r:    r['Status']    = status_memo[did]
                     if 'status' in r:    r['status']    = status_memo[did]
         else:
             print("  Nenhuma alteração de status necessária.")
+        with open(_sync_flag, 'wb') as _f: pickle.dump(True, _f)
     except Exception as e:
         print(f"  Aviso ao atualizar planilha: {e}")
 
@@ -673,6 +1049,142 @@ def processar_cruzamento_mes(df):
         }
     return result
 
+def carregar_cobrar_otr(gs):
+    """Lê coluna 'Cobrar OTR' (col 33 = r[32]) da aba ON ROUTE.
+    Retorna dict {shp_id: cobrar_otr_status}."""
+    try:
+        PLANILHA_RISCO_ID = '1rFcUXxl53WVQf_ASRx3mhlEvFoJevcaiwjMZY1vso5Y'
+        ABA = 'Tratativas Risco On Route (HV) - Lucas'
+        ws = gs.open_by_key(PLANILHA_RISCO_ID).worksheet(ABA)
+        rows = ws.get_all_values()
+        result = {}
+        for r in rows[1:]:
+            shp_id = r[2].strip() if len(r) > 2 else ''
+            cobrar = r[32].strip() if len(r) > 32 else ''
+            if shp_id:
+                result[shp_id] = cobrar
+        print(f"  Cobrar OTR: {len(result)} registros ON ROUTE lidos")
+        return result
+    except Exception as e:
+        print(f"  Aviso Cobrar OTR: {e}")
+        return {}
+
+def processar_dc_nex(df, cobrar_otr_map):
+    """Processa pacotes que passaram por DC/NEX/XPT.
+    Retorna dict com facilities (agrupadas), driver ranking e análise de responsabilidade."""
+    if df is None or df.empty:
+        return {'facilities': [], 'drivers': [], 'total_pkgs': 0, 'total_gmv': 0.0}
+    tipo_label = {'NEX': 'NEX', 'DC': 'DC', 'XPT': 'Transportadora XPT'}
+    fac_map    = {}
+    driver_map = {}
+    seen_shp   = set()
+
+    for _, r in df.iterrows():
+        shp = str(r.get('shp_id', '')).strip()
+        if shp in seen_shp:
+            continue
+        seen_shp.add(shp)
+        fid       = str(r.get('facility_id', '')).strip()
+        tipo      = tipo_label.get(str(r.get('tipo', '')), str(r.get('tipo', '')))
+        place_nm  = str(r.get('place_nome', '') or '').strip() or fid
+        drv_lm    = str(r.get('driver_lm', '') or '').strip()
+        if drv_lm in ('None', 'nan', ''):
+            drv_lm = ''
+        cobrar    = cobrar_otr_map.get(shp, '')
+        fkey      = f'{tipo}|{fid}'
+        bpp       = float(r.get('bpp', 0) or 0)
+
+        pkg = {
+            'shp_id':        shp,
+            'classificacao': str(r.get('classificacao', '')),
+            'bpp':           bpp,
+            'data_bpp':      str(r.get('data_bpp', '')),
+            'data_dc_nex':   str(r.get('data_dc_nex', '')),
+            'cobrar_otr':    cobrar,
+            'driver_lm':     drv_lm,
+        }
+
+        # --- facility map ---
+        if fkey not in fac_map:
+            fac_map[fkey] = {
+                'facility_id': fid,
+                'place_nome':  place_nm,
+                'tipo':        tipo,
+                'gmv':         0.0,
+                'cobrados':    0, 'aguardando': 0,
+                'sem_retorno': 0, 'sem_status':  0,
+                'drivers':     set(),
+                'pacotes':     [],
+            }
+        fac_map[fkey]['gmv'] += bpp
+        fac_map[fkey]['pacotes'].append(pkg)
+        if drv_lm:
+            fac_map[fkey]['drivers'].add(drv_lm)
+        if   cobrar == 'Cobrado':            fac_map[fkey]['cobrados']   += 1
+        elif cobrar == 'Aguardando Retorno': fac_map[fkey]['aguardando'] += 1
+        elif cobrar == 'Sem Retorno':        fac_map[fkey]['sem_retorno']+= 1
+        else:                                fac_map[fkey]['sem_status'] += 1
+
+        # --- driver map ---
+        if drv_lm:
+            if drv_lm not in driver_map:
+                driver_map[drv_lm] = {'driver_id': drv_lm, 'total': 0, 'gmv': 0.0,
+                                       'facilities': set(), 'tipos': set()}
+            driver_map[drv_lm]['total']      += 1
+            driver_map[drv_lm]['gmv']        += bpp
+            driver_map[drv_lm]['facilities'].add(place_nm or fid)
+            driver_map[drv_lm]['tipos'].add(tipo)
+
+    # --- finaliza facilities ---
+    facilities = []
+    for f in fac_map.values():
+        n      = len(f['pacotes'])
+        n_drv  = len(f['drivers'])
+        # veredicto: place = muitos drivers diferentes; driver = sempre mesmo driver
+        if n_drv == 0:
+            veredicto = 'SEM DADO'
+            v_cor     = '#4b5563'
+        elif n_drv == 1:
+            veredicto = 'DRIVER SUSPEITO'
+            v_cor     = '#ef4444'
+        elif n_drv / n >= 0.6:
+            veredicto = 'PLACE SUSPEITA'
+            v_cor     = '#f59e0b'
+        else:
+            veredicto = 'AMBOS'
+            v_cor     = '#a78bfa'
+        f['total']     = n
+        f['n_drivers'] = n_drv
+        f['veredicto'] = veredicto
+        f['v_cor']     = v_cor
+        f['gmv']       = round(f['gmv'], 2)
+        f['drivers']   = sorted(f['drivers'])
+        f['pacotes'].sort(key=lambda x: -x['bpp'])
+        facilities.append(f)
+    facilities.sort(key=lambda x: -x['gmv'])
+
+    # --- finaliza drivers ---
+    drivers = []
+    for d in driver_map.values():
+        d['gmv']        = round(d['gmv'], 2)
+        d['n_fac']      = len(d['facilities'])
+        d['facilities'] = sorted(d['facilities'])
+        d['tipos']      = sorted(d['tipos'])
+        # suspeição: aparece em muitas facilities = padrão do driver
+        if d['n_fac'] >= 3:   d['nivel'] = 'ALTO';   d['n_cor'] = '#ef4444'
+        elif d['n_fac'] >= 2: d['nivel'] = 'MÉDIO';  d['n_cor'] = '#f59e0b'
+        else:                 d['nivel'] = 'BAIXO';  d['n_cor'] = '#6b7280'
+        drivers.append(d)
+    drivers.sort(key=lambda x: (-x['total'], -x['gmv']))
+
+    total_gmv = round(sum(f['gmv'] for f in facilities), 2)
+    return {
+        'facilities': facilities,
+        'drivers':    drivers,
+        'total_pkgs': len(seen_shp),
+        'total_gmv':  total_gmv,
+    }
+
 def processar_cftv(rows):
     def _valor(v):
         try:
@@ -725,10 +1237,48 @@ def processar_cftv(rows):
         'rows': out,
     }
 
+_CACHE_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_bq_cache')
+_CACHE_TTL  = 4 * 60 * 60   # 4 horas (BQ — dado de fraude não muda minuto a minuto)
+_SHEETS_TTL = 2 * 60 * 60   # 2 horas (Sheets read-only: CFTV, Sinistros)
+_SYNC_TTL   = 2 * 60 * 60   # 2 horas (sync de status BL — evita BQ extra)
+
+def _sheets_cache(key, fetch_fn, ttl=None):
+    """Cache para leituras Google Sheets — retorna do disco se dentro do TTL."""
+    if ttl is None:
+        ttl = _SHEETS_TTL
+    os.makedirs(_CACHE_DIR, exist_ok=True)
+    path = os.path.join(_CACHE_DIR, f'sh_{key}.pkl')
+    if os.path.exists(path):
+        age = time.time() - os.path.getmtime(path)
+        if age < ttl:
+            with open(path, 'rb') as f:
+                data = pickle.load(f)
+            print(f"  cache local ({int(age/60)}min atrás)")
+            return data
+    data = fetch_fn()
+    try:
+        with open(path, 'wb') as f:
+            pickle.dump(data, f)
+    except Exception:
+        pass
+    return data
+
 def buscar(bq, query, nome):
+    os.makedirs(_CACHE_DIR, exist_ok=True)
+    key  = hashlib.md5(query.encode()).hexdigest()[:12]
+    path = os.path.join(_CACHE_DIR, f'{key}.pkl')
+    if os.path.exists(path):
+        age = time.time() - os.path.getmtime(path)
+        if age < _CACHE_TTL:
+            with open(path, 'rb') as f:
+                df = pickle.load(f)
+            print(f"  {nome} — cache ({int(age/60)}min atrás, {len(df)} linhas)")
+            return df
     print(f"  Buscando {nome}...")
     df = bq.query(query).to_dataframe()
     print(f"  {len(df)} linhas")
+    with open(path, 'wb') as f:
+        pickle.dump(df, f)
     return df
 
 # ============================================================
@@ -850,6 +1400,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         rt  = routes_map.get(d['id'], {})
         dias = rt.get('dias_sem_rota', -1)
 
+        d['status']         = st.get('status', '')
         d['lealdade']       = st.get('lealdade', 'N/A')
         d['data_ativacao']  = st.get('data_ativacao', '')
         d['transportadora'] = rt.get('transportadora', 'N/A')
@@ -1042,6 +1593,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         'top10_places_vals':   top10_places_vals,
         'monthly_agg':         monthly_agg,
         'monthly_dr':          monthly_dr,
+        'acumulo_bloqueio': processar_acumulo_bloqueio(drivers, shp_por_driver),
     }
 
 # ============================================================
@@ -1321,6 +1873,95 @@ def rows_places(places, shp_por_place):
         <tbody id="pl_{i}" style="display:none">{shp_rows}</tbody>'''
     return out
 
+def rows_driver_ranking(dc_nex_data):
+    """Tabela de ranking de drivers suspeitos (DRIVER_LM)."""
+    drivers = dc_nex_data.get('drivers', [])
+    if not drivers:
+        return ''
+    rows = ''
+    for i, d in enumerate(drivers[:20], 1):
+        facs_txt = ', '.join(d['facilities'][:3])
+        if len(d['facilities']) > 3:
+            facs_txt += f' +{len(d["facilities"])-3}'
+        rows += f'''<tr style="border-top:1px solid #1a2035">
+            <td style="padding:7px 10px;text-align:center;color:#6b7280;font-size:11px">{i}</td>
+            <td style="padding:7px 10px;font-family:monospace;font-weight:700;color:#f9fafb">{d["driver_id"]}</td>
+            <td style="padding:7px 10px;text-align:center;font-weight:700;color:#f87171">{d["total"]}</td>
+            <td style="padding:7px 10px;text-align:right;font-weight:700;color:#10b981">${d["gmv"]:,.2f}</td>
+            <td style="padding:7px 10px;text-align:center;font-size:11px;color:#9ca3af">{d["n_fac"]}</td>
+            <td style="padding:7px 10px;font-size:11px;color:#9ca3af;max-width:250px">{facs_txt}</td>
+            <td style="padding:7px 10px;text-align:center">
+              <span style="background:{d["n_cor"]};color:#fff;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:700">{d["nivel"]}</span>
+            </td>
+        </tr>'''
+    return f'''<div class="tbl-wrap" style="margin-bottom:18px">
+    <div class="tbl-title" style="color:#a78bfa">
+      <i data-lucide="user-x" width="14" height="14" style="color:#a78bfa;margin-right:6px;vertical-align:middle"></i>
+      Ranking de Drivers Suspeitos (Last Mile NEX) — {len(drivers)} driver(s) identificados
+      <span style="font-size:10px;font-weight:400;color:#6b7280;float:right">Nível ALTO = mesmo driver em 3+ facilities diferentes</span>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th style="text-align:center">#</th>
+        <th>Driver ID</th>
+        <th style="text-align:center">Pacotes</th>
+        <th style="text-align:right">GMV</th>
+        <th style="text-align:center">Facilities</th>
+        <th>Places</th>
+        <th style="text-align:center">Nível</th>
+      </tr></thead>
+      <tbody>{rows}</tbody>
+    </table></div>
+  </div>'''
+
+def rows_dc_nex(dc_nex_data):
+    MELI_URL = 'https://envios.adminml.com/logistics/package-management/package'
+    tipo_cor  = {'NEX': '#f59e0b', 'DC': '#60a5fa', 'Transportadora XPT': '#a78bfa'}
+    tipo_bg   = {'NEX': 'rgba(245,158,11,.12)', 'DC': 'rgba(96,165,250,.12)', 'Transportadora XPT': 'rgba(167,139,250,.12)'}
+    facilities = dc_nex_data.get('facilities', [])
+    if not facilities:
+        return '<tr><td colspan="5" style="text-align:center;color:#4b5563;padding:32px">Nenhum pacote encontrado</td></tr>'
+    out = ''
+    for i, f in enumerate(facilities):
+        row_id  = f'dcnex_{i}'
+        tp_cor  = tipo_cor.get(f['tipo'], '#9ca3af')
+        tp_bg   = tipo_bg.get(f['tipo'], 'transparent')
+        n       = f['total']
+        n_drv   = f.get('n_drivers', 0)
+        verd    = f.get('veredicto', '—')
+        v_cor   = f.get('v_cor', '#4b5563')
+        place_nm = f.get('place_nome', f['facility_id'])
+        # sub-rows (pacotes individuais)
+        sub = ''
+        for p in f['pacotes']:
+            cls_cor = '#ef4444' if 'FRAUD' in p['classificacao'] else '#94a3b8'
+            drv_txt = p.get('driver_lm', '') or '—'
+            sub += f'''<tr style="background:#060c1a">
+                <td style="padding:6px 10px 6px 32px;font-family:monospace;font-size:12px">
+                  <a href="{MELI_URL}/{p['shp_id']}" target="_blank" style="color:#60a5fa;text-decoration:none">{p['shp_id']}</a>
+                </td>
+                <td style="padding:6px 10px;font-weight:700;color:#10b981;text-align:right">${p['bpp']:,.2f}</td>
+                <td style="padding:6px 10px;font-size:11px;color:{cls_cor}">{p['classificacao']}</td>
+                <td style="padding:6px 10px;font-size:11px;color:#6b7280">{p['data_dc_nex']}</td>
+                <td style="padding:6px 10px;font-size:11px;font-family:monospace;color:#c084fc">{drv_txt}</td>
+            </tr>'''
+        seta = f'<span id="arrow_{row_id}" style="font-size:10px;color:#4b5563;margin-left:6px">▶ {n} pacotes</span>'
+        drv_info = f'<span style="font-size:10px;color:#9ca3af;margin-left:6px">{n_drv} driver(s)</span>'
+        out += f'''<tr onclick="toggleDriver('{row_id}')" style="cursor:pointer;border-top:1px solid #1a2035;background:{tp_bg}">
+            <td style="padding:10px 12px;font-weight:700;color:{tp_cor}">
+              {f['tipo']} {seta}
+            </td>
+            <td style="padding:10px 12px;font-size:11px;color:#9ca3af;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{place_nm}">{place_nm}</td>
+            <td style="padding:10px 12px;font-weight:700;color:#10b981;text-align:right">${f['gmv']:,.2f}</td>
+            <td style="padding:10px 12px;text-align:center;font-weight:700;color:#f9fafb">{n}</td>
+            <td style="padding:10px 12px;text-align:center">
+              <span style="background:{v_cor};color:#fff;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">{verd}</span>
+              {drv_info}
+            </td>
+        </tr>
+        <tbody id="{row_id}" style="display:none">{sub}</tbody>'''
+    return out
+
 def rows_damaged(damaged, cruzados_fraude, shp_por_driver):
     out = ''
     for i, d in enumerate(damaged):
@@ -1398,6 +2039,10 @@ def gerar_html(d):
   .sb-item{{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:12px;color:#6b7280;cursor:pointer;transition:all .2s;border-left:2px solid transparent;white-space:nowrap;flex-shrink:0}}
   .sb-item:hover{{background:#0d1321;color:#e2e8f0}}
   .sb-item.active{{background:linear-gradient(90deg,rgba(239,68,68,.15),transparent);color:#ffffff;border-left-color:#ef4444;font-weight:600}}
+  .sb-drag-handle{{opacity:0;cursor:grab;margin-right:5px;color:#374151;font-size:14px;flex-shrink:0;user-select:none;transition:opacity .15s}}
+  .sb-item:hover .sb-drag-handle{{opacity:1}}
+  .sb-item.sb-dragging{{opacity:.35}}
+  .sb-item.sb-drop-before{{border-top:2px solid #ef4444!important}}
   .sb-badge{{margin-left:auto;background:rgba(239,68,68,.2);color:#f87171;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0}}
   .sb-badge.green{{background:rgba(74,222,128,.15);color:#4ade80}}
   .sb-badge.amber{{background:rgba(245,158,11,.15);color:#f59e0b}}
@@ -1453,11 +2098,14 @@ def gerar_html(d):
   .mod-btn.m-risco{{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}}
   .mod-btn.m-isca{{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}}
   .mod-btn.m-cftv{{color:#60a5fa;background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2)}}
+  .mod-btn.m-sinistros{{color:#f97316;background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.2)}}
   .mod-btn.m-disabled{{opacity:.35;cursor:not-allowed;pointer-events:none}}
   .alerta-box{{background:#160a0a;border:1px solid #7f1d1d;border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px}}
   .alerta-box .num{{font-size:28px;font-weight:800;color:#fca5a5}}
   .alerta-box .txt{{color:#fca5a5;font-size:13px}}
+  {diario_css()}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 </head>
 <body>
 
@@ -1486,9 +2134,13 @@ def gerar_html(d):
     <a href="./cftv.html" class="mod-btn">
       <i data-lucide="camera" width="12" height="12"></i> CFTV
     </a>
+    <a href="./sinistros.html" class="mod-btn m-sinistros">
+      <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
+    </a>
+    {diario_nav_btn()}
   </div>
 </div>
-
+{diario_panel_html()}
 <div class="app-body">
 <nav class="sidebar">
   <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
@@ -1496,9 +2148,9 @@ def gerar_html(d):
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Análise de Risco</div>
-  <div class="sb-item" data-tab="drivers" onclick="showTab('drivers',this)">
-    <i data-lucide="user" width="14" height="14" class="ci"></i>
-    Por Driver <span class="sb-badge" id="tab-count-drivers">{len(d["drivers_ativos"])}</span>
+  <div class="sb-item" data-tab="acumulo" onclick="showTab('acumulo',this)">
+    <i data-lucide="shield-x" width="14" height="14" class="ci"></i>
+    Acúmulo Bloqueio <span class="sb-badge" id="tab-count-acumulo">{len(d["acumulo_bloqueio"])}</span>
   </div>
   <div class="sb-item" data-tab="dxp" onclick="showTab('dxp',this)">
     <i data-lucide="map-pin" width="14" height="14" class="ci"></i>
@@ -1516,6 +2168,10 @@ def gerar_html(d):
     <i data-lucide="trending-up" width="14" height="14" class="ci"></i>
     Tendência
   </div>
+  <div class="sb-item" data-tab="dcnex" onclick="showTab('dcnex',this)">
+    <i data-lucide="warehouse" width="14" height="14" class="ci"></i>
+    DC / NEX <span class="sb-badge red" id="tab-count-dcnex">{d["dc_nex"]["total_pkgs"]}</span>
+  </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Block List</div>
   <div class="sb-item" data-tab="bloqueios" onclick="showTab('bloqueios',this)">
@@ -1529,8 +2185,8 @@ def gerar_html(d):
 </nav>
 <main class="main-content">
 
-<!-- BARRA DE PERÍODO — sempre visível em todas as abas -->
-<div style="background:#080d19;border-bottom:1px solid #1f2937;padding:10px 32px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<!-- BARRA DE PERÍODO — oculta na aba Acúmulo -->
+<div id="barra-periodo" style="background:#080d19;border-bottom:1px solid #1f2937;padding:10px 32px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
   <span class="filter-label">Período:</span>
   <span style="font-size:11px;color:#6b7280">De</span>
   <input type="month" id="pd_de" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["ano"]}-12" style="max-width:150px">
@@ -1600,60 +2256,32 @@ def gerar_html(d):
   </div>
 </div>
 
-<!-- RISCO POR DRIVER -->
-<div id="tab-drivers" class="content">
-
-  <!-- Top Ofensores do Mês -->
-  <div class="box" style="margin-bottom:18px">
-    <div class="box-title" style="margin-bottom:12px">
-      <i data-lucide="trophy" width="12" height="12" class="ci" style="margin-right:6px;color:#FFE600"></i>TOP OFENSORES DO PERÍODO
-    </div>
-    <table style="width:100%;font-size:12px">
-      <thead><tr>
-        <th style="width:40px">#</th><th>Driver ID</th><th>Fraudes</th><th>Damaged</th><th>BPP USD</th><th>Score</th>
-      </tr></thead>
-      <tbody id="dr-mes-tbody"></tbody>
-    </table>
+<!-- ACÚMULO BLOQUEIO -->
+<div id="tab-acumulo" class="content">
+  <div style="font-size:18px;font-weight:700;color:#f9fafb;margin-bottom:6px">
+    Acúmulo BPP 
   </div>
-
-  <!-- Banner de bloqueados -->
-  {f'''<div class="alerta-box" style="background:#0a1f0a;border-color:#166534">
-    <div class="num" style="color:#4ade80">{d["total_bloqueados"]}</div>
-    <div class="txt" style="color:#4ade80"><strong>Drivers Bloqueados</strong> — identificados na sua análise e removidos do mercado.<br>
-    Não aparecem mais no ranking ativo.</div>
-  </div>''' if d["total_bloqueados"] > 0 else ''}
-
-  <div class="tbl-wrap">
-    <div class="tbl-title">Ranking Ativo — Drivers em Atuação (<span id="count-drivers-ativos">{len(d["drivers_ativos"])}</span>)</div>
-    <!-- Filtros -->
-    <div class="filter-bar">
-      <span class="filter-label">Filtrar:</span>
-      <input type="text" id="busca_driver" placeholder="Driver ID..." oninput="filtrarDrivers()" class="filter-input" style="max-width:160px">
-      <select id="filtro_transp" onchange="filtrarDrivers()" class="filter-select">
-        <option value="">Transportadora</option>
-        {''.join(f'<option value="{t.lower()}">{t}</option>' for t in sorted(t for t in set(r.get("transportadora","") for r in d["drivers_ativos"]) if t and t not in ("N/A","—","")))}
-      </select>
-      <select id="filtro_ativ" onchange="filtrarDrivers()" class="filter-select">
-        <option value="">Atividade</option>
-        <option value="ativo">Ativo</option>
-        <option value="em observação">Em observação</option>
-        <option value="inativo">Inativo</option>
-        <option value="sem dados">Sem dados</option>
-      </select>
-      <button onclick="document.getElementById('busca_driver').value='';document.getElementById('filtro_transp').value='';document.getElementById('filtro_ativ').value='';filtrarDrivers()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
-    </div>
-    <div class="tbl-scroll"><table id="tbl_drivers">
-      <thead><tr>
-        <th>Driver ID</th><th>Prioridade</th><th>Transportadora</th><th>Categoria</th>
-        <th>Atividade</th><th>Última Rota</th><th>Score</th>
-        <th>Fraudes</th><th>Damaged</th><th>Fraud Confirm.</th><th>BPP Total</th>
-      </tr></thead>
-      <tbody>{rows_drivers(d["drivers_ativos"], d["cruzados"])}</tbody>
-    </table></div>
+  <div style="font-size:12px;color:#6b7280;margin-bottom:18px">
+    Drivers com BPP registrado em 3+ meses distintos · Apenas status ativo · Últimos 90 dias
   </div>
-
-  <!-- Histórico de bloqueados -->
-  {rows_historico_bloqueios(d["drivers_bloqueados"])}
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
+    <div class="card">
+      <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14" style="color:#E24B4A"></i><span class="cl">Candidatos</span></div>
+      <div class="card-value" style="color:#E24B4A">{len(d["acumulo_bloqueio"])}</div>
+      <div class="card-delta">drivers com 3+ meses BPP</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="shield-x" class="ci" width="14" height="14" style="color:#10b981"></i><span class="cl">Aptos</span></div>
+      <div class="card-value" style="color:#10b981">{sum(1 for x in d["acumulo_bloqueio"] if x["apto"])}</div>
+      <div class="card-delta">atendem aos critérios</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14"></i><span class="cl">BPP Total</span></div>
+      <div class="card-value" style="font-size:20px">${sum(x["total_bpp"] for x in d["acumulo_bloqueio"]):,.0f}</div>
+      <div class="card-delta">acumulado pelos candidatos</div>
+    </div>
+  </div>
+  {rows_acumulo_bloqueio(d["acumulo_bloqueio"])}
 </div>
 
 <!-- DRIVER × PLACE -->
@@ -1886,7 +2514,9 @@ function toggleDriver(id) {{
   if (ar) ar.textContent = ar.textContent.replace(open ? '▶' : '▼', open ? '▼' : '▶');
 }}
 
-const ALL_TABS = ['geral','drivers','dxp','places','damaged','tendencia','bloqueios','cruzamento'];
+const ACUMULO_DATA = {j(d.get("acumulo_bloqueio", []))};
+
+const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','bloqueios','cruzamento'];
 function showTab(name, el) {{
   _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
@@ -1894,16 +2524,35 @@ function showTab(name, el) {{
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
+  const bp = document.getElementById('barra-periodo');
+  if (bp) bp.style.display = (name === 'acumulo') ? 'none' : 'flex';
   applyPeriodoToTab(name);
   if (name === 'bloqueios') initBlCharts();
 }}
-window.addEventListener('load', () => {{
-  const h = window.location.hash.replace('#','');
-  if (ALL_TABS.includes(h)) {{
-    const el = document.querySelector(`.sb-item[data-tab="${{h}}"]`);
-    if (el) showTab(h, el);
-  }}
-}});
+function _handleHashNav(delay) {{
+  const raw = window.location.hash.replace('#','');
+  const parts = raw.split('__');
+  const tabName = parts[0];
+  const driverId = parts[1] || null;
+  if (!ALL_TABS.includes(tabName)) return;
+  const el = document.querySelector(`.sb-item[data-tab="${{tabName}}"]`);
+  if (el) showTab(tabName, el);
+  if (!driverId) return;
+  setTimeout(() => {{
+    const detail = document.getElementById('acbl_' + driverId);
+    if (!detail) return;
+    detail.style.display = 'block';
+    const wrapper = detail.parentElement;
+    if (wrapper) {{
+      wrapper.style.outline = '2px solid #60a5fa';
+      setTimeout(() => {{ wrapper.style.outline = ''; }}, 2000);
+      wrapper.scrollIntoView({{behavior:'smooth', block:'start'}});
+    }}
+  }}, delay);
+}}
+window.addEventListener('load',       () => _handleHashNav(400));
+window.addEventListener('pageshow',   (e) => {{ if (e.persisted) _handleHashNav(400); }});
+window.addEventListener('hashchange', () => _handleHashNav(100));
 
 Chart.defaults.plugins.tooltip.backgroundColor = '#0d1321';
 Chart.defaults.plugins.tooltip.titleColor      = '#f9fafb';
@@ -2050,7 +2699,7 @@ function applyPeriodoToTab(name) {{
     }});
   }};
   if      (name === 'geral')      {{ filterByMonths('tbl_cruzados'); updateCountCards(); }}
-  else if (name === 'drivers')    {{ filtrarDrivers(); }}
+  else if (name === 'acumulo')    {{ /* acumulo_bloqueio — conteúdo estático */ }}
   else if (name === 'dxp')        {{ filterByMonths('tbl_dxp'); }}
   else if (name === 'places')     {{ filterByMonths('tbl_places'); }}
   else if (name === 'damaged')    {{ filterByMonths('tbl_damaged'); }}
@@ -2103,7 +2752,7 @@ function _updateAllTabCounts() {{
     }});
     return n;
   }};
-  _set('tab-count-drivers', countMonths('tbl_drivers'));
+  // tab-count-acumulo é estático (gerado no Python), não precisa de updateCountCards
   _set('tab-count-dxp',     countMonths('tbl_dxp'));
   _set('tab-count-places',  countMonths('tbl_places'));
   _set('tab-count-damaged', countMonths('tbl_damaged'));
@@ -2141,7 +2790,6 @@ function updateCountCards() {{
   }});
   set('cv-criticos', criticos);
   set('count-drivers-ativos', ativos);
-  set('tab-count-drivers', ativos);
 
   // Places
   const placesN = vis('#tbl_places > tbody > tr[data-months]');
@@ -2300,7 +2948,218 @@ function renderTendencia() {{
   }}
 }}
 
+{diario_js()}
+
+// ── GERAR PPTX ──────────────────────────────────────────────
+async function gerarPptx(driverId) {{
+  const c = ACUMULO_DATA.find(x => String(x.id) === String(driverId));
+  if (!c) {{ alert('Dados do driver não encontrados.'); return; }}
+
+  const pptx = new PptxGenJS();
+  pptx.layout  = 'LAYOUT_WIDE';
+  pptx.author  = 'SSP30 Loss Prevention';
+  pptx.subject = 'Solicitação de Bloqueio de Driver';
+
+  const BG    = '0B0F1C';
+  const PANEL = '131928';
+  const WH    = 'FFFFFF';
+  const RED   = 'C0392B';
+  const GRAY  = '8A93A8';
+  const LINE  = '1E2740';
+  const TIPO_LBL = {{fraude_pura:'Fraude',lost_fraude:'Lost + Fraude',outro:'Outro'}};
+  const today    = new Date().toLocaleDateString('pt-BR');
+  const nomeExib = c.nome || '—';
+  const placa    = c.placa || '—';
+  const transp   = c.transportadora || '—';
+  const status   = c.status_bl || c.status || '—';
+  const tentativaBloqueio = c.data_solicitacao
+    ? ('Sim — ' + c.data_solicitacao)
+    : 'Nao';
+  const aptoTxt  = c.apto
+    ? (c.tipo === 'fraude_pura' ? 'Acionar time de fraude para validacao' : 'Apto para bloqueio')
+    : (c.motivo || 'Nao apto');
+
+  // ── Slide 1: CAPA ────────────────────────────────────────
+  const s1 = pptx.addSlide();
+  s1.background = {{color: BG}};
+
+  // Barra vermelha topo
+  s1.addShape(pptx.ShapeType.rect, {{x:0, y:0, w:13.33, h:0.08, fill:{{color:RED}}}});
+
+  // Coluna esquerda — identidade do caso
+  s1.addText('SOLICITACAO DE BLOQUEIO', {{
+    x:0.5, y:0.3, w:6.5, h:0.35,
+    fontSize:9, bold:true, color:RED, fontFace:'Calibri', charSpacing:2
+  }});
+  s1.addText('Loss Prevention — SSP30', {{
+    x:0.5, y:0.62, w:6.5, h:0.3,
+    fontSize:10, color:GRAY, fontFace:'Calibri'
+  }});
+
+  // Linha divisória vertical
+  s1.addShape(pptx.ShapeType.rect, {{x:6.9, y:0.25, w:0.02, h:6.9, fill:{{color:LINE}}}});
+
+  // Driver ID destaque
+  s1.addText(String(c.id), {{
+    x:0.5, y:1.15, w:6.0, h:1.1,
+    fontSize:56, bold:true, color:WH, fontFace:'Calibri'
+  }});
+
+  // Nome do driver
+  s1.addText(nomeExib, {{
+    x:0.5, y:2.2, w:6.0, h:0.5,
+    fontSize:16, bold:false, color:GRAY, fontFace:'Calibri'
+  }});
+
+  // Separador
+  s1.addShape(pptx.ShapeType.rect, {{x:0.5, y:2.75, w:6.0, h:0.015, fill:{{color:LINE}}}});
+
+  // Grade de campos — 2 colunas
+  const campos = [
+    ['Placa',          placa],
+    ['Transportadora', transp],
+    ['Tentativa de bloqueio', tentativaBloqueio],
+    ['Tipo',           TIPO_LBL[c.tipo] || c.tipo],
+    ['Meses de acumulo', String(c.n_meses) + ' meses'],
+    ['Pacotes (FRAUD/LOST)', String(c.n_pkgs)],
+    ['BPP Total',      '$' + c.total_bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2}})],
+    ['Data da solicitacao', today],
+  ];
+  campos.forEach((f, i) => {{
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x   = 0.5 + col * 3.15;
+    const y   = 2.95 + row * 0.88;
+    s1.addText(f[0].toUpperCase(), {{x, y, w:2.9, h:0.25, fontSize:7, bold:true, color:GRAY, fontFace:'Calibri', charSpacing:1}});
+    s1.addText(f[1], {{x, y:y+0.24, w:2.9, h:0.45, fontSize:13, bold:true, color:WH, fontFace:'Calibri'}});
+  }});
+
+  // Conclusao
+  s1.addShape(pptx.ShapeType.rect, {{x:0.5, y:6.45, w:6.0, h:0.015, fill:{{color:LINE}}}});
+  s1.addText('CONCLUSAO', {{x:0.5, y:6.55, w:2, h:0.25, fontSize:7, bold:true, color:GRAY, fontFace:'Calibri', charSpacing:1}});
+  s1.addText(aptoTxt, {{x:0.5, y:6.78, w:6.0, h:0.35, fontSize:12, bold:true, color:RED, fontFace:'Calibri'}});
+
+  // Coluna direita — branding
+  s1.addText('LOSS', {{
+    x:7.1, y:2.6, w:5.8, h:1.4,
+    fontSize:72, bold:true, color:LINE, align:'center', fontFace:'Calibri'
+  }});
+  s1.addText('PREVENTION', {{
+    x:7.1, y:3.85, w:5.8, h:1.0,
+    fontSize:38, bold:true, color:LINE, align:'center', fontFace:'Calibri'
+  }});
+  s1.addShape(pptx.ShapeType.rect, {{x:7.5, y:4.85, w:4.8, h:0.04, fill:{{color:RED}}}});
+  s1.addText('Mercado Livre — Guarulhos Mega', {{
+    x:7.1, y:5.05, w:5.8, h:0.35, align:'center',
+    fontSize:10, color:GRAY, fontFace:'Calibri'
+  }});
+
+  // Rodape
+  s1.addShape(pptx.ShapeType.rect, {{x:0, y:7.3, w:13.33, h:0.015, fill:{{color:LINE}}}});
+  s1.addText('CONFIDENCIAL — Uso interno. Este documento e de uso restrito ao time de Loss Prevention.', {{
+    x:0.5, y:7.33, w:12.5, h:0.2,
+    fontSize:7, color:GRAY, fontFace:'Calibri'
+  }});
+
+  // ── Slide 2: DADOS E EVIDENCIAS ───────────────────────────
+  const s2 = pptx.addSlide();
+  s2.background = {{color: BG}};
+  s2.addShape(pptx.ShapeType.rect, {{x:0, y:0, w:13.33, h:0.08, fill:{{color:RED}}}});
+
+  // Header
+  s2.addText('DADOS E EVIDENCIAS', {{
+    x:0.5, y:0.25, w:9, h:0.38,
+    fontSize:9, bold:true, color:RED, fontFace:'Calibri', charSpacing:2
+  }});
+  s2.addText('Driver ' + String(c.id) + '  —  ' + nomeExib + '  |  Placa: ' + placa + '  |  ' + transp, {{
+    x:0.5, y:0.6, w:12.3, h:0.32,
+    fontSize:11, color:GRAY, fontFace:'Calibri'
+  }});
+  s2.addShape(pptx.ShapeType.rect, {{x:0.5, y:0.92, w:12.3, h:0.015, fill:{{color:LINE}}}});
+
+  // Tabela
+  const hdrs = [
+    {{text:'SEMANA',        options:{{bold:true, color:GRAY, fontSize:8, fill:PANEL, align:'center', charSpacing:1}}}},
+    {{text:'CLASSIFICACAO', options:{{bold:true, color:GRAY, fontSize:8, fill:PANEL, charSpacing:1}}}},
+    {{text:'SHIPMENT ID',   options:{{bold:true, color:GRAY, fontSize:8, fill:PANEL, charSpacing:1}}}},
+    {{text:'BPP (USD)',     options:{{bold:true, color:GRAY, fontSize:8, fill:PANEL, align:'right', charSpacing:1}}}},
+  ];
+  const tblRows = [hdrs];
+  let bppTot = 0;
+  (c.shps || []).forEach((shp, idx) => {{
+    const bpp_v   = parseFloat(shp.bpp || 0);
+    const isMaior = Math.abs(bpp_v - c.max_bpp) < 0.02;
+    const isFraud = shp.class && shp.class.includes('FRAUD');
+    const rowBg   = idx % 2 === 0 ? BG : PANEL;
+    let sem = shp.semana || '';
+    if (sem.includes('-W')) sem = 'Sem. ' + sem.split('-W')[1].replace(/^0+/,'');
+    bppTot += bpp_v;
+    tblRows.push([
+      {{text:sem,                   options:{{fontSize:9, color:GRAY, align:'center', fill:rowBg}}}},
+      {{text:shp.class || '—',      options:{{fontSize:9, color:isFraud?'E57373':WH, fill:rowBg}}}},
+      {{text:String(shp.id || '—'), options:{{fontSize:9, color:WH, fontFace:'Courier New', fill:rowBg}}}},
+      {{text:'$' + bpp_v.toLocaleString('pt-BR',{{minimumFractionDigits:2}}) + (isMaior?' *':''),
+        options:{{fontSize:9, color:isMaior?'F59E0B':WH, align:'right', bold:isMaior, fill:rowBg}}}},
+    ]);
+  }});
+  s2.addTable(tblRows, {{
+    x:0.5, y:1.1, w:12.3,
+    rowH:0.26,
+    border:{{color:LINE, pt:0.5}},
+    fontFace:'Calibri',
+  }});
+
+  // Linha de total
+  const yTot = 1.1 + 0.26 * tblRows.length + 0.12;
+  s2.addShape(pptx.ShapeType.rect, {{x:8.5, y:yTot, w:4.3, h:0.015, fill:{{color:LINE}}}});
+  s2.addText('TOTAL', {{x:8.5, y:yTot+0.05, w:2.5, h:0.3, fontSize:8, bold:true, color:GRAY, fontFace:'Calibri', align:'right', charSpacing:1}});
+  s2.addText('$' + bppTot.toLocaleString('pt-BR',{{minimumFractionDigits:2}}), {{
+    x:11.1, y:yTot+0.05, w:1.7, h:0.3,
+    fontSize:12, bold:true, color:WH, fontFace:'Calibri', align:'right'
+  }});
+
+  // Criterio
+  let crit = c.tipo === 'lost_fraude'
+    ? 'Criterio Lost+Fraude: ' + c.n_pkgs + ' pacotes (min. 5) | BPP sem maior: $' + c.residual.toFixed(2) + ' (min. $300) | ' + (c.apto ? 'APTO' : 'NAO APTO')
+    : 'Criterio Fraude Pura: acumulo em 3+ meses — encaminhar para validacao do time de fraude';
+  s2.addText(crit, {{
+    x:0.5, y:7.1, w:12.3, h:0.22,
+    fontSize:8, color:GRAY, fontFace:'Calibri', italic:true
+  }});
+  s2.addShape(pptx.ShapeType.rect, {{x:0, y:7.3, w:13.33, h:0.015, fill:{{color:LINE}}}});
+  s2.addText('CONFIDENCIAL — Uso interno. Este documento e de uso restrito ao time de Loss Prevention.', {{
+    x:0.5, y:7.33, w:12.5, h:0.2, fontSize:7, color:GRAY, fontFace:'Calibri'
+  }});
+
+  // ── Slide 3: ENCERRAMENTO ─────────────────────────────────
+  const s3 = pptx.addSlide();
+  s3.background = {{color: BG}};
+  s3.addShape(pptx.ShapeType.rect, {{x:0, y:0, w:13.33, h:0.08, fill:{{color:RED}}}});
+  s3.addShape(pptx.ShapeType.rect, {{x:0, y:7.3, w:13.33, h:0.015, fill:{{color:LINE}}}});
+  s3.addText('LOSS PREVENTION', {{
+    x:0, y:2.9, w:13.33, h:1.0,
+    fontSize:48, bold:true, color:LINE, align:'center', fontFace:'Calibri'
+  }});
+  s3.addShape(pptx.ShapeType.rect, {{x:4.5, y:3.95, w:4.3, h:0.04, fill:{{color:RED}}}});
+  s3.addText('Mercado Livre — SSP30 — Guarulhos Mega', {{
+    x:0, y:4.15, w:13.33, h:0.4,
+    fontSize:12, color:GRAY, align:'center', fontFace:'Calibri'
+  }});
+  s3.addText('Gerado em ' + today + ' pelo sistema LP Dashboard', {{
+    x:0, y:4.7, w:13.33, h:0.3,
+    fontSize:10, color:LINE, align:'center', fontFace:'Calibri'
+  }});
+  s3.addText('CONFIDENCIAL — Uso interno. Este documento e de uso restrito ao time de Loss Prevention.', {{
+    x:0.5, y:7.33, w:12.5, h:0.2, fontSize:7, color:GRAY, fontFace:'Calibri'
+  }});
+
+  const nomeArq = 'bloqueio_' + c.id + '_' + today.split('/').join('-') + '.pptx';
+  await pptx.writeFile({{fileName: nomeArq}});
+}}
+// ── FIM GERAR PPTX ──────────────────────────────────────────
+
 lucide.createIcons();
+{_SB_DRAG_JS}
 
 
 </script>
@@ -2508,6 +3367,55 @@ lucide.createIcons();
   </div>
 </div>
 
+<!-- ABA DC/NEX -->
+<div id="tab-dcnex" class="content">
+  <div class="cards-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:18px">
+    <div class="card">
+      <div class="card-header"><i data-lucide="warehouse" class="ci" width="14" height="14"></i><span class="cl">Facilities Ofensoras</span></div>
+      <div class="cv red">{len(d["dc_nex"]["facilities"])}</div>
+      <div class="cd">DC / NEX / XPT distintas</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="package" class="ci" width="14" height="14"></i><span class="cl">Total Pacotes</span></div>
+      <div class="cv" style="color:#f87171">{d["dc_nex"]["total_pkgs"]}</div>
+      <div class="cd">fraudes rastreadas</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14"></i><span class="cl">GMV Total</span></div>
+      <div class="cv" style="color:#10b981">${d["dc_nex"]["total_gmv"]:,.2f}</div>
+      <div class="cd">BPP em risco</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="user-x" class="ci" width="14" height="14"></i><span class="cl">Drivers Suspeitos</span></div>
+      <div class="cv" style="color:#a78bfa">{len(d["dc_nex"]["drivers"])}</div>
+      <div class="cd">Last Mile identificados</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14"></i><span class="cl">Drivers Alto Risco</span></div>
+      <div class="cv" style="color:#ef4444">{sum(1 for dr in d["dc_nex"]["drivers"] if dr["nivel"]=="ALTO")}</div>
+      <div class="cd">aparecem em 3+ facilities</div>
+    </div>
+  </div>
+  {rows_driver_ranking(d["dc_nex"])}
+  <div class="tbl-wrap">
+    <div class="tbl-title" style="color:#f59e0b">
+      <i data-lucide="warehouse" width="14" height="14" style="color:#f59e0b;margin-right:6px;vertical-align:middle"></i>
+      Ranking de Ofensores DC / NEX / XPT — {len(d["dc_nex"]["facilities"])} facilities · {d["dc_nex"]["total_pkgs"]} pacotes
+      <span style="font-size:10px;font-weight:400;color:#6b7280;float:right">Clique na linha para expandir os pacotes · Cobrar OTR editável no painel ON ROUTE</span>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>Tipo / Facility</th>
+        <th>Place Nome</th>
+        <th style="text-align:right">GMV Total</th>
+        <th style="text-align:center">Pacotes</th>
+        <th style="text-align:center">Veredicto</th>
+      </tr></thead>
+      <tbody>{rows_dc_nex(d["dc_nex"])}</tbody>
+    </table></div>
+  </div>
+</div>
+
 <!-- ABA TENDÊNCIA -->
 <div id="tab-tendencia" class="content">
   <div class="cards-grid" style="grid-template-columns:repeat(4,1fr)">
@@ -2546,11 +3454,359 @@ lucide.createIcons();
   </div>
 </div>
 
+
 </main>
 </div>
 
 </body>
 </html>'''
+
+# ============================================================
+# SINISTROS — página standalone
+# ============================================================
+def gerar_sinistros_html(dados):
+    sin_d     = dados.get('sinistros', {})
+    sin_casos = sin_d.get('casos', [])
+    sin_total = sin_d.get('total', 0)
+    sin_bpp   = sin_d.get('bpp_total', 0.0)
+    sin_rec   = sin_d.get('recuperados', 0)
+    sin_bpp_r = sin_d.get('bpp_recuperado', 0.0)
+    taxa_rec  = round(sin_rec / sin_total * 100, 1) if sin_total else 0
+    sin_rows  = ''.join(_sin_row_html(c) for c in reversed(sin_casos[-200:]))
+    sin_json  = json.dumps(sin_casos, ensure_ascii=False)
+    return f'''<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sinistros SSP30 — Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚨</text></svg>">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  *{{box-sizing:border-box;margin:0;padding:0}}
+  body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}}
+  .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #7f1d1d;position:sticky;top:0;z-index:100}}
+  .header-brand{{display:flex;align-items:center;gap:12px}}
+  .header-accent{{width:3px;height:32px;background:#f97316;border-radius:2px}}
+  .header-title{{font-size:15px;font-weight:700;color:#fff}}
+  .header-sub{{font-size:11px;color:#6b7280;margin-top:2px}}
+  .mod-nav{{display:flex;gap:4px;align-items:center}}
+  .mod-btn{{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1f2937;text-decoration:none;transition:all .2s;color:#9ca3af;background:#0d1321;display:flex;align-items:center;gap:6px}}
+  .mod-btn:hover{{background:#1f2937;color:#e2e8f0;border-color:#374151}}
+  .mod-btn.m-fraude{{color:#ef4444;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}}
+  .mod-btn.m-risco{{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}}
+  .mod-btn.m-isca{{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}}
+  .mod-btn.m-cftv{{color:#60a5fa;background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2)}}
+  .mod-btn.m-sinistros{{color:#f97316;background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.2)}}
+  .main{{padding:24px 32px;max-width:1400px;margin:0 auto}}
+  .cards-grid{{display:grid;gap:16px;margin-bottom:24px}}
+  .card{{background:#0d1321;border:1px solid #1f2937;border-radius:10px;padding:16px 20px}}
+  .card-header{{display:flex;align-items:center;gap:8px;margin-bottom:10px}}
+  .ci{{color:#6b7280;flex-shrink:0}}
+  .cl{{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px}}
+  .cv{{font-size:26px;font-weight:800;letter-spacing:-.5px}}
+  .cd{{font-size:11px;color:#6b7280;margin-top:4px}}
+  .red{{color:#f87171}}
+  .green{{color:#4ade80}}
+  .c-red{{border-color:rgba(248,113,113,.2);background:rgba(248,113,113,.04)}}
+  .box{{background:#0d1321;border:1px solid #1f2937;border-radius:10px;padding:20px}}
+  .bt{{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:14px}}
+  {diario_css()}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-accent"></div>
+    <div>
+      <div class="header-title">Sinistros / Eventos SVC — SSP30</div>
+      <div class="header-sub">Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>
+    </div>
+  </div>
+  <div class="mod-nav">
+    <a href="./fraude.html" class="mod-btn m-fraude">
+      <i data-lucide="shield-alert" width="12" height="12"></i> Fraude
+    </a>
+    <a href="./index.html" class="mod-btn">
+      <i data-lucide="truck" width="12" height="12"></i> Risco
+    </a>
+    <a href="./isca.html" class="mod-btn">
+      <i data-lucide="fish" width="12" height="12"></i> Isca
+    </a>
+    <a href="./cftv.html" class="mod-btn">
+      <i data-lucide="camera" width="12" height="12"></i> CFTV
+    </a>
+    <a href="./sinistros.html" class="mod-btn m-sinistros">
+      <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
+    </a>
+    {diario_nav_btn()}
+  </div>
+</div>
+{diario_panel_html()}
+
+<div class="main">
+
+  <div class="cards-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="card c-red">
+      <div class="card-header"><span style="font-size:14px">🚨</span><span class="cl">Total Sinistros</span></div>
+      <div class="cv red">{sin_total}</div>
+      <div class="cd">Eventos registrados</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14"></i><span class="cl">BPP em Risco</span></div>
+      <div class="cv red">${sin_bpp:,.2f}</div>
+      <div class="cd">Valor total dos casos</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="check-circle" class="ci" width="14" height="14"></i><span class="cl">Carga Recuperada</span></div>
+      <div class="cv green">{sin_rec}</div>
+      <div class="cd">{taxa_rec}% dos casos</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="trending-down" class="ci" width="14" height="14"></i><span class="cl">BPP Recuperado</span></div>
+      <div class="cv green">${sin_bpp_r:,.2f}</div>
+      <div class="cd">Valor recuperado</div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="bt" style="margin-bottom:0">Eventos SVC — Histórico ({sin_total} registros)</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="sin-filter" type="text" placeholder="Filtrar por driver, placa, tipo..."
+          oninput="filtrarSinistros(this.value)"
+          style="background:#1f2937;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:6px 12px;font-size:11px;width:240px">
+        <button onclick="openSinistroModal()"
+          style="background:#dc2626;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
+          🚨 Novo Caso
+        </button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;max-height:65vh;overflow-y:auto">
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:#0d1321;z-index:1">
+          <tr>
+            <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:600;white-space:nowrap">Data</th>
+            <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:600">Hora</th>
+            <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:600">Tipo</th>
+            <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:600">Driver</th>
+            <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:600">Transportadora</th>
+            <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:600">Placa</th>
+            <th style="padding:8px 10px;text-align:center;color:#6b7280;font-weight:600">Qtd</th>
+            <th style="padding:8px 10px;text-align:right;color:#6b7280;font-weight:600">BPP</th>
+            <th style="padding:8px 10px;text-align:center;color:#6b7280;font-weight:600">Recup.</th>
+            <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:600">Relato</th>
+          </tr>
+        </thead>
+        <tbody id="sin-tbody">{sin_rows}</tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL NOVO SINISTRO -->
+<div id="sin-modal" onclick="if(event.target===this)closeSinistroModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#0d1321;border:1px solid #374151;border-radius:12px;width:900px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:28px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="font-size:16px;font-weight:700;color:#fff">🚨 Registrar Novo Sinistro</h2>
+      <button onclick="closeSinistroModal()" style="background:none;border:none;color:#6b7280;font-size:22px;cursor:pointer;line-height:1">✕</button>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:6px">Cole o texto do WhatsApp (o parser preenche os campos automaticamente):</label>
+      <textarea id="sin-raw" rows="6"
+        placeholder="REPORT DE SINISTRO&#10;🗓️ Data: 13/06/2025&#10;⌚ Horário: 23:25h&#10;🚚 Transportadora: BR LOGISTICS&#10;📱 ROTA: 8005&#10;👤 Nome completo do driver: ..."
+        style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:8px;padding:12px;font-size:12px;resize:vertical;font-family:monospace"></textarea>
+      <button onclick="parsearSinistro()" style="margin-top:8px;background:#1f2937;color:#60a5fa;border:1px solid #374151;border-radius:6px;padding:7px 18px;font-size:12px;cursor:pointer">
+        ⚡ Parsear campos automaticamente
+      </button>
+    </div>
+    <hr style="border-color:#1f2937;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Data</label>
+        <input id="sf-data" type="text" placeholder="dd/mm/aaaa" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Horário</label>
+        <input id="sf-horario" type="text" placeholder="HH:MM" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Transportadora (MLP)</label>
+        <input id="sf-transp" type="text" placeholder="Ex: BR LOGISTICS" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Rota</label>
+        <input id="sf-rota" type="text" placeholder="Ex: 8005" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">ID do Driver</label>
+        <input id="sf-id-driver" type="text" placeholder="Ex: 3416578" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Nome do Driver</label>
+        <input id="sf-nome" type="text" placeholder="Nome completo" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Placa</label>
+        <input id="sf-placa" type="text" placeholder="Ex: BJK5A49" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Veículo</label>
+        <input id="sf-veiculo" type="text" placeholder="Ex: FURGÃO" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Qtd Total de Embalagens</label>
+        <input id="sf-qtd-total" type="text" placeholder="Ex: 22" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Qtd Recuperada</label>
+        <input id="sf-qtd-rec" type="text" placeholder="Ex: 0" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Valor do Sinistro (BPP)</label>
+        <input id="sf-valor" type="text" placeholder="Ex: $405.43" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">CEP</label>
+        <input id="sf-cep" type="text" placeholder="Ex: 02533010" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Local / Rua</label>
+      <input id="sf-local" type="text" placeholder="Endereço completo" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Relato</label>
+      <textarea id="sf-relato" rows="4" placeholder="Descrição do evento..."
+        style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:10px;font-size:12px;resize:vertical"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button onclick="closeSinistroModal()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:8px 20px;font-size:12px;cursor:pointer">Cancelar</button>
+      <button onclick="salvarSinistro()" id="sin-save-btn"
+        style="background:#dc2626;color:#fff;border:none;border-radius:6px;padding:8px 24px;font-size:12px;font-weight:600;cursor:pointer">
+        💾 Salvar na Planilha
+      </button>
+    </div>
+    <div id="sin-msg" style="margin-top:12px;font-size:12px;text-align:center;min-height:18px"></div>
+  </div>
+</div>
+
+<script>
+const SINISTROS_DATA = {sin_json};
+
+function openSinistroModal() {{
+  document.getElementById('sin-modal').style.display = 'flex';
+}}
+function closeSinistroModal() {{
+  document.getElementById('sin-modal').style.display = 'none';
+  const msg = document.getElementById('sin-msg');
+  if (msg) msg.textContent = '';
+}}
+
+function parsearSinistro() {{
+  const txt = document.getElementById('sin-raw').value;
+  const lines = txt.split('\n');
+  const fld = {{}};
+  for (const ln of lines) {{
+    const ci = ln.indexOf(':');
+    if (ci < 0) continue;
+    const rk = ln.slice(0, ci);
+    const val = ln.slice(ci + 1).trim();
+    if      (rk.includes('🗓') || /^data$/i.test(rk.trim()))       fld.data = val;
+    else if (rk.includes('⌚') || /hor[aá]r/i.test(rk))            fld.horario = val;
+    else if (rk.includes('🚚') || /transportadora/i.test(rk))      fld.transp = val;
+    else if (rk.includes('📱') || /rota/i.test(rk))                fld.rota = val;
+    else if (rk.includes('👤') || /nome/i.test(rk))                fld.nome = val;
+    else if (rk.includes('🙍') || /id.+driver/i.test(rk))          fld.id_driver = val;
+    else if (rk.includes('🚘') || /placa/i.test(rk))               fld.placa = val;
+    else if (rk.includes('🚙') || /ve[ií]culo/i.test(rk))          fld.veiculo = val;
+    else if (rk.includes('📍') || /local/i.test(rk))               fld.local = val;
+    else if (rk.includes('🗾') || /cep/i.test(rk))                 fld.cep = val;
+    else if ((rk.includes('📦') && !rk.includes('✅')) || /qtd.+total/i.test(rk)) fld.qtd_total = val;
+    else if (rk.includes('✅') || /qtd.+recup/i.test(rk))          fld.qtd_rec = val;
+    else if (rk.includes('💰') || /valor/i.test(rk))               fld.valor = val;
+    else if (rk.includes('🗒') || /relato/i.test(rk))              fld.relato = val;
+  }}
+  const sv = (id, v) => {{ if (v !== undefined) document.getElementById(id).value = v; }};
+  sv('sf-data',      fld.data);
+  sv('sf-horario',   fld.horario);
+  sv('sf-transp',    fld.transp);
+  sv('sf-rota',      fld.rota);
+  sv('sf-id-driver', fld.id_driver);
+  sv('sf-nome',      fld.nome);
+  sv('sf-placa',     fld.placa);
+  sv('sf-veiculo',   fld.veiculo);
+  sv('sf-qtd-total', fld.qtd_total);
+  sv('sf-qtd-rec',   fld.qtd_rec);
+  sv('sf-valor',     fld.valor);
+  sv('sf-cep',       fld.cep);
+  sv('sf-local',     fld.local);
+  sv('sf-relato',    fld.relato);
+}}
+
+function filtrarSinistros(q) {{
+  q = (q || '').toLowerCase();
+  if (!q) {{ renderSinistrosTable(SINISTROS_DATA); return; }}
+  const filtered = SINISTROS_DATA.filter(c =>
+    ((c.driver_id||'')+(c.nome||'')+(c.placa||'')+(c.transportadora||'')+(c.tipo||'')+(c.rua||'')+(c.relato||''))
+    .toLowerCase().includes(q)
+  );
+  renderSinistrosTable(filtered);
+}}
+
+function renderSinistrosTable(data) {{
+  const tbody = document.getElementById('sin-tbody');
+  if (!tbody) return;
+  const rows = [...data].reverse().slice(0,200);
+  tbody.innerHTML = rows.map(c => {{
+    const rec = (c.recup_carga||'').toLowerCase();
+    const recOk = rec==='sim'||rec==='yes'||rec==='s';
+    const bpp = c.bpp ? '$'+parseFloat(c.bpp).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}) : '—';
+    const tc = /sinistro/i.test(c.tipo||'') ? '#f87171' : '#fbbf24';
+    const relato = (c.relato||'').slice(0,65)+((c.relato||'').length>65?'...':'');
+    return `<tr style="border-top:1px solid #111827">
+      <td style="padding:7px 10px;white-space:nowrap">${{c.data}}</td>
+      <td style="padding:7px 10px;white-space:nowrap">${{c.horario}}</td>
+      <td style="padding:7px 10px"><span style="background:${{tc}}22;color:${{tc}};padding:2px 6px;border-radius:4px;font-size:10px">${{c.tipo||'—'}}</span></td>
+      <td style="padding:7px 10px"><span style="font-family:monospace;color:#60a5fa">${{c.driver_id}}</span><br><span style="font-size:10px;color:#9ca3af">${{c.nome}}</span></td>
+      <td style="padding:7px 10px;font-size:11px">${{c.transportadora||'—'}}</td>
+      <td style="padding:7px 10px;font-family:monospace;font-size:11px">${{c.placa||'—'}}</td>
+      <td style="padding:7px 10px;text-align:center">${{c.qtd_shp||'—'}}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600;color:#f87171">${{bpp}}</td>
+      <td style="padding:7px 10px;text-align:center;color:${{recOk?'#4ade80':'#f87171'}}">${{recOk?'Sim':'Não'}}</td>
+      <td style="padding:7px 10px;font-size:10px;color:#9ca3af;max-width:200px">${{relato}}</td>
+    </tr>`;
+  }}).join('');
+}}
+
+async function salvarSinistro() {{
+  const btn = document.getElementById('sin-save-btn');
+  const msg = document.getElementById('sin-msg');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  msg.textContent = '';
+  const payload = {{
+    data:      document.getElementById('sf-data').value.trim(),
+    horario:   document.getElementById('sf-horario').value.trim(),
+    transp:    document.getElementById('sf-transp').value.trim(),
+    rota:      document.getElementById('sf-rota').value.trim(),
+    id_driver: document.getElementById('sf-id-driver').value.trim(),
+    nome:      document.getElementById('sf-nome').value.trim(),
+    placa:     document.getElementById('sf-placa').value.trim(),
+    veiculo:   document.getElementById('sf-veiculo').value.trim(),
+    qtd_total: document.getElementById('sf-qtd-total').value.trim(),
+    qtd_rec:   document.getElementById('sf-qtd-rec').value.trim(),
+    valor:     document.getElementById('sf-valor').value.trim(),
+    cep:       document.getElementById('sf-cep').value.trim(),
+    local:     document.getElementById('sf-local').value.trim(),
+    relato:    document.getElementById('sf-relato').value.trim(),
+  }};
+  try {{
+    const r = await fetch('http://localhost:5000/sinistros/add', {{
+      method:'POST', headers:{{'Content-Type':'application/json'}},
+      body: JSON.stringify(payload)
+    }});
+    const res = await r.json();
+    if (res.ok) {{
+      msg.style.color = '#4ade80';
+      msg.textContent = '✓ Salvo com sucesso na planilha!';
+      setTimeout(() => closeSinistroModal(), 1800);
+    }} else {{
+      msg.style.color = '#f87171';
+      msg.textContent = 'Erro: ' + (res.error || 'desconhecido');
+    }}
+  }} catch(e) {{
+    msg.style.color = '#f87171';
+    msg.textContent = 'Erro de conexão com servidor local (porta 5000).';
+  }}
+  btn.disabled = false; btn.textContent = '💾 Salvar na Planilha';
+}}
+
+lucide.createIcons();
+{diario_js()}
+</script>
+
+</body>
+</html>'''
+
 
 # ============================================================
 # MAIN
@@ -2562,27 +3818,70 @@ if __name__ == '__main__':
 
     bq, gs = conectar()
 
-    print("\nConsultando BigQuery...")
-    df_score     = buscar(bq, QUERY_DRIVER_SCORE,    'Score por Driver')
-    df_shp       = buscar(bq, QUERY_DRIVER_SHIPMENTS,'SHP IDs por Driver')
-    df_status    = buscar(bq, QUERY_DRIVER_STATUS,   'Status dos Drivers')
-    df_routes    = buscar(bq, QUERY_DRIVER_ROUTES,   'Rotas dos Drivers')
-    df_dxp       = buscar(bq, QUERY_DRIVER_PLACE,    'Driver x Place')
-    df_places    = buscar(bq, QUERY_PLACES,           'Places')
-    df_place_shp = buscar(bq, QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place')
-    df_damaged      = buscar(bq, QUERY_DAMAGED,      'Damaged por Driver')
-    df_cruzamento     = buscar(bq, QUERY_CRUZAMENTO,     'Sellers/Buyers Ofensores')
-    df_cruzamento_mes = buscar(bq, QUERY_CRUZAMENTO_MES, 'Sellers/Buyers por Mês')
+    print("\nConsultando BigQuery (paralelo)...")
+    from concurrent.futures import ThreadPoolExecutor, as_completed as _as_completed
+    _queries = {
+        'score':    (QUERY_DRIVER_SCORE,    'Score por Driver'),
+        'shp':      (QUERY_DRIVER_SHIPMENTS,'SHP IDs por Driver'),
+        'status':   (QUERY_DRIVER_STATUS,   'Status dos Drivers'),
+        'routes':   (QUERY_DRIVER_ROUTES,   'Rotas dos Drivers'),
+        'placa':    (QUERY_DRIVER_PLACA,    'Placas dos Drivers'),
+        'dxp':      (QUERY_DRIVER_PLACE,    'Driver x Place'),
+        'places':   (QUERY_PLACES,          'Places'),
+        'place_shp':(QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place'),
+        'damaged':  (QUERY_DAMAGED,         'Damaged por Driver'),
+        'crz':      (QUERY_CRUZAMENTO,      'Sellers/Buyers Ofensores'),
+        'crz_mes':  (QUERY_CRUZAMENTO_MES,  'Sellers/Buyers por Mês'),
+        'dc_nex':   (QUERY_DC_NEX,          'DC/NEX/XPT Passages'),
+    }
+    _res = {}
+    with ThreadPoolExecutor(max_workers=6) as _pool:
+        _futs = {_pool.submit(buscar, bq, q, nm): key for key, (q, nm) in _queries.items()}
+        for _f in _as_completed(_futs):
+            _res[_futs[_f]] = _f.result()
+    df_score          = _res['score']
+    df_shp            = _res['shp']
+    df_status         = _res['status']
+    df_routes         = _res['routes']
+    df_placa          = _res['placa']
+    df_dxp            = _res['dxp']
+    df_places         = _res['places']
+    df_place_shp      = _res['place_shp']
+    df_damaged        = _res['damaged']
+    df_cruzamento     = _res['crz']
+    df_cruzamento_mes = _res['crz_mes']
+    df_dc_nex         = _res['dc_nex']
 
     bl_rows   = carregar_block_list(gs)
     sincronizar_status_block_list(gs, bq, bl_rows)
+    cobrar_otr_map = carregar_cobrar_otr(gs)
 
     print("\nProcessando...")
     dados = processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes)
     dados['bl']        = processar_block_list(bl_rows)
     dados['alertas_bl'] = detectar_alertas_bl(dados['bl'], dados['shp_por_driver'])
-    dados['crz']     = processar_cruzamento(df_cruzamento)
-    dados['crz_mes'] = processar_cruzamento_mes(df_cruzamento_mes)
+    # Placa do BQ (fonte primária) + block list (nome + fallback placa)
+    _placa_map = {norm_id(str(r.get('DRIVER_ID', ''))): str(r.get('LICENCE_PLATE', '') or '').strip()
+                  for _, r in df_placa.iterrows()
+                  if str(r.get('LICENCE_PLATE', '') or '').strip()}
+    _bl_map = {r['driver_id']: r for r in dados['bl'].get('rows', [])}
+    _JA_BLOQUEADOS = {'bloqueado', 'blocked'}
+    for _c in dados.get('acumulo_bloqueio', []):
+        _bl = _bl_map.get(_c['id'], {})
+        if not _c.get('nome') and _bl.get('nome'):
+            _c['nome'] = _bl['nome']
+        _c['placa']           = _placa_map.get(_c['id']) or _bl.get('placa', '')
+        _c['data_solicitacao']= _bl.get('data', '')
+        _c['status_bl']       = _bl.get('status', '')
+    # Remover drivers já bloqueados na block list (BQ CROWD pode não ter o registro)
+    dados['acumulo_bloqueio'] = [
+        c for c in dados.get('acumulo_bloqueio', [])
+        if c.get('status_bl', '').strip().lower() not in _JA_BLOQUEADOS
+    ]
+    dados['crz']       = processar_cruzamento(df_cruzamento)
+    dados['crz_mes']   = processar_cruzamento_mes(df_cruzamento_mes)
+    dados['dc_nex']    = processar_dc_nex(df_dc_nex, cobrar_otr_map)
+    dados['sinistros'] = carregar_sinistros(gs)
 
     MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
                  7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
@@ -2605,6 +3904,11 @@ if __name__ == '__main__':
     with open(OUTPUT, 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"Salvo em: {OUTPUT}")
+
+    html_sin = gerar_sinistros_html(dados)
+    with open(SINISTROS_OUTPUT, 'w', encoding='utf-8') as f:
+        f.write(html_sin)
+    print(f"Sinistros salvo em: {SINISTROS_OUTPUT}")
 
     if not os.environ.get('CI'):
         webbrowser.open(f'file:///{OUTPUT.replace(chr(92),"/")}')

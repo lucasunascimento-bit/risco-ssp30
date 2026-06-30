@@ -3,7 +3,7 @@
 # Como rodar: duplo clique em abrir_dashboard_html.bat
 # ============================================================
 
-import json, webbrowser, os, unicodedata
+import json, webbrowser, os, unicodedata, re, html as _html
 from datetime import datetime
 from google.auth import default
 from google.cloud import bigquery
@@ -17,6 +17,14 @@ ABA_ON_ROUTE  = 'Tratativas Risco On Route (HV) - Lucas'
 ABA_ON_WAY    = 'Tratativas Risco On Way (HV) - Lucas'
 ABA_HISTORICO = 'Histórico'
 OUTPUT        = os.path.join(os.path.dirname(__file__), 'index.html')
+_FRAUDE_HTML  = os.path.join(os.path.dirname(__file__), 'fraude.html')
+
+def _fraude_acumulo_ids():
+    """Lê os IDs de drivers que existem no fraude.html (acumulo)."""
+    if not os.path.isfile(_FRAUDE_HTML):
+        return set()
+    with open(_FRAUDE_HTML, 'r', encoding='utf-8', errors='ignore') as f:
+        return set(re.findall(r'id="acbl_(\w+)"', f.read()))
 
 PLACES_QUERY = """
 SELECT
@@ -72,15 +80,123 @@ SELECT
   COUNTIF(m.SHP_SHIPMENT_ID IS NULL)                  AS dit_blind_spot,
   ROUND(AVG(d.dias_parado), 1)                        AS avg_dias_dit,
   COUNTIF(d.sub_status = 'delivered_place'
-          AND m.SHP_SHIPMENT_ID IS NULL)              AS stuck_in_place
+          AND m.SHP_SHIPMENT_ID IS NULL)              AS stuck_in_place,
+  ARRAY_AGG(
+    CASE WHEN m.SHP_SHIPMENT_ID IS NULL THEN CAST(d.SHP_SHIPMENT_ID AS STRING) END
+    IGNORE NULLS LIMIT 50
+  )                                                    AS blind_ids
 FROM dit_dedup d
 LEFT JOIN missing_ids m USING (SHP_SHIPMENT_ID)
 GROUP BY 1, 2
 HAVING COUNT(*) >= 3
 """
 
+QUERY_BRIEFING = """
+WITH carrier_map AS (
+  SELECT
+    CAST(r.SHP_LG_DRIVER_ID AS STRING) AS driver_id,
+    MAX(c.SHP_COMPANY_NAME)            AS transportadora
+  FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENTS_ROUTES` r
+  LEFT JOIN `meli-bi-data.WHOWNER.LK_SHP_COMPANIES` c
+    ON r.SHP_COMPANY_ID = c.SHP_COMPANY_ID
+  WHERE r.SHP_LG_FACILITY_ID = 'SSP30'
+    AND DATE(r.SHP_LG_ROUTE_INIT_DATE) >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+    AND c.SHP_COMPANY_NAME IS NOT NULL
+    AND TRIM(c.SHP_COMPANY_NAME) != ''
+  GROUP BY 1
+)
+SELECT
+    CAST(f.SHIPMENT_ID AS STRING)        AS shp_id,
+    f.DATE_BPP,
+    f.SUBSTATUS_CLASIFICATION            AS tipo_fraude,
+    f.CULPABILITY_STD                    AS culpabilidade,
+    COALESCE(f.BPP_CASHOUT_USD, 0)       AS bpp_usd,
+    COALESCE(f.GMV, 0)                   AS gmv,
+    CAST(f.DRIVER_ID AS STRING)          AS driver_id,
+    COALESCE(cm.transportadora, '')      AS driver_nome,
+    f.DRIVER_STATUS                      AS driver_status,
+    f.NODES_LM                           AS place_tipo,
+    f.NODE_ID                            AS place_id
+FROM `meli-bi-data.WHOWNER.DM_LP_LM_MELI_CAUSE` f
+LEFT JOIN carrier_map cm ON CAST(f.DRIVER_ID AS STRING) = cm.driver_id
+WHERE f.SHP_LG_FACILITY_ID = 'SSP30'
+  AND f.DATE_BPP >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+  AND CAST(f.ISFRAUD AS STRING) = '1'
+ORDER BY f.DATE_BPP DESC
+LIMIT 10000
+"""
+
 MESES_PT      = {1:'jan',2:'fev',3:'mar',4:'abr',5:'mai',6:'jun',
                  7:'jul',8:'ago',9:'set',10:'out',11:'nov',12:'dez'}
+
+_SB_DRAG_JS = """
+(function(){
+var KEY='sb_order_'+(location.pathname.split('/').pop()||'idx');
+var dragEl=null,sb=null;
+function save(){
+  var dc=0,order=Array.from(sb.children).map(function(el){
+    if(el.classList.contains('sb-item'))return 'i:'+el.dataset.tab;
+    if(el.classList.contains('sb-divider'))return 'd:'+(dc++);
+    if(el.classList.contains('sb-section-header'))return 'h:'+el.textContent.trim();
+    return null;
+  }).filter(Boolean);
+  try{localStorage.setItem(KEY,JSON.stringify(order));}catch(e){}
+}
+function restore(){
+  try{
+    var saved=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(!saved||!saved.length)return;
+    var im={},hm={},da=[];
+    Array.from(sb.children).forEach(function(el){
+      if(el.classList.contains('sb-item'))im[el.dataset.tab]=el;
+      else if(el.classList.contains('sb-section-header'))hm[el.textContent.trim()]=el;
+      else if(el.classList.contains('sb-divider'))da.push(el);
+    });
+    var di=0;
+    saved.forEach(function(e){
+      var el=null;
+      if(e.startsWith('i:'))el=im[e.slice(2)];
+      else if(e.startsWith('h:'))el=hm[e.slice(2)];
+      else if(e.startsWith('d:'))el=da[di++];
+      if(el)sb.appendChild(el);
+    });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded',function(){
+  sb=document.querySelector('.sidebar');
+  if(!sb)return;
+  restore();
+  Array.from(sb.querySelectorAll('.sb-item')).forEach(function(el){
+    el.setAttribute('draggable','true');
+    var h=document.createElement('span');
+    h.className='sb-drag-handle';h.textContent='⠿';
+    el.insertBefore(h,el.firstChild);
+  });
+  sb.addEventListener('dragstart',function(e){
+    var t=e.target.closest('.sb-item');
+    if(!t)return;
+    dragEl=t;setTimeout(function(){t.classList.add('sb-dragging');},0);
+    e.dataTransfer.effectAllowed='move';
+  });
+  sb.addEventListener('dragend',function(){
+    if(dragEl){dragEl.classList.remove('sb-dragging');dragEl=null;}
+    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
+    save();
+  });
+  sb.addEventListener('dragover',function(e){
+    e.preventDefault();if(!dragEl)return;
+    var t=e.target.closest('.sb-item');
+    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
+    if(t&&t!==dragEl){
+      var r=t.getBoundingClientRect();
+      if(e.clientY<r.top+r.height/2){sb.insertBefore(dragEl,t);t.classList.add('sb-drop-before');}
+      else{sb.insertBefore(dragEl,t.nextSibling);}
+    }
+  });
+  sb.addEventListener('drop',function(e){e.preventDefault();});
+});
+})();
+"""
 
 # ============================================================
 # LEITURA DA PLANILHA
@@ -130,11 +246,14 @@ def calc_dias(entrada_str):
     except:
         return -1
 
-def processar(rt, wy, hi):
-    agora   = datetime.now()
-    hoje    = agora.strftime('%d/%m/%Y')
-    mes_ano = agora.strftime('%m/%Y')
-    mes_lbl = f"{MESES_PT[agora.month]}/{agora.year}"
+def processar(rt, wy, hi, descricoes=None, cftv_map=None, entregues=None):
+    agora      = datetime.now()
+    hoje       = agora.strftime('%d/%m/%Y')
+    mes_ano    = agora.strftime('%m/%Y')
+    mes_lbl    = f"{MESES_PT[agora.month]}/{agora.year}"
+    descricoes = descricoes or {}
+    cftv_map   = cftv_map   or {}
+    entregues  = entregues  or set()
 
     # ---- ON ROUTE ----
     r_total = len(rt)
@@ -149,15 +268,22 @@ def processar(rt, wy, hi):
         if len(r) > 24 and r[24] == 'Sim': r_cftv += 1
         if len(r) > 31 and r[31] == hoje:  r_novos += 1
         entrada = r[31] if len(r) > 31 else ''
+        shp_id_rt = r[2] if len(r) > 2 else ''
         r_rows.append({
-            'id':            r[2]  if len(r) > 2  else '',
+            'id':            shp_id_rt,
             'sit':           r[1]  if len(r) > 1  else '',
             'gmv':           flt(r[22]) if len(r) > 22 else 0,
-            'resp':          r[0]  if len(r) > 0  else '',
+            'resp':          (r[0] if len(r) > 0 else '') or 'Lucas Nascimento',
             'cftv':          r[24] if len(r) > 24 else '',
+            'cftv_inv':      cftv_map.get(shp_id_rt),
             'status':        r[28] if len(r) > 28 else '',
+            'acao_lp':       r[23] if len(r) > 23 else '',
+            'finalizacao':   r[29] if len(r) > 29 else '',
+            'cobrar_otr':    r[32] if len(r) > 32 else '',
             'entrada':       entrada,
             'dias_carteira': calc_dias(entrada),
+            'descricao':     descricoes.get(shp_id_rt, ''),
+            'entregue':      shp_id_rt in entregues,
         })
     r_rows.sort(key=lambda x: -x['gmv'])
 
@@ -174,14 +300,16 @@ def processar(rt, wy, hi):
         if len(r) > 24 and r[24] == 'Sim': w_cftv += 1
         if len(r) > 31 and r[31] == hoje:  w_novos += 1
         entrada = r[31] if len(r) > 31 else ''
+        shp_id_wy = r[2] if len(r) > 2 else ''
         w_rows.append({
-            'id':            r[2]  if len(r) > 2  else '',
+            'id':            shp_id_wy,
             'sit':           r[1]  if len(r) > 1  else '',
             'gmv':           flt(r[21]) if len(r) > 21 else 0,
             'dias_ow':       r[12] if len(r) > 12 else '',
             'carrier':       r[13] if len(r) > 13 else '',
-            'resp':          r[0]  if len(r) > 0  else '',
+            'resp':          (r[0] if len(r) > 0 else '') or 'Lucas Nascimento',
             'cftv':          r[24] if len(r) > 24 else '',
+            'cftv_inv':      cftv_map.get(shp_id_wy),
             'status':        r[28] if len(r) > 28 else '',
             'entrada':       entrada,
             'dias_carteira': calc_dias(entrada),
@@ -189,6 +317,8 @@ def processar(rt, wy, hi):
             'link_email':    r[23] if len(r) > 23 else '',
             'finalizacao':   r[29] if len(r) > 29 else '',
             'sheet_row':     r[-1] if r else 0,
+            'descricao':     descricoes.get(shp_id_wy, ''),
+            'entregue':      shp_id_wy in entregues,
         })
     w_rows.sort(key=lambda x: -x['gmv'])
 
@@ -229,7 +359,9 @@ def processar(rt, wy, hi):
     # ---- Histórico do mês ----
     hist_mes    = [r for r in hi if len(r) > 0 and mes_ano in r[0]]
     concluidos  = sum(1 for r in hist_mes if len(r) > 6 and 'conclu' in r[6].lower())
-    recuperados = sum(1 for r in hist_mes if len(r) > 7 and 'fluxo'  in r[7].lower())
+    def _recuperado(final): f=final.lower(); return any(k in f for k in ('fluxo','revers','localizado'))
+    def _perdido(final):    f=final.lower(); return any(k in f for k in ('perdido','bpp'))
+    recuperados = sum(1 for r in hist_mes if len(r) > 7 and _recuperado(r[7]))
     removidos   = len(hist_mes)
     hist_rows   = [{'data': r[0], 'origem': r[1], 'id': r[2],
                     'sit':  r[3], 'gmv':  r[4],   'resp': r[5],
@@ -240,8 +372,11 @@ def processar(rt, wy, hi):
     # Histórico completo (todas as datas) para a aba com filtro de mês
     def mes_de(data_str):
         try:
-            p = data_str.strip().split('/')
-            return f"{p[1]}/{p[2]}"   # mm/yyyy
+            s = data_str.strip()
+            if '-' in s and len(s) == 10:   # YYYY-MM-DD
+                return f"{s[5:7]}/{s[:4]}"  # MM/YYYY
+            p = s.split('/')
+            return f"{p[1]}/{p[2]}"         # DD/MM/YYYY → MM/YYYY
         except: return ''
 
     hist_todos = []
@@ -259,10 +394,16 @@ def processar(rt, wy, hi):
             'mes':    m,
         })
     # ordena do mais recente para o mais antigo
-    hist_todos.sort(
-        key=lambda r: datetime.strptime(r['data'], '%d/%m/%Y') if r['data'] else datetime.min,
-        reverse=True
-    )
+    def _parse_data(s):
+        if not s:
+            return datetime.min
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+            try:
+                return datetime.strptime(s.strip(), fmt)
+            except ValueError:
+                pass
+        return datetime.min
+    hist_todos.sort(key=lambda r: _parse_data(r['data']), reverse=True)
     # meses disponíveis em ordem cronológica
     def lbl_mes(m):
         try:
@@ -275,8 +416,8 @@ def processar(rt, wy, hi):
 
     # Taxa de recupero, GMV recuperado e GMV perdido
     taxa_recupero  = round(recuperados / removidos * 100, 1) if removidos > 0 else 0
-    gmv_recuperado = sum(flt(r['gmv']) for r in hist_rows if 'fluxo'   in r['final'].lower())
-    gmv_perdido    = sum(flt(r['gmv']) for r in hist_rows if 'perdido' in r['final'].lower())
+    gmv_recuperado = sum(flt(r['gmv']) for r in hist_rows if _recuperado(r['final']))
+    gmv_perdido    = sum(flt(r['gmv']) for r in hist_rows if _perdido(r['final']))
 
     # ---- Comparativo hoje (novos - removidos hoje) ----
     rem_hoje_rt = sum(1 for r in hist_rows if r['data'] == hoje and 'Route' in r['origem'])
@@ -297,7 +438,12 @@ def processar(rt, wy, hi):
     for r in hist_mes:
         data = r[0] if len(r) > 0 else ''
         try:
-            heatmap[datetime.strptime(data.strip(), '%d/%m/%Y').weekday()] += 1
+            for _fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+                try:
+                    heatmap[datetime.strptime(data.strip(), _fmt).weekday()] += 1
+                    break
+                except ValueError:
+                    pass
         except: pass
 
     # ---- Evolução por data de entrada (qtd + GMV) ----
@@ -336,6 +482,7 @@ def processar(rt, wy, hi):
         # ON WAY
         'w_total': w_total, 'w_gmv': w_gmv, 'w_sit': w_sit,
         'w_cftv':  w_cftv,  'w_novos': w_novos, 'w_rows': w_rows,
+        'w_entregues': sum(1 for r in w_rows if r['entregue']),
         # Geral
         'gmv_total':  r_gmv + w_gmv,
         'cftv_total': r_cftv + w_cftv,
@@ -396,35 +543,66 @@ def dias_badge(d):
     else:       cor = '#10B981'
     return f'<span style="color:{cor};font-weight:700">{d}d</span>'
 
-def row_bg(d):
-    """Cor de fundo da linha baseado nos dias na carteira."""
-    if d >= 8:  return 'background:#3b1a1a'
-    if d >= 4:  return 'background:#2d1f0e'
-    return ''
+def row_bg(status, dias, acao=''):
+    s = (status or '').strip()
+    a = (acao or '').strip()
+    if not s:               return 'border-left:3px solid #BA7517;background:rgba(186,117,23,0.06)'
+    if dias >= 8 and not a: return 'border-left:3px solid #E24B4A;background:rgba(226,75,74,0.07)'
+    return 'border-left:3px solid transparent'
 
 MELI_PKG_URL = 'https://envios.adminml.com/logistics/package-management/package'
 
 def id_link(shp_id):
     return f'<a href="{MELI_PKG_URL}/{shp_id}" target="_blank" class="shp-link">{shp_id}</a>'
 
+CFTV_ST_COR = {
+    'Concluído':    '#10b981',
+    'Em Andamento': '#3b82f6',
+    'SLA Vencido':  '#ef4444',
+}
+
+def cftv_cell_merged(cftv_solicitado, cftv_inv):
+    """Célula unificada: ícone CFTV + status investigação como subtexto."""
+    if cftv_solicitado != 'Sim':
+        return '<td style="text-align:center;font-size:13px;color:#6b7280">❌</td>'
+    if cftv_inv is None:
+        sub = '<div style="font-size:9px;color:#6b7280;margin-top:2px">Não concluída</div>'
+    else:
+        st  = cftv_inv['status']
+        cor = CFTV_ST_COR.get(st, '#9ca3af')
+        cl  = cftv_inv.get('conclusao', '')
+        cl_html = (f'<div style="font-size:8px;color:#6b7280">{cl}</div>' if cl else '')
+        sub = f'<div style="font-size:9px;color:{cor};margin-top:2px">{st}{cl_html}</div>'
+    return f'<td style="text-align:center;line-height:1.3">✅{sub}</td>'
+
+def desc_sub(desc):
+    if not desc:
+        return ''
+    short = desc[:45] + '…' if len(desc) > 45 else desc
+    return f'<div style="font-size:10px;color:#6b7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px" title="{desc}">{short}</div>'
+
 def rows_table_rt(rows):
     out = ''
     for r in rows:
         g   = f'${r["gmv"]:,.2f}' if r['gmv'] else '—'
-        bg  = row_bg(r['dias_carteira'])
+        bg  = row_bg(r.get('status', ''), r['dias_carteira'], r.get('acao_lp', ''))
         out += f'''<tr style="{bg}" class="data-row"
             data-id="{r["id"].lower()}"
             data-sit="{r["sit"].lower()}"
             data-status="{r["status"].lower()}"
-            data-resp="{r["resp"].lower()}">
-            <td style="font-family:monospace;font-size:12px">{id_link(r["id"])}</td>
+            data-resp="{r["resp"].lower()}"
+            data-dias="{r["dias_carteira"]}">
+            <td style="font-family:monospace;font-size:12px">{id_link(r["id"])}{desc_sub(r.get("descricao",""))}</td>
             <td>{pill(r["sit"])}</td>
             <td style="font-weight:700;color:#10B981">{g}</td>
             <td>{r["resp"] or "—"}</td>
-            <td style="text-align:center">{"✅" if r["cftv"]=="Sim" else "❌"}</td>
-            <td>{pill_status(r["status"])}</td>
+            {cftv_cell_merged(r["cftv"], r.get("cftv_inv"))}
+            <td>{ow_status_select(r, tab="rt")}</td>
             <td style="text-align:center">{dias_badge(r["dias_carteira"])}</td>
             <td style="font-size:11px;color:#9CA3AF">{r["entrada"] or "—"}</td>
+            <td>{rt_acao_select(r)}</td>
+            <td>{ow_final_select(r, tab="rt")}</td>
+            <td>{rt_cobrar_select(r)}</td>
         </tr>'''
     return out
 
@@ -437,18 +615,49 @@ def _ow_norm(s):
 OW_FINAL_OPTS  = ['', 'BPP', 'Reversão']
 OW_ACAO_SUGEST = ['Cobrado Origem','Aguardando Retorno da Origem','Escalonado para Supervisão',
                   'Sem Retorno da Origem','Pacote Localizado','Em Investigação','BPP Solicitado']
+RT_ACAO_OPTS   = ['', 'Cobrar MLP', 'Cobrado MLP', 'Aguardando Retorno MLP',
+                  'Escalonado Supervisão', 'BPP Solicitado', 'Em Investigação']
+RT_COBRAR_OPTS = ['', 'Aguardando Retorno', 'Cobrado', 'Sem Retorno']
 
-def ow_status_select(r):
+def ow_status_select(r, tab='wy'):
     cur = _ow_norm(r.get('status'))
+    display = next((o for o in OW_STATUS_OPTS if o and _ow_norm(o) == cur), None) or r.get('status') or '— Status —'
     opts = ''.join(f'<option value="{o}"{"selected" if _ow_norm(o)==cur else ""}>{o or "— Status —"}</option>' for o in OW_STATUS_OPTS)
-    return (f'<select class="ow-edit" data-row="{r["sheet_row"]}" data-col="29" '
-            f'onchange="owSalvarSelect(this)" title="Salva automaticamente">{opts}</select>')
+    return (f'<div class="ow-edit-wrap"><div class="ow-fake-sel">'
+            f'<span class="ow-fake-val">{display}</span><span style="color:#6b7280;font-size:13px;flex-shrink:0">⌄</span>'
+            f'<select class="ow-edit ow-real-sel" data-shp="{r["id"]}" data-tab="{tab}" data-col="29" '
+            f'onchange="owSalvarSelect(this)" title="Salva automaticamente">{opts}</select>'
+            f'</div></div>')
 
-def ow_final_select(r):
+def ow_final_select(r, tab='wy'):
     cur = _ow_norm(r.get('finalizacao'))
+    display = next((o for o in OW_FINAL_OPTS if o and _ow_norm(o) == cur), None) or r.get('finalizacao') or '— Final —'
     opts = ''.join(f'<option value="{o}"{"selected" if _ow_norm(o)==cur else ""}>{o or "— Final —"}</option>' for o in OW_FINAL_OPTS)
-    return (f'<select class="ow-edit" data-row="{r["sheet_row"]}" data-col="30" '
-            f'onchange="owSalvarSelect(this)" title="Salva automaticamente">{opts}</select>')
+    return (f'<div class="ow-edit-wrap"><div class="ow-fake-sel">'
+            f'<span class="ow-fake-val">{display}</span><span style="color:#6b7280;font-size:13px;flex-shrink:0">⌄</span>'
+            f'<select class="ow-edit ow-real-sel" data-shp="{r["id"]}" data-tab="{tab}" data-col="30" '
+            f'onchange="owSalvarSelect(this)" title="Salva automaticamente">{opts}</select>'
+            f'</div></div>')
+
+def rt_acao_select(r):
+    cur = _ow_norm(r.get('acao_lp'))
+    display = next((o for o in RT_ACAO_OPTS if o and _ow_norm(o) == cur), None) or r.get('acao_lp') or '— Ação —'
+    opts = ''.join(f'<option value="{o}"{"selected" if _ow_norm(o)==cur else ""}>{o or "— Ação —"}</option>' for o in RT_ACAO_OPTS)
+    return (f'<div class="ow-edit-wrap"><div class="ow-fake-sel">'
+            f'<span class="ow-fake-val">{display}</span><span style="color:#6b7280;font-size:13px;flex-shrink:0">⌄</span>'
+            f'<select class="ow-edit ow-real-sel" data-shp="{r["id"]}" data-tab="rt" data-col="24" '
+            f'onchange="owSalvarSelect(this)" title="Salva automaticamente">{opts}</select>'
+            f'</div></div>')
+
+def rt_cobrar_select(r):
+    cur = _ow_norm(r.get('cobrar_otr', ''))
+    display = next((o for o in RT_COBRAR_OPTS if o and _ow_norm(o) == cur), None) or r.get('cobrar_otr') or '— Cobrar OTR —'
+    opts = ''.join(f'<option value="{o}"{"selected" if _ow_norm(o)==cur else ""}>{o or "— Cobrar OTR —"}</option>' for o in RT_COBRAR_OPTS)
+    return (f'<div class="ow-edit-wrap"><div class="ow-fake-sel">'
+            f'<span class="ow-fake-val">{display}</span><span style="color:#6b7280;font-size:13px;flex-shrink:0">⌄</span>'
+            f'<select class="ow-edit ow-real-sel" data-shp="{r["id"]}" data-tab="rt" data-col="33" '
+            f'onchange="owSalvarSelect(this)" title="Salva automaticamente">{opts}</select>'
+            f'</div></div>')
 
 def rows_table_wy(rows):
     import json as _json
@@ -456,7 +665,7 @@ def rows_table_wy(rows):
     out = ''
     for r in rows:
         g    = f'${r["gmv"]:,.2f}' if r['gmv'] else '—'
-        bg   = row_bg(r['dias_carteira'])
+        bg   = row_bg(r.get('status', ''), r['dias_carteira'], r.get('acao_lp', ''))
         srow = r.get('sheet_row', 0)
         acao = (r.get('acao_lp') or '').replace('"', '&quot;')
         link = (r.get('link_email') or '').replace('"', '&quot;')
@@ -466,28 +675,29 @@ def rows_table_wy(rows):
             data-id="{r["id"].lower()}"
             data-sit="{r["sit"].lower()}"
             data-status="{r["status"].lower()}"
-            data-resp="{r["resp"].lower()}">
-            <td style="font-family:monospace;font-size:12px">{id_link(r["id"])}</td>
+            data-resp="{r["resp"].lower()}"
+            data-dias="{r["dias_carteira"]}">
+            <td style="font-family:monospace;font-size:12px">{id_link(r["id"])}{desc_sub(r.get("descricao",""))}</td>
             <td>{pill(r["sit"])}</td>
             <td style="font-weight:700;color:#10B981">{g}</td>
             <td style="text-align:center;font-weight:700;color:#FBBF24">{r["dias_ow"] or "—"}</td>
             <td>{r["carrier"] or "—"}</td>
-            <td style="text-align:center">{"✅" if r["cftv"]=="Sim" else "❌"}</td>
-            <td>{ow_status_select(r)}</td>
+            {cftv_cell_merged(r["cftv"], r.get("cftv_inv"))}
+            <td>{ow_status_select(r, tab='wy')}</td>
             <td style="text-align:center">{dias_badge(r["dias_carteira"])}</td>
             <td style="font-size:11px;color:#9CA3AF">{r["entrada"] or "—"}</td>
             <td>
               <div class="ow-edit-wrap">
                 <input class="ow-edit ow-text" type="text" value="{acao}"
                   placeholder="Ação ou escolha ⌄"
-                  data-row="{srow}" data-col="23"
+                  data-shp="{r['id']}" data-tab="wy" data-col="23"
                   autocomplete="off"
                   oninput="owSugest(this);owAgendar(this)"
                   onblur="owFecharSugest(this);owSalvarImediato(this)"
                   onfocus="owSugest(this)">
                 <span class="ow-dd-btn" onclick="owToggleSugest(this.previousElementSibling)">⌄</span>
-                <div class="ow-sugest" data-for="{srow}">
-                  {''.join(f'<div class="ow-sugest-item" onmousedown="owEscolher(event,{srow})">{s}</div>' for s in OW_ACAO_SUGEST)}
+                <div class="ow-sugest" data-for="{r['id']}">
+                  {''.join(f'<div class="ow-sugest-item" onmousedown="owEscolher(event)">{s}</div>' for s in OW_ACAO_SUGEST)}
                 </div>
               </div>
             </td>
@@ -495,14 +705,14 @@ def rows_table_wy(rows):
               <div class="ow-edit-wrap">
                 <input class="ow-edit ow-text" type="text" value="{link}"
                   placeholder="https://..."
-                  data-row="{srow}" data-col="24"
+                  data-shp="{r['id']}" data-tab="wy" data-col="24"
                   onblur="owSalvarImediato(this)"
                   oninput="owAgendar(this);owAtualizarLink(this)"
                   style="padding-right:22px">
                 {link_btn}
               </div>
             </td>
-            <td>{ow_final_select(r)}</td>
+            <td>{ow_final_select(r, tab='wy')}</td>
         </tr>'''
     return out
 
@@ -511,11 +721,11 @@ def rows_table_top(rows):
     for i, r in enumerate(rows, 1):
         g        = f'${r["gmv"]:,.2f}' if r['gmv'] else '—'
         orig_bg  = '#1D4ED8' if r['origem'] == 'ON ROUTE' else '#065F46'
-        bg       = row_bg(r['dias_carteira'])
+        bg       = row_bg(r.get('status', ''), r['dias_carteira'], r.get('acao_lp', ''))
         out += f'''<tr style="{bg}">
             <td style="text-align:center;font-weight:700;color:#FFE600">{i}</td>
             <td><span style="background:{orig_bg};color:#fff;padding:2px 7px;border-radius:10px;font-size:11px">{r["origem"]}</span></td>
-            <td style="font-family:monospace;font-size:12px">{id_link(r["id"])}</td>
+            <td style="font-family:monospace;font-size:12px">{id_link(r["id"])}{desc_sub(r.get("descricao",""))}</td>
             <td>{pill(r["sit"])}</td>
             <td style="font-weight:700;color:#10B981;font-size:14px">{g}</td>
             <td>{r["resp"] or "—"}</td>
@@ -543,8 +753,234 @@ def rows_table_hist(rows):
     return out
 
 # ============================================================
+# DESCRIÇÕES DE ITEM — BigQuery
+# ============================================================
+def carregar_descricoes(creds, shp_ids):
+    """Busca SHP_ITEM_DESC para cada SHP ID via BT_SHP_SHIPMENTS."""
+    clean = [sid for sid in shp_ids if sid and str(sid).strip().isdigit()]
+    if not clean:
+        return {}
+    ids_str = ','.join(clean)
+    client  = bigquery.Client(project='meli-bi-data', credentials=creds)
+    q = f"""
+    SELECT
+        CAST(SHP_SHIPMENT_ID AS STRING) AS shp_id,
+        (SELECT SHP_ITEM_DESC FROM UNNEST(ITEMS) LIMIT 1) AS item_desc
+    FROM `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS`
+    WHERE SHP_SHIPMENT_ID IN ({ids_str})
+    """
+    try:
+        return {r['shp_id']: str(r['item_desc'] or '').strip()
+                for r in client.query(q).result()}
+    except Exception as e:
+        print(f"  [AVISO] Descrições falhou: {e}")
+        return {}
+
+# ============================================================
+# DETECÇÃO DE PACOTES ENTREGUES — BigQuery
+# ============================================================
+def carregar_entregues(creds, shp_ids):
+    """Retorna set de SHP IDs que já foram entregues (status delivered) no BQ."""
+    clean = [sid for sid in shp_ids if sid and str(sid).strip().isdigit()]
+    if not clean:
+        return set()
+    ids_str = ','.join(clean)
+    client  = bigquery.Client(project='meli-bi-data', credentials=creds)
+    q = f"""
+    SELECT CAST(SHP_SHIPMENT_ID AS STRING) AS shp_id
+    FROM `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS`
+    WHERE SHP_SHIPMENT_ID IN ({ids_str})
+      AND SHP_STATUS_ID = 'delivered'
+    """
+    try:
+        return {r['shp_id'] for r in client.query(q).result()}
+    except Exception as e:
+        print(f"  [AVISO] Entregues BQ falhou: {e}")
+        return set()
+
+MELI_PKG_URL_BASE = 'https://envios.adminml.com/logistics/package-management/package'
+
+def atualizar_entregues_planilha(creds, wy_raw, entregues):
+    """Preenche Status=Concluído, AçãoLP=Pacote Localizado, Link e Final=Reversão
+    na planilha ON WAY para pacotes entregues que ainda não estejam como Concluído.
+    Também atualiza as linhas in-memory (wy_raw) para o passo seguinte."""
+    pendentes = [r for r in wy_raw
+                 if len(r) > 2 and r[2] in entregues
+                 and _ow_norm(r[28] if len(r) > 28 else '') != 'concluido']
+    if not pendentes:
+        return 0
+    gc = gspread.authorize(creds)
+    ws = gc.open_by_key(PLANILHA_CONTROLE_ID).worksheet(ABA_ON_WAY)
+    updates = []
+    for r in pendentes:
+        row  = r[-1]  # número da linha na planilha
+        shp_id = r[2]
+        link = f'{MELI_PKG_URL_BASE}/{shp_id}'
+        updates += [
+            {'range': f'W{row}', 'values': [['Pacote Localizado']]},
+            {'range': f'X{row}', 'values': [[link]]},
+            {'range': f'AC{row}', 'values': [['Concluído']]},
+            {'range': f'AD{row}', 'values': [['Reversão']]},
+        ]
+        # atualiza in-memory para o passo de mover para histórico
+        while len(r) < 35:
+            r.append('')
+        r[22] = 'Pacote Localizado'
+        r[23] = link
+        r[28] = 'Concluído'
+        r[29] = 'Reversão'
+    if updates:
+        ws.batch_update(updates, value_input_option='RAW')
+    return len(pendentes)
+
+_FINAL_HIST_MAP = {
+    'reversao':  'Retornou ao fluxo',
+    'reversão':  'Retornou ao fluxo',
+    'bpp':       'Perdido',
+}
+
+def mover_concluidos_historico(creds, wy_raw, hoje_str):
+    """Move para a aba Histórico todas as linhas do ON WAY com Status=Concluído
+    e Finalização preenchida; deleta do ON WAY; retorna (n, novas_hi_rows).
+    Mapeia 'Reversão'→'Retornou ao fluxo' e 'BPP'→'Perdido' para bater com
+    a lógica de contagem do processar()."""
+    para_mover = [r for r in wy_raw
+                  if _ow_norm(r[28] if len(r) > 28 else '') == 'concluido'
+                  and (r[29] if len(r) > 29 else '').strip()]
+    if not para_mover:
+        return 0, []
+    gc      = gspread.authorize(creds)
+    pl      = gc.open_by_key(PLANILHA_CONTROLE_ID)
+    hist_ws = pl.worksheet(ABA_HISTORICO)
+    ow_ws   = pl.worksheet(ABA_ON_WAY)
+    novas_sheet = []
+    novas_hi    = []
+    for r in para_mover:
+        final_orig = (r[29] if len(r) > 29 else '').strip()
+        final_hist = _FINAL_HIST_MAP.get(final_orig.lower(), final_orig)
+        linha = [
+            hoje_str,
+            'ON WAY',
+            r[2]  if len(r) > 2  else '',
+            r[1]  if len(r) > 1  else '',
+            r[21] if len(r) > 21 else '',
+            r[0]  if len(r) > 0  else '',
+            r[28] if len(r) > 28 else '',
+            final_hist,
+        ]
+        novas_sheet.append(linha)
+        # constrói linha no formato de hi (lista com padding + sheet_row=0)
+        hi_row = list(linha)
+        while len(hi_row) < 35:
+            hi_row.append('')
+        hi_row.append(0)
+        novas_hi.append(hi_row)
+    hist_ws.append_rows(novas_sheet, value_input_option='RAW')
+    for row_idx in sorted({r[-1] for r in para_mover}, reverse=True):
+        ow_ws.delete_rows(row_idx)
+    return len(para_mover), novas_hi
+
+
+def mover_concluidos_historico_rt(creds, rt_raw, hoje_str):
+    """Mesmo que mover_concluidos_historico mas para ON ROUTE (GMV em r[22])."""
+    para_mover = [r for r in rt_raw
+                  if _ow_norm(r[28] if len(r) > 28 else '') == 'concluido'
+                  and (r[29] if len(r) > 29 else '').strip()]
+    if not para_mover:
+        return 0, []
+    gc      = gspread.authorize(creds)
+    pl      = gc.open_by_key(PLANILHA_CONTROLE_ID)
+    hist_ws = pl.worksheet(ABA_HISTORICO)
+    rt_ws   = pl.worksheet(ABA_ON_ROUTE)
+    novas_sheet = []
+    novas_hi    = []
+    for r in para_mover:
+        final_orig = (r[29] if len(r) > 29 else '').strip()
+        final_hist = _FINAL_HIST_MAP.get(final_orig.lower(), final_orig)
+        linha = [
+            hoje_str,
+            'ON ROUTE',
+            r[2]  if len(r) > 2  else '',
+            r[1]  if len(r) > 1  else '',
+            r[22] if len(r) > 22 else '',
+            r[0]  if len(r) > 0  else '',
+            r[28] if len(r) > 28 else '',
+            final_hist,
+        ]
+        novas_sheet.append(linha)
+        hi_row = list(linha)
+        while len(hi_row) < 35:
+            hi_row.append('')
+        hi_row.append(0)
+        novas_hi.append(hi_row)
+    hist_ws.append_rows(novas_sheet, value_input_option='RAW')
+    for row_idx in sorted({r[-1] for r in para_mover}, reverse=True):
+        rt_ws.delete_rows(row_idx)
+    return len(para_mover), novas_hi
+
+
+def atualizar_devolvidos_rt(creds, rt_raw, hoje_str):
+    """Detecta linhas ON ROUTE com step 'Devolvido', preenche automaticamente
+    Status=Concluído, Finalização=Recuperado, AçãoLP=Seguiu fluxo correto
+    na planilha e in-memory (para que mover_concluidos_historico_rt as mova)."""
+    pendentes = [r for r in rt_raw
+                 if 'devolvido' in _ow_norm(r[1] if len(r) > 1 else '')
+                 and _ow_norm(r[28] if len(r) > 28 else '') != 'concluido']
+    if not pendentes:
+        return 0
+    gc = gspread.authorize(creds)
+    ws = gc.open_by_key(PLANILHA_CONTROLE_ID).worksheet(ABA_ON_ROUTE)
+    updates = []
+    for r in pendentes:
+        row = r[-1]
+        updates += [
+            {'range': f'X{row}',  'values': [['Seguiu fluxo correto']]},
+            {'range': f'AC{row}', 'values': [['Concluído']]},
+            {'range': f'AD{row}', 'values': [['Recuperado']]},
+        ]
+        while len(r) < 35:
+            r.append('')
+        r[23] = 'Seguiu fluxo correto'
+        r[28] = 'Concluído'
+        r[29] = 'Recuperado'
+    if updates:
+        ws.batch_update(updates, value_input_option='RAW')
+    return len(pendentes)
+
+# ============================================================
 # PLACES — BigQuery
 # ============================================================
+def carregar_cftv_status(creds):
+    """Retorna dict SHP_ID → {status, conclusao} a partir da planilha CFTV."""
+    try:
+        gc   = gspread.authorize(creds)
+        pl   = gc.open_by_key('18isURInofILBi-RS9YrCQyYcnb6JeU_stNqnspxiqLM')
+        data = pl.worksheet('Respostas ao formulário 2').get_all_values()
+        if len(data) <= 1:
+            return {}
+        header = data[0]
+        result = {}
+        for row in data[1:]:
+            r   = dict(zip(header, row))
+            shp = str(r.get('Shipment', '')).strip()
+            if not shp:
+                continue
+            s = r.get('Status', '').strip().lower()
+            if 'conclu' in s:
+                status = 'Concluído'
+            elif any(k in s for k in ('expira', 'expid', 'vencid', 'vencido')):
+                status = 'SLA Vencido'
+            else:
+                status = 'Em Andamento'
+            result[shp] = {
+                'status':    status,
+                'conclusao': r.get('Conclusão', '').strip(),
+            }
+        return result
+    except Exception as e:
+        print(f"  [AVISO] CFTV status falhou: {e}")
+        return {}
+
 def carregar_places(creds):
     client = bigquery.Client(project='meli-bi-data', credentials=creds)
     job    = client.query(PLACES_QUERY)
@@ -554,6 +990,183 @@ def carregar_dit(creds):
     client = bigquery.Client(project='meli-bi-data', credentials=creds)
     job    = client.query(DIT_QUERY)
     return {r['place_id']: dict(r) for r in job.result()}
+
+def carregar_briefing(creds):
+    client = bigquery.Client(project='meli-bi-data', credentials=creds)
+    job    = client.query(QUERY_BRIEFING)
+    rows   = [dict(r) for r in job.result()]
+    return rows
+
+def processar_briefing(bq_rows, wy):
+    from datetime import date as _date
+    MESES = {1:'jan',2:'fev',3:'mar',4:'abr',5:'mai',6:'jun',
+             7:'jul',8:'ago',9:'set',10:'out',11:'nov',12:'dez'}
+    hoje    = _date.today()
+    hoje_str = hoje.isoformat()
+    yr_h, wk_h, _ = hoje.isocalendar()
+    current_week   = f'W{wk_h:02d}/{yr_h}'
+
+    def get_week(row):
+        dbpp = row.get('DATE_BPP')
+        if dbpp is None: return None, None, None
+        try:
+            d  = dbpp if hasattr(dbpp, 'isocalendar') else _date.fromisoformat(str(dbpp)[:10])
+            yr, wk, _ = d.isocalendar()
+            return f'W{wk:02d}/{yr}', yr, wk
+        except: return None, None, None
+
+    week_data = {}
+    for r in bq_rows:
+        lbl, yr, wk = get_week(r)
+        if lbl is None: continue
+        did  = str(r.get('driver_id')    or '').strip(); did  = '' if did  in ('None','nan','') else did
+        dnm  = str(r.get('driver_nome')  or '').strip(); dnm  = '' if dnm  in ('None','nan','') else dnm
+        dst  = str(r.get('driver_status')or '').strip()
+        pt   = str(r.get('place_tipo')   or '').strip()
+        if pt in ('None','nan','','ON ROUTE','on_route'): pt = ''
+        pid  = str(r.get('place_id')     or '').strip(); pid  = '' if pid  in ('None','nan','') else pid
+        bpp  = max(0.0, float(r.get('bpp_usd') or 0))
+        shp  = str(r.get('shp_id') or '').strip()
+
+        if lbl not in week_data:
+            try:
+                mon = _date.fromisocalendar(yr, wk, 1)
+                sun = _date.fromisocalendar(yr, wk, 7)
+                dr  = f'{mon.day:02d} {MESES[mon.month]}–{sun.day:02d} {MESES[sun.month]}'
+            except: dr = lbl
+            week_data[lbl] = {'label':lbl,'yr':yr,'wk':wk,'date_range':dr,
+                              'n_casos':0,'gmv':0.0,'drv_map':{},'plc_map':{},'shp_set':set()}
+        wd = week_data[lbl]
+        # n_casos conta SHPs únicos na semana
+        if shp and shp not in wd['shp_set']:
+            wd['n_casos'] += 1
+            wd['gmv']     += bpp
+            wd['shp_set'].add(shp)
+        elif not shp:
+            wd['n_casos'] += 1
+            wd['gmv']     += bpp
+        if did:
+            if did not in wd['drv_map']:
+                wd['drv_map'][did] = {'id':did,'nome':dnm,'status':dst,'total':0,'gmv':0.0,'shps':[],'seen':set()}
+            else:
+                if dnm and not wd['drv_map'][did]['nome']:
+                    wd['drv_map'][did]['nome'] = dnm
+                if dst and not wd['drv_map'][did]['status']:
+                    wd['drv_map'][did]['status'] = dst
+            dm = wd['drv_map'][did]
+            if shp and shp not in dm['seen']:
+                dm['total'] += 1
+                dm['gmv']   += bpp
+                dm['shps'].append(shp)
+                dm['seen'].add(shp)
+            elif not shp:
+                dm['total'] += 1
+                dm['gmv']   += bpp
+        if pt:
+            key = f'{pt}|{pid}'
+            if key not in wd['plc_map']:
+                wd['plc_map'][key] = {'tipo':pt,'id':pid,'total':0,'gmv':0.0,'shps':[],'seen':set()}
+            pm = wd['plc_map'][key]
+            if shp and shp not in pm['seen']:
+                pm['total'] += 1
+                pm['gmv']   += bpp
+                pm['shps'].append(shp)
+                pm['seen'].add(shp)
+            elif not shp:
+                pm['total'] += 1
+                pm['gmv']   += bpp
+
+    weeks_sorted = sorted(week_data.values(), key=lambda x: (x['yr'], x['wk']))
+    by_week = {}
+    for i, wd in enumerate(weeks_sorted):
+        lbl     = wd['label']
+        top_drv = sorted(wd['drv_map'].values(), key=lambda x: (-x['total'],-x['gmv']))[:8]
+        for d in top_drv:
+            d['gmv'] = round(d['gmv'], 2)
+            d['shps'] = d['shps'][:30]
+            d.pop('seen', None)
+        top_plc = sorted(wd['plc_map'].values(), key=lambda x: (-x['total'],-x['gmv']))[:8]
+        for p in top_plc:
+            p['gmv'] = round(p['gmv'], 2)
+            p['shps'] = p['shps'][:30]
+            p.pop('seen', None)
+        prev         = weeks_sorted[i-1] if i > 0 else None
+        delta_casos  = wd['n_casos'] - prev['n_casos'] if prev else 0
+        delta_gmv    = round(wd['gmv'] - prev['gmv'], 2) if prev else 0.0
+        by_week[lbl] = {
+            'label':lbl,'date_range':wd['date_range'],
+            'n_casos':wd['n_casos'],'gmv':round(wd['gmv'],2),
+            'n_drivers':len(wd['drv_map']),'n_places':len(wd['plc_map']),
+            'delta_casos':delta_casos,'delta_gmv':delta_gmv,
+            'top_drivers':top_drv,'max_drv':top_drv[0]['total'] if top_drv else 1,
+            'top_places':top_plc,'max_plc':top_plc[0]['total'] if top_plc else 1,
+        }
+
+    casos_hoje = sorted(
+        [r for r in bq_rows if str(r.get('DATE_BPP',''))[:10] == hoje_str],
+        key=lambda x: -(x.get('bpp_usd') or 0))[:10]
+
+    alto_ow = sorted(
+        [{'id':r[2] if len(r)>2 else '','sit':r[1] if len(r)>1 else '',
+          'gmv':flt(r[21] if len(r)>21 else 0),'carrier':r[13] if len(r)>13 else '',
+          'dias':calc_dias(r[31] if len(r)>31 else '')}
+         for r in wy if flt(r[21] if len(r)>21 else 0) > 0],
+        key=lambda x: -x['gmv'])
+
+    # ---- Drivers para bloqueio: acumulo BPP em 3+ meses distintos ----
+    # Agrega direto dos rows brutos (não do top-N por semana) para não perder drivers
+    _drv_acc = {}
+    _STATUS_NAO_BLOQ = {'inactive','inativo','bloqueado','blocked','suspendido','suspended'}
+    for r in bq_rows:
+        did = str(r.get('driver_id') or '').strip()
+        if not did or did in ('None','nan',''): continue
+        dbpp = r.get('DATE_BPP')
+        if dbpp is None: continue
+        try:
+            d_ref = dbpp if hasattr(dbpp, 'month') else _date.fromisoformat(str(dbpp)[:10])
+            mes_key = f'{d_ref.month:02d}/{d_ref.year}'
+        except Exception:
+            continue
+        dnm = str(r.get('driver_nome') or '').strip()
+        if dnm in ('None','nan',''): dnm = ''
+        dst = str(r.get('driver_status') or '').strip()
+        if dst in ('None','nan',''): dst = ''
+        bpp_val = max(0.0, float(r.get('bpp_usd') or 0))
+        shp = str(r.get('shp_id') or '').strip()
+        if did not in _drv_acc:
+            _drv_acc[did] = {'id':did,'nome':dnm,'status':dst,'meses':set(),'total':0,'gmv':0.0,'seen':set(),'max_bpp':0.0}
+        dm = _drv_acc[did]
+        if dnm and not dm['nome']: dm['nome'] = dnm
+        if dst and not dm['status']: dm['status'] = dst
+        dm['meses'].add(mes_key)
+        if shp and shp not in dm['seen']:
+            dm['total'] += 1; dm['gmv'] += bpp_val; dm['seen'].add(shp)
+            if bpp_val > dm['max_bpp']: dm['max_bpp'] = bpp_val
+        elif not shp:
+            dm['total'] += 1; dm['gmv'] += bpp_val
+            if bpp_val > dm['max_bpp']: dm['max_bpp'] = bpp_val
+    drivers_bloqueio = sorted(
+        [{'id':v['id'],'nome':v['nome'],'status':v['status'],
+          'n_meses':len(v['meses']),'total':v['total'],'gmv':round(v['gmv'],2)}
+         for v in _drv_acc.values()
+         if len(v['meses']) >= 3
+         and v['total'] >= 5
+         and (v['gmv'] - v['max_bpp']) >= 300
+         and v['status'].lower() not in _STATUS_NAO_BLOQ],
+        key=lambda x: (-x['n_meses'], -x['gmv'])
+    )[:10]
+
+    cur = by_week.get(current_week, {})
+    return {
+        'casos_hoje':  casos_hoje,'n_hoje':len(casos_hoje),
+        'alto_ow':     alto_ow,
+        'by_week':     by_week,
+        'weeks':       [w['label'] for w in weeks_sorted],
+        'current_week':current_week,
+        'total_sem':   cur.get('n_casos',0),'gmv_sem':cur.get('gmv',0.0),
+        'n_drivers':   cur.get('n_drivers',0),'n_places':cur.get('n_places',0),
+        'drivers_bloqueio': drivers_bloqueio,
+    }
 
 def processar_dit_summary(dit_data, place_ids_tracked):
     """Retorna métricas agregadas de DIT apenas para places que monitoramos."""
@@ -570,6 +1183,109 @@ def processar_dit_summary(dit_data, place_ids_tracked):
         if pid in place_ids_tracked
     )
     return {'blind': total_blind, 'total': total_dit, 'stuck': total_stuck}
+
+def gerar_otr_list(dit_data, place_ids_tracked):
+    result = []
+    for pid, d in dit_data.items():
+        if pid not in place_ids_tracked:
+            continue
+        blind = int(d.get('dit_blind_spot') or 0)
+        avg   = float(d.get('avg_dias_dit') or 0)
+        stuck = int(d.get('stuck_in_place') or 0)
+        tipo  = str(d.get('tipo') or '')
+        if (blind >= 50 and avg >= 7) or stuck >= 20:
+            nivel = 'IMEDIATO'
+        elif blind >= 20 and avg >= 5:
+            nivel = 'MONITORAMENTO'
+        elif blind >= 10 or stuck >= 10:
+            nivel = 'OBSERVAR'
+        else:
+            continue
+        ids = list(d.get('blind_ids') or [])
+        result.append({'place_id': pid, 'tipo': tipo, 'blind': blind,
+                       'avg': avg, 'stuck': stuck, 'nivel': nivel, 'ids': ids})
+    ordem = {'IMEDIATO': 0, 'MONITORAMENTO': 1, 'OBSERVAR': 2}
+    return sorted(result, key=lambda x: (ordem[x['nivel']], -x['blind']))
+
+def rows_otr_section(otr_list):
+    if not otr_list:
+        return '<p style="padding:16px;color:#4b5563;font-size:12px">Nenhum place com alerta DIT no momento.</p>'
+    out = ''
+    nivel_cfg = {
+        'IMEDIATO':     ('Imediato',     '#7f1d1d', '#fca5a5', '#1a0808'),
+        'MONITORAMENTO':('Monitorar',    '#713f12', '#fde68a', '#160f04'),
+        'OBSERVAR':     ('Observar',     '#1f2937', '#9ca3af', ''),
+    }
+    for p in otr_list:
+        nivel    = p['nivel']
+        lbl, cl, bg_txt, row_bg_color = nivel_cfg[nivel]
+        safe_pid = p['place_id'].replace(' ', '_')
+        badge    = (f'<span style="background:{cl};color:{bg_txt};font-size:10px;'
+                    f'font-weight:700;padding:2px 8px;border-radius:4px">{lbl}</span>')
+        avg_txt  = f'{p["avg"]:.1f}d'
+        stuck_cell = (f'<span style="color:#f87171;font-weight:600">{p["stuck"]}</span>'
+                      if p['stuck'] else '<span style="color:#374151">—</span>')
+        tipo_color = '#60a5fa' if p['tipo'] == 'NEX' else '#a78bfa'
+        ids = p.get('ids', [])
+        id_chips = ''.join(
+            f'<a href="{MELI_PKG_URL}/{sid}" target="_blank" '
+            f'style="font-family:monospace;font-size:11px;color:#60a5fa;background:#0d1321;'
+            f'padding:3px 8px;border-radius:4px;border:1px solid #1f2937;text-decoration:none">'
+            f'{sid}</a>'
+            for sid in ids
+        )
+        cap_note = '  (até 50 exibidos)' if len(ids) >= 50 else ''
+        detail_row = (
+            f'<tr id="otr-d-{safe_pid}" style="display:none">'
+            f'<td colspan="7" style="padding:8px 16px 12px;background:#060c18;border-bottom:1px solid #1f2937">'
+            f'<div style="font-size:10px;color:#4b5563;margin-bottom:8px;font-weight:600;'
+            f'text-transform:uppercase;letter-spacing:.5px">'
+            f'{len(ids)} SHP ID(s) sem flag · {p["place_id"]}{cap_note}'
+            f'</div>'
+            f'<div style="display:flex;flex-wrap:wrap;gap:6px">{id_chips}</div>'
+            f'</td></tr>'
+        )
+        row_style = f'background:{row_bg_color}' if row_bg_color else ''
+        out += (
+            f'<tr style="{row_style};cursor:pointer" onclick="toggleOtrRow(\'{safe_pid}\')">'
+            f'<td>{badge}</td>'
+            f'<td style="font-family:monospace;font-size:12px;color:#e2e8f0;font-weight:600">{p["place_id"]}</td>'
+            f'<td style="color:{tipo_color};font-size:11px;font-weight:600">{p["tipo"]}</td>'
+            f'<td style="text-align:center;font-weight:700;color:#fbbf24">{p["blind"]}</td>'
+            f'<td style="text-align:center;color:#94a3b8">{avg_txt}</td>'
+            f'<td style="text-align:center">{stuck_cell}</td>'
+            f'<td id="otr-btn-{safe_pid}" style="color:#374151;font-size:16px;text-align:right;'
+            f'padding-right:10px;user-select:none">›</td>'
+            f'</tr>{detail_row}'
+        )
+    return out
+
+def gerar_otr_txt(otr_list, hoje):
+    imediatos = [p for p in otr_list if p['nivel'] == 'IMEDIATO']
+    monitora  = [p for p in otr_list if p['nivel'] == 'MONITORAMENTO']
+    lines = [f'OTR - Places com acumulo DIT ({hoje})', '']
+    if imediatos:
+        lines.append('ACAO IMEDIATA:')
+        for p in imediatos:
+            lines.append(f'  {p["place_id"]} ({p["tipo"]}) - {p["blind"]} pcts / {p["avg"]:.1f}d avg'
+                         + (f' / {p["stuck"]} presos' if p["stuck"] else ''))
+            ids = p.get('ids', [])
+            if ids:
+                preview = ', '.join(ids[:10])
+                suffix = '...' if len(ids) > 10 else ''
+                lines.append(f'  IDs: {preview}{suffix}')
+    if monitora:
+        lines.append('')
+        lines.append('MONITORAMENTO:')
+        for p in monitora:
+            lines.append(f'  {p["place_id"]} ({p["tipo"]}) - {p["blind"]} pcts / {p["avg"]:.1f}d avg')
+            ids = p.get('ids', [])
+            if ids:
+                preview = ', '.join(ids[:5])
+                suffix = '...' if len(ids) > 5 else ''
+                lines.append(f'  IDs: {preview}{suffix}')
+    lines += ['', 'Solicito verificacao de status e retorno com motivo do atraso.']
+    return '\n'.join(lines)
 
 RISK_LABEL = {'CRITICO': 'Crítico', 'ALTO': 'Alto', 'MODERADO': 'Moderado'}
 def norm_risk(val):
@@ -597,9 +1313,11 @@ def processar_places(rows, dit_data=None):
         acao_cnt[a] = acao_cnt.get(a, 0) + 1
         acao_gmv[a] = acao_gmv.get(a, 0) + float(r.get('SHP_ORDER_COST_USD') or 0)
 
-    ranking = processar_places_ranking(rows, dit_data)
+    ranking   = processar_places_ranking(rows, dit_data)
     place_ids = {p['place_id'] for p in ranking}
     dit_sum   = processar_dit_summary(dit_data, place_ids)
+    otr_list  = gerar_otr_list(dit_data, place_ids)
+    hoje      = datetime.now().strftime('%d/%m/%Y')
 
     return {
         'total': total, 'gmv_total': round(gmv_tot, 2),
@@ -614,6 +1332,9 @@ def processar_places(rows, dit_data=None):
         'dit_blind': dit_sum['blind'],
         'dit_total': dit_sum['total'],
         'dit_stuck': dit_sum['stuck'],
+        'otr_list':  otr_list,
+        'otr_txt':   gerar_otr_txt(otr_list, hoje),
+        'otr_imediato': sum(1 for p in otr_list if p['nivel'] == 'IMEDIATO'),
         'rows': rows,
         'ranking': ranking,
     }
@@ -863,6 +1584,397 @@ def filtros_html(tab_id, sits):
       <button onclick="exportCSV('{tab_id}', 'ssp30_{tab_id}.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>'''
 
+def _painel_dia_html(b, on_route, on_way):
+    from datetime import date as _date
+    hoje = _date.today().strftime('%d/%m/%Y')
+    urgentes = sorted(
+        [r for r in (on_route or []) if r.get('dias_carteira',0) >= 8 and not (r.get('acao_lp') or '').strip()],
+        key=lambda x: -x.get('dias_carteira', 0)
+    )[:8]
+    ow_sem = sorted(
+        [r for r in (on_way or []) if not (r.get('status') or '').strip()],
+        key=lambda x: -x.get('dias_carteira', 0)
+    )[:6]
+    cw = b['current_week']
+    wd = b['by_week'].get(cw, {})
+
+    # Places: apenas DC / NEX / XPT (exclui categorias de rota como ON WAY, MELI EXTRA)
+    top_plc = [p for p in wd.get('top_places', [])
+               if p.get('tipo','').upper() in ('DC','NEX','XPT')][:4]
+
+    # Drivers para bloqueio vem pré-calculado do processar_briefing (dados brutos, não top-N por semana)
+    bloqueio = b.get('drivers_bloqueio', [])
+
+    def _item(uid, label, sub, tag_txt, tag_col, tab_id=None, ext_href=None):
+        tag_style = {
+            'r': 'background:#FCEBEB;color:#A32D2D',
+            'a': 'background:#FAEEDA;color:#633806',
+            'b': 'background:#E6F1FB;color:#0C447C',
+        }.get(tag_col, '')
+        tag = (f'<span style="{tag_style};font-size:10px;padding:1px 7px;border-radius:8px;white-space:nowrap">'
+               f'{tag_txt}</span>') if tag_txt else ''
+        _nav_style = ('font-size:10px;color:#60a5fa;cursor:pointer;white-space:nowrap;flex-shrink:0;'
+                      'padding:2px 8px;border:1px solid #1f3050;border-radius:6px;text-decoration:none')
+        if ext_href:
+            nav = f'<a href="{ext_href}" style="{_nav_style}">Ver →</a>'
+        elif tab_id:
+            nav = f'<span onclick="pdGoTab(\'{tab_id}\')" style="{_nav_style}">Ver →</span>'
+        else:
+            nav = ''
+        _label_txt = _html.escape(re.sub(r'<[^>]+>', '', label))
+        return (f'<div class="pd-item">'
+                f'<div class="pd-cb" data-id="{uid}" data-label="{_label_txt}" onclick="pdToggle(this)" '
+                f'style="width:16px;height:16px;border:1.5px solid #374151;border-radius:4px;flex-shrink:0;'
+                f'cursor:pointer;display:flex;align-items:center;justify-content:center"></div>'
+                f'<div class="pd-it" style="flex:1;min-width:0">'
+                f'<div class="pd-tl" style="font-size:12px;color:#f9fafb;display:flex;align-items:center;'
+                f'gap:6px;flex-wrap:wrap">{label} {tag}</div>'
+                f'<div style="font-size:11px;color:#6b7280;margin-top:1px">{sub}</div>'
+                f'</div>{nav}</div>')
+
+    def _section(icon, title, badge_txt, badge_col, items_html):
+        bc = {'r':'#7f1d1d;color:#fca5a5','a':'#78350f;color:#fcd34d','b':'#1e3a5f;color:#93c5fd'}.get(badge_col,'#1f2937;color:#9ca3af')
+        return f'''<div style="border:0.5px solid #1a2035;border-radius:10px;margin-bottom:10px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:#0d1526;border-bottom:0.5px solid #1a2035">
+            <span style="font-size:15px">{icon}</span>
+            <span style="font-size:13px;font-weight:600;color:#f9fafb;flex:1">{title}</span>
+            <span style="background:{bc};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500">{badge_txt}</span>
+          </div>
+          {items_html if items_html else '<div style="padding:10px 14px;font-size:12px;color:#6b7280">Nenhum item pendente</div>'}
+        </div>'''
+
+    MELI = 'https://envios.adminml.com/logistics/package-management/package'
+    items_rt = ''.join(_item(
+        f'rt_{r["id"]}',
+        f'<a href="{MELI}/{r["id"]}" target="_blank" style="color:#60a5fa;font-family:monospace">{r["id"]}</a>'
+        f' — ${r["gmv"]:,.0f}',
+        f'{r.get("sit","—")} · {r.get("descricao","") or "—"}',
+        f'{r["dias_carteira"]}d sem ação', 'r' if r['dias_carteira'] >= 12 else 'a',
+        tab_id='route')
+        for r in urgentes)
+    items_ow = ''.join(_item(
+        f'ow_{r["id"]}',
+        f'<a href="{MELI}/{r["id"]}" target="_blank" style="color:#60a5fa;font-family:monospace">{r["id"]}</a>'
+        f' — ${r["gmv"]:,.0f}',
+        f'{r.get("sit","—")} · {r.get("carrier","") or "—"}',
+        f'{r["dias_carteira"]}d', 'r' if r['dias_carteira'] >= 8 else 'a',
+        tab_id='way')
+        for r in ow_sem)
+    _acumulo_ids = _fraude_acumulo_ids()
+    items_blq = ''.join(_item(
+        f'blq_{d["id"]}',
+        f'Driver {d["id"]} — {d["nome"] or "—"}',
+        f'{d["n_meses"]} meses · {d["total"]} casos · ${d["gmv"]:,.0f} BPP acumulado',
+        f'{d["n_meses"]} meses', 'r' if d['n_meses'] >= 4 else 'a',
+        ext_href=f'./fraude.html#acumulo__{d["id"]}' if str(d["id"]) in _acumulo_ids else './fraude.html#acumulo')
+        for d in bloqueio)
+    items_plc = ''.join(_item(
+        f'plc_{p["id"]}',
+        f'{p["tipo"]} {p["id"]}',
+        f'{p["total"]} passagens · ${p["gmv"]:,.0f} BPP',
+        f'{p["total"]} casos', 'b')
+        for p in top_plc)
+
+    n_tot = len(urgentes) + len(ow_sem) + len(bloqueio) + len(top_plc)
+    sec_rt  = _section('📦', 'ON ROUTE sem Ação LP', f'{len(urgentes)} urgentes',
+                        'r' if urgentes else 'a', items_rt)
+    sec_ow  = _section('🚚', 'ON WAY sem status', f'{len(ow_sem)} pendentes',
+                        'a' if ow_sem else 'b', items_ow)
+    sec_blq = _section('🔒', 'Drivers para bloqueio — BPP 3+ meses', f'{len(bloqueio)} drivers',
+                        'r' if bloqueio else 'a', items_blq)
+    sec_plc = _section('🏭', f'Places DC/NEX com BPP — {cw}', f'{len(top_plc)} places', 'b', items_plc)
+
+    js = '''<script>
+const PD_TODAY = new Date().toLocaleDateString('pt-BR');
+const PD_KEY = 'pd_' + PD_TODAY;
+function pdLoad() {
+  const sv = JSON.parse(localStorage.getItem(PD_KEY)||'{}');
+  document.querySelectorAll('.pd-cb').forEach(cb => {
+    if (sv[cb.dataset.id]) pdMark(cb, true);
+  });
+  pdProg();
+}
+function pdMark(cb, on) {
+  if (on) {
+    cb.style.background='#3B6D11'; cb.style.borderColor='#3B6D11';
+    cb.innerHTML='<svg width="9" height="7" viewBox="0 0 9 7"><polyline points="1,3.5 3.5,6 8,1" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  } else {
+    cb.style.background=''; cb.style.borderColor='#374151'; cb.innerHTML='';
+  }
+  const tl = cb.nextElementSibling?.querySelector('.pd-tl');
+  if (tl) tl.style.opacity = on ? '0.4' : '1';
+}
+function pdToggle(cb) {
+  const sv = JSON.parse(localStorage.getItem(PD_KEY)||'{}');
+  const done = !sv[cb.dataset.id];
+  sv[cb.dataset.id] = done;
+  localStorage.setItem(PD_KEY, JSON.stringify(sv));
+  pdMark(cb, done);
+  pdProg();
+  const lbl = cb.dataset.label || cb.dataset.id;
+  const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  if (done) {
+    fetch('http://localhost:5000/diario/extra', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({data: PD_TODAY, atividade: lbl, hora_ini: agora, hora_fim: agora, obs:''})
+    }).catch(()=>{});
+  } else {
+    fetch('http://localhost:5000/diario/delete_extra', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({data: PD_TODAY, atividade: lbl})
+    }).catch(()=>{});
+  }
+}
+function pdProg() {
+  const all = document.querySelectorAll('.pd-cb').length;
+  const done = [...document.querySelectorAll('.pd-cb')].filter(c=>c.style.background==='rgb(59, 109, 17)').length;
+  const pct = all ? Math.round(done/all*100) : 0;
+  const bar = document.getElementById('pd-prog'); if(bar) bar.style.width=pct+'%';
+  const lbl = document.getElementById('pd-pct'); if(lbl) lbl.textContent=done+' de '+all+' revisados';
+}
+function pdGoTab(tabName) {
+  const el = document.querySelector('.sb-item[data-tab="'+tabName+'"]');
+  if (el) { showTab(tabName, el); window.scrollTo({top:0, behavior:'smooth'}); }
+}
+document.addEventListener('DOMContentLoaded', pdLoad);
+</script>'''
+
+    return f'''<div style="margin-bottom:20px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:15px;font-weight:600;color:#f9fafb">Painel do Dia</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="pd-pct" style="font-size:12px;color:#6b7280">0 de {n_tot} revisados</span>
+      <span style="font-size:12px;color:#4b5563">{hoje}</span>
+    </div>
+  </div>
+  <div style="height:3px;background:#1a2035;border-radius:2px;margin-bottom:14px">
+    <div id="pd-prog" style="height:100%;background:#3B6D11;border-radius:2px;width:0%;transition:width .3s"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+    <div style="background:#0d1526;border-radius:8px;padding:10px 12px"><div style="font-size:20px;font-weight:600;color:#E24B4A">{len(urgentes)}</div><div style="font-size:11px;color:#6b7280;margin-top:2px">ON ROUTE sem ação</div></div>
+    <div style="background:#0d1526;border-radius:8px;padding:10px 12px"><div style="font-size:20px;font-weight:600;color:#BA7517">{len(ow_sem)}</div><div style="font-size:11px;color:#6b7280;margin-top:2px">ON WAY sem status</div></div>
+    <div style="background:#0d1526;border-radius:8px;padding:10px 12px"><div style="font-size:20px;font-weight:600;color:#E24B4A">{len(bloqueio)}</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Drivers para bloqueio</div></div>
+    <div style="background:#0d1526;border-radius:8px;padding:10px 12px"><div style="font-size:20px;font-weight:600;color:#185FA5">{len(top_plc)}</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Places DC/NEX c/ BPP</div></div>
+  </div>
+  {sec_rt}{sec_ow}{sec_blq}{sec_plc}
+  <hr style="border:none;border-top:1px solid #1a2035;margin:18px 0 14px">
+</div>
+{js}'''
+
+def _briefing_html(b, on_route=None, on_way=None):
+    import json as _json
+    MELI_URL = 'https://envios.adminml.com/logistics/package-management/package'
+
+    by_week_json = _json.dumps(b['by_week'], ensure_ascii=False, default=str)
+    current_week = b['current_week']
+
+    week_opts = ''
+    for w in b['weeks']:
+        dr  = b['by_week'][w].get('date_range', '')
+        sel = 'selected' if w == current_week else ''
+        atual = ' — atual' if w == current_week else ''
+        week_opts += f'<option value="{w}" {sel}>{w} ({dr}){atual}</option>\n'
+
+    # --- Casos hoje (static) ---
+    tipo_cor = {
+        'FRAUD':     ('#7f1d1d','#fca5a5'),
+        'EMPTY BOX': ('#78350f','#fcd34d'),
+        'DAMAGED':   ('#713f12','#fde68a'),
+    }
+    if b['casos_hoje']:
+        c_rows = ''
+        for r in b['casos_hoje']:
+            tp  = str(r.get('tipo_fraude','') or '').upper()
+            cb  = str(r.get('culpabilidade','') or '')
+            bg, fg = tipo_cor.get(tp, ('#1f2937','#9ca3af'))
+            shp = r.get('shp_id','')
+            bpv = float(r.get('bpp_usd') or 0)
+            c_rows += (
+                f'<tr style="border-top:1px solid #1a2035">'
+                f'<td style="padding:6px 10px;font-family:monospace;font-size:12px">'
+                f'<a href="{MELI_URL}/{shp}" target="_blank" style="color:#60a5fa;text-decoration:none">{shp}</a></td>'
+                f'<td style="padding:6px 10px"><span style="background:{bg};color:{fg};padding:2px 7px;border-radius:10px;font-size:10px">{tp or "—"}</span></td>'
+                f'<td style="padding:6px 10px;font-size:11px;color:#9ca3af">{cb}</td>'
+                f'<td style="padding:6px 10px;font-weight:700;color:#10b981;text-align:right">${bpv:,.2f}</td>'
+                f'</tr>'
+            )
+        box_hoje = (
+            f'<div class="tbl-wrap">'
+            f'<div class="tbl-title" style="color:#ef4444">'
+            f'<i data-lucide="zap" width="14" height="14" style="color:#ef4444;margin-right:6px;vertical-align:middle"></i>'
+            f'BPP Hoje — {b["n_hoje"]} registro(s)</div>'
+            f'<div class="tbl-scroll"><table>'
+            f'<thead><tr><th>SHP ID</th><th>Tipo</th><th>Culpa</th><th style="text-align:right">BPP USD</th></tr></thead>'
+            f'<tbody>{c_rows}</tbody></table></div></div>'
+        )
+    else:
+        box_hoje = '<div class="tbl-wrap"><div style="text-align:center;padding:24px;color:#10b981;font-size:14px">Nenhum BPP registrado hoje ✓</div></div>'
+
+    # --- ON WAY (static) ---
+    if b['alto_ow']:
+        ow_rows = ''
+        for r in b['alto_ow']:
+            dc = r['dias']
+            dc_cor = '#EF4444' if dc >= 8 else ('#F97316' if dc >= 4 else '#10B981')
+            cr = str(r.get('carrier') or '')
+            ctxt = cr if cr and cr.lower() not in ('null','none','') else '—'
+            ow_rows += (
+                f'<tr style="border-top:1px solid #1a2035">'
+                f'<td style="padding:6px 10px;font-family:monospace;font-size:12px">'
+                f'<a href="{MELI_URL}/{r["id"]}" target="_blank" style="color:#60a5fa;text-decoration:none">{r["id"]}</a></td>'
+                f'<td style="padding:6px 10px;font-size:11px;color:#9ca3af">{r["sit"]}</td>'
+                f'<td style="padding:6px 10px;font-size:11px;color:#9ca3af">{ctxt}</td>'
+                f'<td style="padding:6px 10px;text-align:center"><span style="color:{dc_cor};font-weight:700">{dc}d</span></td>'
+                f'<td style="padding:6px 10px;font-weight:700;color:#10b981;text-align:right">${r["gmv"]:,.2f}</td>'
+                f'</tr>'
+            )
+        box_ow = (
+            f'<div class="tbl-wrap">'
+            f'<div class="tbl-title" style="color:#f97316">'
+            f'<i data-lucide="alert-triangle" width="14" height="14" style="color:#f97316;margin-right:6px;vertical-align:middle"></i>'
+            f'ON WAY — {len(b["alto_ow"])} pacote(s)</div>'
+            f'<div class="tbl-scroll"><table>'
+            f'<thead><tr><th>SHP ID</th><th>Situação</th><th>Transportadora</th><th style="text-align:center">Dias</th><th style="text-align:right">GMV</th></tr></thead>'
+            f'<tbody>{ow_rows}</tbody></table></div></div>'
+        )
+    else:
+        box_ow = '<div class="tbl-wrap"><div style="text-align:center;padding:24px;color:#10b981;font-size:14px">Nenhum pacote ON WAY</div></div>'
+
+    bpp_hoje_cor = '#EF4444' if b['n_hoje'] else '#10B981'
+
+    return (
+        _painel_dia_html(b, on_route, on_way) +
+        f'<script>\n'
+        f'const BRF_DATA = {by_week_json};\n\n'
+        f'function brfDelta(d, isGmv) {{\n'
+        f'  if (!d) return \'<span style="color:#4b5563;font-size:10px">—</span>\';\n'
+        f'  var up = d > 0;\n'
+        f'  var color = up ? \'#ef4444\' : \'#10b981\';\n'
+        f'  var arrow = up ? \'▲\' : \'▼\';\n'
+        f'  var val = isGmv ? \'$\' + Math.abs(d).toFixed(0) : Math.abs(d);\n'
+        f'  return \'<span style="color:\' + color + \';font-size:10px">\' + arrow + \' \' + val + \'</span>\';\n'
+        f'}}\n\n'
+        f'function brfWeekChange(wk) {{ renderBrfWeek(wk); }}\n\n'
+        f'function renderBrfWeek(wk) {{\n'
+        f'  var d = BRF_DATA[wk];\n'
+        f'  if (!d) return;\n'
+        f'  function set(id, v) {{ var el = document.getElementById(id); if (el) el.innerHTML = v; }}\n'
+        f'  set(\'brf-c-casos\', d.n_casos);\n'
+        f'  set(\'brf-c-gmv\', \'$\' + Number(d.gmv).toLocaleString(\'en-US\', {{maximumFractionDigits:0}}));\n'
+        f'  set(\'brf-c-drv\', d.n_drivers);\n'
+        f'  set(\'brf-c-plc\', d.n_places);\n'
+        f'  set(\'brf-d-casos\', brfDelta(d.delta_casos, false));\n'
+        f'  set(\'brf-d-gmv\', brfDelta(d.delta_gmv, true));\n\n'
+        f'  var maxDrv = d.max_drv || 1;\n'
+        f'  var dh = \'\';\n'
+        f'  var meli_url = \'{MELI_URL}\';\n'
+        f'  (d.top_drivers || []).forEach(function(drv, i) {{\n'
+        f'    var pct = Math.round(drv.total / maxDrv * 100);\n'
+        f'    var stCor = drv.status === \'active\' ? \'#10b981\' : \'#6b7280\';\n'
+        f'    var uid = \'bdrv\' + i + \'_\' + wk.replace(/[^a-z0-9]/gi, \'\');\n'
+        f'    var shpLinks = (drv.shps || []).map(function(s) {{\n'
+        f'      return \'<a href="\' + meli_url + \'/\' + s + \'" target="_blank" style="font-family:monospace;font-size:11px;color:#60a5fa;background:#0d1321;padding:2px 7px;border-radius:4px;border:1px solid #1f2937;text-decoration:none">\' + s + \'</a>\';\n'
+        f'    }}).join(\'\');\n'
+        f'    dh += \'<tr style="border-top:1px solid #1a2035;cursor:pointer" onclick="toggleBrfRow(this)">\'\n'
+        f'        + \'<td style="padding:5px 8px;text-align:center;color:#6b7280;font-size:11px">\' + (i+1) + \'</td>\'\n'
+        f'        + \'<td style="padding:5px 8px;font-family:monospace;font-size:12px;color:#e2e8f0">\' + (drv.id||\'—\') + \'</td>\'\n'
+        f'        + \'<td style="padding:5px 8px;font-size:11px;color:#9ca3af;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="\' + (drv.nome||\'\') + \'">\' + (drv.nome||\'—\') + \'</td>\'\n'
+        f'        + \'<td style="padding:5px 8px"><div style="display:flex;align-items:center;gap:5px"><div style="flex:1;background:#1a2035;border-radius:3px;height:5px;overflow:hidden"><div style="background:#ef4444;height:100%;width:\' + pct + \'%"></div></div><span style="font-size:12px;font-weight:700;color:#f9fafb;min-width:18px">\' + drv.total + \'</span></div></td>\'\n'
+        f'        + \'<td style="padding:5px 8px;text-align:right;font-size:11px;color:#10b981">$\' + drv.gmv.toFixed(0) + \'</td>\'\n'
+        f'        + \'<td style="padding:5px 8px;text-align:center"><span style="color:\' + stCor + \';font-size:10px">●</span> <span style="color:#374151;font-size:10px">›</span></td>\'\n'
+        f'        + \'</tr>\'\n'
+        f'        + \'<tr class="brf-expand" style="display:none"><td colspan="6" style="padding:8px 14px 12px;background:#060c18;border-bottom:1px solid #1f2937">\'\n'
+        f'        + \'<div style="font-size:10px;color:#4b5563;margin-bottom:6px;font-weight:600;text-transform:uppercase">\' + (drv.shps||[]).length + \' SHP(s)</div>\'\n'
+        f'        + \'<div style="display:flex;flex-wrap:wrap;gap:4px">\' + shpLinks + \'</div></td></tr>\';\n'
+        f'  }});\n'
+        f'  set(\'brf-drv-body\', dh || \'<tr><td colspan="6" style="padding:16px;text-align:center;color:#6b7280">Sem drivers</td></tr>\');\n\n'
+        f'  var maxPlc = d.max_plc || 1;\n'
+        f'  var plcCor = {{"NEx":"#f59e0b","MELI EXTRA":"#a78bfa","DELIVERY CELL":"#60a5fa"}};\n'
+        f'  var ph = \'\';\n'
+        f'  (d.top_places || []).forEach(function(p, i) {{\n'
+        f'    var pct = Math.round(p.total / maxPlc * 100);\n'
+        f'    var pc = plcCor[p.tipo] || \'#9ca3af\';\n'
+        f'    var plcLinks = (p.shps || []).map(function(s) {{\n'
+        f'      return \'<a href="\' + meli_url + \'/\' + s + \'" target="_blank" style="font-family:monospace;font-size:11px;color:#60a5fa;background:#0d1321;padding:2px 7px;border-radius:4px;border:1px solid #1f2937;text-decoration:none">\' + s + \'</a>\';\n'
+        f'    }}).join(\'\');\n'
+        f'    ph += \'<tr style="border-top:1px solid #1a2035;cursor:pointer" onclick="toggleBrfRow(this)">\'\n'
+        f'        + \'<td style="padding:5px 8px;text-align:center;color:#6b7280;font-size:11px">\' + (i+1) + \'</td>\'\n'
+        f'        + \'<td style="padding:5px 8px"><span style="color:\' + pc + \';font-size:10px;font-weight:700">\' + p.tipo + \'</span></td>\'\n'
+        f'        + \'<td style="padding:5px 8px;font-family:monospace;font-size:11px;color:#6b7280">\' + (p.id||\'—\') + \'</td>\'\n'
+        f'        + \'<td style="padding:5px 8px"><div style="display:flex;align-items:center;gap:5px"><div style="flex:1;background:#1a2035;border-radius:3px;height:5px;overflow:hidden"><div style="background:\' + pc + \';height:100%;width:\' + pct + \'%"></div></div><span style="font-size:12px;font-weight:700;color:#f9fafb;min-width:18px">\' + p.total + \'</span></div></td>\'\n'
+        f'        + \'<td style="padding:5px 8px;text-align:right;font-size:11px;color:#10b981">$\' + p.gmv.toFixed(0) + \' <span style="color:#374151;font-size:10px">›</span></td>\'\n'
+        f'        + \'</tr>\'\n'
+        f'        + \'<tr class="brf-expand" style="display:none"><td colspan="5" style="padding:8px 14px 12px;background:#060c18;border-bottom:1px solid #1f2937">\'\n'
+        f'        + \'<div style="font-size:10px;color:#4b5563;margin-bottom:6px;font-weight:600;text-transform:uppercase">\' + (p.shps||[]).length + \' SHP(s)</div>\'\n'
+        f'        + \'<div style="display:flex;flex-wrap:wrap;gap:4px">\' + plcLinks + \'</div></td></tr>\';\n'
+        f'  }});\n'
+        f'  set(\'brf-plc-body\', ph || \'<tr><td colspan="5" style="padding:16px;text-align:center;color:#6b7280">Sem places</td></tr>\');\n'
+        f'}}\n\n'
+        f'function toggleBrfRow(tr) {{\n'
+        f'  var next = tr.nextElementSibling;\n'
+        f'  if (next && next.classList.contains(\'brf-expand\')) {{\n'
+        f'    next.style.display = next.style.display === \'none\' ? \'table-row\' : \'none\';\n'
+        f'  }}\n'
+        f'}}\n\n'
+        f'document.addEventListener(\'DOMContentLoaded\', function() {{ renderBrfWeek(\'{current_week}\'); }});\n'
+        f'</script>\n\n'
+        f'<div class="cards" style="margin-bottom:14px">\n'
+        f'  <div class="card">\n'
+        f'    <div class="card-header"><i data-lucide="zap" class="card-icon" width="14" height="14"></i><span class="card-label">BPP Hoje</span></div>\n'
+        f'    <div class="card-value" style="color:{bpp_hoje_cor}">{b["n_hoje"]}</div>\n'
+        f'    <div class="card-delta">caso(s) com BPP hoje</div>\n'
+        f'  </div>\n'
+        f'  <div class="card">\n'
+        f'    <div class="card-header"><i data-lucide="calendar" class="card-icon" width="14" height="14"></i><span class="card-label">Casos Semana</span></div>\n'
+        f'    <div class="card-value" style="color:#f87171" id="brf-c-casos">—</div>\n'
+        f'    <div class="card-delta" id="brf-d-casos" style="min-height:14px"></div>\n'
+        f'  </div>\n'
+        f'  <div class="card">\n'
+        f'    <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">BPP Semana</span></div>\n'
+        f'    <div class="card-value" style="color:#10b981;font-size:18px" id="brf-c-gmv">—</div>\n'
+        f'    <div class="card-delta" id="brf-d-gmv" style="min-height:14px"></div>\n'
+        f'  </div>\n'
+        f'  <div class="card">\n'
+        f'    <div class="card-header"><i data-lucide="user-x" class="card-icon" width="14" height="14"></i><span class="card-label">Drivers</span></div>\n'
+        f'    <div class="card-value" style="color:#a78bfa" id="brf-c-drv">—</div>\n'
+        f'    <div class="card-delta">identificados na semana</div>\n'
+        f'  </div>\n'
+        f'  <div class="card">\n'
+        f'    <div class="card-header"><i data-lucide="map-pin" class="card-icon" width="14" height="14"></i><span class="card-label">Places</span></div>\n'
+        f'    <div class="card-value" style="color:#f59e0b" id="brf-c-plc">—</div>\n'
+        f'    <div class="card-delta">nodes com ocorrências</div>\n'
+        f'  </div>\n'
+        f'</div>\n\n'
+        f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;background:#0d1321;border:1px solid #1f2937;border-radius:8px;padding:10px 14px">\n'
+        f'  <i data-lucide="calendar-days" width="14" height="14" style="color:#6b7280"></i>\n'
+        f'  <span style="font-size:12px;color:#6b7280">Semana:</span>\n'
+        f'  <select onchange="brfWeekChange(this.value)" style="background:#0d1321;color:#e2e8f0;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:12px;cursor:pointer">\n'
+        f'    {week_opts}'
+        f'  </select>\n'
+        f'  <span style="font-size:10px;color:#4b5563;margin-left:4px">▲ piorou &nbsp; ▼ melhorou vs semana anterior</span>\n'
+        f'</div>\n\n'
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">\n'
+        f'  <div>{box_hoje}</div>\n'
+        f'  <div>{box_ow}</div>\n'
+        f'</div>\n\n'
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">\n'
+        f'  <div class="tbl-wrap">\n'
+        f'    <div class="tbl-title" style="color:#a78bfa"><i data-lucide="user-x" width="14" height="14" style="color:#a78bfa;margin-right:6px;vertical-align:middle"></i>Drivers — Semana</div>\n'
+        f'    <div class="tbl-scroll"><table>\n'
+        f'      <thead><tr><th>#</th><th>Driver ID</th><th>Transportadora</th><th>Casos</th><th style="text-align:right">BPP</th><th></th></tr></thead>\n'
+        f'      <tbody id="brf-drv-body"><tr><td colspan="6" style="padding:16px;text-align:center;color:#6b7280">Carregando...</td></tr></tbody>\n'
+        f'    </table></div>\n'
+        f'  </div>\n'
+        f'  <div class="tbl-wrap">\n'
+        f'    <div class="tbl-title" style="color:#f59e0b"><i data-lucide="map-pin" width="14" height="14" style="color:#f59e0b;margin-right:6px;vertical-align:middle"></i>Places — Semana</div>\n'
+        f'    <div class="tbl-scroll"><table>\n'
+        f'      <thead><tr><th>#</th><th>Tipo</th><th>Node ID</th><th>Casos</th><th style="text-align:right">BPP</th></tr></thead>\n'
+        f'      <tbody id="brf-plc-body"><tr><td colspan="5" style="padding:16px;text-align:center;color:#6b7280">Carregando...</td></tr></tbody>\n'
+        f'    </table></div>\n'
+        f'  </div>\n'
+        f'</div>'
+    )
+
 def gerar_html(d):
     j = lambda x: json.dumps(x, ensure_ascii=False)
 
@@ -929,6 +2041,10 @@ def gerar_html(d):
   .sb-item:hover{{background:#0d1321;color:#e2e8f0}}
   .sb-item.active{{background:linear-gradient(90deg,rgba(255,230,0,.12),transparent);color:#ffffff;border-left-color:#FFE600;font-weight:600}}
   .sb-item.sb-alert{{color:#ef4444!important}}
+  .sb-drag-handle{{opacity:0;cursor:grab;margin-right:5px;color:#374151;font-size:14px;flex-shrink:0;user-select:none;transition:opacity .15s}}
+  .sb-item:hover .sb-drag-handle{{opacity:1}}
+  .sb-item.sb-dragging{{opacity:.35}}
+  .sb-item.sb-drop-before{{border-top:2px solid #FFE600!important}}
   .sb-badge{{margin-left:auto;background:rgba(255,230,0,.15);color:#FFE600;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0}}
   .sb-badge.red{{background:rgba(239,68,68,.2);color:#f87171}}
   .ci{{flex-shrink:0}}
@@ -951,6 +2067,9 @@ def gerar_html(d):
   .card-value.val-ok{{color:#10b981}}
   .card-value.val-warn{{color:#f59e0b}}
   .card-delta{{font-size:11px;color:#374151;margin-top:6px;line-height:1.4}}
+  /* PAINEL DO DIA */
+  .pd-item{{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-bottom:1px solid #0f1728}}
+  .pd-item:last-child{{border-bottom:none}}
   /* GRIDS */
   .cards-grid{{display:grid;gap:14px;margin-bottom:18px}}
   .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}}
@@ -1002,7 +2121,9 @@ def gerar_html(d):
   .mod-btn.m-risco{{color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}}
   .mod-btn.m-isca{{color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}}
   .mod-btn.m-cftv{{color:#60a5fa;background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2)}}
+  .mod-btn.m-sinistros{{color:#f97316;background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.2)}}
   .mod-btn.m-disabled{{opacity:.35;cursor:not-allowed;pointer-events:none}}
+  .mod-btn.m-diario{{color:#10B981;background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.2)}}
   /* CARD CLICÁVEL */
   .card-link{{cursor:pointer;position:relative}}
   .card-link::after{{content:'↗';position:absolute;top:14px;right:14px;font-size:10px;color:#1f2937;transition:color .3s ease}}
@@ -1014,8 +2135,10 @@ def gerar_html(d):
   .ow-text.ow-saving{{border-color:#FBBF24!important}}
   .ow-text.ow-saved{{border-color:#10B981!important}}
   .ow-text.ow-err{{border-color:#ef4444!important}}
-  .ow-edit select{{background:#080d19;border:1px solid #1f2937;border-radius:5px;padding:5px 6px;color:#9ca3af;font-size:11px;cursor:pointer;outline:none;max-width:160px}}
-  .ow-edit select:focus{{border-color:#374151}}
+  .ow-fake-sel{{position:relative;background:#080d19;border:1px solid #1f2937;border-radius:5px;padding:5px 24px 5px 8px;color:#e2e8f0;font-size:12px;width:100%;display:flex;align-items:center;justify-content:space-between;min-height:30px;box-sizing:border-box;cursor:pointer;transition:border-color .2s}}
+  .ow-fake-sel:focus-within{{border-color:#374151}}
+  .ow-fake-val{{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+  .ow-real-sel{{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:none}}
   .ow-dd-btn{{color:#6b7280;cursor:pointer;font-size:14px;padding:0 2px;user-select:none;flex-shrink:0}}
   .ow-dd-btn:hover{{color:#e2e8f0}}
   .ow-sugest{{display:none;position:absolute;top:calc(100% + 2px);left:0;min-width:200px;background:#111827;border:1px solid #1f2937;border-radius:6px;z-index:999;box-shadow:0 4px 16px #000a;overflow:hidden}}
@@ -1045,6 +2168,35 @@ def gerar_html(d):
   /* EMPTY STATE */
   .chart-wrap{{position:relative}}
   .empty-msg{{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#374151;pointer-events:none}}
+  /* DIÁRIO DE BORDO */
+  .db-section-lbl{{font-size:10px;color:#374151;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px;display:flex;align-items:center;gap:8px}}
+  .db-section-lbl::after{{content:'';flex:1;border-top:0.5px solid #111827}}
+  .db-act-item{{background:#080d19;border:1px solid #111827;border-radius:8px;padding:9px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;transition:border-color .15s}}
+  .db-act-item:hover{{border-color:#1f2937}}
+  .db-act-item.db-done{{opacity:.5}}
+  .db-check{{width:18px;height:18px;border:1.5px solid #374151;border-radius:4px;flex-shrink:0;margin-top:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#10B981;transition:all .15s;user-select:none}}
+  .db-check.db-done{{background:rgba(16,185,129,.12);border-color:#10B981}}
+  .db-act-body{{flex:1;min-width:0}}
+  .db-act-row{{display:flex;align-items:center;gap:6px;flex-wrap:wrap}}
+  .db-act-name{{font-size:13px;font-weight:500;color:#F9FAFB}}
+  .db-act-item.db-done .db-act-name{{text-decoration:line-through;color:#6B7280}}
+  .db-act-time{{font-size:11px;color:#6B7280}}
+  .db-tipo{{font-size:10px;padding:2px 6px;border-radius:20px;font-weight:500;white-space:nowrap}}
+  .db-t-analise{{background:rgba(59,130,246,.1);color:#93C5FD}}
+  .db-t-gemba{{background:rgba(245,158,11,.1);color:#FCD34D}}
+  .db-t-reuniao{{background:rgba(234,88,12,.1);color:#FDBA74}}
+  .db-t-1a1{{background:rgba(124,58,237,.1);color:#C4B5FD}}
+  .db-t-treinamento{{background:rgba(5,150,105,.1);color:#6EE7B7}}
+  .db-t-extra{{background:rgba(107,114,128,.1);color:#9CA3AF}}
+  .db-obs-txt{{font-size:11px;color:#6B7280;margin-top:4px;font-style:italic}}
+  .db-obs-inp{{margin-top:6px;width:100%;font-size:12px;padding:5px 8px;border-radius:4px;border:1px solid #1f2937;background:#060a14;color:#D1D5DB;outline:none;display:none;box-sizing:border-box;resize:vertical}}
+  .db-act-item:hover .db-obs-inp,.db-obs-inp:focus{{display:block}}
+  .db-btn-add{{width:100%;padding:8px;background:transparent;border:1px dashed #1f2937;border-radius:8px;font-size:12px;color:#6B7280;cursor:pointer;margin-top:8px;transition:border-color .15s,color .15s}}
+  .db-btn-add:hover{{border-color:#10B981;color:#10B981}}
+  .db-modal-bg{{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.65);align-items:center;justify-content:center}}
+  .db-modal{{background:#111827;border:1px solid #374151;border-radius:10px;padding:20px;width:360px;max-width:95vw}}
+  .db-modal-inp{{width:100%;padding:7px 10px;background:#1f2937;border:1px solid #374151;border-radius:6px;color:#F9FAFB;font-size:13px;margin-bottom:8px;box-sizing:border-box}}
+  .db-modal-inp:focus{{outline:none;border-color:#10B981}}
 </style>
 </head>
 <body>
@@ -1074,13 +2226,48 @@ def gerar_html(d):
       <a href="./cftv.html" class="mod-btn">
         <i data-lucide="camera" width="12" height="12"></i> CFTV
       </a>
+      <a href="./sinistros.html" class="mod-btn m-sinistros">
+        <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
+      </a>
+      <button id="db-nav-btn" onclick="dbTogglePanel()" class="mod-btn m-diario" style="cursor:pointer;position:relative">
+        <i data-lucide="book-open" width="12" height="12"></i> Diário
+        <span id="db-nav-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#10B981;color:#fff;font-size:8px;padding:1px 4px;border-radius:10px;font-weight:700"></span>
+      </button>
     </div>
+  </div>
+</div>
+
+<!-- PAINEL DIÁRIO DE BORDO (dropdown flutuante) -->
+<div id="db-panel" style="display:none;position:fixed;top:60px;right:12px;width:350px;max-height:75vh;overflow-y:auto;background:#111827;border:1px solid #374151;border-radius:10px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.8)">
+  <!-- cabeçalho do painel -->
+  <div style="padding:11px 14px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:8px;flex-shrink:0;position:sticky;top:0;background:#111827;z-index:1">
+    <span style="font-size:12px;font-weight:600;color:#F9FAFB"><i data-lucide="book-open" width="13" height="13" style="vertical-align:-2px"></i> Diário de Bordo</span>
+    <span id="db-date-lbl" style="font-size:11px;color:#6B7280;flex:1"></span>
+    <span id="db-progress-wrap" style="display:flex;align-items:center;gap:5px;font-size:10px;color:#6B7280;margin-right:4px">
+      <span id="db-progress-txt"></span>
+      <div style="width:44px;height:4px;background:#0d1321;border-radius:2px;overflow:hidden">
+        <div id="db-progress-bar" style="height:100%;background:#10B981;border-radius:2px;width:0%;transition:width .3s"></div>
+      </div>
+    </span>
+    <span id="db-status" style="font-size:10px;color:#6B7280"></span>
+    <button onclick="dbFecharPanel()" style="background:none;border:none;color:#6B7280;cursor:pointer;font-size:15px;padding:0;line-height:1;margin-left:4px">✕</button>
+  </div>
+  <!-- corpo -->
+  <div style="padding:10px 12px 12px">
+    <div id="db-list"></div>
+    <div class="db-section-lbl" style="margin-top:10px">Extras</div>
+    <div id="db-extras"></div>
+    <button class="db-btn-add" onclick="dbAbrirModal()">+ Atividade extra</button>
   </div>
 </div>
 
 <div class="app-body">
 <nav class="sidebar">
-  <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
+  <div class="sb-item active" data-tab="briefing" onclick="showTab('briefing',this)">
+    <i data-lucide="sun" width="14" height="14" class="ci"></i> Briefing
+    {'<span class="sb-badge red">' + str(d["briefing"]["n_hoje"]) + ' hoje</span>' if d["briefing"]["n_hoje"] else ''}
+  </div>
+  <div class="sb-item" data-tab="geral" onclick="showTab('geral',this)">
     <i data-lucide="bar-chart-2" width="14" height="14" class="ci"></i> Visão Geral
   </div>
   <div class="sb-item {'sb-alert' if d['criticos'] else ''}" data-tab="criticos" onclick="showTab('criticos',this)">
@@ -1114,8 +2301,16 @@ def gerar_html(d):
 </nav>
 <main class="main-content">
 
+<!-- ===================== ABA 0: BRIEFING MATINAL ===================== -->
+<div id="tab-briefing" class="content active">
+  <div style="font-size:18px;font-weight:700;color:#f9fafb;margin-bottom:14px">
+    Briefing Matinal <span style="color:#6b7280;font-weight:400;font-size:13px">SSP30 · últimos 90 dias</span>
+  </div>
+  {_briefing_html(d["briefing"], d.get("r_rows",[]), d.get("w_rows",[]))}
+</div>
+
 <!-- ===================== ABA 1: VISÃO GERAL ===================== -->
-<div id="tab-geral" class="content active">
+<div id="tab-geral" class="content">
   <div class="cards">
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="package" class="card-icon" width="14" height="14"></i><span class="card-label">ON ROUTE</span></div>
@@ -1222,7 +2417,10 @@ def gerar_html(d):
     <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">{d["r_novos"]}</div></div>
   </div>
   <div class="tbl-wrap">
-    <div class="tbl-title">📦 Pacotes ON ROUTE — ordenados por GMV</div>
+    <div class="tbl-title">📦 Pacotes ON ROUTE — ordenados por GMV
+      <span id="rt-server-status" style="float:right;font-size:10px;font-weight:400;color:#6b7280">verificando servidor...</span>
+    </div>
+    {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
     {filtros_html("route", sits_rt)}
     <div class="tbl-scroll">
     <table id="tbl_route">
@@ -1231,10 +2429,13 @@ def gerar_html(d):
         <th class="sortable" onclick="sortTable('tbl_route',1)">Situation</th>
         <th class="sortable" onclick="sortTable('tbl_route',2)">GMV USD</th>
         <th class="sortable" onclick="sortTable('tbl_route',3)">Responsável</th>
-        <th>CFTV</th>
-        <th class="sortable" onclick="sortTable('tbl_route',5)">Status Caso</th>
+        <th>CFTV / Inv.</th>
+        <th>Status Caso</th>
         <th class="sortable" onclick="sortTable('tbl_route',6)">Dias Cart.</th>
         <th class="sortable" onclick="sortTable('tbl_route',7)">Entrada</th>
+        <th><i data-lucide="pencil" width="12" height="12"></i> Ação LP</th>
+        <th>Finalização</th>
+        <th style="min-width:150px">🏢 Cobrar OTR</th>
       </tr></thead>
       <tbody>{rows_table_rt(d["r_rows"])}</tbody>
     </table>
@@ -1256,6 +2457,7 @@ def gerar_html(d):
     <div class="tbl-title">🚛 Pacotes ON WAY — ordenados por GMV
       <span id="ow-server-status" style="float:right;font-size:10px;font-weight:400;color:#6b7280">verificando servidor...</span>
     </div>
+    {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["w_entregues"]) + ' pacote(s) detectado(s) como ENTREGUE no sistema</strong> — verifique e mova para Histórico como recupero.</div>' if d["w_entregues"] else ''}
     {filtros_html("way", sits_wy)}
     <div class="tbl-scroll">
     <table id="tbl_way">
@@ -1265,7 +2467,7 @@ def gerar_html(d):
         <th class="sortable" onclick="sortTable('tbl_way',2)">GMV USD</th>
         <th class="sortable" onclick="sortTable('tbl_way',3)">Dias OW</th>
         <th class="sortable" onclick="sortTable('tbl_way',4)">Transportadora</th>
-        <th>CFTV</th>
+        <th>CFTV / Inv.</th>
         <th class="sortable" onclick="sortTable('tbl_way',6)">Status Caso</th>
         <th class="sortable" onclick="sortTable('tbl_way',7)">Dias Cart.</th>
         <th class="sortable" onclick="sortTable('tbl_way',8)">Entrada</th>
@@ -1386,11 +2588,43 @@ def gerar_html(d):
     <div class="box"><div class="box-title">Distribuição NEX / DC</div><div style="position:relative;height:220px"><canvas id="cPlTramo"></canvas></div></div>
   </div>
 
-  <script>const PLACES_REPORT = {json.dumps(gerar_report_places_txt(d), ensure_ascii=False)};</script>
+  <script>
+    const PLACES_REPORT = {json.dumps(gerar_report_places_txt(d), ensure_ascii=False)};
+    const OTR_TXT = {json.dumps(d["places"]["otr_txt"], ensure_ascii=False)};
+  </script>
+
+  <!-- SECAO OTR -->
+  <div class="tbl-wrap" style="margin-bottom:18px;border-color:{'rgba(239,68,68,.3)' if d['places']['otr_imediato'] else 'rgba(251,191,36,.2)'}">
+    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between;background:{'rgba(127,29,29,.25)' if d['places']['otr_imediato'] else 'rgba(113,63,18,.15)'}">
+      <span style="display:flex;align-items:center;gap:8px">
+        {'<span style="width:8px;height:8px;background:#ef4444;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite"></span>' if d['places']['otr_imediato'] else ''}
+        Lista OTR — Places com acumulo DIT
+        {f'<span style="background:#7f1d1d;color:#fca5a5;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">{d["places"]["otr_imediato"]} IMEDIATO</span>' if d['places']['otr_imediato'] else ''}
+      </span>
+      <button id="btn-otr-copy" onclick="copiarOTR()"
+        style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;
+               border-radius:6px;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:600;
+               display:flex;align-items:center;gap:6px">
+        Copiar para OTR
+      </button>
+    </div>
+    <div class="tbl-scroll">
+    <table id="tbl_otr" style="min-width:500px">
+      <thead><tr>
+        <th>Nivel</th><th>Place ID</th><th>Tipo</th>
+        <th class="sortable" onclick="sortTable('tbl_otr',3)">DIT s/ flag</th>
+        <th class="sortable" onclick="sortTable('tbl_otr',4)">Avg dias</th>
+        <th>Preso no place</th>
+        <th style="width:24px"></th>
+      </tr></thead>
+      <tbody>{rows_otr_section(d["places"]["otr_list"])}</tbody>
+    </table>
+    </div>
+  </div>
 
   <div class="tbl-wrap" style="margin-bottom:18px">
     <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>🏆 Places Ofensores — Ranking por GMV (SSP30)</span>
+      <span>Places Ofensores — Ranking por GMV (SSP30)</span>
       <button id="btn-report-places" onclick="copiarReportPlaces()"
         style="background:rgba(255,230,0,.1);border:1px solid rgba(255,230,0,.3);color:#FFE600;
                border-radius:6px;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:600;
@@ -1451,6 +2685,23 @@ def gerar_html(d):
   </div>
 </div>
 
+<!-- Modal nova atividade extra -->
+<div id="db-modal-bg" class="db-modal-bg" onclick="if(event.target===this)dbFecharModal()">
+  <div class="db-modal">
+    <div style="font-size:14px;font-weight:600;color:#F9FAFB;margin-bottom:14px">Nova Atividade Extra</div>
+    <input id="db-m-atv" class="db-modal-inp" placeholder="Descrição da atividade *">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input id="db-m-ini" type="time" class="db-modal-inp" style="flex:1;margin-bottom:0" placeholder="Início">
+      <input id="db-m-fim" type="time" class="db-modal-inp" style="flex:1;margin-bottom:0" placeholder="Fim">
+    </div>
+    <textarea id="db-m-obs" class="db-modal-inp" rows="2" placeholder="Observações (opcional)" style="resize:vertical;margin-top:8px"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button onclick="dbFecharModal()" style="padding:6px 14px;background:transparent;border:1px solid #374151;border-radius:6px;color:#9CA3AF;font-size:12px;cursor:pointer">Cancelar</button>
+      <button onclick="dbSalvarExtra()" style="padding:6px 14px;background:#10B981;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:500">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== SCRIPTS ===================== -->
 <script>
 // Troca de abas + atualiza URL hash para link direto
@@ -1462,6 +2713,7 @@ function showTab(name, el) {{
   el.classList.add('active');
   history.replaceState(null, '', '#' + name);
   if (name === 'places') initPlCharts();
+  if (name === 'way' || name === 'route') carregarValoresOW();
 }}
 
 // Abre aba pelo hash da URL (ex: #criticos)
@@ -1471,12 +2723,28 @@ window.addEventListener('load', () => {{
     const el = document.querySelector(`.sb-item[data-tab="${{hash}}"]`);
     if (el) showTab(hash, el);
   }}
+  if (!hash || hash === 'way' || hash === 'route') carregarValoresOW();
 }});
 
 // Navega para uma aba ao clicar num card
 function irPara(tabName) {{
   const el = document.querySelector(`.sb-item[data-tab="${{tabName}}"]`);
   if (el) {{ showTab(tabName, el); window.scrollTo({{top:0, behavior:'smooth'}}); }}
+}}
+
+// Copia lista OTR para clipboard
+function copiarOTR() {{
+  if (!navigator.clipboard) return;
+  navigator.clipboard.writeText(OTR_TXT).then(() => {{
+    const btn = document.getElementById('btn-otr-copy');
+    if (!btn) return;
+    const orig = btn.innerHTML;
+    btn.innerHTML = 'Copiado!';
+    btn.style.background = 'rgba(74,222,128,.15)';
+    btn.style.borderColor = 'rgba(74,222,128,.4)';
+    btn.style.color = '#4ade80';
+    setTimeout(() => {{ btn.innerHTML = orig; btn.style = ''; }}, 2000);
+  }});
 }}
 
 // Copia relatório de places para clipboard
@@ -1492,6 +2760,62 @@ function copiarReportPlaces() {{
     btn.style.color = '#4ade80';
     setTimeout(() => {{ btn.innerHTML = orig; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '#FFE600'; }}, 2500);
   }});
+}}
+
+// Carrega valores atuais da planilha e preenche campos editáveis da aba ON WAY
+async function carregarValoresOW() {{
+  try {{
+    const [rWy, rRt] = await Promise.all([
+      fetch('http://localhost:5000/ow_values?tab=wy'),
+      fetch('http://localhost:5000/ow_values?tab=rt'),
+    ]);
+    const valsWy = rWy.ok ? await rWy.json() : {{}};
+    const valsRt = rRt.ok ? await rRt.json() : {{}};
+
+    // ON WAY — cols 23(acao) 24(link) 29(status) 30(final)
+    document.querySelectorAll('#tbl_way .ow-edit').forEach(el => {{
+      const shp = el.dataset.shp, col = String(el.dataset.col);
+      const v = valsWy[shp];
+      if (!v) return;
+      let val = col === '23' ? v.acao : col === '24' ? v.link : col === '29' ? v.status : col === '30' ? v.final : undefined;
+      if (val !== undefined && val !== null) {{
+        el.value = val;
+        if (el.tagName === 'SELECT') owUpdateFake(el);
+      }}
+    }});
+    // Atualiza botões de link (↗)
+    document.querySelectorAll('#tbl_way input[data-col="24"]').forEach(inp => {{
+      const wrap = inp.closest('.ow-edit-wrap');
+      if (!wrap) return;
+      let btn = wrap.querySelector('.ow-link-btn');
+      if (inp.value) {{
+        if (!btn) {{ btn = document.createElement('a'); btn.className = 'ow-link-btn'; btn.title = 'Abrir email'; btn.textContent = '↗'; btn.target = '_blank'; wrap.appendChild(btn); }}
+        btn.href = inp.value;
+      }} else if (btn) {{ btn.remove(); }}
+    }});
+
+    // ON ROUTE — cols 24(acao) 29(status) 30(final)
+    document.querySelectorAll('#tbl_route .ow-edit').forEach(el => {{
+      const shp = el.dataset.shp, col = String(el.dataset.col);
+      const v = valsRt[shp];
+      if (!v) return;
+      let val = col === '24' ? v.acao : col === '29' ? v.status : col === '30' ? v.final : undefined;
+      if (val !== undefined && val !== null) {{
+        el.value = val;
+        if (el.tagName === 'SELECT') owUpdateFake(el);
+      }}
+    }});
+  }} catch(e) {{ /* servidor offline — silencioso */ }}
+}}
+
+// Expand/collapse IDs de um place na tabela OTR
+function toggleOtrRow(pid) {{
+  const row = document.getElementById('otr-d-' + pid);
+  const btn = document.getElementById('otr-btn-' + pid);
+  if (!row) return;
+  const open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : 'table-row';
+  if (btn) {{ btn.textContent = open ? '›' : '⌄'; btn.style.color = open ? '#374151' : '#a78bfa'; }}
 }}
 
 // Expand/collapse pacotes de um place no ranking
@@ -1782,56 +3106,157 @@ function initPlCharts() {{
 // ---- On Way: salvar campos editáveis ----
 const OW_SERVER = 'http://localhost:5000';
 
+function _owSetStatus(estado) {{
+  const ids = ['ow-server-status', 'rt-server-status'];
+  ids.forEach(id => {{
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (estado === 'ativo') {{
+      el.style.color = '#10B981';
+      el.innerHTML = '🟢 servidor ativo&nbsp;&nbsp;<button onclick="owReiniciarServidor()" title="Reiniciar servidor" style="background:none;border:1px solid #374151;border-radius:4px;color:#9CA3AF;font-size:11px;padding:1px 6px;cursor:pointer;vertical-align:middle">↺ reiniciar</button>';
+    }} else if (estado === 'reiniciando') {{
+      el.style.color = '#FBBF24';
+      el.textContent = '🟡 reiniciando...';
+    }} else {{
+      el.style.color = '#f87171';
+      el.innerHTML = '🔴 servidor offline — <a href="javascript:void(0)" onclick="owInstrucoesServidor()" style="color:#f87171">como ativar?</a>';
+    }}
+  }});
+}}
+
 (function verificarServidor() {{
-  const el = document.getElementById('ow-server-status');
-  if (!el) return;
   fetch(OW_SERVER + '/ping', {{method:'GET', mode:'cors', signal: AbortSignal.timeout(2000)}})
-    .then(r => r.ok ? r.json() : Promise.reject())
-    .then(() => {{ el.textContent = '🟢 servidor ativo — edições salvam automaticamente'; el.style.color = '#10B981'; }})
-    .catch(() => {{ el.innerHTML = '🔴 servidor offline — <a href="javascript:void(0)" onclick="owInstrucoesServidor()" style="color:#f87171">como ativar?</a>'; el.style.color = '#f87171'; }});
+    .then(r => r.ok ? _owSetStatus('ativo') : _owSetStatus('offline'))
+    .catch(() => _owSetStatus('offline'));
 }})();
 
+async function owReiniciarServidor() {{
+  _owSetStatus('reiniciando');
+  try {{ await fetch(OW_SERVER + '/restart', {{method:'POST', signal: AbortSignal.timeout(2000)}}); }} catch(e) {{}}
+  for (let i = 0; i < 20; i++) {{
+    await new Promise(r => setTimeout(r, 800));
+    try {{
+      const r = await fetch(OW_SERVER + '/ping', {{signal: AbortSignal.timeout(1000)}});
+      if (r.ok) {{ _owSetStatus('ativo'); return; }}
+    }} catch(e) {{}}
+  }}
+  _owSetStatus('offline');
+}}
+
 function owInstrucoesServidor() {{
-  alert('Para ativar o servidor:\\n\\n1. Abra o PowerShell\\n2. Execute:\\n   cd C:\\\\Users\\\\lucasn\\\\risco_ssp30\\n   python on_way_server.py\\n3. Recarregue a página\\n\\nSe o computador foi reiniciado recentemente, aguarde alguns segundos e recarregue — o servidor inicia automaticamente.');
+  alert('Para ativar o servidor:\\n\\n1. Abra o PowerShell\\n2. Execute:\\n   cd C:\\\\Users\\\\lucasn\\\\risco_ssp30\\n   python on_way_server.py\\n3. Recarregue a página');
 }}
 const _owTimers = {{}};
 
-async function owPost(row, col, value) {{
-  const resp = await fetch(OW_SERVER + '/update', {{
-    method: 'POST',
-    headers: {{'Content-Type': 'application/json'}},
-    body: JSON.stringify({{row, col, value}})
-  }});
+async function owPost(shp_id, tab, col, value) {{
+  let resp;
+  try {{
+    resp = await fetch(OW_SERVER + '/update', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{shp_id, tab, col, value}})
+    }});
+  }} catch(e) {{
+    throw new Error('OFFLINE');
+  }}
+  if (resp.status === 404) throw new Error('NOT_FOUND');
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
 }}
 
+function owVerificarArquivar(shp_id, tab) {{
+  const statusSel = document.querySelector(`select.ow-edit[data-shp="${{shp_id}}"][data-col="29"]`);
+  const finalSel  = document.querySelector(`select.ow-edit[data-shp="${{shp_id}}"][data-col="30"]`);
+  if (!statusSel || !finalSel) return;
+  if (!statusSel.value.toLowerCase().includes('conclu') || !finalSel.value.trim()) return;
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  fetch('http://localhost:5000/mover_historico', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{shp_id, tab: tab || 'wy', hoje}})
+  }}).then(r => r.json()).then(data => {{
+    if (data.ok) {{
+      const tr = statusSel.closest('tr');
+      if (tr) {{
+        tr.style.transition = 'opacity 0.6s';
+        tr.style.opacity = '0';
+        setTimeout(() => tr.remove(), 650);
+      }}
+    }}
+  }}).catch(() => {{}});
+}}
+
+function owUpdateFake(sel) {{
+  const fake = sel.closest('.ow-fake-sel');
+  if (!fake) return;
+  const valEl = fake.querySelector('.ow-fake-val');
+  if (!valEl) return;
+  const opt = sel.options[sel.selectedIndex];
+  const placeholders = {{'29':'— Status —','30':'— Final —','24':'— Ação —'}};
+  valEl.textContent = (opt && opt.value) ? opt.text : (placeholders[sel.dataset.col] || '—');
+}}
+
+function updateRowBg(tr) {{
+  if (!tr) return;
+  const dias = parseInt(tr.dataset.dias || '0', 10);
+  const statusSel = tr.querySelector('select[data-col="29"]');
+  const status = statusSel ? statusSel.value.trim() : '';
+  const acaoSel = tr.querySelector('select[data-col="24"]');
+  const acaoInp = tr.querySelector('input[data-col="23"]');
+  const acao = (acaoSel ? acaoSel.value : (acaoInp ? acaoInp.value : '')).trim();
+  if (!status) {{
+    tr.style.borderLeft = '3px solid #BA7517';
+    tr.style.background = 'rgba(186,117,23,0.06)';
+  }} else if (dias >= 8 && !acao) {{
+    tr.style.borderLeft = '3px solid #E24B4A';
+    tr.style.background = 'rgba(226,75,74,0.07)';
+  }} else {{
+    tr.style.borderLeft = '3px solid transparent';
+    tr.style.background = '';
+  }}
+}}
+
 function owSalvarSelect(el) {{
-  const row = +el.dataset.row, col = +el.dataset.col;
+  const shp_id = el.dataset.shp, tab = el.dataset.tab || 'wy', col = +el.dataset.col;
   const prev = el.dataset.prev ?? el.value;
   el.dataset.prev = el.value;
-  owPost(row, col, el.value).catch(() => {{
-    alert('Servidor off-line. Abra on_way_server.py e tente novamente.');
-    el.value = prev;
-  }});
+  owUpdateFake(el);
+  const tr = el.closest('tr');
+  owPost(shp_id, tab, col, el.value)
+    .then(() => {{ updateRowBg(tr); owVerificarArquivar(shp_id, tab); }})
+    .catch(err => {{
+      if (err.message === 'NOT_FOUND') {{
+        alert('SHP ' + shp_id + ' não esta na planilha ativa. Recarregue o dashboard (F5) para sincronizar.');
+      }} else {{
+        alert('Servidor off-line. Abra on_way_server.py e tente novamente.');
+        el.value = prev;
+        owUpdateFake(el);
+      }}
+    }});
 }}
 
 function owAgendar(el) {{
-  const key = el.dataset.row + '_' + el.dataset.col;
+  const key = el.dataset.shp + '_' + el.dataset.col;
   clearTimeout(_owTimers[key]);
   _owTimers[key] = setTimeout(() => owSalvarImediato(el), 1500);
 }}
 
 function owSalvarImediato(el) {{
-  const key = el.dataset.row + '_' + el.dataset.col;
+  const key = el.dataset.shp + '_' + el.dataset.col;
   clearTimeout(_owTimers[key]);
-  const row = +el.dataset.row, col = +el.dataset.col;
-  if (!row) return;
+  const shp_id = el.dataset.shp, tab = el.dataset.tab || 'wy', col = +el.dataset.col;
+  if (!shp_id) return;
+  const tr = el.closest('tr');
   el.classList.add('ow-saving');
-  owPost(row, col, el.value)
+  owPost(shp_id, tab, col, el.value)
     .then(() => {{ el.classList.remove('ow-saving'); el.classList.add('ow-saved');
-                   setTimeout(() => el.classList.remove('ow-saved'), 1200); }})
-    .catch(() => {{ el.classList.remove('ow-saving'); el.classList.add('ow-err');
-                    setTimeout(() => el.classList.remove('ow-err'), 2000); }});
+                   setTimeout(() => el.classList.remove('ow-saved'), 1200);
+                   updateRowBg(tr); }})
+    .catch(err => {{
+      el.classList.remove('ow-saving'); el.classList.add('ow-err');
+      setTimeout(() => el.classList.remove('ow-err'), 2000);
+      if (err.message === 'NOT_FOUND')
+        alert('SHP ' + shp_id + ' não esta na planilha ativa. Recarregue o dashboard (F5) para sincronizar.');
+    }});
 }}
 
 function owSugest(el) {{
@@ -1859,7 +3284,7 @@ function owToggleSugest(inp) {{
   else {{ dd.querySelectorAll('.ow-sugest-item').forEach(i => i.style.display = ''); dd.style.display = 'block'; inp.focus(); }}
 }}
 
-function owEscolher(ev, row) {{
+function owEscolher(ev) {{
   ev.preventDefault();
   const item = ev.currentTarget;
   const wrap = item.closest('.ow-edit-wrap');
@@ -1880,8 +3305,206 @@ function owAtualizarLink(el) {{
   }} else if (btn) {{ btn.remove(); }}
 }}
 
+// ---- Diário de Bordo ----
+let _dbTodayStr = '';
+let _dbData     = null;
+
+function _dbSlug(s) {{
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}}
+
+function _dbTipoCls(tipo) {{
+  const m = {{'Análise':'analise','Gemba':'gemba','Reunião':'reuniao','1:1':'1a1','Treinamento':'treinamento'}};
+  return 'db-tipo db-t-' + (m[tipo] || 'extra');
+}}
+
+function _dbItemHtml(item, isExtra) {{
+  const dc   = item.feito ? 'db-done' : '';
+  const ck   = item.feito ? '✓' : '';
+  const time = (item.hora_ini && item.hora_fim) ? `${{item.hora_ini}}–${{item.hora_fim}}` : (item.hora_ini || '');
+  const aEsc = (item.atividade || '').replace(/'/g, "\\\\'");
+  const oEsc = (item.obs || '').replace(/"/g,'&quot;');
+  const delBtn = isExtra
+    ? `<button onclick="dbDeletarExtra('${{aEsc}}')" style="background:none;border:none;color:#6B7280;font-size:11px;cursor:pointer;padding:0 2px;margin-left:auto" title="Remover">✕</button>`
+    : '';
+  const obsTxt = item.obs ? `<div class="db-obs-txt">${{item.obs}}</div>` : '';
+  return `<div class="db-act-item ${{dc}}" id="db-i-${{_dbSlug(item.atividade)}}">
+  <div class="db-check ${{dc}}" onclick="dbToggle('${{aEsc}}','${{item.hora_ini||''}}','${{item.hora_fim||''}}','${{item.tipo||''}}')">${{ck}}</div>
+  <div class="db-act-body">
+    <div class="db-act-row">
+      <span class="db-act-name">${{item.atividade}}</span>
+      ${{time ? `<span class="db-act-time">${{time}}</span>` : ''}}
+      <span class="${{_dbTipoCls(item.tipo)}}">${{item.tipo}}</span>
+      ${{delBtn}}
+    </div>
+    ${{obsTxt}}
+    <input class="db-obs-inp" value="${{oEsc}}" placeholder="Observação…"
+      onblur="dbSalvarObs('${{aEsc}}','${{item.hora_ini||''}}','${{item.hora_fim||''}}','${{item.tipo||''}}',this.value)"
+      onkeydown="if(event.key==='Enter')this.blur()">
+  </div></div>`;
+}}
+
+function _dbRender(data) {{
+  const list = document.getElementById('db-list');
+  const xtra = document.getElementById('db-extras');
+  if (!list || !xtra) return;
+  const items  = data.items  || [];
+  const extras = data.extras || [];
+  const done = items.filter(i => i.feito).length;
+  const tot  = items.length;
+  document.getElementById('db-progress-txt').textContent = `${{done}}/${{tot}} feitas`;
+  document.getElementById('db-progress-bar').style.width = tot ? `${{Math.round(done/tot*100)}}%` : '0%';
+  const manha = items.filter(i => parseInt((i.hora_ini||'00').split(':')[0]) < 12);
+  const tarde = items.filter(i => parseInt((i.hora_ini||'00').split(':')[0]) >= 12);
+  let html = '';
+  if (manha.length) {{ html += '<div class="db-section-lbl">Manhã</div>'; manha.forEach(i => {{ html += _dbItemHtml(i, false); }}); }}
+  if (tarde.length) {{ html += '<div class="db-section-lbl">Tarde</div>'; tarde.forEach(i => {{ html += _dbItemHtml(i, false); }}); }}
+  list.innerHTML = html;
+  xtra.innerHTML = extras.map(i => _dbItemHtml(i, true)).join('');
+}}
+
+function _dbSetStatus(estado) {{
+  const el = document.getElementById('db-status');
+  if (!el) return;
+  if (estado === 'ativo')   {{ el.style.color = '#10B981'; el.textContent = '🟢 servidor ativo'; }}
+  else if (estado === 'offline') {{ el.style.color = '#f87171'; el.textContent = '🔴 servidor offline'; }}
+}}
+
+async function carregarDiario() {{
+  _dbTodayStr = new Date().toISOString().slice(0,10);
+  const dias  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const now   = new Date();
+  const lbl   = document.getElementById('db-date-lbl');
+  if (lbl) lbl.textContent = `${{dias[now.getDay()]}}, ${{now.getDate()}}/${{(now.getMonth()+1).toString().padStart(2,'0')}}`;
+  try {{
+    const r = await fetch(OW_SERVER + '/diario', {{signal: AbortSignal.timeout(4000)}});
+    if (!r.ok) {{ _dbSetStatus('offline'); return; }}
+    _dbData = await r.json();
+    _dbRender(_dbData);
+    _dbSetStatus('ativo');
+  }} catch(e) {{ _dbSetStatus('offline'); }}
+}}
+
+let _dbAcabouAbrir = false;
+function dbTogglePanel() {{
+  const panel = document.getElementById('db-panel');
+  if (!panel) return;
+  if (panel.style.display !== 'none') {{
+    panel.style.display = 'none';
+    return;
+  }}
+  panel.style.display = 'block';
+  _dbAcabouAbrir = true;
+  setTimeout(() => {{ _dbAcabouAbrir = false; }}, 150);
+  if (!_dbData) carregarDiario();
+}}
+
+function dbFecharPanel() {{
+  const panel = document.getElementById('db-panel');
+  if (panel) panel.style.display = 'none';
+}}
+
+document.addEventListener('click', function(ev) {{
+  if (_dbAcabouAbrir) return;
+  const panel = document.getElementById('db-panel');
+  if (!panel || panel.style.display === 'none') return;
+  const modal = document.getElementById('db-modal-bg');
+  if (modal && modal.style.display !== 'none') return;
+  if (!panel.contains(ev.target)) panel.style.display = 'none';
+}});
+
+async function dbToggle(atividade, hi, hf, tipo) {{
+  const el = document.getElementById('db-i-' + _dbSlug(atividade));
+  const ck = el?.querySelector('.db-check');
+  if (!el || !ck) return;
+  const agora = !ck.classList.contains('db-done');
+  ck.classList.toggle('db-done', agora); ck.textContent = agora ? '✓' : '';
+  el.classList.toggle('db-done', agora);
+  if (_dbData) {{
+    const item = _dbData.items.find(i => i.atividade === atividade);
+    if (item) item.feito = agora;
+    const done = _dbData.items.filter(i => i.feito).length;
+    const tot  = _dbData.items.length;
+    document.getElementById('db-progress-txt').textContent = `${{done}}/${{tot}} feitas`;
+    document.getElementById('db-progress-bar').style.width = tot ? `${{Math.round(done/tot*100)}}%` : '0%';
+  }}
+  try {{
+    await fetch(OW_SERVER + '/diario/toggle', {{
+      method:'POST', headers:{{'Content-Type':'application/json'}},
+      body: JSON.stringify({{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,feito:agora}}),
+      signal: AbortSignal.timeout(4000),
+    }});
+  }} catch(e) {{}}
+}}
+
+const _dbObsTmr = {{}};
+function dbSalvarObs(atividade, hi, hf, tipo, obs) {{
+  clearTimeout(_dbObsTmr[atividade]);
+  _dbObsTmr[atividade] = setTimeout(async () => {{
+    try {{
+      await fetch(OW_SERVER + '/diario/obs', {{
+        method:'POST', headers:{{'Content-Type':'application/json'}},
+        body: JSON.stringify({{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,obs}}),
+        signal: AbortSignal.timeout(4000),
+      }});
+    }} catch(e) {{}}
+  }}, 800);
+}}
+
+function dbAbrirModal() {{
+  const bg = document.getElementById('db-modal-bg');
+  if (bg) {{ bg.style.display = 'flex'; document.getElementById('db-m-atv').focus(); }}
+}}
+function dbFecharModal() {{
+  const bg = document.getElementById('db-modal-bg');
+  if (bg) bg.style.display = 'none';
+}}
+
+async function dbSalvarExtra() {{
+  const atividade = document.getElementById('db-m-atv').value.trim();
+  const m = document.getElementById('db-m-atv');
+  if (!atividade) {{ m.style.borderColor='#ef4444'; m.focus(); return; }}
+  m.style.borderColor = '';
+  const hi  = document.getElementById('db-m-ini').value;
+  const hf  = document.getElementById('db-m-fim').value;
+  const obs = document.getElementById('db-m-obs').value;
+  try {{
+    const r = await fetch(OW_SERVER + '/diario/extra', {{
+      method:'POST', headers:{{'Content-Type':'application/json'}},
+      body: JSON.stringify({{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,obs}}),
+      signal: AbortSignal.timeout(4000),
+    }});
+    if (r.ok) {{
+      dbFecharModal();
+      ['db-m-atv','db-m-ini','db-m-fim','db-m-obs'].forEach(id => {{ document.getElementById(id).value = ''; }});
+      if (_dbData) {{
+        _dbData.extras = _dbData.extras || [];
+        _dbData.extras.push({{hora_ini:hi,hora_fim:hf,atividade,tipo:'Extra',feito:false,obs,extra:true}});
+        document.getElementById('db-extras').innerHTML = _dbData.extras.map(i => _dbItemHtml(i,true)).join('');
+      }}
+    }}
+  }} catch(e) {{}}
+}}
+
+async function dbDeletarExtra(atividade) {{
+  if (!confirm(`Remover "${{atividade}}"?`)) return;
+  try {{
+    await fetch(OW_SERVER + '/diario/delete_extra', {{
+      method:'POST', headers:{{'Content-Type':'application/json'}},
+      body: JSON.stringify({{data:_dbTodayStr,atividade}}),
+      signal: AbortSignal.timeout(4000),
+    }});
+    if (_dbData && _dbData.extras) {{
+      _dbData.extras = _dbData.extras.filter(i => i.atividade !== atividade);
+      document.getElementById('db-extras').innerHTML = _dbData.extras.map(i => _dbItemHtml(i,true)).join('');
+    }}
+  }} catch(e) {{}}
+}}
+
 // Inicializa ícones Lucide
 lucide.createIcons();
+{_SB_DRAG_JS}
 </script>
 </main>
 </div>
@@ -1909,9 +3532,88 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"  [AVISO] DIT BQ falhou: {e}")
         dit_data = {}
+    print("Lendo status CFTV (Google Sheets)...")
+    cftv_map = carregar_cftv_status(creds)
+    print(f"  CFTV: {len(cftv_map)} investigacoes encontradas")
+    print("Lendo descricoes dos pacotes (BigQuery)...")
+    try:
+        all_ids = [r[2] for r in rt + wy if len(r) > 2 and r[2].strip()]
+        descricoes = carregar_descricoes(creds, all_ids)
+        print(f"  Descrições: {len(descricoes)} pacotes")
+    except Exception as e:
+        print(f"  [AVISO] Descrições BQ falhou: {e}")
+        descricoes = {}
+    print("Verificando pacotes entregues no ON WAY (BigQuery)...")
+    try:
+        wy_ids = [r[2] for r in wy if len(r) > 2 and r[2].strip()]
+        entregues = carregar_entregues(creds, wy_ids)
+        print(f"  Entregues detectados: {len(entregues)}")
+    except Exception as e:
+        print(f"  [AVISO] Entregues BQ falhou: {e}")
+        entregues = set()
+    if entregues:
+        print("Preenchendo campos dos entregues na planilha...")
+        try:
+            n = atualizar_entregues_planilha(creds, wy, entregues)
+            print(f"  {n} pacotes preenchidos (Status/Ação/Link/Final)")
+        except Exception as e:
+            print(f"  [AVISO] Atualização planilha falhou: {e}")
+    hoje_str = datetime.now().strftime('%d/%m/%Y')
+    print("Movendo concluídos para Histórico (ON WAY)...")
+    try:
+        n_mov, novas_hi = mover_concluidos_historico(creds, wy, hoje_str)
+        print(f"  {n_mov} pacotes ON WAY movidos para Histórico")
+        hi.extend(novas_hi)
+        ids_movidos = set()
+        for r in wy:
+            if (_ow_norm(r[28] if len(r) > 28 else '') == 'concluido'
+                    and (r[29] if len(r) > 29 else '').strip()):
+                ids_movidos.add(r[2] if len(r) > 2 else '')
+        wy = [r for r in wy if (r[2] if len(r) > 2 else '') not in ids_movidos]
+    except Exception as e:
+        print(f"  [AVISO] Mover histórico ON WAY falhou: {e}")
+    print("Detectando pacotes devolvidos no ON ROUTE...")
+    n_devolvidos_rt = 0
+    try:
+        n_devolvidos_rt = atualizar_devolvidos_rt(creds, rt, hoje_str)
+        print(f"  {n_devolvidos_rt} pacote(s) devolvido(s) marcados para Histórico (Recuperado)")
+    except Exception as e:
+        print(f"  [AVISO] Atualizar devolvidos RT falhou: {e}")
+    print("Movendo concluídos para Histórico (ON ROUTE)...")
+    try:
+        n_mov_rt, novas_hi_rt = mover_concluidos_historico_rt(creds, rt, hoje_str)
+        print(f"  {n_mov_rt} pacotes ON ROUTE movidos para Histórico")
+        hi.extend(novas_hi_rt)
+        ids_movidos_rt = set()
+        for r in rt:
+            if (_ow_norm(r[28] if len(r) > 28 else '') == 'concluido'
+                    and (r[29] if len(r) > 29 else '').strip()):
+                ids_movidos_rt.add(r[2] if len(r) > 2 else '')
+        rt = [r for r in rt if (r[2] if len(r) > 2 else '') not in ids_movidos_rt]
+    except Exception as e:
+        print(f"  [AVISO] Mover histórico ON ROUTE falhou: {e}")
+    print("Lendo Briefing Matinal (BigQuery)...")
+    bq_briefing = []
+    for _tentativa in range(3):
+        try:
+            bq_briefing = carregar_briefing(creds)
+            print(f"  Briefing: {len(bq_briefing)} casos (últimos 90 dias)")
+            break
+        except Exception as e:
+            if 'quotaExceeded' in str(e) or 'max_queued' in str(e):
+                import time
+                print(f"  [QUOTA] Fila BQ cheia, aguardando 30s (tentativa {_tentativa+1}/3)...")
+                time.sleep(30)
+            else:
+                print(f"  [AVISO] Briefing BQ falhou: {e}")
+                break
+    else:
+        print("  [AVISO] Briefing BQ falhou após 3 tentativas — continuando sem dados.")
     print("Processando dados...")
-    dados = processar(rt, wy, hi)
-    dados['places'] = processar_places(places_rows, dit_data)
+    dados = processar(rt, wy, hi, descricoes=descricoes, cftv_map=cftv_map, entregues=set())
+    dados['places']      = processar_places(places_rows, dit_data)
+    dados['r_devolvidos'] = n_devolvidos_rt
+    dados['briefing']    = processar_briefing(bq_briefing, wy)
     print("Gerando HTML...")
     html = gerar_html(dados)
     with open(OUTPUT, 'w', encoding='utf-8') as f:
