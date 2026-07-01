@@ -1,9 +1,9 @@
 name: Atualizar Dashboard Fraude
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'   # a cada 5 minutos
-  workflow_dispatch:          # permite rodar manualmente pelo GitHub
+  # schedule desabilitada — acesso automatico externo ao BQ foi sinalizado pelo TI
+  # - cron: '*/5 * * * *'
+  workflow_dispatch:          # roda apenas manualmente pelo GitHub
 
 jobs:
   update:
