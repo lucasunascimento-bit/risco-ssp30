@@ -1999,14 +1999,23 @@ def gerar_html(d):
         _m = _h.get('mes', '')
         if not _m: continue
         if _m not in _monthly_stats:
-            _monthly_stats[_m] = {'r': 0, 'gmv_r': 0.0, 'gmv_p': 0.0, 'rem': 0}
-        _f = _h.get('final', '')
+            _monthly_stats[_m] = {'r': 0, 'gmv_r': 0.0, 'gmv_p': 0.0, 'rem': 0,
+                                   'rt': 0, 'wy': 0, 'gmv_rt': 0.0, 'gmv_wy': 0.0}
+        _f   = _h.get('final', '')
+        _org = _h.get('origem', '').lower()
+        _g   = _flt_h(_h.get('gmv', '0'))
         _monthly_stats[_m]['rem'] += 1
+        if 'route' in _org:
+            _monthly_stats[_m]['rt']     += 1
+            _monthly_stats[_m]['gmv_rt'] += _g
+        elif 'way' in _org:
+            _monthly_stats[_m]['wy']     += 1
+            _monthly_stats[_m]['gmv_wy'] += _g
         if _rec_h(_f):
             _monthly_stats[_m]['r']     += 1
-            _monthly_stats[_m]['gmv_r'] += _flt_h(_h.get('gmv', '0'))
+            _monthly_stats[_m]['gmv_r'] += _g
         elif _perd_h(_f):
-            _monthly_stats[_m]['gmv_p'] += _flt_h(_h.get('gmv', '0'))
+            _monthly_stats[_m]['gmv_p'] += _g
     _meses_btn = d.get('meses_hist', [])[-4:]
     _btn_meses = ''.join(
         f'<button class="mes-btn vg-mes-btn{" mes-ativo" if m["val"] == d["mes_ano"] else ""}" '
@@ -2360,25 +2369,25 @@ def gerar_html(d):
   <div class="cards">
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="package" class="card-icon" width="14" height="14"></i><span class="card-label">ON ROUTE</span></div>
-      <div class="card-value">{d["r_total"]}</div>
-      <div class="card-delta">+{d["r_novos"]} novos · {trend(d["net_rt"])}</div>
+      <div class="card-value" id="cv-rt">{d["r_total"]}</div>
+      <div class="card-delta" id="cd-rt">+{d["r_novos"]} novos · {trend(d["net_rt"])}</div>
     </div>
     <div class="card card-link" onclick="irPara('way')">
       <div class="card-header"><i data-lucide="truck" class="card-icon" width="14" height="14"></i><span class="card-label">ON WAY</span></div>
-      <div class="card-value">{d["w_total"]}</div>
-      <div class="card-delta">+{d["w_novos"]} novos · {trend(d["net_wy"])}</div>
+      <div class="card-value" id="cv-wy">{d["w_total"]}</div>
+      <div class="card-delta" id="cd-wy">+{d["w_novos"]} novos · {trend(d["net_wy"])}</div>
     </div>
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON ROUTE</span></div>
-      <div class="card-value">${d["r_gmv"]:,.0f}</div>
+      <div class="card-value" id="cv-gmv-rt">${d["r_gmv"]:,.0f}</div>
     </div>
     <div class="card card-link" onclick="irPara('way')">
       <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14"></i><span class="card-label">GMV ON WAY</span></div>
-      <div class="card-value">${d["w_gmv"]:,.0f}</div>
+      <div class="card-value" id="cv-gmv-wy">${d["w_gmv"]:,.0f}</div>
     </div>
     <div class="card card-alert card-link" onclick="irPara('gmv')">
       <div class="card-header"><i data-lucide="alert-triangle" class="card-icon" width="14" height="14" style="color:#7f1d1d"></i><span class="card-label">GMV EM RISCO</span></div>
-      <div class="card-value val-alert">${d["gmv_total"]:,.0f}</div>
+      <div class="card-value val-alert" id="cv-gmv-risco">${d["gmv_total"]:,.0f}</div>
     </div>
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="camera" class="card-icon" width="14" height="14"></i><span class="card-label">CFTV Solicitado</span></div>
@@ -2890,22 +2899,49 @@ filtrarMes('{d["mes_ano"]}');
 const _MONTHLY_STATS  = {j(_monthly_stats)};
 const _MESES_LBL      = {_meses_lbl_js};
 function fmtUSD(v) {{ return '$' + Math.round(v).toString().replace(/\\B(?=(\\d{{3}})+(?!\\d))/g, ','); }}
+const _MES_ATUAL = '{d["mes_ano"]}';
+// Captura valores ao vivo do mês vigente ao carregar a página
+const _LIVE = {{}};
+document.addEventListener('DOMContentLoaded', () => {{
+  ['cv-rt','cd-rt','cv-wy','cd-wy','cv-gmv-rt','cv-gmv-wy','cv-gmv-risco'].forEach(id => {{
+    const el = document.getElementById(id);
+    if (el) _LIVE[id] = el.innerHTML;
+  }});
+}});
 function filtrarVisaoMes(mes) {{
-  const s = _MONTHLY_STATS[mes] || {{r:0, gmv_r:0, gmv_p:0, rem:0}};
+  const s    = _MONTHLY_STATS[mes] || {{r:0, gmv_r:0, gmv_p:0, rem:0, rt:0, wy:0, gmv_rt:0, gmv_wy:0}};
   const taxa = s.rem > 0 ? (s.r / s.rem * 100).toFixed(1) : '0.0';
   const lbl  = _MESES_LBL[mes] || mes;
-  const elRec  = document.getElementById('cv-rec');
-  const elCRec = document.getElementById('cd-rec');
-  const elGmv  = document.getElementById('cv-gmv-mes');
-  const elCGmv = document.getElementById('cd-gmv-mes');
-  const elTax  = document.getElementById('cv-taxa');
-  const elCTax = document.getElementById('cd-taxa');
+  const g = document.getElementById.bind(document);
+
+  // Cards históricos
+  const elRec = g('cv-rec'), elCRec = g('cd-rec');
+  const elGmv = g('cv-gmv-mes'), elCGmv = g('cd-gmv-mes');
+  const elTax = g('cv-taxa'), elCTax = g('cd-taxa');
   if (elRec)  elRec.textContent  = s.r;
   if (elCRec) elCRec.textContent = lbl + ' · Seguiram fluxo correto';
   if (elGmv)  elGmv.textContent  = fmtUSD(s.gmv_r);
   if (elCGmv) elCGmv.innerHTML   = '<span style="color:#10b981">↑ ' + fmtUSD(s.gmv_r) + ' recuperado</span><br><span style="color:#ef4444">↓ ' + fmtUSD(s.gmv_p) + ' perdido</span>';
   if (elTax)  elTax.textContent  = taxa + '%';
   if (elCTax) elCTax.textContent = s.r + ' de ' + s.rem + ' removidos';
+
+  // Cards de volume
+  const elRt = g('cv-rt'), elCRt = g('cd-rt');
+  const elWy = g('cv-wy'), elCWy = g('cd-wy');
+  const elGrt = g('cv-gmv-rt'), elGwy = g('cv-gmv-wy'), elGrisk = g('cv-gmv-risco');
+  if (mes === _MES_ATUAL) {{
+    ['cv-rt','cd-rt','cv-wy','cd-wy','cv-gmv-rt','cv-gmv-wy','cv-gmv-risco'].forEach(id => {{
+      const el = g(id); if (el && _LIVE[id] !== undefined) el.innerHTML = _LIVE[id];
+    }});
+  }} else {{
+    if (elRt)    elRt.textContent   = s.rt;
+    if (elCRt)   elCRt.textContent  = 'casos finalizados em ' + lbl;
+    if (elWy)    elWy.textContent   = s.wy;
+    if (elCWy)   elCWy.textContent  = 'casos finalizados em ' + lbl;
+    if (elGrt)   elGrt.textContent  = fmtUSD(s.gmv_rt);
+    if (elGwy)   elGwy.textContent  = fmtUSD(s.gmv_wy);
+    if (elGrisk) elGrisk.textContent = fmtUSD(s.gmv_rt + s.gmv_wy);
+  }}
   document.querySelectorAll('.vg-mes-btn').forEach(b => b.classList.toggle('mes-ativo', b.dataset.mes === mes));
 }}
 
