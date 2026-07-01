@@ -382,7 +382,13 @@ def processar(rt, wy, hi, descricoes=None, cftv_map=None, entregues=None):
     hist_todos = []
     for r in hi:
         if not (len(r) > 0 and r[0].strip()): continue
-        m = mes_de(r[0])
+        # Coluna I (índice 8) = "Mês Ref" — preenchida manualmente para lançamentos em bloco
+        mes_ref = r[8].strip() if len(r) > 8 else ''
+        # Valida formato MM/YYYY; senão usa a Data da coluna A
+        if mes_ref and re.match(r'^\d{2}/\d{4}$', mes_ref):
+            m = mes_ref
+        else:
+            m = mes_de(r[0])
         hist_todos.append({
             'data':   r[0], 'origem': r[1] if len(r) > 1 else '',
             'id':     r[2] if len(r) > 2 else '',
