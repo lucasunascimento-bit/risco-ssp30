@@ -1988,6 +1988,33 @@ def _briefing_html(b, on_route=None, on_way=None):
 def gerar_html(d):
     j = lambda x: json.dumps(x, ensure_ascii=False)
 
+    # --- Estatísticas mensais para o filtro de período da Visão Geral ---
+    def _rec_h(f): fl = f.lower(); return any(k in fl for k in ('fluxo','revers','localizado'))
+    def _perd_h(f): fl = f.lower(); return any(k in fl for k in ('perdido','bpp'))
+    def _flt_h(v):
+        try: return float(str(v).replace(',','.').strip() or 0)
+        except: return 0.0
+    _monthly_stats = {}
+    for _h in d.get('hist_todos', []):
+        _m = _h.get('mes', '')
+        if not _m: continue
+        if _m not in _monthly_stats:
+            _monthly_stats[_m] = {'r': 0, 'gmv_r': 0.0, 'gmv_p': 0.0, 'rem': 0}
+        _f = _h.get('final', '')
+        _monthly_stats[_m]['rem'] += 1
+        if _rec_h(_f):
+            _monthly_stats[_m]['r']     += 1
+            _monthly_stats[_m]['gmv_r'] += _flt_h(_h.get('gmv', '0'))
+        elif _perd_h(_f):
+            _monthly_stats[_m]['gmv_p'] += _flt_h(_h.get('gmv', '0'))
+    _meses_btn = d.get('meses_hist', [])[-4:]
+    _btn_meses = ''.join(
+        f'<button class="mes-btn vg-mes-btn{" mes-ativo" if m["val"] == d["mes_ano"] else ""}" '
+        f'data-mes="{m["val"]}" onclick="filtrarVisaoMes(\'{m["val"]}\')">{m["lbl"]}</button>'
+        for m in _meses_btn
+    )
+    _meses_lbl_js = j({m['val']: m['lbl'] for m in d.get('meses_hist', [])})
+
     sit_rt_labels = j(list(d['r_sit'].keys()))
     sit_rt_values = j(list(d['r_sit'].values()))
     sit_wy_labels = j(list(d['w_sit'].keys()))
@@ -2326,6 +2353,10 @@ def gerar_html(d):
 
 <!-- ===================== ABA 1: VISÃO GERAL ===================== -->
 <div id="tab-geral" class="content">
+  <div style="display:flex;align-items:center;gap:8px;padding:16px 24px 0;flex-wrap:wrap">
+    <span style="font-size:11px;color:#6b7280;font-weight:600">Período:</span>
+    {_btn_meses}
+  </div>
   <div class="cards">
     <div class="card card-link" onclick="irPara('route')">
       <div class="card-header"><i data-lucide="package" class="card-icon" width="14" height="14"></i><span class="card-label">ON ROUTE</span></div>
@@ -2361,21 +2392,21 @@ def gerar_html(d):
     </div>
     <div class="card card-ok card-link" onclick="irPara('hist')">
       <div class="card-header"><i data-lucide="award" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">Recuperados</span></div>
-      <div class="card-value val-ok">{d["recuperados"]}</div>
-      <div class="card-delta">{d["mes_lbl"]} · Seguiram fluxo correto</div>
+      <div class="card-value val-ok" id="cv-rec">{d["recuperados"]}</div>
+      <div class="card-delta" id="cd-rec">{d["mes_lbl"]} · Seguiram fluxo correto</div>
     </div>
     <div class="card card-ok card-link" onclick="irPara('hist')">
       <div class="card-header"><i data-lucide="trending-up" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV do Mês</span></div>
-      <div class="card-value val-ok">${d["gmv_recuperado"]:,.0f}</div>
-      <div class="card-delta">
+      <div class="card-value val-ok" id="cv-gmv-mes">${d["gmv_recuperado"]:,.0f}</div>
+      <div class="card-delta" id="cd-gmv-mes">
         <span style="color:#10b981">↑ ${d["gmv_recuperado"]:,.0f} recuperado</span><br>
         <span style="color:#ef4444">↓ ${d["gmv_perdido"]:,.0f} perdido</span>
       </div>
     </div>
     <div class="card card-link" onclick="irPara('hist')">
       <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>
-      <div class="card-value">{d["taxa_recupero"]}%</div>
-      <div class="card-delta">{d["recuperados"]} de {d["removidos"]} removidos</div>
+      <div class="card-value" id="cv-taxa">{d["taxa_recupero"]}%</div>
+      <div class="card-delta" id="cd-taxa">{d["recuperados"]} de {d["removidos"]} removidos</div>
     </div>
   </div>
 
@@ -2848,12 +2879,35 @@ function filtrarMes(mes) {{
   document.querySelectorAll('.hist-row').forEach(tr => {{
     tr.style.display = (!mes || tr.dataset.mes === mes) ? '' : 'none';
   }});
-  document.querySelectorAll('.mes-btn').forEach(btn => {{
+  document.querySelectorAll('#tab-hist .mes-btn').forEach(btn => {{
     btn.classList.toggle('mes-ativo', btn.dataset.mes === mes);
   }});
 }}
 // Abre no mês atual por padrão
 filtrarMes('{d["mes_ano"]}');
+
+// Filtro de período — Visão Geral
+const _MONTHLY_STATS  = {j(_monthly_stats)};
+const _MESES_LBL      = {_meses_lbl_js};
+function fmtUSD(v) {{ return '$' + Math.round(v).toString().replace(/\\B(?=(\\d{{3}})+(?!\\d))/g, ','); }}
+function filtrarVisaoMes(mes) {{
+  const s = _MONTHLY_STATS[mes] || {{r:0, gmv_r:0, gmv_p:0, rem:0}};
+  const taxa = s.rem > 0 ? (s.r / s.rem * 100).toFixed(1) : '0.0';
+  const lbl  = _MESES_LBL[mes] || mes;
+  const elRec  = document.getElementById('cv-rec');
+  const elCRec = document.getElementById('cd-rec');
+  const elGmv  = document.getElementById('cv-gmv-mes');
+  const elCGmv = document.getElementById('cd-gmv-mes');
+  const elTax  = document.getElementById('cv-taxa');
+  const elCTax = document.getElementById('cd-taxa');
+  if (elRec)  elRec.textContent  = s.r;
+  if (elCRec) elCRec.textContent = lbl + ' · Seguiram fluxo correto';
+  if (elGmv)  elGmv.textContent  = fmtUSD(s.gmv_r);
+  if (elCGmv) elCGmv.innerHTML   = '<span style="color:#10b981">↑ ' + fmtUSD(s.gmv_r) + ' recuperado</span><br><span style="color:#ef4444">↓ ' + fmtUSD(s.gmv_p) + ' perdido</span>';
+  if (elTax)  elTax.textContent  = taxa + '%';
+  if (elCTax) elCTax.textContent = s.r + ' de ' + s.rem + ' removidos';
+  document.querySelectorAll('.vg-mes-btn').forEach(b => b.classList.toggle('mes-ativo', b.dataset.mes === mes));
+}}
 
 // Filtros das tabelas
 function filtrar(tabId) {{
