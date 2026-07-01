@@ -2173,6 +2173,11 @@ def gerar_html(d):
       <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
     </a>
     {diario_nav_btn()}
+    <div id="srv-status" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;border:1px solid #1f2937;background:#080d19;font-size:11px;font-weight:600;color:#6b7280;cursor:default" title="Status do servidor local">
+      <span id="srv-dot" style="width:7px;height:7px;border-radius:50%;background:#374151;flex-shrink:0;transition:background .3s"></span>
+      <span id="srv-label">Servidor</span>
+      <a id="srv-btn" href="ssp30://start" style="display:none;background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;text-decoration:none;font-size:10px;font-weight:700;margin-left:2px" onclick="setTimeout(checkSrv,4000)">Iniciar</a>
+    </div>
   </div>
 </div>
 {diario_panel_html()}
@@ -3199,6 +3204,26 @@ async function gerarPptx(driverId) {{
   await pptx.writeFile({{fileName: nomeArq}});
 }}
 // ── FIM GERAR PPTX ──────────────────────────────────────────
+
+// === STATUS DO SERVIDOR ===
+function checkSrv() {{
+  fetch('http://localhost:5000/ping', {{signal: AbortSignal.timeout(2000)}})
+    .then(r => r.json()).then(r => setSrv(r.ok === true))
+    .catch(() => setSrv(false));
+}}
+function setSrv(online) {{
+  const dot = document.getElementById('srv-dot');
+  const lbl = document.getElementById('srv-label');
+  const btn = document.getElementById('srv-btn');
+  const box = document.getElementById('srv-status');
+  if (!dot) return;
+  dot.style.background = online ? '#4ade80' : '#ef4444';
+  if (lbl) lbl.textContent = online ? 'Online' : 'Offline';
+  if (btn) btn.style.display = online ? 'none' : 'inline-block';
+  if (box) box.style.borderColor = online ? '#166534' : '#7f1d1d';
+}}
+checkSrv();
+setInterval(checkSrv, 30000);
 
 // === RELATÓRIO SEMANAL ===
 const WP_BASE = {j(_wp_base)};
