@@ -80,7 +80,7 @@ tr:hover td{background:#0d1829}
     <div class="header-accent"></div>
     <div>
       <div class="header-title">CFTV — SSP30</div>
-      <div class="header-sub">Atualizado em 05/07/2026 15:16</div>
+      <div class="header-sub">Atualizado em 06/07/2026 16:53</div>
     </div>
   </div>
   <div class="mod-nav">
@@ -147,24 +147,24 @@ tr:hover td{background:#0d1829}
   <div class="cards-grid">
     <div class="card">
       <div class="card-header"><i data-lucide="camera" class="ci" width="14" height="14"></i><span class="cl">Solicitações</span></div>
-      <div class="cv">3787</div><div class="cd">Total de solicitações</div>
+      <div class="cv">3793</div><div class="cd">Total de solicitações</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="check-circle" class="ci" width="14" height="14"></i><span class="cl">Concluídos</span></div>
-      <div class="cv green">2647</div><div class="cd">Investigações encerradas</div>
+      <div class="cv green">2648</div><div class="cd">Investigações encerradas</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="clock" class="ci" width="14" height="14"></i><span class="cl">Em Andamento</span></div>
-      <div class="cv blue">826</div><div class="cd">Aguardando conclusão</div>
+      <div class="cv blue">830</div><div class="cd">Aguardando conclusão</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14"></i><span class="cl">SLA Vencido</span></div>
-      <div class="cv red">314</div><div class="cd">Prazo expirado</div>
+      <div class="cv red">315</div><div class="cd">Prazo expirado</div>
     </div>
   </div>
 
   <div class="tbl-wrap">
-    <div class="tbl-title">Solicitações CFTV — 3787 registros</div>
+    <div class="tbl-title">Solicitações CFTV — 3793 registros</div>
     <div class="filter-bar">
       <span class="filter-label">Operação</span>
       <select id="cftv_op" class="filter-select" onchange="filtrar()">
@@ -188,7 +188,7 @@ tr:hover td{background:#0d1829}
       <span class="filter-label">Responsável</span>
       <select id="cftv_resp" class="filter-select" onchange="filtrar()">
         <option value="">Todos</option>
-        <option value="Ana Carla">Ana Carla</option><option value="Ana Carla Da Silva">Ana Carla Da Silva</option><option value="Ana Carla da Silva">Ana Carla da Silva</option><option value="Anderson Do Nascimento Reis">Anderson Do Nascimento Reis</option><option value="Crystoffer Mackueynne">Crystoffer Mackueynne</option><option value="Crystoffer Mackueynne Alvarenga Silva">Crystoffer Mackueynne Alvarenga Silva</option><option value="Eduardo Vicente Ramos">Eduardo Vicente Ramos</option><option value="Erica Amelia Fernandes Gomes">Erica Amelia Fernandes Gomes</option><option value="Guilherme Caires Santana">Guilherme Caires Santana</option><option value="Janaína Souza">Janaína Souza</option><option value="Jefferson Galvao Leal">Jefferson Galvao Leal</option><option value="Joao Vitor De Sousa Mendes">Joao Vitor De Sousa Mendes</option><option value="LEANDRO DOS SANTOS PEQUENO">LEANDRO DOS SANTOS PEQUENO</option><option value="Lucas">Lucas</option><option value="Lucas De Oliveira Nascimento">Lucas De Oliveira Nascimento</option><option value="Mike Tomaz">Mike Tomaz</option><option value="Mike Tomaz Da Silva">Mike Tomaz Da Silva</option><option value="Priscila Leao Pedro">Priscila Leao Pedro</option><option value="Sthefane">Sthefane</option><option value="Sthefane Aparecida Lima Pinheiro">Sthefane Aparecida Lima Pinheiro</option><option value="Victor Da Silva Ribeiro">Victor Da Silva Ribeiro</option>
+        <option value="Ana Carla">Ana Carla</option><option value="Ana Carla Da Silva">Ana Carla Da Silva</option><option value="Ana Carla da Silva">Ana Carla da Silva</option><option value="Anderson Do Nascimento Reis">Anderson Do Nascimento Reis</option><option value="Crystoffer Mackueynne">Crystoffer Mackueynne</option><option value="Crystoffer Mackueynne Alvarenga Silva">Crystoffer Mackueynne Alvarenga Silva</option><option value="Eduardo Vicente Ramos">Eduardo Vicente Ramos</option><option value="Erica Amelia Fernandes Gomes">Erica Amelia Fernandes Gomes</option><option value="Guilherme Caires Santana">Guilherme Caires Santana</option><option value="Janaína Souza">Janaína Souza</option><option value="Jefferson Galvao Leal">Jefferson Galvao Leal</option><option value="Joao Vitor De Sousa Mendes">Joao Vitor De Sousa Mendes</option><option value="LEANDRO DOS SANTOS PEQUENO">LEANDRO DOS SANTOS PEQUENO</option><option value="Leandro">Leandro</option><option value="Lucas">Lucas</option><option value="Lucas De Oliveira Nascimento">Lucas De Oliveira Nascimento</option><option value="Mike Tomaz">Mike Tomaz</option><option value="Mike Tomaz Da Silva">Mike Tomaz Da Silva</option><option value="Priscila Leao Pedro">Priscila Leao Pedro</option><option value="Sthefane">Sthefane</option><option value="Sthefane Aparecida Lima Pinheiro">Sthefane Aparecida Lima Pinheiro</option><option value="Victor Da Silva Ribeiro">Victor Da Silva Ribeiro</option>
       </select>
       <input id="cftv_search" type="text" oninput="filtrar()" class="filter-select" placeholder="🔍 SHP / Driver / Solicitante..." style="width:220px">
     </div>
@@ -198,7 +198,150 @@ tr:hover td{background:#0d1829}
         <th style="text-align:right">Valor R$</th><th>Prioridade</th><th>Status</th>
         <th>SLA</th><th>Responsável</th><th>Conclusão</th><th>Driver</th>
       </tr></thead>
-      <tbody id="cftv-tbody"><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Alto" data-resp="Mike Tomaz Da Silva" data-search="47307687389  mike tomaz da silva smart tv  crystal 55 4k samsung preto">
+      <tbody id="cftv-tbody"><tr class="cftv-row" data-operacao="SSP30" data-status="Em Andamento" data-prio="Moderado" data-resp="" data-search="47382192137  prisclia leão whisky highland park 16 anos twisted">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47382192137" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47382192137</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Whisky Highland Park 16 Anos Twisted">Whisky Highland Park 16 Anos Twisted</td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$844.00</td>
+          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">—</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Em Andamento" data-prio="Moderado" data-resp="" data-search="47309626230  priscila leão fritadeira air fryer philco paf16a">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47309626230" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47309626230</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Fritadeira Air Fryer Philco Paf16a">Fritadeira Air Fryer Philco Paf16a</td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$660.28</td>
+          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">—</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Em Andamento" data-prio="Moderado" data-resp="" data-search="47366875950  priscila leão purificador de água latina pa355">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47366875950" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47366875950</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Purificador De Água Latina Pa355">Purificador De Água Latina Pa355</td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$671.05</td>
+          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">—</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Em Andamento" data-prio="Moderado" data-resp="" data-search="46844548047  priscila leão bicicleta ello bike aro 29 aço carbono">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46844548047" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">46844548047</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Bicicleta Ello Bike Aro 29 Aço Carbono">Bicicleta Ello Bike Aro 29 Aço Carbono</td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$609.74</td>
+          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">—</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Em Andamento" data-prio="Moderado" data-resp="" data-search="47300204492  priscila leão (montada e testada) aro29 freio a disco">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47300204492" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47300204492</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="(montada E Testada) Aro29 Freio A Disco">(montada E Testada) Aro29 Freio A Disco</td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$1,700.98</td>
+          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">—</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Em Andamento" data-prio="Moderado" data-resp="" data-search="47151635627  priscila leão pc computador cpu intel core i5 4ª geração">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47151635627" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47151635627</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Pc Computador Cpu Intel Core I5 4ª Geração">Pc Computador Cpu Intel Core I5 4ª Geração</td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$654.55</td>
+          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">—</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="XSP10" data-status="Em Andamento" data-prio="FALSE" data-resp="Ana Carla Da Silva" data-search="47337206029  joão mendes ">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">XSP10</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47337206029" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47337206029</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title=""></td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$0.00</td>
+          <td><span style="color:#9ca3af;font-size:11px;font-weight:600">FALSE</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">Ana Carla Da Silva</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="XSP10" data-status="Em Andamento" data-prio="FALSE" data-resp="Ana Carla Da Silva" data-search="47334450683  joão mendes ">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">XSP10</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47334450683" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47334450683</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title=""></td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$0.00</td>
+          <td><span style="color:#9ca3af;font-size:11px;font-weight:600">FALSE</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">Ana Carla Da Silva</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="XSP10" data-status="Em Andamento" data-prio="FALSE" data-resp="Ana Carla Da Silva" data-search="47333539205  joão mendes ">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">XSP10</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47333539205" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47333539205</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title=""></td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$0.00</td>
+          <td><span style="color:#9ca3af;font-size:11px;font-weight:600">FALSE</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">Ana Carla Da Silva</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="XSP10" data-status="Em Andamento" data-prio="FALSE" data-resp="Ana Carla Da Silva" data-search="47336765510  joão mendes ">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">XSP10</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47336765510" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47336765510</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title=""></td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$0.00</td>
+          <td><span style="color:#9ca3af;font-size:11px;font-weight:600">FALSE</span></td>
+          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">Ana Carla Da Silva</td>
+          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="XSP10" data-status="SLA Vencido" data-prio="FALSE" data-resp="Leandro" data-search="46844548047  leandro bicicleta ello bike aro 29 aço carbono freios a disco 21v">
+          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">06/07/2026</td>
+          <td style="font-size:11px;color:#6b7280">W28</td>
+          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">XSP10</span></td>
+          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46844548047" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">46844548047</a></td>
+          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Bicicleta Ello Bike Aro 29 Aço Carbono Freios A Disco 21v">Bicicleta Ello Bike Aro 29 Aço Carbono Freios A Disco 21v</td>
+          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$0.00</td>
+          <td><span style="color:#9ca3af;font-size:11px;font-weight:600">FALSE</span></td>
+          <td><span style="color:#ef4444;font-size:11px;font-weight:600">SLA Vencido</span></td>
+          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
+          <td style="font-size:11px;color:#d1d5db">Leandro</td>
+          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
+          <td style="font-size:11px;color:#9ca3af">—</td>
+        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Alto" data-resp="Mike Tomaz Da Silva" data-search="47307687389  mike tomaz da silva smart tv  crystal 55 4k samsung preto">
           <td style="font-size:11px;color:#9ca3af;white-space:nowrap">04/07/2026</td>
           <td style="font-size:11px;color:#6b7280">W27</td>
           <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
@@ -2265,7 +2408,7 @@ tr:hover td{background:#0d1829}
           <td style="font-size:11px;color:#d1d5db">—</td>
           <td><span style="color:#6b7280;font-size:11px">—</span></td>
           <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Em Andamento" data-prio="Moderado" data-resp="" data-search="47319975089  igor trajano smart tv weyon 32wdsnmx 32'' hd led">
+        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Moderado" data-resp="Leandro" data-search="47319975089  igor trajano smart tv weyon 32wdsnmx 32'' hd led">
           <td style="font-size:11px;color:#9ca3af;white-space:nowrap">22/06/2026</td>
           <td style="font-size:11px;color:#6b7280">W</td>
           <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
@@ -2273,10 +2416,10 @@ tr:hover td{background:#0d1829}
           <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Smart Tv Weyon 32wdsnmx 32'' Hd Led">Smart Tv Weyon 32wdsnmx 32'' Hd Led</td>
           <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$849.00</td>
           <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
-          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
+          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
           <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">—</td>
-          <td><span style="color:#6b7280;font-size:11px">—</span></td>
+          <td style="font-size:11px;color:#d1d5db">Leandro</td>
+          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
           <td style="font-size:11px;color:#9ca3af">—</td>
         </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Em Andamento" data-prio="Moderado" data-resp="" data-search="47330825400  igor trajano caixa 10 fitas dupla face transparente 19mm x 20m adere tran">
           <td style="font-size:11px;color:#9ca3af;white-space:nowrap">22/06/2026</td>
@@ -13053,149 +13196,6 @@ tr:hover td{background:#0d1829}
           <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
           <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
           <td style="font-size:11px;color:#d1d5db">Sthefane Aparecida Lima Pinheiro</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Moderado" data-resp="Eduardo Vicente Ramos" data-search="47026195744  rafael santos aparador para sala de jantar buffet flow 3 portas balcão can">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47026195744" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47026195744</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Aparador Para Sala De Jantar Buffet Flow 3 Portas Balcão Can">Aparador Para Sala De Jantar Buffet Flow 3 Portas Balcão Can</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$609.90</td>
-          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Moderado" data-resp="Eduardo Vicente Ramos" data-search="46995744269  rafael santos kit 2 banquetas baixa cozinha balcão madeira bancada gourmet">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46995744269" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">46995744269</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Kit 2 Banquetas Baixa Cozinha Balcão Madeira Bancada Gourmet">Kit 2 Banquetas Baixa Cozinha Balcão Madeira Bancada Gourmet</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$719.33</td>
-          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Alto" data-resp="Eduardo Vicente Ramos" data-search="47011310551  rafael santos torneira elétrica slim 4t p/ parede 5500w branca hydra 220v ">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47011310551" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47011310551</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Torneira Elétrica Slim 4t P/ Parede 5500w Branca Hydra 220v ">Torneira Elétrica Slim 4t P/ Parede 5500w Branca Hydra 220v </td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$1,964.76</td>
-          <td><span style="color:#ef4444;font-size:11px;font-weight:600">Alto</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Moderado" data-resp="Eduardo Vicente Ramos" data-search="47009725061  rafael santos eixo principal entalhado besta gs 1997 a 2004">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47009725061" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47009725061</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Eixo Principal Entalhado Besta Gs 1997 A 2004">Eixo Principal Entalhado Besta Gs 1997 A 2004</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$863.99</td>
-          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Alto" data-resp="Eduardo Vicente Ramos" data-search="47025029636  rafael santos óleo lub schulz 4000 horas 20 l compressor - 2030/2040">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47025029636" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47025029636</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Óleo Lub Schulz 4000 Horas 20 L Compressor - 2030/2040">Óleo Lub Schulz 4000 Horas 20 L Compressor - 2030/2040</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$2,226.84</td>
-          <td><span style="color:#ef4444;font-size:11px;font-weight:600">Alto</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Em Andamento" data-prio="Moderado" data-resp="" data-search="47017464793  rafael santos momlulu 3 em 1 depilador elétrico feminino recarregável barb">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47017464793" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47017464793</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Momlulu 3 Em 1 Depilador Elétrico Feminino Recarregável Barb">Momlulu 3 Em 1 Depilador Elétrico Feminino Recarregável Barb</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$1,024.32</td>
-          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
-          <td><span style="color:#3b82f6;font-size:11px;font-weight:600">Em Andamento</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">—</td>
-          <td><span style="color:#6b7280;font-size:11px">—</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Moderado" data-resp="Eduardo Vicente Ramos" data-search="46960522879  rafael santos espelho oval base reta camarim 170x70 com led touch screen">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46960522879" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">46960522879</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Espelho Oval Base Reta Camarim 170x70 Com Led Touch Screen">Espelho Oval Base Reta Camarim 170x70 Com Led Touch Screen</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$562.50</td>
-          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Moderado" data-resp="Eduardo Vicente Ramos" data-search="47025941467  rafael santos aparador para sala de jantar buffet flow 3 portas balcão can">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47025941467" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47025941467</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Aparador Para Sala De Jantar Buffet Flow 3 Portas Balcão Can">Aparador Para Sala De Jantar Buffet Flow 3 Portas Balcão Can</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$609.90</td>
-          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Alto" data-resp="Eduardo Vicente Ramos" data-search="47039465186  rafael santos kit 4 pneu general aro 17 225/50r17 98w xl altimax one s">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47039465186" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47039465186</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Kit 4 Pneu General Aro 17 225/50r17 98w Xl Altimax One S">Kit 4 Pneu General Aro 17 225/50r17 98w Xl Altimax One S</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$2,299.90</td>
-          <td><span style="color:#ef4444;font-size:11px;font-weight:600">Alto</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Moderado" data-resp="Eduardo Vicente Ramos" data-search="47034803508  rafael santos beliche madeira maciça solteiro reforçada vira duas camas ma">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47034803508" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47034803508</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Beliche Madeira Maciça Solteiro Reforçada Vira Duas Camas Ma">Beliche Madeira Maciça Solteiro Reforçada Vira Duas Camas Ma</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$901.72</td>
-          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
-          <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
-          <td style="font-size:11px;color:#9ca3af">—</td>
-        </tr><tr class="cftv-row" data-operacao="SSP30" data-status="Concluído" data-prio="Moderado" data-resp="Eduardo Vicente Ramos" data-search="47028305226  rafael santos pufe namoradeira elegante 2 lugares tecido linho cor cinza c">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">13/05/2026</td>
-          <td style="font-size:11px;color:#6b7280">W20</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">SSP30</span></td>
-          <td><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47028305226" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">47028305226</a></td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Pufe Namoradeira Elegante 2 Lugares Tecido Linho Cor Cinza C">Pufe Namoradeira Elegante 2 Lugares Tecido Linho Cor Cinza C</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R$819.00</td>
-          <td><span style="color:#f59e0b;font-size:11px;font-weight:600">Moderado</span></td>
-          <td><span style="color:#10b981;font-size:11px;font-weight:600">Concluído</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">1</td>
-          <td style="font-size:11px;color:#d1d5db">Eduardo Vicente Ramos</td>
           <td><span style="color:#10b981;font-size:11px">Conclusivo</span></td>
           <td style="font-size:11px;color:#9ca3af">—</td>
         </tr></tbody>
