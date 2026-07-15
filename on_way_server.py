@@ -428,6 +428,7 @@ def sinistros_add():
                 row[idx] = value
             except StopIteration:
                 pass
+        set_col('F',               payload.get('data', ''))
         set_col('Data',            payload.get('data', ''))
         set_col('Horario',         payload.get('horario', ''))
         set_col('Rota',            payload.get('rota', ''))
@@ -441,6 +442,13 @@ def sinistros_add():
         set_col('Rua',             payload.get('local', ''))
         set_col('MLP',             payload.get('transp', ''))
         set_col('Veículo',         payload.get('veiculo', ''))
+        set_col('Bairro ',         payload.get('bairro', ''))
+        set_col('Cidade ',         payload.get('cidade', ''))
+        set_col('CLUSTER',         payload.get('cluster', ''))
+        set_col('Natureza do evento', payload.get('natureza', ''))
+        set_col('MODUS OPERANDI',  payload.get('modus', ''))
+        set_col('Boletim de ocorrência', payload.get('boletim', ''))
+        set_col('Link boletim',    payload.get('link_bo', ''))
         set_col('Relato',          payload.get('relato', ''))
         ws.append_row(row, value_input_option='USER_ENTERED')
         return jsonify({'ok': True})

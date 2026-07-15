@@ -566,7 +566,7 @@ def rows_acumulo_bloqueio(candidatos):
             if '-W' in sem:
                 sem = 'S' + sem.split('-W')[-1].lstrip('0') or 'S?'
             shp_id = s.get('id','')
-            shp_link = (f'<a href="https://envios.adminml.com/logistics/package-management/package/{shp_id}" '
+            shp_link = (f'<a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/{shp_id}" '
                         f'target="_blank" style="color:#60a5fa;font-family:monospace;text-decoration:none">'
                         f'{shp_id}</a>') if shp_id else '—'
             rows_shp += (f'<tr><td style="font-size:11px;color:#6b7280">{sem}</td>'
@@ -713,7 +713,7 @@ def carregar_sinistros(gs):
                 rbpp = float((_g(r,'Recup. Cashout Usd') or '0').replace(',','.').replace('$','').replace(' ','') or '0')
             except: rbpp = 0.0
             casos.append({
-                'data':          _g(r,'Data'),
+                'data':          _g(r,'F') or _g(r,'Data'),
                 'horario':       _g(r,'Horario'),
                 'rota':          _g(r,'Rota'),
                 'driver_id':     _g(r,'Drive'),
@@ -727,9 +727,15 @@ def carregar_sinistros(gs):
                 'recup_bpp':     rbpp,
                 'cep':           _g(r,'CEP'),
                 'rua':           _g(r,'Rua'),
+                'bairro':        _g(r,'Bairro ') or _g(r,'Bairro'),
+                'cidade':        _g(r,'Cidade ') or _g(r,'Cidade'),
+                'cluster':       _g(r,'CLUSTER'),
                 'transportadora':_g(r,'MLP'),
                 'veiculo':       _g(r,'Veículo') or _g(r,'Veiculo'),
                 'natureza':      _g(r,'Natureza do evento'),
+                'modus':         _g(r,'MODUS OPERANDI'),
+                'boletim':       _g(r,'Boletim de ocorrência'),
+                'link_bo':       _g(r,'Link boletim'),
                 'relato':        _g(r,'Relato'),
             })
         recuperados = sum(1 for c in casos if (c['recup_carga'] or '').strip().lower() in ('sim','yes','s'))
@@ -1566,6 +1572,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
     return {
         'gerado':    datetime.now().strftime('%d/%m/%Y %H:%M'),
         'ano':       ANO_INICIO[:4],
+        'mes_atual': datetime.now().strftime('%Y-%m'),
         'drivers':   drivers,
         'dxp':       dxp,
         'places':    places,
@@ -1915,7 +1922,7 @@ def rows_driver_ranking(dc_nex_data):
   </div>'''
 
 def rows_dc_nex(dc_nex_data):
-    MELI_URL = 'https://envios.adminml.com/logistics/package-management/package'
+    MELI_URL = 'https://shipping-bo.adminml.com/sauron/shipments/shipment'
     tipo_cor  = {'NEX': '#f59e0b', 'DC': '#60a5fa', 'Transportadora XPT': '#a78bfa'}
     tipo_bg   = {'NEX': 'rgba(245,158,11,.12)', 'DC': 'rgba(96,165,250,.12)', 'Transportadora XPT': 'rgba(167,139,250,.12)'}
     facilities = dc_nex_data.get('facilities', [])
@@ -2213,6 +2220,24 @@ def gerar_html(d):
     DC / NEX <span class="sb-badge red" id="tab-count-dcnex">{d["dc_nex"]["total_pkgs"]}</span>
   </div>
   <div class="sb-divider"></div>
+  <div class="sb-section-header">Investigação LP</div>
+  <div class="sb-item" data-tab="saidas" onclick="showTab('saidas',this)">
+    <i data-lucide="repeat-2" width="14" height="14" class="ci"></i>
+    Saídas Múltiplas <span class="sb-badge red" id="tab-count-saidas">0</span>
+  </div>
+  <div class="sb-item" data-tab="devolucoes" onclick="showTab('devolucoes',this)">
+    <i data-lucide="package-open" width="14" height="14" class="ci"></i>
+    Devoluções <span class="sb-badge amber" id="tab-count-devolucoes">0</span>
+  </div>
+  <div class="sb-item" data-tab="sellers_ene" onclick="showTab('sellers_ene',this)">
+    <i data-lucide="store" width="14" height="14" class="ci"></i>
+    Sellers ENE <span class="sb-badge red" id="tab-count-sellers-ene">0</span>
+  </div>
+  <div class="sb-item" data-tab="ofensores" onclick="showTab('ofensores',this)">
+    <i data-lucide="target" width="14" height="14" class="ci"></i>
+    Ofensores
+  </div>
+  <div class="sb-divider"></div>
   <div class="sb-section-header">Block List</div>
   <div class="sb-item" data-tab="bloqueios" onclick="showTab('bloqueios',this)">
     <i data-lucide="shield" width="14" height="14" class="ci"></i>
@@ -2235,9 +2260,9 @@ def gerar_html(d):
 <div id="barra-periodo" style="background:#080d19;border-bottom:1px solid #1f2937;padding:10px 32px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
   <span class="filter-label">Período:</span>
   <span style="font-size:11px;color:#6b7280">De</span>
-  <input type="month" id="pd_de" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["ano"]}-12" style="max-width:150px">
+  <input type="month" id="pd_de" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["mes_atual"]}" style="max-width:150px">
   <span style="font-size:11px;color:#6b7280">Até</span>
-  <input type="month" id="pd_ate" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["ano"]}-12" style="max-width:150px">
+  <input type="month" id="pd_ate" onchange="setPeriodo()" min="{d["ano"]}-01" max="{d["mes_atual"]}" style="max-width:150px">
   <button onclick="resetPeriodo()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer">Limpar</button>
   <span id="pd_label" style="font-size:12px;font-weight:600;color:#60a5fa"></span>
 </div>
@@ -2561,8 +2586,11 @@ function toggleDriver(id) {{
 }}
 
 const ACUMULO_DATA = {j(d.get("acumulo_bloqueio", []))};
+const SAIDAS_DATA = {j(d.get("saidas", []))};
+const DEVOLUCOES_DATA = {j(d.get("devolucoes", []))};
+const SELLERS_ENE_DATA = {j(d.get("sellers_ene", []))};
 
-const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','bloqueios','cruzamento','relatorio'];
+const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
   _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
@@ -2575,6 +2603,10 @@ function showTab(name, el) {{
   applyPeriodoToTab(name);
   if (name === 'bloqueios') initBlCharts();
   if (name === 'relatorio') carregarTratados();
+  if (name === 'saidas') initSaidas();
+  if (name === 'devolucoes') initDevolucoes();
+  if (name === 'sellers_ene') initSellersENE();
+  if (name === 'ofensores') initOfensores();
 }}
 function _handleHashNav(delay) {{
   const raw = window.location.hash.replace('#','');
@@ -2784,6 +2816,7 @@ function setPeriodo() {{
   applyPeriodoToTab(_currentTab);
   _updateAllTabCounts();
   renderDrMes(); renderCrzMes();
+  try {{ renderOfensores(); }} catch(e) {{}}
 }}
 
 // Atualiza contadores de todas as abas sem mexer nas linhas das abas inativas
@@ -3205,6 +3238,11 @@ async function gerarPptx(driverId) {{
 }}
 // ── FIM GERAR PPTX ──────────────────────────────────────────
 
+function irPara(tab) {{
+  var el = document.querySelector('.sb-item[data-tab="' + tab + '"]');
+  if (el) showTab(tab, el);
+}}
+
 // === STATUS DO SERVIDOR ===
 function checkSrv() {{
   fetch('http://localhost:5000/ping', {{signal: AbortSignal.timeout(2000)}})
@@ -3257,11 +3295,11 @@ function copiarRelatorio(modo) {{
   const rt  = _rtCount !== null ? String(_rtCount) : '—';
   let txt = modo === 'whatsapp' ? WP_BASE : EM_BASE;
   if (modo === 'whatsapp') {{
-    txt += '• Tratados ON WAY: ' + wy + '\n• Tratados ON ROUTE: ' + rt;
-    if (obs) txt += '\n\n📝 *Observações:* ' + obs;
+    txt += '• Tratados ON WAY: ' + wy + '\\n• Tratados ON ROUTE: ' + rt;
+    if (obs) txt += '\\n\\n📝 *Observações:* ' + obs;
   }} else {{
     txt += 'Tratados ON WAY: ' + wy + ' | Tratados ON ROUTE: ' + rt;
-    if (obs) txt += '\n\nObservações: ' + obs;
+    if (obs) txt += '\\n\\nObservações: ' + obs;
   }}
   navigator.clipboard.writeText(txt).then(() => {{
     const t = document.getElementById('rel-toast');
@@ -3275,11 +3313,505 @@ function copiarRelatorio(modo) {{
   }});
 }}
 
+// ── INVESTIGAÇÃO LP — helper global ──────────────────────────
+function _setEl(id, v) {{ const e = document.getElementById(id); if (e) e.textContent = v; }}
+
+// ── SAÍDAS MÚLTIPLAS ─────────────────────────────────────────
+function initSaidas() {{
+  const sel = document.getElementById('sm-filtro-mes');
+  if (sel && sel.options.length <= 1) {{
+    const meses = [...new Set(SAIDAS_DATA.map(r => r.data_ini.slice(0,7)))].sort();
+    meses.forEach(m => {{ const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); }});
+  }}
+  const badge = document.getElementById('tab-count-saidas');
+  if (badge) badge.textContent = SAIDAS_DATA.length;
+  filtrarSaidas();
+}}
+initSaidas();
+
+function filtrarSaidas() {{
+  const risco  = (document.getElementById('sm-filtro-risco')||{{}}).value || '';
+  const busca  = ((document.getElementById('sm-busca')||{{}}).value || '').toLowerCase();
+  const mes    = (document.getElementById('sm-filtro-mes')||{{}}).value || '';
+  const RISCO_COR = {{CRITICO:'#f87171',ALTO:'#fb923c',MEDIO:'#fbbf24',BAIXO:'#86efac'}};
+  const dados  = SAIDAS_DATA.filter(r =>
+    (!risco || r.risco === risco) &&
+    (!mes   || r.data_ini.startsWith(mes)) &&
+    (!busca || r.id.includes(busca) || (r.motorista||'').toLowerCase().includes(busca) || (r.transportadora||'').toLowerCase().includes(busca))
+  );
+  const tb = document.getElementById('sm-tbody');
+  if (!tb) return;
+  tb.innerHTML = dados.slice(0,500).map(r => `
+    <tr style="border-bottom:1px solid #1e293b">
+      <td style="padding:7px 10px;color:#38bdf8;font-family:monospace">${{r.id}}</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:700;color:${{r.tentativas>=3?'#f87171':'#fbbf24'}}">${{r.tentativas}}</td>
+      <td style="padding:7px 10px;color:#cbd5e1">${{r.data_ini}}</td>
+      <td style="padding:7px 10px;color:#cbd5e1">${{r.data_fim}}</td>
+      <td style="padding:7px 10px;color:#e2e8f0">${{r.transportadora||'—'}}</td>
+      <td style="padding:7px 10px;color:#e2e8f0;font-family:monospace">${{r.motorista||'—'}}</td>
+      <td style="padding:7px 10px"><span style="color:${{r.status==='NOT DELIVERED'?'#f87171':'#86efac'}}">${{r.status||'—'}}</span>${{r.sub_status?`<span style='color:#64748b;font-size:10px'> ${{r.sub_status}}</span>`:''}}</td>
+      <td style="padding:7px 10px"><span style="background:${{(RISCO_COR[r.risco]||'#64748b')}}22;color:${{RISCO_COR[r.risco]||'#94a3b8'}};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">${{r.risco}}</span></td>
+    </tr>`).join('');
+  _setEl('sm-total', dados.length);
+  _setEl('sm-criticos', dados.filter(r=>r.risco==='CRITICO').length);
+  _setEl('sm-insucesso', dados.filter(r=>r.insucesso).length);
+  _setEl('sm-max', dados.length ? Math.max(...dados.map(r=>r.tentativas)) : 0);
+  const emEl = document.getElementById('sm-empty');
+  if (emEl) emEl.style.display = dados.length ? 'none' : 'block';
+}}
+
+// ── DEVOLUÇÕES ────────────────────────────────────────────────
+function initDevolucoes() {{
+  const sel = document.getElementById('dv-filtro-mes');
+  if (sel && sel.options.length <= 1) {{
+    const meses = [...new Set(DEVOLUCOES_DATA.map(r => r.data.slice(0,7)))].sort();
+    meses.forEach(m => {{ const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); }});
+  }}
+  const badge = document.getElementById('tab-count-devolucoes');
+  if (badge) badge.textContent = DEVOLUCOES_DATA.length;
+  filtrarDevolucoes();
+}}
+initDevolucoes();
+
+function filtrarDevolucoes() {{
+  const flujo  = (document.getElementById('dv-filtro-flujo')||{{}}).value || '';
+  const classL = (document.getElementById('dv-filtro-class')||{{}}).value || '';
+  const busca  = ((document.getElementById('dv-busca')||{{}}).value || '').toLowerCase();
+  const mes    = (document.getElementById('dv-filtro-mes')||{{}}).value || '';
+  const LP_COR = {{FRAUD:'#f87171',LOST:'#a78bfa',DAMAGED:'#fb923c'}};
+  const dados  = DEVOLUCOES_DATA.filter(r =>
+    (!flujo  || r.flujo === flujo) &&
+    (!classL || r.class_lp === classL) &&
+    (!mes    || r.data.startsWith(mes)) &&
+    (!busca  || r.id.includes(busca) || (r.seller||'').toLowerCase().includes(busca) || (r.causa||'').toLowerCase().includes(busca))
+  );
+  _setEl('dv-total', dados.length);
+  _setEl('dv-fraud', dados.filter(r=>r.class_lp==='FRAUD').length);
+  _setEl('dv-lost',  dados.filter(r=>(r.status_rts||'').includes('LOST')||(r.sub_bko||'').includes('lost')).length);
+  const sellersMap = {{}};
+  dados.forEach(r => {{
+    if (!r.seller_id) return;
+    if (!sellersMap[r.seller_id]) sellersMap[r.seller_id] = {{nome:r.seller,cnt:0,fraud:0}};
+    sellersMap[r.seller_id].cnt++;
+    if (r.class_lp==='FRAUD') sellersMap[r.seller_id].fraud++;
+  }});
+  const sellers = Object.values(sellersMap).sort((a,b)=>b.cnt-a.cnt);
+  _setEl('dv-sellers', sellers.length);
+  const stb = document.getElementById('dv-sellers-tbody');
+  if (stb) stb.innerHTML = sellers.slice(0,10).map(s =>
+    `<tr><td style="padding:4px 6px;color:#e2e8f0">${{s.nome||'—'}}</td><td style="padding:4px 6px;text-align:center;color:#fbbf24;font-weight:600">${{s.cnt}}</td><td style="padding:4px 6px;color:${{s.fraud>0?'#f87171':'#86efac'}}">${{s.fraud>0?`FRAUD (${{s.fraud}})`:'OK'}}</td></tr>`
+  ).join('');
+  const causaMap = {{}};
+  dados.forEach(r => {{ const k = r.causa||'N/A'; causaMap[k]=(causaMap[k]||0)+1; }});
+  const ctb = document.getElementById('dv-causa-tbody');
+  if (ctb) ctb.innerHTML = Object.entries(causaMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([c,n]) =>
+    `<tr><td style="padding:4px 6px;color:#e2e8f0">${{c}}</td><td style="padding:4px 6px;text-align:center;color:#fbbf24;font-weight:600">${{n}}</td></tr>`
+  ).join('');
+  const dtb = document.getElementById('dv-tbody');
+  if (dtb) dtb.innerHTML = dados.slice(0,500).map(r => `
+    <tr style="border-bottom:1px solid #1e293b">
+      <td style="padding:7px 10px;color:#94a3b8">${{r.data}}</td>
+      <td style="padding:7px 10px;color:#38bdf8;font-family:monospace">${{r.id}}</td>
+      <td style="padding:7px 10px;color:#e2e8f0">${{r.seller||'—'}}</td>
+      <td style="padding:7px 10px;color:#cbd5e1">${{r.flujo||'—'}}</td>
+      <td style="padding:7px 10px;color:#cbd5e1">${{r.causa||'—'}}</td>
+      <td style="padding:7px 10px;color:#94a3b8;font-size:11px">${{r.class||'—'}}</td>
+      <td style="padding:7px 10px"><span style="background:${{(LP_COR[r.class_lp]||'#64748b')}}22;color:${{LP_COR[r.class_lp]||'#94a3b8'}};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">${{r.class_lp||'—'}}</span></td>
+      <td style="padding:7px 10px;color:${{(r.status_rts||'').includes('LOST')?'#f87171':'#94a3b8'}};font-size:11px">${{r.status_rts||'—'}}</td>
+      <td style="padding:7px 10px;color:${{r.status_bko==='not_delivered'?'#f87171':r.status_bko==='delivered'?'#86efac':'#94a3b8'}};font-size:11px">${{r.status_bko||'—'}}</td>
+    </tr>`).join('');
+  const emEl = document.getElementById('dv-empty');
+  if (emEl) emEl.style.display = dados.length ? 'none' : 'block';
+}}
+
+// ── SELLERS ENE ──────────────────────────────────────────────
+function initSellersENE() {{
+  const badge = document.getElementById('tab-count-sellers-ene');
+  if (badge) badge.textContent = SELLERS_ENE_DATA.length;
+  filtrarSellersENE();
+}}
+initSellersENE();
+
+function exportCSVSellersENE() {{
+  const rows = [['Seller Nome','Seller ID','Qtd ENE','Cashout USD','Causas','Primeira','Última','Meses','SHP IDs']];
+  SELLERS_ENE_DATA.forEach(r => rows.push([r.seller_nome,r.seller_id,r.qtd,r.cashout,r.causas,r.primeira,r.ultima,r.meses,r.shp_ids]));
+  const csv = rows.map(r => r.map(v => `"${{String(v).replace(/"/g,'""')}}"`).join(',')).join('\\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,\\uFEFF' + encodeURIComponent(csv);
+  a.download = 'sellers_ene_ssp30.csv'; a.click();
+}}
+
+function filtrarSellersENE() {{
+  const busca = ((document.getElementById('ene-busca')||{{}}).value || '').toLowerCase();
+  const dados = SELLERS_ENE_DATA.filter(r =>
+    (!busca || (r.seller_nome||'').toLowerCase().includes(busca) || r.seller_id.includes(busca) || r.shp_ids.toLowerCase().includes(busca))
+  );
+  _setEl('ene-total-sellers', dados.length);
+  _setEl('ene-total-cashout', 'US$ ' + dados.reduce((s,r)=>s+r.cashout,0).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}));
+  _setEl('ene-total-ene',    dados.reduce((s,r)=>s+r.qtd,0));
+  _setEl('ene-total-com-cashout', dados.filter(r=>r.cashout>0).length);
+  const tb = document.getElementById('ene-tbody');
+  if (!tb) return;
+  tb.innerHTML = dados.slice(0,200).map((r,i) => `
+    <tr style="border-bottom:1px solid #1e293b;${{i<3?'background:#1a0a0a':''}}" title="SHPs: ${{r.shp_ids}}">
+      <td style="padding:7px 10px;text-align:center;color:#64748b;font-size:11px">${{i+1}}</td>
+      <td style="padding:7px 10px;color:#38bdf8;font-family:monospace">
+        <span style="color:#38bdf8;font-weight:600">${{r.seller_nome||r.seller_id}}</span>
+        <span style="color:#475569;font-size:10px;margin-left:4px;font-family:monospace" title="Copiar ID" style="cursor:pointer" onclick="navigator.clipboard.writeText('${{r.seller_id}}')">#${{r.seller_id}}</span>
+      </td>
+      <td style="padding:7px 10px;text-align:center;font-weight:700;color:${{r.qtd>=10?'#f87171':r.qtd>=5?'#fb923c':'#fbbf24'}}">${{r.qtd}}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600;color:#86efac">US$ ${{r.cashout.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</td>
+      <td style="padding:7px 10px;color:#94a3b8;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${{r.causas}}">${{r.causas||'—'}}</td>
+      <td style="padding:7px 10px;color:#94a3b8;font-size:11px">${{r.primeira||'—'}}</td>
+      <td style="padding:7px 10px;color:#94a3b8;font-size:11px">${{r.ultima||'—'}}</td>
+      <td style="padding:7px 10px;color:#64748b;font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${{r.meses||'—'}}</td>
+    </tr>`).join('');
+  const emEl = document.getElementById('ene-empty');
+  if (emEl) emEl.style.display = dados.length ? 'none' : 'block';
+}}
+
+// ═══════════════════════════════════════════════════════
+//  ABA OFENSORES
+// ═══════════════════════════════════════════════════════
+let _ofensView = 'ene';
+let _ofensMetric = 'cashout';
+let _ofensChart = null;
+
+function _sellerENEInPeriod(r) {{
+  if (!_periodDe && !_periodAte) return true;
+  const meses = (r.meses || '').split(' ');
+  return meses.some(m => m && (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
+}}
+function _updateOfensKPIs() {{
+  const selsFilt = SELLERS_ENE_DATA.filter(_sellerENEInPeriod);
+  const cashoutTotal = selsFilt.reduce((s,r) => s + r.cashout, 0);
+  const devFilt = DEVOLUCOES_DATA.filter(_inPeriod);
+  const eneDamCount = devFilt.filter(r => r.class === 'DAMAGED ENE').length;
+  _setEl('ofens-kpi-sellers', selsFilt.length);
+  _setEl('ofens-kpi-cashout', 'US$ ' + cashoutTotal.toLocaleString('pt-BR', {{minimumFractionDigits:2,maximumFractionDigits:2}}));
+  _setEl('ofens-kpi-comcashout', selsFilt.filter(r => r.cashout > 0).length);
+  _setEl('ofens-kpi-devos', devFilt.length);
+  _setEl('ofens-kpi-ene-dam', eneDamCount);
+}}
+function initOfensores() {{
+  _updateOfensKPIs();
+  renderOfensores();
+}}
+
+function _ofensStyleBtn(id, active) {{
+  const b = document.getElementById(id);
+  if (!b) return;
+  const dot = b.querySelector('span');
+  if (active) {{
+    b.style.color = '#fca311'; b.style.borderBottomColor = '#fca311'; b.style.fontWeight = '700';
+    if (dot) dot.style.background = '#fca311';
+  }} else {{
+    b.style.color = '#64748b'; b.style.borderBottomColor = 'transparent'; b.style.fontWeight = '600';
+    if (dot) dot.style.background = '#475569';
+  }}
+}}
+function _ofensStyleMetric(id, active) {{
+  const b = document.getElementById(id);
+  if (!b) return;
+  if (active) {{
+    b.style.background = '#92400e'; b.style.color = '#fbbf24'; b.style.border = 'none';
+  }} else {{
+    b.style.background = 'transparent'; b.style.color = '#64748b'; b.style.border = '1px solid #334155';
+  }}
+}}
+
+function setOfensView(v) {{
+  console.log('[Ofensores] setOfensView:', v);
+  _ofensView = v;
+  ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
+  const mt = document.getElementById('ofens-metric-toggle');
+  if (mt) mt.style.display = v === 'ene' ? 'flex' : 'none';
+  try {{
+    renderOfensores();
+  }} catch(e) {{
+    console.error('[Ofensores] renderOfensores error:', e);
+  }}
+}}
+
+function setOfensMetric(m) {{
+  _ofensMetric = m;
+  ['cashout','qty'].forEach(id => _ofensStyleMetric('ofens-metric-' + id, id === m));
+  renderOfensores();
+}}
+
+function _ofensTopSellersENE() {{
+  return [...SELLERS_ENE_DATA]
+    .filter(r => !_isMLInternal(r.seller_nome) && _sellerENEInPeriod(r))
+    .sort((a,b) => _ofensMetric === 'cashout' ? b.cashout - a.cashout : b.qtd - a.qtd)
+    .slice(0, 10);
+}}
+const _ML_INTERNAL = ['mercado livre brasil','mercado livre eletronicos','mercadolivre','mercado livre','ml brasil'];
+function _isMLInternal(name) {{
+  return _ML_INTERNAL.some(n => (name||'').toLowerCase().includes(n));
+}}
+function _inPeriod(r) {{
+  const ym = (r.data||'').substring(0,7);
+  return (!_periodDe || ym >= _periodDe) && (!_periodAte || ym <= _periodAte);
+}}
+function _ofensTopSellersDevo() {{
+  const map = {{}};
+  DEVOLUCOES_DATA.filter(_inPeriod).forEach(r => {{
+    const nome = r.seller || r.seller_nome || '';
+    if (!nome || _isMLInternal(nome)) return;
+    if (!map[nome]) map[nome] = {{nome, id: r.seller_id||'', shpSet: new Set()}};
+    if (r.id) map[nome].shpSet.add(String(r.id));
+  }});
+  return Object.values(map)
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet].slice(0,6)}}))
+    .sort((a,b) => b.count - a.count).slice(0, 10);
+}}
+function _ofensTopBuyersDevo() {{
+  const map = {{}};
+  DEVOLUCOES_DATA.filter(_inPeriod).forEach(r => {{
+    if (!r.buyer_id) return;
+    if (!map[r.buyer_id]) map[r.buyer_id] = {{id:r.buyer_id, nome:r.buyer_nome||'', estado:r.buyer_uf||r.buyer_estado||'', shpSet: new Set()}};
+    if (r.id) map[r.buyer_id].shpSet.add(String(r.id));
+  }});
+  return Object.values(map)
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet].slice(0,6)}}))
+    .sort((a,b) => b.count - a.count).slice(0, 10);
+}}
+function _ofensTopSellersENEDam() {{
+  const map = {{}};
+  DEVOLUCOES_DATA.filter(r => r.class === 'DAMAGED ENE' && _inPeriod(r)).forEach(r => {{
+    const nome = r.seller || r.seller_nome || '';
+    if (!nome || _isMLInternal(nome)) return;
+    if (!map[nome]) map[nome] = {{nome, id: r.seller_id||'', shpSet: new Set()}};
+    if (r.id) map[nome].shpSet.add(String(r.id));
+  }});
+  return Object.values(map)
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet].slice(0, 8)}}))
+    .sort((a,b) => b.count - a.count).slice(0, 15);
+}}
+function _ofensTopBuyersENEDam() {{
+  const map = {{}};
+  DEVOLUCOES_DATA.filter(r => r.class === 'DAMAGED ENE' && _inPeriod(r)).forEach(r => {{
+    if (!r.buyer_id) return;
+    if (!map[r.buyer_id]) map[r.buyer_id] = {{id:r.buyer_id, shpSet: new Set()}};
+    if (r.id) map[r.buyer_id].shpSet.add(String(r.id));
+  }});
+  return Object.values(map)
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet].slice(0, 8)}}))
+    .sort((a,b) => b.count - a.count).slice(0, 15);
+}}
+
+function renderOfensores() {{
+  _updateOfensKPIs();
+  let rows, labels, vals, title, metricLabel;
+  const COLS = ['#6366f1','#fca311','#2a9d8f','#e76f51','#457b9d','#8172B3','#937860','#DD8452','#55A868','#C44E52'];
+
+  if (_ofensView === 'ene') {{
+    rows = _ofensTopSellersENE();
+    labels = rows.map(r => r.seller_nome || r.seller_id);
+    vals   = rows.map(r => _ofensMetric === 'cashout' ? r.cashout : r.qtd);
+    metricLabel = _ofensMetric === 'cashout' ? 'Cashout USD' : 'Qtd ENE';
+    title = `Top 10 Sellers ENE por ${{metricLabel}}`;
+  }} else if (_ofensView === 'seller_devo') {{
+    rows = _ofensTopSellersDevo();
+    labels = rows.map(r => r.nome);
+    vals   = rows.map(r => r.count);
+    metricLabel = 'Qtd Devoluções'; title = 'Top 10 Sellers — Devoluções';
+  }} else if (_ofensView === 'ene_dam_seller') {{
+    rows = _ofensTopSellersENEDam();
+    labels = rows.map(r => r.nome);
+    vals   = rows.map(r => r.count);
+    metricLabel = 'Qtd ENE Damaged'; title = 'Sellers — ENE Damaged (pacotes devolvidos avariados)';
+  }} else if (_ofensView === 'ene_dam_buyer') {{
+    rows = _ofensTopBuyersENEDam();
+    labels = rows.map(r => r.id);
+    vals   = rows.map(r => r.count);
+    metricLabel = 'Qtd ENE Damaged'; title = 'Buyers — ENE Damaged (compradores recorrentes)';
+  }} else {{
+    rows = _ofensTopBuyersDevo();
+    labels = rows.map(r => r.nome || r.id);
+    vals   = rows.map(r => r.count);
+    metricLabel = 'Qtd Devoluções'; title = 'Top 10 Buyers — Devoluções';
+  }}
+
+  const titleEl = document.getElementById('ofens-chart-title');
+  if (titleEl) titleEl.textContent = title;
+
+  const ctx = document.getElementById('ofens-chart');
+  if (!ctx) return;
+  if (_ofensChart) _ofensChart.destroy();
+  _ofensChart = new Chart(ctx.getContext('2d'), {{
+    type: 'bar',
+    data: {{
+      labels,
+      datasets: [{{
+        label: metricLabel, data: vals,
+        backgroundColor: COLS.map(c => c + 'CC'),
+        borderColor: COLS, borderWidth: 1, borderRadius: 4
+      }}]
+    }},
+    options: {{
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: {{
+          callbacks: {{
+            label: (c) => (_ofensView === 'ene' && _ofensMetric === 'cashout')
+              ? 'US$ ' + Number(c.parsed.x).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})
+              : Number(c.parsed.x).toLocaleString('pt-BR') + ' casos'
+          }}
+        }}
+      }},
+      scales: {{
+        x: {{
+          beginAtZero: true,
+          ticks: {{
+            color: '#64748b',
+            callback: (v) => (_ofensView === 'ene' && _ofensMetric === 'cashout')
+              ? 'US$' + Number(v).toLocaleString('pt-BR',{{minimumFractionDigits:0,maximumFractionDigits:0}})
+              : Number(v).toLocaleString('pt-BR')
+          }},
+          grid: {{ color: 'rgba(255,255,255,0.05)' }}
+        }},
+        y: {{ grid: {{ display: false }}, ticks: {{ color: '#9ca3af', font: {{ size: 11 }} }} }}
+      }}
+    }}
+  }});
+
+  const _BO_SHP  = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/';
+  const _BO_USER = 'https://envios.adminml.com/logistics/users/';
+  const metricHeader = _ofensView === 'ene'
+    ? (_ofensMetric === 'cashout' ? 'Cashout USD' : 'Qtd ENE')
+    : 'Qtd Devoluções';
+  const thead = document.querySelector('#ofens-table thead');
+  if (thead) thead.innerHTML = `<tr>
+    <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
+    <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Nome / ID</th>
+    <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">${{metricHeader}}</th>
+  </tr>`;
+
+  const tbody = document.getElementById('ofens-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = rows.map((r, i) => {{
+    const uid = 'ofens_' + i;
+    const isENE = _ofensView === 'ene';
+    const isBuyer = _ofensView === 'buyer_devo' || _ofensView === 'ene_dam_buyer';
+    const isENEDam = _ofensView === 'ene_dam_seller' || _ofensView === 'ene_dam_buyer';
+    const linkColor = isBuyer ? '#a78bfa' : isENEDam ? '#fb923c' : '#38bdf8';
+    const nome  = isENE ? (r.seller_nome||r.seller_id) : (r.nome||r.id);
+    const uid_id = isENE ? r.seller_id : r.id;
+    const label = `<span style="color:${{linkColor}};font-weight:600">${{nome}}</span>`
+                + `<span style="color:#475569;font-size:10px;margin-left:5px;font-family:monospace;cursor:pointer" title="Copiar ID" onclick="navigator.clipboard.writeText('${{uid_id}}')">#${{uid_id}}</span>`;
+    const val = isENE && _ofensMetric === 'cashout'
+      ? '<span style="color:#86efac;font-weight:700">US$ ' + Number(r.cashout).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}) + '</span>'
+      : '<span style="color:#fbbf24;font-weight:700">' + Number(isENE ? r.qtd : r.count).toLocaleString('pt-BR') + '</span>';
+    const shpIds = isENE
+      ? (r.shp_ids || '').split(',').filter(Boolean)
+      : (r.shps || []);
+    const seta = shpIds.length
+      ? `<span id="arrow_${{uid}}" style="font-size:10px;color:#4b5563;margin-left:6px">▶ ${{shpIds.length}} ids</span>`
+      : '';
+    const toggle = shpIds.length ? `onclick="toggleDriver('${{uid}}')" style="cursor:pointer;border-bottom:1px solid #1e293b"` : 'style="border-bottom:1px solid #1e293b"';
+    const detailContent = shpIds.map(s =>
+      `<a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/${{s.trim()}}"
+            target="_blank"
+            style="color:#60a5fa;font-family:monospace;font-size:12px;display:block;padding:2px 0;text-decoration:none"
+            title="Abrir no BO: ${{s.trim()}}">${{s.trim()}} ↗</a>`
+    ).join('');
+    const detailRow = shpIds.length
+      ? `<tr id="${{uid}}" style="display:none;background:#060c1a">
+          <td></td><td colspan="2" style="padding:6px 10px 8px 28px">${{detailContent}}</td>
+        </tr>`
+      : '';
+    return `<tr ${{toggle}}>
+      <td style="padding:9px 10px;color:#475569;font-size:11px">${{i+1}}</td>
+      <td style="padding:9px 10px">${{label}}${{seta}}</td>
+      <td style="padding:9px 10px;text-align:right">${{val}}</td>
+    </tr>${{detailRow}}`;
+  }}).join('');
+}}
+
 lucide.createIcons();
 {_SB_DRAG_JS}
 
 
 </script>
+
+<!-- ABA OFENSORES -->
+<div id="tab-ofensores" class="content">
+  <div style="background:linear-gradient(90deg,#0f172a,#1e293b);padding:16px 20px;border-radius:8px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+    <i data-lucide="target" width="20" height="20" style="color:#fca311"></i>
+    <div>
+      <div style="font-size:16px;font-weight:800;color:#f1f5f9">Análise de Ofensores — SSP30</div>
+      <div style="font-size:12px;color:#64748b">Top 10 por Cashout USD e por Quantidade · ENE + Devoluções</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px">
+    <div style="background:#0f172a;border:1px solid #1e293b;border-left:4px solid #fca311;border-radius:8px;padding:14px 16px">
+      <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Sellers ENE</div>
+      <div style="font-size:22px;font-weight:700;color:#f1f5f9" id="ofens-kpi-sellers">—</div>
+      <div style="font-size:11px;color:#64748b">últimos 3 meses</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid #1e293b;border-left:4px solid #10b981;border-radius:8px;padding:14px 16px">
+      <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Cashout Total ENE</div>
+      <div style="font-size:20px;font-weight:700;color:#86efac" id="ofens-kpi-cashout">—</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid #1e293b;border-left:4px solid #ef4444;border-radius:8px;padding:14px 16px">
+      <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Com BPP Confirmado</div>
+      <div style="font-size:22px;font-weight:700;color:#f87171" id="ofens-kpi-comcashout">—</div>
+      <div style="font-size:11px;color:#64748b">sellers c/ cashout &gt; 0</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid #1e293b;border-left:4px solid #60a5fa;border-radius:8px;padding:14px 16px">
+      <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total Devoluções</div>
+      <div style="font-size:22px;font-weight:700;color:#60a5fa" id="ofens-kpi-devos">—</div>
+    </div>
+    <div style="background:#0f172a;border:1px solid #fb923c;border-left:4px solid #fb923c;border-radius:8px;padding:14px 16px">
+      <div style="font-size:10px;color:#fb923c;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">ENE Damaged</div>
+      <div style="font-size:22px;font-weight:700;color:#fb923c" id="ofens-kpi-ene-dam">—</div>
+      <div style="font-size:11px;color:#64748b">pacotes devol. avariados</div>
+    </div>
+  </div>
+  <div style="display:flex;border-bottom:2px solid #1e293b;margin-bottom:0">
+    <button onclick="setOfensView('ene')" id="ofens-btn-ene" style="padding:11px 20px;border:none;border-bottom:2px solid #fca311;margin-bottom:-2px;background:transparent;color:#fca311;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block"></span>Sellers ENE
+    </button>
+    <button onclick="setOfensView('seller_devo')" id="ofens-btn-seller_devo" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>Sellers Devoluções
+    </button>
+    <button onclick="setOfensView('buyer_devo')" id="ofens-btn-buyer_devo" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>Buyers Devoluções
+    </button>
+    <div style="width:1px;background:#1e293b;margin:8px 4px"></div>
+    <button onclick="setOfensView('ene_dam_seller')" id="ofens-btn-ene_dam_seller" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>ENE Dam. Sellers
+    </button>
+    <button onclick="setOfensView('ene_dam_buyer')" id="ofens-btn-ene_dam_buyer" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>ENE Dam. Buyers
+    </button>
+  </div>
+  <div id="ofens-metric-toggle" style="display:flex;gap:8px;padding:12px 0 14px 0">
+    <button onclick="setOfensMetric('cashout')" id="ofens-metric-cashout" style="padding:6px 14px;border-radius:6px;border:none;background:#92400e;color:#fbbf24;font-size:11px;cursor:pointer;font-weight:600">↓ Cashout USD</button>
+    <button onclick="setOfensMetric('qty')" id="ofens-metric-qty" style="padding:6px 14px;border-radius:6px;border:1px solid #334155;background:transparent;color:#64748b;font-size:11px;cursor:pointer;font-weight:600">↓ Qtd ENE</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px">
+    <div class="box">
+      <div class="bt" id="ofens-chart-title">Top 10 Sellers ENE por Cashout USD</div>
+      <div style="position:relative;height:320px"><canvas id="ofens-chart"></canvas></div>
+    </div>
+    <div class="box">
+      <div class="bt">Tabela</div>
+      <div style="overflow-x:auto">
+        <table id="ofens-table" style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr>
+            <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
+            <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Nome / ID</th>
+            <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Qtd</th>
+          </tr></thead>
+          <tbody id="ofens-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- ABA BLOQUEIOS -->
 <div id="tab-bloqueios" class="content">
@@ -3572,6 +4104,229 @@ lucide.createIcons();
 </div>
 
 
+<!-- ABA SAÍDAS MÚLTIPLAS -->
+<div id="tab-saidas" class="content">
+  <div style="padding:20px 28px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#f9fafb">Saídas Múltiplas / Estepe</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px">Pacotes que saíram mais de uma vez do SSP30 — Jan/2026 até hoje</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="sm-filtro-risco" onchange="filtrarSaidas()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px">
+          <option value="">Todos os riscos</option>
+          <option value="CRITICO">Crítico</option>
+          <option value="ALTO">Alto</option>
+          <option value="MEDIO">Médio</option>
+          <option value="BAIXO">Baixo</option>
+        </select>
+        <input type="text" id="sm-busca" oninput="filtrarSaidas()" placeholder="Buscar ID / motorista / transportadora…"
+          style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px;width:240px">
+        <select id="sm-filtro-mes" onchange="filtrarSaidas()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px">
+          <option value="">Todos os meses</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Cards resumo -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      <div class="box" style="flex:1;min-width:140px;padding:14px 18px">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Total Shipments</div>
+        <div id="sm-total" style="font-size:28px;font-weight:700;color:#f9fafb;margin-top:4px">0</div>
+      </div>
+      <div class="box" style="flex:1;min-width:140px;padding:14px 18px;border-color:#dc2626">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Críticos</div>
+        <div id="sm-criticos" style="font-size:28px;font-weight:700;color:#f87171;margin-top:4px">0</div>
+      </div>
+      <div class="box" style="flex:1;min-width:140px;padding:14px 18px;border-color:#f59e0b">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Com Insucesso</div>
+        <div id="sm-insucesso" style="font-size:28px;font-weight:700;color:#fbbf24;margin-top:4px">0</div>
+      </div>
+      <div class="box" style="flex:1;min-width:140px;padding:14px 18px">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Máx. Tentativas</div>
+        <div id="sm-max" style="font-size:28px;font-weight:700;color:#a78bfa;margin-top:4px">0</div>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table id="sm-table" style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Shipment ID</th>
+          <th style="text-align:center;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Saídas</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Primeira Saída</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Última Ação</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Transportadora</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Motorista</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Status Final</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Risco</th>
+        </tr></thead>
+        <tbody id="sm-tbody"></tbody>
+      </table>
+    </div>
+    <div id="sm-empty" style="display:none;text-align:center;padding:40px;color:#94a3b8;font-size:13px">Nenhum resultado encontrado</div>
+  </div>
+</div>
+
+<!-- ABA DEVOLUÇÕES -->
+<div id="tab-devolucoes" class="content">
+  <div style="padding:20px 28px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#f9fafb">Devoluções / Empty Box</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px">Fluxo de devoluções SSP30 — Jan/2026 até hoje</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="dv-filtro-flujo" onchange="filtrarDevolucoes()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px">
+          <option value="">Todos os fluxos</option>
+          <option value="Devolutions">Devolutions</option>
+          <option value="EnE">EnE (Entrega em Endereço)</option>
+          <option value="Forward">Forward</option>
+        </select>
+        <select id="dv-filtro-class" onchange="filtrarDevolucoes()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px">
+          <option value="">Todas as classificações LP</option>
+          <option value="FRAUD">FRAUD</option>
+          <option value="LOST">LOST</option>
+          <option value="DAMAGED">DAMAGED</option>
+        </select>
+        <select id="dv-filtro-mes" onchange="filtrarDevolucoes()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px">
+          <option value="">Todos os meses</option>
+        </select>
+        <input type="text" id="dv-busca" oninput="filtrarDevolucoes()" placeholder="Buscar seller / ID / causa…"
+          style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px;width:220px">
+      </div>
+    </div>
+
+    <!-- Cards resumo -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      <div class="box" style="flex:1;min-width:140px;padding:14px 18px">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Total Devoluções</div>
+        <div id="dv-total" style="font-size:28px;font-weight:700;color:#f9fafb;margin-top:4px">0</div>
+      </div>
+      <div class="box" style="flex:1;min-width:140px;padding:14px 18px;border-color:#dc2626">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Classificadas FRAUD</div>
+        <div id="dv-fraud" style="font-size:28px;font-weight:700;color:#f87171;margin-top:4px">0</div>
+      </div>
+      <div class="box" style="flex:1;min-width:140px;padding:14px 18px;border-color:#f59e0b">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Sellers Únicos</div>
+        <div id="dv-sellers" style="font-size:28px;font-weight:700;color:#fbbf24;margin-top:4px">0</div>
+      </div>
+      <div class="box" style="flex:1;min-width:140px;padding:14px 18px;border-color:#8b5cf6">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Perdidos/Roubados</div>
+        <div id="dv-lost" style="font-size:28px;font-weight:700;color:#a78bfa;margin-top:4px">0</div>
+      </div>
+    </div>
+
+    <!-- Ranking de sellers ofensores -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="box" style="padding:14px 16px">
+        <div class="bt" style="margin-bottom:10px">Top Sellers com mais Devoluções</div>
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:4px 6px;color:#94a3b8">Seller</th>
+            <th style="text-align:center;padding:4px 6px;color:#94a3b8">Qtd</th>
+            <th style="text-align:left;padding:4px 6px;color:#94a3b8">Classif. LP</th>
+          </tr></thead>
+          <tbody id="dv-sellers-tbody"></tbody>
+        </table>
+      </div>
+      <div class="box" style="padding:14px 16px">
+        <div class="bt" style="margin-bottom:10px">Distribuição por Causa (Node Cause)</div>
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:4px 6px;color:#94a3b8">Causa</th>
+            <th style="text-align:center;padding:4px 6px;color:#94a3b8">Qtd</th>
+          </tr></thead>
+          <tbody id="dv-causa-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table id="dv-table" style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Data</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Shipment ID</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Seller</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Fluxo</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Causa</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Classif. LM</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Classif. LP</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Status RTS</th>
+          <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Status BKO</th>
+        </tr></thead>
+        <tbody id="dv-tbody"></tbody>
+      </table>
+    </div>
+    <div id="dv-empty" style="display:none;text-align:center;padding:40px;color:#94a3b8;font-size:13px">Nenhum resultado encontrado</div>
+  </div>
+</div>
+
+<!-- SELLERS ENE -->
+<div id="tab-sellers_ene" class="content">
+  <div style="padding:24px 32px;max-width:1200px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#fff">Sellers ENE — Entrega Não Efetiva</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px">Sellers com pacotes no fluxo ENE no SSP30 — últimos 3 meses · fonte: BT_LP_NODES</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="ene-busca" oninput="filtrarSellersENE()" placeholder="Buscar seller nome / ID / SHP…"
+          style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 12px;font-size:12px;width:240px">
+        <button onclick="exportCSVSellersENE()" style="background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer">
+          ⬇ Exportar CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- CARDS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:16px 20px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Sellers Únicos</div>
+        <div id="ene-total-sellers" style="font-size:28px;font-weight:800;color:#fff">0</div>
+      </div>
+      <div style="background:#0f172a;border:2px solid #86efac22;border-radius:10px;padding:16px 20px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Total Cashout USD</div>
+        <div id="ene-total-cashout" style="font-size:22px;font-weight:800;color:#86efac">0</div>
+      </div>
+      <div style="background:#0f172a;border:2px solid #fbbf2422;border-radius:10px;padding:16px 20px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Total ENE (pacotes)</div>
+        <div id="ene-total-ene" style="font-size:28px;font-weight:800;color:#fbbf24">0</div>
+      </div>
+      <div style="background:#0f172a;border:2px solid #38bdf822;border-radius:10px;padding:16px 20px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Com Cashout</div>
+        <div id="ene-total-com-cashout" style="font-size:28px;font-weight:800;color:#38bdf8">0</div>
+      </div>
+    </div>
+
+    <!-- NOTA -->
+    <div style="background:#0c1a2e;border:1px solid #1d4ed8;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:#93c5fd">
+      <strong>Objetivo:</strong> Identificar sellers com recorrência de pacotes no fluxo ENE (Entrega Não Efetiva) no SSP30.
+      Dados extraídos de <code>BT_LP_NODES</code> com <code>FLUJO = 'EnE'</code>. Cashout cruzado com <code>DM_LP_MELI_OPTIMIZADO</code>.
+      Hover na linha para ver os SHP IDs relacionados.
+    </div>
+
+    <!-- TABELA -->
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr>
+            <th style="text-align:center;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155;width:40px">#</th>
+            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Seller</th>
+            <th style="text-align:center;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Qtd ENE</th>
+            <th style="text-align:right;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Cashout USD</th>
+            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Principais Causas</th>
+            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">1ª Ocorrência</th>
+            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Última</th>
+            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Meses</th>
+          </tr>
+        </thead>
+        <tbody id="ene-tbody"></tbody>
+      </table>
+    </div>
+    <div id="ene-empty" style="display:none;text-align:center;padding:40px;color:#94a3b8;font-size:13px">Nenhum resultado encontrado</div>
+  </div>
+</div>
+
 <!-- RELATÓRIO SEMANAL -->
 <div id="tab-relatorio" class="content">
   <div style="padding:24px 32px;max-width:1100px">
@@ -3666,15 +4421,17 @@ lucide.createIcons();
 # SINISTROS — página standalone
 # ============================================================
 def gerar_sinistros_html(dados):
-    sin_d     = dados.get('sinistros', {})
-    sin_casos = sin_d.get('casos', [])
-    sin_total = sin_d.get('total', 0)
-    sin_bpp   = sin_d.get('bpp_total', 0.0)
-    sin_rec   = sin_d.get('recuperados', 0)
-    sin_bpp_r = sin_d.get('bpp_recuperado', 0.0)
-    taxa_rec  = round(sin_rec / sin_total * 100, 1) if sin_total else 0
-    sin_rows  = ''.join(_sin_row_html(c) for c in reversed(sin_casos[-200:]))
-    sin_json  = json.dumps(sin_casos, ensure_ascii=False)
+    sin_d          = dados.get('sinistros', {})
+    sin_casos      = sin_d.get('casos', [])
+    sin_total      = sin_d.get('total', 0)
+    sin_bpp        = sin_d.get('bpp_total', 0.0)
+    sin_rec        = sin_d.get('recuperados', 0)
+    sin_bpp_r      = sin_d.get('bpp_recuperado', 0.0)
+    taxa_rec       = round(sin_rec / sin_total * 100, 1) if sin_total else 0
+    sin_rows       = ''.join(_sin_row_html(c) for c in reversed(sin_casos[-200:]))
+    sin_json       = json.dumps(sin_casos, ensure_ascii=False)
+    cep_cluster_map = dados.get('cep_cluster_map', {})
+    cep_cluster_json = json.dumps(cep_cluster_map, ensure_ascii=False)
     return f'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -3682,7 +4439,9 @@ def gerar_sinistros_html(dados):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sinistros SSP30 — Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚨</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}}
@@ -3712,6 +4471,7 @@ def gerar_sinistros_html(dados):
   .c-red{{border-color:rgba(248,113,113,.2);background:rgba(248,113,113,.04)}}
   .box{{background:#0d1321;border:1px solid #1f2937;border-radius:10px;padding:20px}}
   .bt{{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:14px}}
+  #sin-mapa .leaflet-container{{background:#080d19}}
   {diario_css()}
 </style>
 </head>
@@ -3774,15 +4534,26 @@ def gerar_sinistros_html(dados):
   <div class="box">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div class="bt" style="margin-bottom:0">Eventos SVC — Histórico ({sin_total} registros)</div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="sin-mes-filtro" onchange="filtrarSinistrosPeriodo()"
+          style="background:#1f2937;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:6px 10px;font-size:11px">
+          <option value="">Todos os meses</option>
+        </select>
         <input id="sin-filter" type="text" placeholder="Filtrar por driver, placa, tipo..."
-          oninput="filtrarSinistros(this.value)"
-          style="background:#1f2937;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:6px 12px;font-size:11px;width:240px">
+          oninput="filtrarSinistrosPeriodo()"
+          style="background:#1f2937;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:6px 12px;font-size:11px;width:220px">
+        <button onclick="toggleMapa()"
+          style="background:#1f2937;color:#60a5fa;border:1px solid #374151;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;white-space:nowrap">
+          🗺️ Mapa
+        </button>
         <button onclick="openSinistroModal()"
           style="background:#dc2626;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
           🚨 Novo Caso
         </button>
       </div>
+    </div>
+    <div id="sin-mapa-wrap" style="display:none;margin-bottom:16px">
+      <div id="sin-mapa" style="height:500px;border-radius:8px;border:1px solid #374151"></div>
     </div>
     <div style="overflow-x:auto;max-height:65vh;overflow-y:auto">
       <table style="width:100%;font-size:12px;border-collapse:collapse">
@@ -3848,12 +4619,41 @@ def gerar_sinistros_html(dados):
         <input id="sf-qtd-rec" type="text" placeholder="Ex: 0" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Valor do Sinistro (BPP)</label>
         <input id="sf-valor" type="text" placeholder="Ex: $405.43" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
-      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">CEP</label>
-        <input id="sf-cep" type="text" placeholder="Ex: 02533010" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">CEP <span id="sf-cep-spin" style="display:none;color:#60a5fa">⟳</span></label>
+        <input id="sf-cep" type="text" placeholder="Ex: 02533010" oninput="buscarCEP(this.value)" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Bairro</label>
+        <input id="sf-bairro" type="text" placeholder="Auto-preenchido via CEP" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Cidade</label>
+        <input id="sf-cidade" type="text" placeholder="Auto-preenchido via CEP" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Cluster</label>
+        <input id="sf-cluster" type="text" placeholder="Auto-preenchido via CEP" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Natureza do Evento</label>
+        <select id="sf-natureza" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
+          <option value="">Selecione...</option>
+          <option>Roubo</option>
+          <option>Furto</option>
+          <option>Extravio</option>
+          <option>Dano</option>
+          <option>Outros</option>
+        </select></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Boletim de Ocorrência</label>
+        <select id="sf-boletim" onchange="toggleLinkBO()" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
+          <option value="">Selecione...</option>
+          <option>Sim</option>
+          <option>Não</option>
+        </select></div>
+    </div>
+    <div id="sf-link-bo-wrap" style="margin-bottom:12px;display:none">
+      <label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Link do Boletim</label>
+      <input id="sf-link-bo" type="text" placeholder="URL ou número do BO" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
     </div>
     <div style="margin-bottom:12px">
       <label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Local / Rua</label>
       <input id="sf-local" type="text" placeholder="Endereço completo" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Modus Operandi</label>
+      <input id="sf-modus" type="text" placeholder="Descreva como ocorreu..." style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
     </div>
     <div style="margin-bottom:20px">
       <label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Relato</label>
@@ -3873,6 +4673,28 @@ def gerar_sinistros_html(dados):
 
 <script>
 const SINISTROS_DATA = {sin_json};
+const _CEP_CLUSTER = {cep_cluster_json};
+
+// --- Meses disponíveis para filtro ---
+(function initMesFiltro() {{
+  const meses = {{}};
+  SINISTROS_DATA.forEach(c => {{
+    if (!c.data) return;
+    const parts = c.data.split('/');
+    if (parts.length < 3) return;
+    const key = parts[2] + '-' + parts[1];
+    const label = parts[1] + '/' + parts[2];
+    meses[key] = label;
+  }});
+  const sel = document.getElementById('sin-mes-filtro');
+  if (!sel) return;
+  Object.keys(meses).sort().reverse().forEach(k => {{
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = meses[k];
+    sel.appendChild(opt);
+  }});
+}})();
 
 function openSinistroModal() {{
   document.getElementById('sin-modal').style.display = 'flex';
@@ -3883,9 +4705,38 @@ function closeSinistroModal() {{
   if (msg) msg.textContent = '';
 }}
 
+function toggleLinkBO() {{
+  const v = document.getElementById('sf-boletim').value;
+  document.getElementById('sf-link-bo-wrap').style.display = v === 'Sim' ? 'block' : 'none';
+}}
+
+async function buscarCEP(rawCep) {{
+  const cep = rawCep.replace(/\\D/g, '');
+  if (cep.length !== 8) return;
+  const spin = document.getElementById('sf-cep-spin');
+  if (spin) spin.style.display = 'inline';
+  try {{
+    // Cluster do dicionário BQ
+    const cc = _CEP_CLUSTER[cep];
+    if (cc) {{
+      document.getElementById('sf-cluster').value = cc.cluster || '';
+    }}
+    // Endereço via ViaCEP
+    const r = await fetch('https://viacep.com.br/ws/' + cep + '/json/');
+    const d = await r.json();
+    if (!d.erro) {{
+      if (d.bairro) document.getElementById('sf-bairro').value = d.bairro;
+      if (d.localidade) document.getElementById('sf-cidade').value = d.localidade;
+      if (d.logradouro && !document.getElementById('sf-local').value)
+        document.getElementById('sf-local').value = d.logradouro;
+    }}
+  }} catch(e) {{}}
+  finally {{ if (spin) spin.style.display = 'none'; }}
+}}
+
 function parsearSinistro() {{
   const txt = document.getElementById('sin-raw').value;
-  const lines = txt.split('\n');
+  const lines = txt.split('\\n');
   const fld = {{}};
   for (const ln of lines) {{
     const ci = ln.indexOf(':');
@@ -3905,6 +4756,12 @@ function parsearSinistro() {{
     else if ((rk.includes('📦') && !rk.includes('✅')) || /qtd.+total/i.test(rk)) fld.qtd_total = val;
     else if (rk.includes('✅') || /qtd.+recup/i.test(rk))          fld.qtd_rec = val;
     else if (rk.includes('💰') || /valor/i.test(rk))               fld.valor = val;
+    else if (/bairro/i.test(rk))                                    fld.bairro = val;
+    else if (/cidade/i.test(rk))                                    fld.cidade = val;
+    else if (/natureza/i.test(rk))                                  fld.natureza = val;
+    else if (/modus/i.test(rk))                                     fld.modus = val;
+    else if (/boletim/i.test(rk))                                   fld.boletim = val;
+    else if (/link.*(bo|boletim)/i.test(rk))                        fld.link_bo = val;
     else if (rk.includes('🗒') || /relato/i.test(rk))              fld.relato = val;
   }}
   const sv = (id, v) => {{ if (v !== undefined) document.getElementById(id).value = v; }};
@@ -3920,8 +4777,16 @@ function parsearSinistro() {{
   sv('sf-qtd-rec',   fld.qtd_rec);
   sv('sf-valor',     fld.valor);
   sv('sf-cep',       fld.cep);
+  sv('sf-bairro',    fld.bairro);
+  sv('sf-cidade',    fld.cidade);
+  sv('sf-natureza',  fld.natureza);
+  sv('sf-modus',     fld.modus);
+  sv('sf-boletim',   fld.boletim);
+  sv('sf-link-bo',   fld.link_bo);
   sv('sf-local',     fld.local);
   sv('sf-relato',    fld.relato);
+  if (fld.cep) buscarCEP(fld.cep);
+  toggleLinkBO();
 }}
 
 function filtrarSinistros(q) {{
@@ -3931,6 +4796,28 @@ function filtrarSinistros(q) {{
     ((c.driver_id||'')+(c.nome||'')+(c.placa||'')+(c.transportadora||'')+(c.tipo||'')+(c.rua||'')+(c.relato||''))
     .toLowerCase().includes(q)
   );
+  renderSinistrosTable(filtered);
+}}
+
+function filtrarSinistrosPeriodo() {{
+  const q = (document.getElementById('sin-filter').value || '').toLowerCase();
+  const mes = document.getElementById('sin-mes-filtro').value || '';
+  let filtered = SINISTROS_DATA;
+  if (mes) {{
+    const [ano, mm] = mes.split('-');
+    filtered = filtered.filter(c => {{
+      if (!c.data) return false;
+      const parts = c.data.split('/');
+      if (parts.length < 3) return false;
+      return parts[2] === ano && parts[1] === mm;
+    }});
+  }}
+  if (q) {{
+    filtered = filtered.filter(c =>
+      ((c.driver_id||'')+(c.nome||'')+(c.placa||'')+(c.transportadora||'')+(c.tipo||'')+(c.rua||'')+(c.bairro||'')+(c.natureza||'')+(c.relato||''))
+      .toLowerCase().includes(q)
+    );
+  }}
   renderSinistrosTable(filtered);
 }}
 
@@ -3977,7 +4864,14 @@ async function salvarSinistro() {{
     qtd_rec:   document.getElementById('sf-qtd-rec').value.trim(),
     valor:     document.getElementById('sf-valor').value.trim(),
     cep:       document.getElementById('sf-cep').value.trim(),
+    bairro:    document.getElementById('sf-bairro').value.trim(),
+    cidade:    document.getElementById('sf-cidade').value.trim(),
+    cluster:   document.getElementById('sf-cluster').value.trim(),
     local:     document.getElementById('sf-local').value.trim(),
+    natureza:  document.getElementById('sf-natureza').value.trim(),
+    modus:     document.getElementById('sf-modus').value.trim(),
+    boletim:   document.getElementById('sf-boletim').value.trim(),
+    link_bo:   document.getElementById('sf-link-bo').value.trim(),
     relato:    document.getElementById('sf-relato').value.trim(),
   }};
   try {{
@@ -3999,6 +4893,79 @@ async function salvarSinistro() {{
     msg.textContent = 'Erro de conexão com servidor local (porta 5000).';
   }}
   btn.disabled = false; btn.textContent = '💾 Salvar na Planilha';
+}}
+
+// --- MAPA LEAFLET ---
+var _leafletMap = null;
+function toggleMapa() {{
+  const wrap = document.getElementById('sin-mapa-wrap');
+  if (!wrap) return;
+  const visible = wrap.style.display !== 'none';
+  wrap.style.display = visible ? 'none' : 'block';
+  if (!visible) initMapa();
+}}
+
+function initMapa() {{
+  if (_leafletMap) {{ _leafletMap.invalidateSize(); return; }}
+  _leafletMap = L.map('sin-mapa').setView([-23.55, -46.63], 11);
+  L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd', maxZoom: 19
+  }}).addTo(_leafletMap);
+
+  // Agrupar por CEP5 para hotspots
+  const cep5map = {{}};
+  const pontos = [];
+
+  SINISTROS_DATA.forEach(c => {{
+    const cepRaw = (c.cep || '').replace(/\\D/g,'');
+    if (!cepRaw) return;
+    const cc = _CEP_CLUSTER[cepRaw];
+    if (!cc || !cc.lat || !cc.lon) return;
+    const lat = cc.lat, lon = cc.lon;
+    const bpp = parseFloat(c.bpp) || 0;
+    let cor = '#facc15';   // amarelo  < 500
+    if (bpp >= 2000) cor = '#ef4444'; // vermelho > 2000
+    else if (bpp >= 500) cor = '#f97316'; // laranja 500-2000
+    const popup = '<b>' + (c.nome||'Driver') + '</b><br>Data: ' + (c.data||'—') +
+      '<br>BPP: $' + bpp.toFixed(2) +
+      '<br>Bairro: ' + (c.bairro || cc.cluster || '—') +
+      '<br>Cluster: ' + (cc.cluster || '—');
+    pontos.push({{lat, lon, cor, popup, cep5: cepRaw.slice(0,5)}});
+    const k = cepRaw.slice(0,5);
+    cep5map[k] = (cep5map[k] || 0) + 1;
+  }});
+
+  pontos.forEach(p => {{
+    L.circleMarker([p.lat, p.lon], {{
+      radius: 7, color: p.cor, fillColor: p.cor,
+      fillOpacity: 0.8, weight: 1.5
+    }}).bindPopup(p.popup).addTo(_leafletMap);
+  }});
+
+  // Hotspots: CEP5 com 2+ sinistros
+  const cep5lats = {{}};
+  pontos.forEach(p => {{
+    if (!cep5lats[p.cep5]) cep5lats[p.cep5] = [];
+    cep5lats[p.cep5].push([p.lat, p.lon]);
+  }});
+  Object.entries(cep5map).forEach(([k, cnt]) => {{
+    if (cnt < 2) return;
+    const coords = cep5lats[k];
+    if (!coords || !coords.length) return;
+    const avgLat = coords.reduce((s,c) => s+c[0],0)/coords.length;
+    const avgLon = coords.reduce((s,c) => s+c[1],0)/coords.length;
+    L.circle([avgLat, avgLon], {{
+      radius: 300 + cnt * 80,
+      color: '#f97316', fillColor: '#f97316',
+      fillOpacity: 0.15, weight: 2, dashArray: '6 4'
+    }}).bindPopup('<b>Hotspot CEP ' + k + 'xxx</b><br>' + cnt + ' sinistros').addTo(_leafletMap);
+  }});
+
+  if (pontos.length > 0) {{
+    const bounds = pontos.map(p => [p.lat, p.lon]);
+    _leafletMap.fitBounds(L.latLngBounds(bounds).pad(0.15));
+  }}
 }}
 
 lucide.createIcons();
@@ -4082,7 +5049,289 @@ if __name__ == '__main__':
     dados['crz']       = processar_cruzamento(df_cruzamento)
     dados['crz_mes']   = processar_cruzamento_mes(df_cruzamento_mes)
     dados['dc_nex']    = processar_dc_nex(df_dc_nex, cobrar_otr_map)
+    # --- CEP → Cluster (SSP30) ---
+    print("  Buscando mapa CEP->Cluster no BQ...")
+    try:
+        query_cep = """
+            SELECT
+                SHP_ADD_ZIP_CODE AS cep,
+                MAX(SHP_LG_CLUSTER_ID) AS cluster
+            FROM `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS_LAST_MILE`
+            WHERE SHP_LG_FACILITY_ID = 'SSP30'
+                AND SHP_ADD_ZIP_CODE IS NOT NULL
+                AND SHP_LG_CLUSTER_ID IS NOT NULL
+            GROUP BY 1
+            LIMIT 5000
+        """
+        from google.cloud import bigquery as bq_module
+        bq_client = bq_module.Client(project='meli-bi-data')
+        cep_cluster_map = {}
+        for row in bq_client.query(query_cep).result():
+            cep_cluster_map[str(row.cep).replace('-', '')] = {
+                'cluster': row.cluster or '',
+                'lat': None,
+                'lon': None,
+            }
+        print(f"  CEP->Cluster: {len(cep_cluster_map)} CEPs mapeados")
+    except Exception as e:
+        print(f"  Aviso CEP->Cluster: {e}")
+        cep_cluster_map = {}
+
+    dados['cep_cluster_map'] = cep_cluster_map
     dados['sinistros'] = carregar_sinistros(gs)
+
+    # Geocodificar CEPs dos sinistros: ViaCEP -> endereço -> Nominatim
+    import urllib.request as _ur, urllib.parse as _up, json as _json, time as _time
+    _NOMINATIM_UA = 'SSP30-Dashboard/1.0 lucas.unascimento@mercadolivre.com'
+    _ceps_sin = list({c['cep'].replace('-','').strip() for c in dados['sinistros']['casos'] if c.get('cep') and len(c['cep'].replace('-','').strip()) == 8})
+    _geo_cache = {}
+    print(f"  Geocodificando {len(_ceps_sin)} CEPs únicos dos sinistros...")
+    for _cep in _ceps_sin:
+        if _cep in cep_cluster_map and cep_cluster_map[_cep].get('lat'):
+            _geo_cache[_cep] = dict(cep_cluster_map[_cep])
+            continue
+        _lat = _lon = None
+        try:
+            # Passo 1: pega endereço via ViaCEP
+            _vreq = _ur.Request(f'https://viacep.com.br/ws/{_cep}/json/', headers={'User-Agent': _NOMINATIM_UA})
+            with _ur.urlopen(_vreq, timeout=5) as _r:
+                _via = _json.loads(_r.read())
+            _time.sleep(1.1)
+            # Passo 2: geocodifica via Nominatim com fallbacks progressivos
+            _logr = _via.get('logradouro','')
+            _bairro = _via.get('bairro','')
+            _cidade = _via.get('localidade','')
+            _uf = _via.get('uf','')
+            for _parts in [
+                [_logr, _bairro, _cidade, _uf, 'Brasil'],
+                [_bairro, _cidade, _uf, 'Brasil'],
+                [_cidade, _uf, 'Brasil'],
+            ]:
+                _addr = ', '.join(filter(None, _parts))
+                if not _addr.replace(',','').strip():
+                    continue
+                _nreq = _ur.Request('https://nominatim.openstreetmap.org/search?q=' + _up.quote(_addr) + '&countrycodes=BR&format=json&limit=1', headers={'User-Agent': _NOMINATIM_UA})
+                with _ur.urlopen(_nreq, timeout=6) as _r:
+                    _res = _json.loads(_r.read())
+                _time.sleep(1.1)
+                if _res:
+                    _lat = float(_res[0]['lat'])
+                    _lon = float(_res[0]['lon'])
+                    break
+        except Exception as _e:
+            print(f"    geocoding {_cep}: {_e}")
+        _geo_cache[_cep] = {'cluster': cep_cluster_map.get(_cep, {}).get('cluster', ''), 'lat': _lat, 'lon': _lon}
+    # Atualiza cep_cluster_map com coordenadas reais
+    cep_cluster_map.update(_geo_cache)
+    dados['cep_cluster_map'] = cep_cluster_map
+    _com_coords = sum(1 for v in _geo_cache.values() if v.get('lat'))
+    print(f"  Geocodificação: {_com_coords}/{len(_ceps_sin)} CEPs com coordenadas")
+
+    # --- Investigação LP: cache + 3 queries BQ em paralelo ---
+    import json as _json_bq, time as _tbq
+    _BQ_CACHE_PATH = os.path.join(os.path.dirname(__file__), 'bq_investigacao_cache.json')
+    _BQ_CACHE_MAX  = 4 * 3600  # 4 horas
+
+    def _bq_cache_load():
+        if not os.path.exists(_BQ_CACHE_PATH): return None
+        if _tbq.time() - os.path.getmtime(_BQ_CACHE_PATH) > _BQ_CACHE_MAX: return None
+        try:
+            with open(_BQ_CACHE_PATH, encoding='utf-8') as _f: return _json_bq.load(_f)
+        except: return None
+
+    _bq_cache = _bq_cache_load()
+    if _bq_cache:
+        print(f"  Cache BQ válido (< 4h) — carregando do disco...")
+        dados['saidas']      = _bq_cache.get('saidas', [])
+        dados['devolucoes']  = _bq_cache.get('devolucoes', [])
+        dados['sellers_ene'] = _bq_cache.get('sellers_ene', [])
+        print(f"  Cache: {len(dados['saidas'])} saídas | {len(dados['devolucoes'])} devoluções | {len(dados['sellers_ene'])} sellers ENE")
+    else:
+        print("  Buscando BQ: 3 queries disparadas em paralelo...")
+        from google.cloud import bigquery as _bqm
+        _bqc = _bqm.Client(project='meli-bi-data')
+
+        # ── Definição das 3 queries ──────────────────────────────
+        _q_saidas = """
+            WITH saidas AS (
+              SELECT
+                SHP_SHIPMENT_ID,
+                MAX(SHP_SHIPMENT_DELIVERY_ATTEMPTS) AS tentativas,
+                MIN(SHP_LG_INIT_DT_TZ) AS data_primeira_saida,
+                MAX(SHP_LG_INIT_DT_TZ) AS data_ultima_acao,
+                ANY_VALUE(SHP_COMPANY_NAME) AS transportadora,
+                CAST(ANY_VALUE(SHP_LG_DRIVER_ID) AS STRING) AS motorista_id,
+                CAST(ANY_VALUE(SHP_LG_ROUTE_ID) AS STRING) AS rota_id,
+                ANY_VALUE(DELIVERY_SUCCESS_LEVEL_1) AS status_final,
+                ANY_VALUE(DELIVERY_SUCCESS_LEVEL_2) AS sub_status_final,
+                MAX(CASE WHEN SHP_FAILED_ATTEMPT_FLAG THEN 1 ELSE 0 END) AS teve_insucesso,
+                ANY_VALUE(SHP_LOGISTIC_TYPE) AS tipo_logistica
+              FROM `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS_LAST_MILE`
+              WHERE SHP_LG_FACILITY_ID = 'SSP30'
+                AND SHP_LG_INIT_DT_TZ BETWEEN '2026-01-01' AND CURRENT_DATE()
+              GROUP BY SHP_SHIPMENT_ID
+              HAVING MAX(SHP_SHIPMENT_DELIVERY_ATTEMPTS) > 1
+            )
+            SELECT *,
+              CASE
+                WHEN status_final = 'NOT DELIVERED' AND teve_insucesso = 1 THEN 'CRITICO'
+                WHEN tentativas >= 3 THEN 'ALTO'
+                WHEN teve_insucesso = 1 THEN 'MEDIO'
+                ELSE 'BAIXO'
+              END AS nivel_risco
+            FROM saidas
+            ORDER BY tentativas DESC, nivel_risco
+            LIMIT 2000
+        """
+        _q_devos = """
+            SELECT
+              DATEPARAMETER AS data,
+              CAST(SHP_SHIPMENT_BPP AS STRING) AS shipment_id,
+              SHP_LG_FACILITY_ID AS facility,
+              SHP_NODE_ID AS node_id,
+              FLUJO AS flujo,
+              SHP_ROUTE_TYPE AS tipo_rota,
+              LP_TRACKING_CODE AS tracking_code,
+              SHP_NODE_CAUSE AS causa_node,
+              SHP_NODE_CAUSE_L2 AS causa_l2,
+              CLASSIFICATION_LM AS classificacao,
+              BPP_LP_CLASSIFICATION AS classificacao_lp,
+              SHP_BKO_STATUS AS status_bko,
+              SHP_BKO_SUBSTATUS AS substatus_bko,
+              FORMAT_DATETIME('%Y-%m-%d', RTN_DATE) AS data_rtn,
+              RTN_STATUS AS status_rtn,
+              CAST(RTS_DATE AS STRING) AS data_rts,
+              RTS_STATUS AS status_rts,
+              FLAG_RTS_ROUTE AS flag_rts,
+              FLAG_DEVO_WH AS flag_devo_wh,
+              CAST(SELLER.SHP_SELLER_ID AS STRING) AS seller_id,
+              SELLER.SHP_SELLER_NICKNAME AS seller_nome,
+              SELLER.SHP_SELLER_STATE AS seller_estado,
+              CAST(BUYER.SHP_BUYER_ID AS STRING) AS buyer_id,
+              BUYER.SHP_BUYER_STATE AS buyer_estado
+            FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
+            WHERE SHP_LG_FACILITY_ID = 'SSP30'
+              AND DATEPARAMETER BETWEEN '2026-01-01' AND CURRENT_DATE()
+              AND (FLUJO = 'Devolutions' OR FLAG_DEVO_WH = '1' OR FLAG_RTS_ROUTE = 'Sí')
+            ORDER BY DATEPARAMETER DESC
+            LIMIT 2000
+        """
+        _q_ene = f"""
+            SELECT
+              CUS_NICKNAME_SEL                                                AS seller_nome,
+              ''                                                              AS seller_id,
+              COUNT(DISTINCT SHIPMENT_ID)                                     AS qtd_ene,
+              ROUND(SUM(BPP_CASHOUT_USD), 2)                                  AS total_cashout,
+              STRING_AGG(DISTINCT CLASSIFICATION_LM
+                         ORDER BY CLASSIFICATION_LM LIMIT 4)                 AS causas,
+              FORMAT_DATE('%d/%m/%Y', MIN(date_bpp))                          AS primeira,
+              FORMAT_DATE('%d/%m/%Y', MAX(date_bpp))                          AS ultima,
+              STRING_AGG(DISTINCT FORMAT_DATE('%Y-%m', date_bpp)
+                         ORDER BY FORMAT_DATE('%Y-%m', date_bpp))             AS meses,
+              STRING_AGG(DISTINCT CAST(SHIPMENT_ID AS STRING) LIMIT 6)        AS shp_ids
+            FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+            WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+              AND CAST(FLAG_ENE AS STRING) = '1'
+              AND date_bpp >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+              AND CUS_NICKNAME_SEL IS NOT NULL
+            GROUP BY 1
+            ORDER BY total_cashout DESC, qtd_ene DESC
+            LIMIT 300
+        """
+
+        # ── Dispara as 3 em paralelo (sem esperar) ───────────────
+        _job_saidas = _bqc.query(_q_saidas)
+        _job_devos  = _bqc.query(_q_devos)
+        _job_ene    = _bqc.query(_q_ene)
+        print("  3 queries disparadas em paralelo no BQ...")
+
+        # ── Coleta resultados (agora aguarda cada uma) ───────────
+        _saidas_rows = []
+        try:
+            for _r in _job_saidas.result():
+                _saidas_rows.append({
+                    'id':             str(_r.SHP_SHIPMENT_ID),
+                    'tentativas':     int(_r.tentativas or 0),
+                    'data_ini':       str(_r.data_primeira_saida or ''),
+                    'data_fim':       str(_r.data_ultima_acao or ''),
+                    'transportadora': str(_r.transportadora or ''),
+                    'motorista':      str(_r.motorista_id or ''),
+                    'rota':           str(_r.rota_id or ''),
+                    'status':         str(_r.status_final or ''),
+                    'sub_status':     str(_r.sub_status_final or ''),
+                    'insucesso':      bool(_r.teve_insucesso),
+                    'tipo':           str(_r.tipo_logistica or ''),
+                    'risco':          str(_r.nivel_risco or ''),
+                })
+            print(f"  Saídas: {len(_saidas_rows)} shipments")
+        except Exception as _e:
+            print(f"  Aviso saídas: {_e}")
+        dados['saidas'] = _saidas_rows
+
+        _devos_rows = []
+        try:
+            for _r in _job_devos.result():
+                _devos_rows.append({
+                    'data':       str(_r.data or ''),
+                    'id':         str(_r.shipment_id or ''),
+                    'facility':   str(_r.facility or ''),
+                    'node':       str(_r.node_id or ''),
+                    'flujo':      str(_r.flujo or ''),
+                    'tipo_rota':  str(_r.tipo_rota or ''),
+                    'tracking':   str(_r.tracking_code or ''),
+                    'causa':      str(_r.causa_node or ''),
+                    'causa_l2':   str(_r.causa_l2 or ''),
+                    'class':      str(_r.classificacao or ''),
+                    'class_lp':   str(_r.classificacao_lp or ''),
+                    'status_bko': str(_r.status_bko or ''),
+                    'sub_bko':    str(_r.substatus_bko or ''),
+                    'data_rtn':   str(_r.data_rtn or ''),
+                    'status_rtn': str(_r.status_rtn or ''),
+                    'data_rts':   str(_r.data_rts or ''),
+                    'status_rts': str(_r.status_rts or ''),
+                    'flag_rts':   str(_r.flag_rts or ''),
+                    'flag_devo':  str(_r.flag_devo_wh or ''),
+                    'seller_id':  str(_r.seller_id or ''),
+                    'seller':     str(_r.seller_nome or ''),
+                    'seller_uf':  str(_r.seller_estado or ''),
+                    'buyer_id':   str(_r.buyer_id or ''),
+                    'buyer_uf':   str(_r.buyer_estado or ''),
+                })
+            print(f"  Devoluções: {len(_devos_rows)} casos")
+        except Exception as _e:
+            print(f"  Aviso devoluções: {_e}")
+        dados['devolucoes'] = _devos_rows
+
+        _ene_rows = []
+        try:
+            for _r in _job_ene.result():
+                _ene_rows.append({
+                    'seller_id':   str(_r.seller_id or ''),
+                    'seller_nome': str(_r.seller_nome or ''),
+                    'qtd':         int(_r.qtd_ene or 0),
+                    'cashout':     float(_r.total_cashout or 0),
+                    'causas':      str(_r.causas or ''),
+                    'primeira':    str(_r.primeira or ''),
+                    'ultima':      str(_r.ultima or ''),
+                    'meses':       str(_r.meses or ''),
+                    'shp_ids':     str(_r.shp_ids or ''),
+                })
+            print(f"  Sellers ENE: {len(_ene_rows)} sellers")
+        except Exception as _e:
+            print(f"  Aviso sellers ENE: {_e}")
+        dados['sellers_ene'] = _ene_rows
+
+        # ── Salva cache para próximos builds (válido 4h) ─────────
+        try:
+            with open(_BQ_CACHE_PATH, 'w', encoding='utf-8') as _cf:
+                _json_bq.dump({'saidas': dados['saidas'], 'devolucoes': dados['devolucoes'], 'sellers_ene': dados['sellers_ene']}, _cf, ensure_ascii=False, default=str)
+            print("  Cache BQ salvo (válido por 4h).")
+        except Exception as _ec:
+            print(f"  Aviso cache: {_ec}")
+
+        dados.setdefault('saidas', [])
+        dados.setdefault('devolucoes', [])
+        dados.setdefault('sellers_ene', [])
 
     MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
                  7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
