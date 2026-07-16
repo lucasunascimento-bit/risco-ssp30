@@ -3697,18 +3697,10 @@ function _ofensDominio() {{
 }}
 
 function _ofensENEService() {{
-  const map = {{}};
-  ENE_SERVICE_DATA.forEach(r => {{
-    const k = r.seller_nome || '(sem nome)';
-    if (!map[k]) map[k] = {{seller_nome: k, qtd: 0, cashout: 0, culps: new Set(), shpSet: new Set()}};
-    map[k].qtd     += r.qtd;
-    map[k].cashout += r.cashout;
-    map[k].culps.add(r.culpabilidade);
-    (r.shp_ids || '').split(',').filter(Boolean).forEach(s => map[k].shpSet.add(s.trim()));
-  }});
-  return Object.values(map)
-    .map(v => ({{...v, culps: [...v.culps].join(' / '), shps: [...v.shpSet]}}))
-    .sort((a,b) => b.cashout - a.cashout).slice(0, 15);
+  return ENE_SERVICE_DATA.map(r => ({{
+    ...r,
+    shps: (r.shp_ids || '').split(',').map(s => s.trim()).filter(Boolean),
+  }})).sort((a,b) => b.nao_entregue - a.nao_entregue);
 }}
 
 function renderOfensores() {{
@@ -3749,9 +3741,9 @@ function renderOfensores() {{
     metricLabel = 'Qtd Devoluções'; title = 'Domínio Ofensor — Tipo de Produto com Devoluções';
   }} else if (_ofensView === 'ene_svc') {{
     rows = _ofensENEService();
-    labels = rows.map(r => r.seller_nome);
-    vals   = rows.map(r => r.cashout);
-    metricLabel = 'Cashout USD'; title = 'ENE Service — Sellers c/ Falha de Culpabilidade (LM/Cross)';
+    labels = rows.map(r => r.carrier);
+    vals   = rows.map(r => r.nao_entregue);
+    metricLabel = 'Não Entregue'; title = 'ENE Service — Carriers c/ Entrega Não Efetiva (por Transportadora)';
   }} else {{
     rows = _ofensTopBuyersDevo();
     labels = rows.map(r => r.nome || r.id);
@@ -3811,10 +3803,12 @@ function renderOfensores() {{
   if (_ofensView === 'ene_svc') {{
     if (thead) thead.innerHTML = `<tr>
       <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:22px">#</th>
-      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Seller</th>
-      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Culpabilidade</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Cashout</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Qtd</th>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Transportadora</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Total ENE</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Não Entregue</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Perdido</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Avariado</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px" title="Sem rota ou rota < 2h (possível descon)">Descon?</th>
     </tr>`;
   }} else if (_ofensView === 'origem' || _ofensView === 'dominio') {{
     const col2Label = _ofensView === 'dominio' ? 'Domínio / Vertical' : 'Nó de Origem';
@@ -3837,10 +3831,12 @@ function renderOfensores() {{
   const tbody = document.getElementById('ofens-tbody');
   if (!tbody) return;
 
-  // ── tbody para view ENE Service ──────────────────────────────
+  // ── tbody para view ENE Service (por Transportadora) ────────
   if (_ofensView === 'ene_svc') {{
     tbody.innerHTML = rows.map((r, i) => {{
       const uid = 'ofensvc_' + i;
+      const descon = (r.sem_rota || 0) + (r.rota_curta_2h || 0);
+      const desconColor = descon > 0 ? '#f87171' : '#475569';
       const seta = r.shps.length ? `<span id="arrow_${{uid}}" style="font-size:10px;color:#4b5563;margin-left:6px">▶ ${{r.shps.length}} ids</span>` : '';
       const toggle = r.shps.length ? `onclick="toggleDriver('${{uid}}')" style="cursor:pointer;border-bottom:1px solid #1e293b"` : 'style="border-bottom:1px solid #1e293b"';
       const detailContent = r.shps.map(s =>
@@ -3849,13 +3845,17 @@ function renderOfensores() {{
               style="color:#60a5fa;font-family:monospace;font-size:12px;display:block;padding:2px 0;text-decoration:none"
               title="Abrir no BO: ${{s}}">${{s}} ↗</a>`
       ).join('');
-      const detailRow = r.shps.length ? `<tr id="${{uid}}" style="display:none;background:#060c1a"><td></td><td colspan="4" style="padding:6px 10px 8px 28px">${{detailContent}}</td></tr>` : '';
+      const detailRow = r.shps.length ? `<tr id="${{uid}}" style="display:none;background:#060c1a"><td></td><td colspan="6" style="padding:6px 10px 8px 28px">${{detailContent}}</td></tr>` : '';
       return `<tr ${{toggle}}>
         <td style="padding:8px 8px;color:#475569;font-size:11px">${{i+1}}</td>
-        <td style="padding:8px 8px"><span style="color:#f97316;font-weight:600">${{r.seller_nome}}</span>${{seta}}</td>
-        <td style="padding:8px 8px"><span style="color:#fbbf24;font-size:11px;font-family:monospace">${{r.culps}}</span></td>
-        <td style="padding:8px 8px;text-align:right"><span style="color:#86efac;font-weight:700">US$ ${{Number(r.cashout).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</span></td>
-        <td style="padding:8px 8px;text-align:right"><span style="color:#94a3b8">${{r.qtd}}</span></td>
+        <td style="padding:8px 8px"><span style="color:#38bdf8;font-weight:600">${{r.carrier}}</span>${{seta}}</td>
+        <td style="padding:8px 8px;text-align:right"><span style="color:#94a3b8">${{r.total}}</span></td>
+        <td style="padding:8px 8px;text-align:right"><span style="color:#fbbf24;font-weight:700">${{r.nao_entregue}}</span></td>
+        <td style="padding:8px 8px;text-align:right"><span style="color:#f87171">${{r.perdido}}</span></td>
+        <td style="padding:8px 8px;text-align:right"><span style="color:#fb923c">${{r.avariado}}</span></td>
+        <td style="padding:8px 8px;text-align:right" title="sem_rota=${{r.sem_rota}} + rota<2h=${{r.rota_curta_2h}}">
+          <span style="color:${{desconColor}};font-weight:${{descon > 0 ? '700' : '400'}}">${{descon > 0 ? '⚠ ' + descon : '—'}}</span>
+        </td>
       </tr>${{detailRow}}`;
     }}).join('');
     return;
@@ -5477,23 +5477,28 @@ if __name__ == '__main__':
         """
         _q_ene_svc = f"""
             SELECT
-              CUS_NICKNAME_SEL                                              AS seller_nome,
-              CULPABILITY_ENE                                               AS culpabilidade,
-              COUNT(DISTINCT SHIPMENT_ID)                                   AS qtd,
-              ROUND(SUM(BPP_CASHOUT_USD), 2)                               AS cashout,
-              FORMAT_DATE('%d/%m/%Y', MIN(date_bpp))                       AS primeira,
-              FORMAT_DATE('%d/%m/%Y', MAX(date_bpp))                       AS ultima,
-              STRING_AGG(DISTINCT CAST(SHIPMENT_ID AS STRING) LIMIT 30)    AS shp_ids
-            FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-            WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-              AND FLUJO2 = 'EnE'
-              AND CULPABILITY_ENE IS NOT NULL
-              AND CULPABILITY_ENE NOT IN ('NOT_ENE', '')
-              AND date_bpp >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
-              AND CUS_NICKNAME_SEL IS NOT NULL
-            GROUP BY 1, 2
-            ORDER BY cashout DESC, qtd DESC
-            LIMIT 200
+              IFNULL(ROUTE.SHP_CARRIER_NAME, 'Sem Transportadora')          AS carrier,
+              COUNT(DISTINCT SHP_SHIPMENT_BPP)                               AS total,
+              COUNTIF(SHP_BKO_STATUS = 'not_delivered')                      AS nao_entregue,
+              COUNTIF(SHP_BKO_SUBSTATUS = 'lost')                            AS perdido,
+              COUNTIF(SHP_BKO_SUBSTATUS = 'damaged')                         AS avariado,
+              COUNTIF(HAS_ROUTE = 'No'
+                AND (SHP_NODE_CAUSE LIKE '%RETURN%'
+                     OR SHP_BKO_STATUS = 'not_delivered'))                   AS sem_rota,
+              COUNTIF(
+                ROUTE.SHP_LG_ROUTE_INIT_DATE IS NOT NULL
+                AND ROUTE.SHP_LG_ROUTE_END_DATE IS NOT NULL
+                AND DATETIME_DIFF(
+                      ROUTE.SHP_LG_ROUTE_END_DATE,
+                      ROUTE.SHP_LG_ROUTE_INIT_DATE, MINUTE) <= 120)         AS rota_curta_2h,
+              STRING_AGG(DISTINCT CAST(SHP_SHIPMENT_BPP AS STRING) LIMIT 30) AS shp_ids
+            FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
+            WHERE SHP_LG_FACILITY_ID = 'SSP30'
+              AND DATEPARAMETER >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+              AND FLUJO LIKE '%EnE%'
+            GROUP BY 1
+            ORDER BY nao_entregue DESC, total DESC
+            LIMIT 50
         """
 
         # ── Dispara as 4 em paralelo (sem esperar) ───────────────
@@ -5586,15 +5591,16 @@ if __name__ == '__main__':
         try:
             for _r in _job_ene_svc.result():
                 _ene_svc_rows.append({
-                    'seller_nome':  str(_r.seller_nome or ''),
-                    'culpabilidade': str(_r.culpabilidade or ''),
-                    'qtd':          int(_r.qtd or 0),
-                    'cashout':      float(_r.cashout or 0),
-                    'primeira':     str(_r.primeira or ''),
-                    'ultima':       str(_r.ultima or ''),
-                    'shp_ids':      str(_r.shp_ids or ''),
+                    'carrier':       str(_r.carrier or ''),
+                    'total':         int(_r.total or 0),
+                    'nao_entregue':  int(_r.nao_entregue or 0),
+                    'perdido':       int(_r.perdido or 0),
+                    'avariado':      int(_r.avariado or 0),
+                    'sem_rota':      int(_r.sem_rota or 0),
+                    'rota_curta_2h': int(_r.rota_curta_2h or 0),
+                    'shp_ids':       str(_r.shp_ids or ''),
                 })
-            print(f"  ENE Service: {len(_ene_svc_rows)} registros")
+            print(f"  ENE Service: {len(_ene_svc_rows)} carriers")
         except Exception as _e:
             print(f"  Aviso ENE Service: {_e}")
         dados['ene_service'] = _ene_svc_rows
