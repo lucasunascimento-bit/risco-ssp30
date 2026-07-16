@@ -3589,22 +3589,28 @@ function _ofensTopSellersDevo() {{
   DEVOLUCOES_DATA.filter(_inPeriod).forEach(r => {{
     const nome = r.seller || r.seller_nome || '';
     if (!nome || _isMLInternal(nome)) return;
-    if (!map[nome]) map[nome] = {{nome, id: r.seller_id||'', shpSet: new Set()}};
+    if (!map[nome]) map[nome] = {{nome, id: r.seller_id||'', shpSet: new Set(), domMap: {{}}}};
     if (r.id) map[nome].shpSet.add(String(r.id));
+    const d = (r.dominio||'').trim();
+    if (d && d !== 'null') map[nome].domMap[d] = (map[nome].domMap[d]||0) + 1;
   }});
   return Object.values(map)
-    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet]}}))
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet],
+                dominios: Object.entries(v.domMap).sort((a,b)=>b[1]-a[1]).slice(0,5)}}))
     .sort((a,b) => b.count - a.count).slice(0, 10);
 }}
 function _ofensTopBuyersDevo() {{
   const map = {{}};
   DEVOLUCOES_DATA.filter(_inPeriod).forEach(r => {{
     if (!r.buyer_id) return;
-    if (!map[r.buyer_id]) map[r.buyer_id] = {{id:r.buyer_id, nome:r.buyer_nome||'', estado:r.buyer_uf||r.buyer_estado||'', shpSet: new Set()}};
+    if (!map[r.buyer_id]) map[r.buyer_id] = {{id:r.buyer_id, nome:r.buyer_nome||'', estado:r.buyer_uf||r.buyer_estado||'', shpSet: new Set(), domMap: {{}}}};
     if (r.id) map[r.buyer_id].shpSet.add(String(r.id));
+    const d = (r.dominio||'').trim();
+    if (d && d !== 'null') map[r.buyer_id].domMap[d] = (map[r.buyer_id].domMap[d]||0) + 1;
   }});
   return Object.values(map)
-    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet]}}))
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet],
+                dominios: Object.entries(v.domMap).sort((a,b)=>b[1]-a[1]).slice(0,5)}}))
     .sort((a,b) => b.count - a.count).slice(0, 10);
 }}
 function _ofensTopSellersENEDam() {{
@@ -3634,7 +3640,7 @@ function _ofensTopBuyersENEDam() {{
 function _ofensOrigemNodo() {{
   const map = {{}};
   DEVOLUCOES_DATA.filter(_inPeriod).forEach(r => {{
-    const n = (r.node || '').trim();
+    const n = (r.origem_cross || '').trim();
     if (!n || n === 'null') return;
     if (!map[n]) map[n] = {{node: n, count: 0, shps: []}};
     map[n].count++;
@@ -3642,6 +3648,36 @@ function _ofensOrigemNodo() {{
   }});
   return Object.values(map)
     .sort((a,b) => b.count - a.count).slice(0, 15);
+}}
+
+const _DOM_PT = {{
+  'CELLPHONES':'Celulares','PERFUMES':'Perfumes','DESKTOP_COMPUTER_KITS':'Kits de Computador',
+  'STREAMING_MEDIA_DEVICES':'Streamings / Smart TV','SUPPLEMENTS':'Suplementos',
+  'TOILET_TANKS':'Caixas d\\'Água','KICK_SCOOTERS':'Patinetes','ELECTRIC_BICYCLES':'Bicicletas Elétricas',
+  'ELECTRIC_SCOOTERS':'Scooters Elétricos','HEADPHONES':'Fones de Ouvido','DRINKING_GLASSES':'Copos',
+  'T_SHIRTS':'Camisetas','ELECTRONIC_PRODUCTS':'Eletrônicos','BICYCLES':'Bicicletas',
+  'PANTS':'Calças','KITCHEN_POTS':'Panelas','PLANTS':'Plantas',
+  'JACKETS_AND_COATS':'Jaquetas e Casacos','TOILET_SEATS':'Assentos Sanitários','TABLETS':'Tablets',
+  'LATEX_ENAMEL_AND_ACRYLIC_PAINTS':'Tintas Acrílicas','SWIMWEAR':'Roupas de Banho',
+  'FOOD_STORAGE_CONTAINERS':'Potes de Alimentos','BICYCLE_COMBUSTION_ENGINE_KITS':'Kits Motor Bicicleta',
+  'VEHICLE_SPRING_SUSPENSIONS':'Suspensões Veiculares','SHOES':'Calçados','SNEAKERS':'Tênis',
+  'MONITORS':'Monitores','PRINTERS':'Impressoras','NOTEBOOKS':'Notebooks','CAMERAS':'Câmeras',
+  'SPORTS_SHOES':'Tênis Esportivos','CHAIRS':'Cadeiras','SOFAS':'Sofás','BEDS':'Camas',
+  'MATTRESSES':'Colchões','REFRIGERATORS':'Geladeiras','WASHING_MACHINES':'Máquinas de Lavar',
+  'AIR_CONDITIONERS':'Ar-Condicionados','TELEVISIONS':'Televisores','VACUUM_CLEANERS':'Aspiradores',
+  'BLENDERS':'Liquidificadores','COFFEE_MAKERS':'Cafeteiras','IRONS':'Ferros de Passar',
+  'FANS':'Ventiladores','WATER_HEATERS':'Aquecedores','TOOLS':'Ferramentas',
+  'POWER_TOOLS':'Ferramentas Elétricas','GENERATORS':'Geradores',
+  'GAME_CONSOLES':'Videogames','SMART_WATCHES':'Smartwatches','EARPHONES':'Fones Intra',
+  'SPEAKERS':'Caixas de Som','ROUTERS':'Roteadores','HARD_DRIVES':'HDs/SSDs',
+  'MEMORY_CARDS':'Cartões de Memória','USB_CABLES':'Cabos USB','CHARGERS':'Carregadores',
+  'BACKPACKS':'Mochilas','BAGS':'Bolsas','SUNGLASSES':'Óculos de Sol',
+  'WATCHES':'Relógios','JEWELRY':'Joias','COSMETICS':'Cosméticos',
+  'VITAMINS':'Vitaminas','PROTEIN_POWDER':'Whey Protein',
+}};
+function _domPT(d) {{
+  if (!d) return '';
+  return _DOM_PT[d] || d.replace(/_/g,' ').toLowerCase().replace(/(?:^| )([a-z])/g,(_,c)=>c.toUpperCase());
 }}
 
 function _ofensDominio() {{
@@ -3702,7 +3738,7 @@ function renderOfensores() {{
     rows = _ofensOrigemNodo();
     labels = rows.map(r => r.node);
     vals   = rows.map(r => r.count);
-    metricLabel = 'Qtd Devoluções'; title = 'Origem por Nó Last-Mile — Devoluções passaram por SSP30';
+    metricLabel = 'Qtd Devoluções'; title = 'Cross / SVC de Origem — De onde os pacotes vieram para SSP30';
   }} else if (_ofensView === 'dominio') {{
     rows = _ofensDominio();
     labels = rows.map(r => r.dominio);
@@ -3884,6 +3920,12 @@ function renderOfensores() {{
       ? `<span id="arrow_${{uid}}" style="font-size:10px;color:#4b5563;margin-left:6px">▶ ${{shpIds.length}} ids</span>`
       : '';
     const toggle = shpIds.length ? `onclick="toggleDriver('${{uid}}')" style="cursor:pointer;border-bottom:1px solid #1e293b"` : 'style="border-bottom:1px solid #1e293b"';
+    const domHtml = ((_ofensView === 'seller_devo' || _ofensView === 'buyer_devo') && r.dominios && r.dominios.length)
+      ? `<div style="margin-bottom:6px;padding:6px 8px;background:#0c1626;border-radius:4px;border-left:3px solid #a78bfa">
+           <div style="font-size:10px;color:#6366f1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:700">Domínios Ofensores</div>
+           ${{r.dominios.map(([d,n])=>`<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:12px;background:#1e1040;color:#c4b5fd;font-size:11px">${{_domPT(d)}} <span style="color:#7c3aed;font-weight:700">${{n}}</span></span>`).join('')}}
+         </div>`
+      : '';
     const detailContent = shpIds.map(s =>
       `<a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/${{s.trim()}}"
             target="_blank"
@@ -3892,7 +3934,7 @@ function renderOfensores() {{
     ).join('');
     const detailRow = shpIds.length
       ? `<tr id="${{uid}}" style="display:none;background:#060c1a">
-          <td></td><td colspan="2" style="padding:6px 10px 8px 28px">${{detailContent}}</td>
+          <td></td><td colspan="2" style="padding:6px 10px 8px 28px">${{domHtml}}${{detailContent}}</td>
         </tr>`
       : '';
     return `<tr ${{toggle}}>
@@ -3962,7 +4004,7 @@ lucide.createIcons();
     </button>
     <div style="width:1px;background:#1e293b;margin:8px 4px"></div>
     <button onclick="setOfensView('origem')" id="ofens-btn-origem" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
-      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>Origem Nó
+      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>Origem Cross
     </button>
     <button onclick="setOfensView('dominio')" id="ofens-btn-dominio" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
       <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>Domínio Ofensor
@@ -5395,7 +5437,8 @@ if __name__ == '__main__':
               CAST(BUYER.SHP_BUYER_ID AS STRING) AS buyer_id,
               BUYER.SHP_BUYER_STATE AS buyer_estado,
               DOM_DOMAIN_ID AS dominio,
-              VERTICAL AS vertical
+              VERTICAL AS vertical,
+              SHP_LOGISTIC_CENTER_ID AS origem_cross
             FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
             WHERE SHP_LG_FACILITY_ID = 'SSP30'
               AND DATEPARAMETER BETWEEN '2026-01-01' AND CURRENT_DATE()
@@ -5504,8 +5547,9 @@ if __name__ == '__main__':
                     'seller_uf':  str(_r.seller_estado or ''),
                     'buyer_id':   str(_r.buyer_id or ''),
                     'buyer_uf':   str(_r.buyer_estado or ''),
-                    'dominio':    str(_r.dominio or ''),
-                    'vertical':   str(_r.vertical or ''),
+                    'dominio':      str(_r.dominio or ''),
+                    'vertical':     str(_r.vertical or ''),
+                    'origem_cross': str(_r.origem_cross or ''),
                 })
             print(f"  Devoluções: {len(_devos_rows)} casos")
         except Exception as _e:
