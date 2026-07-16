@@ -5396,7 +5396,6 @@ if __name__ == '__main__':
 nav.sidebar { display:none !important; }
 .mod-nav     { display:none !important; }
 #srv-status  { display:none !important; }
-#barra-periodo { display:none !important; }
 </style>
 <script>
 window.addEventListener('load', function() {
