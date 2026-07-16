@@ -3642,11 +3642,14 @@ function _ofensOrigemNodo() {{
   DEVOLUCOES_DATA.filter(_inPeriod).forEach(r => {{
     const n = (r.origem_cross || '').trim();
     if (!n || n === 'null') return;
-    if (!map[n]) map[n] = {{node: n, count: 0, shps: []}};
+    if (!map[n]) map[n] = {{node: n, count: 0, shps: [], domMap: {{}}}};
     map[n].count++;
     if (r.id) map[n].shps.push(String(r.id));
+    const d = (r.dominio || '').trim();
+    if (d && d !== 'null') map[n].domMap[d] = (map[n].domMap[d] || 0) + 1;
   }});
   return Object.values(map)
+    .map(v => ({{...v, dominios: Object.entries(v.domMap).sort((a,b) => b[1]-a[1]).slice(0,5)}}))
     .sort((a,b) => b.count - a.count).slice(0, 15);
 }}
 
@@ -3882,6 +3885,9 @@ function renderOfensores() {{
            <span style="color:#475569;font-size:10px;margin-left:6px;font-style:italic">${{r.vertical}}</span>`
         : `<span style="color:#38bdf8;font-weight:600;font-family:monospace">${{r.node}}</span>`;
       const barColor = isDom ? '#a78bfa' : '#6366f1';
+      const domHtmlOrigem = (!isDom && r.dominios && r.dominios.length)
+        ? `<div style="margin-top:5px">${{r.dominios.map(([d,n])=>`<span style="display:inline-block;margin:2px 3px 2px 0;padding:1px 7px;border-radius:10px;background:#1e1040;color:#c4b5fd;font-size:10px">${{_domPT(d)}} <span style="color:#7c3aed;font-weight:700">${{n}}</span></span>`).join('')}}</div>`
+        : '';
       return `<tr ${{toggle}}>
         <td style="padding:8px 10px;color:#475569;font-size:11px">${{i+1}}</td>
         <td style="padding:8px 10px">
@@ -3889,6 +3895,7 @@ function renderOfensores() {{
           <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:4px;width:160px">
             <div style="height:3px;background:${{barColor}};border-radius:2px;width:${{barW}}%"></div>
           </div>
+          ${{domHtmlOrigem}}
         </td>
         <td style="padding:8px 10px;text-align:right">
           <span style="color:#fbbf24;font-weight:700">${{r.count}}</span>
