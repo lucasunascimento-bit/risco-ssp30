@@ -2633,6 +2633,37 @@ window.addEventListener('load',       () => _handleHashNav(400));
 window.addEventListener('pageshow',   (e) => {{ if (e.persisted) _handleHashNav(400); }});
 window.addEventListener('hashchange', () => _handleHashNav(100));
 
+// Modo restrito: ?view=ofensores — esconde nav e trava na aba
+(function() {{
+  const p = new URLSearchParams(window.location.search);
+  if (p.get('view') !== 'ofensores') return;
+  // Injeta CSS para esconder sidebar, botoes de topo e barra de periodo
+  const s = document.createElement('style');
+  s.textContent = `
+    nav {{ display:none !important; }}
+    .mod-nav {{ display:none !important; }}
+    #srv-status {{ display:none !important; }}
+    #barra-periodo {{ display:none !important; }}
+  `;
+  document.head.appendChild(s);
+  // Quando carregado, força tab Ofensores e bloqueia troca de tab
+  window.addEventListener('load', () => {{
+    const el = document.querySelector('.sb-item[data-tab="ofensores"]');
+    if (el) showTab('ofensores', el);
+    // Sobrescreve showTab para impedir navegação
+    window.showTab = function(name, el) {{
+      if (name !== 'ofensores') return;
+      const tabs = document.querySelectorAll('.sb-item');
+      tabs.forEach(t => t.classList.remove('active'));
+      if (el) el.classList.add('active');
+      document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
+      const t = document.getElementById('tab-ofensores');
+      if (t) t.style.display = 'block';
+      initOfensores();
+    }};
+  }}, {{ once: true }});
+}})();
+
 Chart.defaults.plugins.tooltip.backgroundColor = '#0d1321';
 Chart.defaults.plugins.tooltip.titleColor      = '#f9fafb';
 Chart.defaults.plugins.tooltip.bodyColor       = '#9ca3af';
@@ -3561,7 +3592,7 @@ function _ofensTopSellersDevo() {{
     if (r.id) map[nome].shpSet.add(String(r.id));
   }});
   return Object.values(map)
-    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet].slice(0,6)}}))
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet]}}))
     .sort((a,b) => b.count - a.count).slice(0, 10);
 }}
 function _ofensTopBuyersDevo() {{
@@ -3572,7 +3603,7 @@ function _ofensTopBuyersDevo() {{
     if (r.id) map[r.buyer_id].shpSet.add(String(r.id));
   }});
   return Object.values(map)
-    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet].slice(0,6)}}))
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet]}}))
     .sort((a,b) => b.count - a.count).slice(0, 10);
 }}
 function _ofensTopSellersENEDam() {{
@@ -3584,7 +3615,7 @@ function _ofensTopSellersENEDam() {{
     if (r.id) map[nome].shpSet.add(String(r.id));
   }});
   return Object.values(map)
-    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet].slice(0, 8)}}))
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet]}}))
     .sort((a,b) => b.count - a.count).slice(0, 15);
 }}
 function _ofensTopBuyersENEDam() {{
@@ -3595,7 +3626,7 @@ function _ofensTopBuyersENEDam() {{
     if (r.id) map[r.buyer_id].shpSet.add(String(r.id));
   }});
   return Object.values(map)
-    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet].slice(0, 8)}}))
+    .map(v => ({{...v, count: v.shpSet.size, shps: [...v.shpSet]}}))
     .sort((a,b) => b.count - a.count).slice(0, 15);
 }}
 
@@ -5228,7 +5259,7 @@ if __name__ == '__main__':
               FORMAT_DATE('%d/%m/%Y', MAX(date_bpp))                          AS ultima,
               STRING_AGG(DISTINCT FORMAT_DATE('%Y-%m', date_bpp)
                          ORDER BY FORMAT_DATE('%Y-%m', date_bpp))             AS meses,
-              STRING_AGG(DISTINCT CAST(SHIPMENT_ID AS STRING) LIMIT 6)        AS shp_ids
+              STRING_AGG(DISTINCT CAST(SHIPMENT_ID AS STRING) LIMIT 50)       AS shp_ids
             FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
             WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
               AND CAST(FLAG_ENE AS STRING) = '1'
@@ -5359,6 +5390,30 @@ if __name__ == '__main__':
     with open(SINISTROS_OUTPUT, 'w', encoding='utf-8') as f:
         f.write(html_sin)
     print(f"Sinistros salvo em: {SINISTROS_OUTPUT}")
+
+    # Gera ofensores.html — visao restrita somente Ofensores (para gestora)
+    _RESTRICT_CSS = """<style id="restrict-ofensores">
+nav.sidebar { display:none !important; }
+.mod-nav     { display:none !important; }
+#srv-status  { display:none !important; }
+#barra-periodo { display:none !important; }
+</style>
+<script>
+window.addEventListener('load', function() {
+  var el = document.querySelector('.sb-item[data-tab="ofensores"]');
+  if (el) { showTab('ofensores', el); }
+  var orig = window.showTab;
+  window.showTab = function(name, el) {
+    if (name !== 'ofensores') return;
+    orig(name, el);
+  };
+}, { once: true });
+</script>"""
+    html_ofensores = html.replace('</head>', _RESTRICT_CSS + '\n</head>', 1)
+    ofensores_path = os.path.join(os.path.dirname(__file__), 'ofensores.html')
+    with open(ofensores_path, 'w', encoding='utf-8') as f:
+        f.write(html_ofensores)
+    print(f"Ofensores salvo em: {ofensores_path}")
 
     if not os.environ.get('CI'):
         webbrowser.open(f'file:///{OUTPUT.replace(chr(92),"/")}')
