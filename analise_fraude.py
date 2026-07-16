@@ -3554,7 +3554,7 @@ function _ofensStyleMetric(id, active) {{
 function setOfensView(v) {{
   console.log('[Ofensores] setOfensView:', v);
   _ofensView = v;
-  ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer','origem','ene_svc'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
+  ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer','origem','dominio','ene_svc'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
   const mt = document.getElementById('ofens-metric-toggle');
   if (mt) mt.style.display = v === 'ene' ? 'flex' : 'none';
   try {{
@@ -3636,11 +3636,25 @@ function _ofensOrigemNodo() {{
   DEVOLUCOES_DATA.filter(_inPeriod).forEach(r => {{
     const n = (r.node || '').trim();
     if (!n || n === 'null') return;
-    map[n] = (map[n] || 0) + 1;
+    if (!map[n]) map[n] = {{node: n, count: 0, shps: []}};
+    map[n].count++;
+    if (r.id) map[n].shps.push(String(r.id));
   }});
-  return Object.entries(map)
-    .map(([node, count]) => ({{node, count}}))
+  return Object.values(map)
     .sort((a,b) => b.count - a.count).slice(0, 15);
+}}
+
+function _ofensDominio() {{
+  const map = {{}};
+  DEVOLUCOES_DATA.filter(_inPeriod).forEach(r => {{
+    const d = (r.dominio || '').trim();
+    if (!d || d === 'null' || d === '') return;
+    if (!map[d]) map[d] = {{dominio: d, vertical: r.vertical || '', count: 0, shps: []}};
+    map[d].count++;
+    if (r.id) map[d].shps.push(String(r.id));
+  }});
+  return Object.values(map)
+    .sort((a,b) => b.count - a.count).slice(0, 20);
 }}
 
 function _ofensENEService() {{
@@ -3689,6 +3703,11 @@ function renderOfensores() {{
     labels = rows.map(r => r.node);
     vals   = rows.map(r => r.count);
     metricLabel = 'Qtd Devoluções'; title = 'Origem por Nó Last-Mile — Devoluções passaram por SSP30';
+  }} else if (_ofensView === 'dominio') {{
+    rows = _ofensDominio();
+    labels = rows.map(r => r.dominio);
+    vals   = rows.map(r => r.count);
+    metricLabel = 'Qtd Devoluções'; title = 'Domínio Ofensor — Tipo de Produto com Devoluções';
   }} else if (_ofensView === 'ene_svc') {{
     rows = _ofensENEService();
     labels = rows.map(r => r.seller_nome);
@@ -3758,10 +3777,11 @@ function renderOfensores() {{
       <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Cashout</th>
       <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Qtd</th>
     </tr>`;
-  }} else if (_ofensView === 'origem') {{
+  }} else if (_ofensView === 'origem' || _ofensView === 'dominio') {{
+    const col2Label = _ofensView === 'dominio' ? 'Domínio / Vertical' : 'Nó de Origem';
     if (thead) thead.innerHTML = `<tr>
       <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:22px">#</th>
-      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Nó de Origem</th>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">${{col2Label}}</th>
       <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Devoluções</th>
     </tr>`;
   }} else {{
@@ -3802,25 +3822,43 @@ function renderOfensores() {{
     return;
   }}
 
-  // ── tbody para view Origem Nó ────────────────────────────────
-  if (_ofensView === 'origem') {{
+  // ── tbody para views Origem Nó e Domínio Ofensor ─────────────
+  if (_ofensView === 'origem' || _ofensView === 'dominio') {{
     const total = rows.reduce((s,r) => s + r.count, 0);
+    const isDom = _ofensView === 'dominio';
     tbody.innerHTML = rows.map((r, i) => {{
+      const uid = (isDom ? 'ofdom_' : 'ofnod_') + i;
       const pct = total > 0 ? ((r.count/total)*100).toFixed(1) : '0.0';
       const barW = total > 0 ? Math.round((r.count/rows[0].count)*100) : 0;
-      return `<tr style="border-bottom:1px solid #1e293b">
+      const seta = r.shps.length ? `<span id="arrow_${{uid}}" style="font-size:10px;color:#4b5563;margin-left:6px">▶ ${{r.shps.length}} ids</span>` : '';
+      const toggle = r.shps.length ? `onclick="toggleDriver('${{uid}}')" style="cursor:pointer;border-bottom:1px solid #1e293b"` : 'style="border-bottom:1px solid #1e293b"';
+      const detailContent = r.shps.map(s =>
+        `<a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/${{s}}"
+              target="_blank"
+              style="color:#60a5fa;font-family:monospace;font-size:12px;display:block;padding:2px 0;text-decoration:none"
+              title="Abrir no BO: ${{s}}">${{s}} ↗</a>`
+      ).join('');
+      const detailRow = r.shps.length
+        ? `<tr id="${{uid}}" style="display:none;background:#060c1a"><td></td><td colspan="2" style="padding:6px 10px 8px 28px">${{detailContent}}</td></tr>`
+        : '';
+      const mainLabel = isDom
+        ? `<span style="color:#a78bfa;font-weight:700">${{r.dominio}}</span>
+           <span style="color:#475569;font-size:10px;margin-left:6px;font-style:italic">${{r.vertical}}</span>`
+        : `<span style="color:#38bdf8;font-weight:600;font-family:monospace">${{r.node}}</span>`;
+      const barColor = isDom ? '#a78bfa' : '#6366f1';
+      return `<tr ${{toggle}}>
         <td style="padding:8px 10px;color:#475569;font-size:11px">${{i+1}}</td>
         <td style="padding:8px 10px">
-          <span style="color:#38bdf8;font-weight:600;font-family:monospace">${{r.node}}</span>
+          ${{mainLabel}}${{seta}}
           <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:4px;width:160px">
-            <div style="height:3px;background:#6366f1;border-radius:2px;width:${{barW}}%"></div>
+            <div style="height:3px;background:${{barColor}};border-radius:2px;width:${{barW}}%"></div>
           </div>
         </td>
         <td style="padding:8px 10px;text-align:right">
           <span style="color:#fbbf24;font-weight:700">${{r.count}}</span>
           <span style="color:#475569;font-size:10px;margin-left:4px">(${{pct}}%)</span>
         </td>
-      </tr>`;
+      </tr>${{detailRow}}`;
     }}).join('');
     return;
   }}
@@ -3925,6 +3963,9 @@ lucide.createIcons();
     <div style="width:1px;background:#1e293b;margin:8px 4px"></div>
     <button onclick="setOfensView('origem')" id="ofens-btn-origem" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
       <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>Origem Nó
+    </button>
+    <button onclick="setOfensView('dominio')" id="ofens-btn-dominio" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>Domínio Ofensor
     </button>
     <button onclick="setOfensView('ene_svc')" id="ofens-btn-ene_svc" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
       <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>ENE Service
@@ -5352,7 +5393,9 @@ if __name__ == '__main__':
               SELLER.SHP_SELLER_NICKNAME AS seller_nome,
               SELLER.SHP_SELLER_STATE AS seller_estado,
               CAST(BUYER.SHP_BUYER_ID AS STRING) AS buyer_id,
-              BUYER.SHP_BUYER_STATE AS buyer_estado
+              BUYER.SHP_BUYER_STATE AS buyer_estado,
+              DOM_DOMAIN_ID AS dominio,
+              VERTICAL AS vertical
             FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
             WHERE SHP_LG_FACILITY_ID = 'SSP30'
               AND DATEPARAMETER BETWEEN '2026-01-01' AND CURRENT_DATE()
@@ -5461,6 +5504,8 @@ if __name__ == '__main__':
                     'seller_uf':  str(_r.seller_estado or ''),
                     'buyer_id':   str(_r.buyer_id or ''),
                     'buyer_uf':   str(_r.buyer_estado or ''),
+                    'dominio':    str(_r.dominio or ''),
+                    'vertical':   str(_r.vertical or ''),
                 })
             print(f"  Devoluções: {len(_devos_rows)} casos")
         except Exception as _e:
