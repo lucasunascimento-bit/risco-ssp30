@@ -2589,6 +2589,7 @@ const ACUMULO_DATA = {j(d.get("acumulo_bloqueio", []))};
 const SAIDAS_DATA = {j(d.get("saidas", []))};
 const DEVOLUCOES_DATA = {j(d.get("devolucoes", []))};
 const SELLERS_ENE_DATA = {j(d.get("sellers_ene", []))};
+const ENE_SERVICE_DATA = {j(d.get("ene_service", []))};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
@@ -3553,7 +3554,7 @@ function _ofensStyleMetric(id, active) {{
 function setOfensView(v) {{
   console.log('[Ofensores] setOfensView:', v);
   _ofensView = v;
-  ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
+  ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer','origem','ene_svc'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
   const mt = document.getElementById('ofens-metric-toggle');
   if (mt) mt.style.display = v === 'ene' ? 'flex' : 'none';
   try {{
@@ -3630,6 +3631,33 @@ function _ofensTopBuyersENEDam() {{
     .sort((a,b) => b.count - a.count).slice(0, 15);
 }}
 
+function _ofensOrigemNodo() {{
+  const map = {{}};
+  DEVOLUCOES_DATA.filter(_inPeriod).forEach(r => {{
+    const n = (r.node || '').trim();
+    if (!n || n === 'null') return;
+    map[n] = (map[n] || 0) + 1;
+  }});
+  return Object.entries(map)
+    .map(([node, count]) => ({{node, count}}))
+    .sort((a,b) => b.count - a.count).slice(0, 15);
+}}
+
+function _ofensENEService() {{
+  const map = {{}};
+  ENE_SERVICE_DATA.forEach(r => {{
+    const k = r.seller_nome || '(sem nome)';
+    if (!map[k]) map[k] = {{seller_nome: k, qtd: 0, cashout: 0, culps: new Set(), shpSet: new Set()}};
+    map[k].qtd     += r.qtd;
+    map[k].cashout += r.cashout;
+    map[k].culps.add(r.culpabilidade);
+    (r.shp_ids || '').split(',').filter(Boolean).forEach(s => map[k].shpSet.add(s.trim()));
+  }});
+  return Object.values(map)
+    .map(v => ({{...v, culps: [...v.culps].join(' / '), shps: [...v.shpSet]}}))
+    .sort((a,b) => b.cashout - a.cashout).slice(0, 15);
+}}
+
 function renderOfensores() {{
   _updateOfensKPIs();
   let rows, labels, vals, title, metricLabel;
@@ -3656,6 +3684,16 @@ function renderOfensores() {{
     labels = rows.map(r => r.id);
     vals   = rows.map(r => r.count);
     metricLabel = 'Qtd ENE Damaged'; title = 'Buyers — ENE Damaged (compradores recorrentes)';
+  }} else if (_ofensView === 'origem') {{
+    rows = _ofensOrigemNodo();
+    labels = rows.map(r => r.node);
+    vals   = rows.map(r => r.count);
+    metricLabel = 'Qtd Devoluções'; title = 'Origem por Nó Last-Mile — Devoluções passaram por SSP30';
+  }} else if (_ofensView === 'ene_svc') {{
+    rows = _ofensENEService();
+    labels = rows.map(r => r.seller_nome);
+    vals   = rows.map(r => r.cashout);
+    metricLabel = 'Cashout USD'; title = 'ENE Service — Sellers c/ Falha de Culpabilidade (LM/Cross)';
   }} else {{
     rows = _ofensTopBuyersDevo();
     labels = rows.map(r => r.nome || r.id);
@@ -3709,18 +3747,85 @@ function renderOfensores() {{
 
   const _BO_SHP  = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/';
   const _BO_USER = 'https://envios.adminml.com/logistics/users/';
-  const metricHeader = _ofensView === 'ene'
-    ? (_ofensMetric === 'cashout' ? 'Cashout USD' : 'Qtd ENE')
-    : 'Qtd Devoluções';
+
+  // ── thead dinâmico por view ──────────────────────────────────
   const thead = document.querySelector('#ofens-table thead');
-  if (thead) thead.innerHTML = `<tr>
-    <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
-    <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Nome / ID</th>
-    <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">${{metricHeader}}</th>
-  </tr>`;
+  if (_ofensView === 'ene_svc') {{
+    if (thead) thead.innerHTML = `<tr>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:22px">#</th>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Seller</th>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Culpabilidade</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Cashout</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Qtd</th>
+    </tr>`;
+  }} else if (_ofensView === 'origem') {{
+    if (thead) thead.innerHTML = `<tr>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:22px">#</th>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Nó de Origem</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Devoluções</th>
+    </tr>`;
+  }} else {{
+    const metricHeader = _ofensView === 'ene'
+      ? (_ofensMetric === 'cashout' ? 'Cashout USD' : 'Qtd ENE')
+      : 'Qtd Devoluções';
+    if (thead) thead.innerHTML = `<tr>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Nome / ID</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">${{metricHeader}}</th>
+    </tr>`;
+  }}
 
   const tbody = document.getElementById('ofens-tbody');
   if (!tbody) return;
+
+  // ── tbody para view ENE Service ──────────────────────────────
+  if (_ofensView === 'ene_svc') {{
+    tbody.innerHTML = rows.map((r, i) => {{
+      const uid = 'ofensvc_' + i;
+      const seta = r.shps.length ? `<span id="arrow_${{uid}}" style="font-size:10px;color:#4b5563;margin-left:6px">▶ ${{r.shps.length}} ids</span>` : '';
+      const toggle = r.shps.length ? `onclick="toggleDriver('${{uid}}')" style="cursor:pointer;border-bottom:1px solid #1e293b"` : 'style="border-bottom:1px solid #1e293b"';
+      const detailContent = r.shps.map(s =>
+        `<a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/${{s}}"
+              target="_blank"
+              style="color:#60a5fa;font-family:monospace;font-size:12px;display:block;padding:2px 0;text-decoration:none"
+              title="Abrir no BO: ${{s}}">${{s}} ↗</a>`
+      ).join('');
+      const detailRow = r.shps.length ? `<tr id="${{uid}}" style="display:none;background:#060c1a"><td></td><td colspan="4" style="padding:6px 10px 8px 28px">${{detailContent}}</td></tr>` : '';
+      return `<tr ${{toggle}}>
+        <td style="padding:8px 8px;color:#475569;font-size:11px">${{i+1}}</td>
+        <td style="padding:8px 8px"><span style="color:#f97316;font-weight:600">${{r.seller_nome}}</span>${{seta}}</td>
+        <td style="padding:8px 8px"><span style="color:#fbbf24;font-size:11px;font-family:monospace">${{r.culps}}</span></td>
+        <td style="padding:8px 8px;text-align:right"><span style="color:#86efac;font-weight:700">US$ ${{Number(r.cashout).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</span></td>
+        <td style="padding:8px 8px;text-align:right"><span style="color:#94a3b8">${{r.qtd}}</span></td>
+      </tr>${{detailRow}}`;
+    }}).join('');
+    return;
+  }}
+
+  // ── tbody para view Origem Nó ────────────────────────────────
+  if (_ofensView === 'origem') {{
+    const total = rows.reduce((s,r) => s + r.count, 0);
+    tbody.innerHTML = rows.map((r, i) => {{
+      const pct = total > 0 ? ((r.count/total)*100).toFixed(1) : '0.0';
+      const barW = total > 0 ? Math.round((r.count/rows[0].count)*100) : 0;
+      return `<tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:8px 10px;color:#475569;font-size:11px">${{i+1}}</td>
+        <td style="padding:8px 10px">
+          <span style="color:#38bdf8;font-weight:600;font-family:monospace">${{r.node}}</span>
+          <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:4px;width:160px">
+            <div style="height:3px;background:#6366f1;border-radius:2px;width:${{barW}}%"></div>
+          </div>
+        </td>
+        <td style="padding:8px 10px;text-align:right">
+          <span style="color:#fbbf24;font-weight:700">${{r.count}}</span>
+          <span style="color:#475569;font-size:10px;margin-left:4px">(${{pct}}%)</span>
+        </td>
+      </tr>`;
+    }}).join('');
+    return;
+  }}
+
+  // ── tbody padrão (ene, seller_devo, buyer_devo, ene_dam_*) ──
   tbody.innerHTML = rows.map((r, i) => {{
     const uid = 'ofens_' + i;
     const isENE = _ofensView === 'ene';
@@ -3816,6 +3921,13 @@ lucide.createIcons();
     </button>
     <button onclick="setOfensView('ene_dam_buyer')" id="ofens-btn-ene_dam_buyer" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
       <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>ENE Dam. Buyers
+    </button>
+    <div style="width:1px;background:#1e293b;margin:8px 4px"></div>
+    <button onclick="setOfensView('origem')" id="ofens-btn-origem" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>Origem Nó
+    </button>
+    <button onclick="setOfensView('ene_svc')" id="ofens-btn-ene_svc" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>ENE Service
     </button>
   </div>
   <div id="ofens-metric-toggle" style="display:flex;gap:8px;padding:12px 0 14px 0">
@@ -5176,13 +5288,14 @@ if __name__ == '__main__':
         dados['saidas']      = _bq_cache.get('saidas', [])
         dados['devolucoes']  = _bq_cache.get('devolucoes', [])
         dados['sellers_ene'] = _bq_cache.get('sellers_ene', [])
-        print(f"  Cache: {len(dados['saidas'])} saídas | {len(dados['devolucoes'])} devoluções | {len(dados['sellers_ene'])} sellers ENE")
+        dados['ene_service'] = _bq_cache.get('ene_service', [])
+        print(f"  Cache: {len(dados['saidas'])} saídas | {len(dados['devolucoes'])} devoluções | {len(dados['sellers_ene'])} sellers ENE | {len(dados['ene_service'])} ENE svc")
     else:
-        print("  Buscando BQ: 3 queries disparadas em paralelo...")
+        print("  Buscando BQ: 4 queries disparadas em paralelo...")
         from google.cloud import bigquery as _bqm
         _bqc = _bqm.Client(project='meli-bi-data')
 
-        # ── Definição das 3 queries ──────────────────────────────
+        # ── Definição das 4 queries ──────────────────────────────
         _q_saidas = """
             WITH saidas AS (
               SELECT
@@ -5269,12 +5382,33 @@ if __name__ == '__main__':
             ORDER BY total_cashout DESC, qtd_ene DESC
             LIMIT 300
         """
+        _q_ene_svc = f"""
+            SELECT
+              CUS_NICKNAME_SEL                                              AS seller_nome,
+              CULPABILITY_ENE                                               AS culpabilidade,
+              COUNT(DISTINCT SHIPMENT_ID)                                   AS qtd,
+              ROUND(SUM(BPP_CASHOUT_USD), 2)                               AS cashout,
+              FORMAT_DATE('%d/%m/%Y', MIN(date_bpp))                       AS primeira,
+              FORMAT_DATE('%d/%m/%Y', MAX(date_bpp))                       AS ultima,
+              STRING_AGG(DISTINCT CAST(SHIPMENT_ID AS STRING) LIMIT 30)    AS shp_ids
+            FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+            WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+              AND FLUJO2 = 'EnE'
+              AND CULPABILITY_ENE IS NOT NULL
+              AND CULPABILITY_ENE NOT IN ('NOT_ENE', '')
+              AND date_bpp >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+              AND CUS_NICKNAME_SEL IS NOT NULL
+            GROUP BY 1, 2
+            ORDER BY cashout DESC, qtd DESC
+            LIMIT 200
+        """
 
-        # ── Dispara as 3 em paralelo (sem esperar) ───────────────
-        _job_saidas = _bqc.query(_q_saidas)
-        _job_devos  = _bqc.query(_q_devos)
-        _job_ene    = _bqc.query(_q_ene)
-        print("  3 queries disparadas em paralelo no BQ...")
+        # ── Dispara as 4 em paralelo (sem esperar) ───────────────
+        _job_saidas  = _bqc.query(_q_saidas)
+        _job_devos   = _bqc.query(_q_devos)
+        _job_ene     = _bqc.query(_q_ene)
+        _job_ene_svc = _bqc.query(_q_ene_svc)
+        print("  4 queries disparadas em paralelo no BQ...")
 
         # ── Coleta resultados (agora aguarda cada uma) ───────────
         _saidas_rows = []
@@ -5352,10 +5486,27 @@ if __name__ == '__main__':
             print(f"  Aviso sellers ENE: {_e}")
         dados['sellers_ene'] = _ene_rows
 
+        _ene_svc_rows = []
+        try:
+            for _r in _job_ene_svc.result():
+                _ene_svc_rows.append({
+                    'seller_nome':  str(_r.seller_nome or ''),
+                    'culpabilidade': str(_r.culpabilidade or ''),
+                    'qtd':          int(_r.qtd or 0),
+                    'cashout':      float(_r.cashout or 0),
+                    'primeira':     str(_r.primeira or ''),
+                    'ultima':       str(_r.ultima or ''),
+                    'shp_ids':      str(_r.shp_ids or ''),
+                })
+            print(f"  ENE Service: {len(_ene_svc_rows)} registros")
+        except Exception as _e:
+            print(f"  Aviso ENE Service: {_e}")
+        dados['ene_service'] = _ene_svc_rows
+
         # ── Salva cache para próximos builds (válido 4h) ─────────
         try:
             with open(_BQ_CACHE_PATH, 'w', encoding='utf-8') as _cf:
-                _json_bq.dump({'saidas': dados['saidas'], 'devolucoes': dados['devolucoes'], 'sellers_ene': dados['sellers_ene']}, _cf, ensure_ascii=False, default=str)
+                _json_bq.dump({'saidas': dados['saidas'], 'devolucoes': dados['devolucoes'], 'sellers_ene': dados['sellers_ene'], 'ene_service': dados['ene_service']}, _cf, ensure_ascii=False, default=str)
             print("  Cache BQ salvo (válido por 4h).")
         except Exception as _ec:
             print(f"  Aviso cache: {_ec}")
@@ -5363,6 +5514,7 @@ if __name__ == '__main__':
         dados.setdefault('saidas', [])
         dados.setdefault('devolucoes', [])
         dados.setdefault('sellers_ene', [])
+        dados.setdefault('ene_service', [])
 
     MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
                  7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
