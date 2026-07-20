@@ -2396,8 +2396,8 @@ def gerar_html(d):
   </div>'''}
 
   <div class="grid2">
-    <div class="box"><div class="bt">Top 10 Drivers — Fraude vs Damaged</div><canvas id="cDrivers" height="280"></canvas></div>
-    <div class="box"><div class="bt">Top 10 Places com mais Fraudes</div><canvas id="cPlaces" height="280"></canvas></div>
+    <div class="box"><div class="bt">Top 10 Drivers — Fraude vs Damaged <span style="font-weight:400;font-size:11px;color:#6b7280">· reativo ao período</span></div><canvas id="cDrivers" height="280"></canvas></div>
+    <div class="box"><div class="bt">Top 10 Places com mais Fraudes <span style="font-weight:400;font-size:11px;color:#6b7280">· acumulado anual</span></div><canvas id="cPlaces" height="280"></canvas></div>
   </div>
 </div>
 
@@ -2432,7 +2432,7 @@ def gerar_html(d):
 <!-- DRIVER × PLACE -->
 <div id="tab-dxp" class="content">
   <div class="tbl-wrap">
-    <div class="tbl-title">Driver × Place — Combinações com 2+ Fraudes em Comum</div>
+    <div class="tbl-title">Driver × Place — Combinações com 2+ Fraudes em Comum <span style="font-weight:400;font-size:11px;color:#6b7280">· filtro mostra linhas ativas no período; valores são totais anuais</span></div>
     <div class="tbl-scroll"><table id="tbl_dxp">
       <thead><tr><th>Driver ID</th><th>Place</th><th>Total</th><th>Fraudes</th><th>Damaged</th><th>BPP Total</th></tr></thead>
       <tbody>{rows_dxp(d["dxp"], d["shp_por_driver"], d["shp_dxp"])}</tbody>
@@ -2454,10 +2454,10 @@ def gerar_html(d):
     </div>""" for i, p in enumerate(d["places"][:3]))}
   </div>
 
-  <div class="box mb16"><div class="bt">Top 8 Places — Total de Fraudes/Lost</div><canvas id="cPlacesBar" height="200"></canvas></div>
+  <div class="box mb16"><div class="bt">Top 8 Places — Total de Fraudes/Lost <span style="font-weight:400;font-size:11px;color:#6b7280">· acumulado anual</span></div><canvas id="cPlacesBar" height="200"></canvas></div>
 
   <div class="tbl-wrap">
-    <div class="tbl-title">Ranking completo — Places Ofensores</div>
+    <div class="tbl-title">Ranking completo — Places Ofensores <span style="font-weight:400;font-size:11px;color:#6b7280">· filtro mostra places ativos no período; valores são totais anuais</span></div>
     <div class="tbl-scroll"><table id="tbl_places">
       <thead><tr>
         <th>Place</th><th>Total</th><th>BPP</th>
@@ -2666,6 +2666,7 @@ const DEVOLUCOES_DATA = {j(d.get("devolucoes", []))};
 const SELLERS_ENE_DATA = {j(d.get("sellers_ene", []))};
 const ENE_SERVICE_DATA = {j(d.get("ene_service", []))};
 const DAMAGED_MONTHLY = {j({{str(dmg['id']): dmg.get('monthly', {{}}) for dmg in d['damaged']}})};
+const CRITICOS_COUNT  = {d.get('criticos', 0)};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
@@ -2676,7 +2677,8 @@ function showTab(name, el) {{
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
   const bp = document.getElementById('barra-periodo');
-  if (bp) bp.style.display = (name === 'acumulo' || name === 'relatorio') ? 'none' : 'flex';
+  const _noPeriod = ['acumulo','relatorio','dcnex','sellers_ene','saidas','devolucoes'];
+  if (bp) bp.style.display = _noPeriod.includes(name) ? 'none' : 'flex';
   applyPeriodoToTab(name);
   if (name === 'bloqueios') initBlCharts();
   if (name === 'relatorio') carregarTratados();
@@ -2749,14 +2751,13 @@ Chart.defaults.plugins.tooltip.borderWidth     = 1;
 Chart.defaults.plugins.tooltip.cornerRadius    = 6;
 Chart.defaults.plugins.tooltip.padding         = 10;
 
-new Chart(document.getElementById('cDrivers'), {{
+let _cDriversChart = new Chart(document.getElementById('cDrivers'), {{
   type: 'bar',
   data: {{
     labels: {j(d["top10_labels"])},
     datasets: [
-      {{ label:'Fraudes', data:{j(d["top10_fraude"])}, backgroundColor:'rgba(239,68,68,0.8)', borderRadius:4 }},
-      {{ label:'Damaged', data:{j(d["top10_damage"])}, backgroundColor:'rgba(245,158,11,0.8)', borderRadius:4 }},
-      {{ label:'Fraud Confirmado', data:{j(d["top10_fraud_c"])}, backgroundColor:'rgba(168,85,247,0.8)', borderRadius:4 }},
+      {{ label:'Fraudes/Lost', data:{j(d["top10_fraude"])}, backgroundColor:'rgba(239,68,68,0.8)', borderRadius:4 }},
+      {{ label:'Damaged',      data:{j(d["top10_damage"])}, backgroundColor:'rgba(245,158,11,0.8)', borderRadius:4 }},
     ]
   }},
   options: {{
@@ -2998,27 +2999,31 @@ function updateCountCards() {{
   }}
   function set(id, v) {{ const e = document.getElementById(id); if (e) e.textContent = v; }}
 
-  // Drivers críticos e ranking ativo
-  let criticos = 0, ativos = 0;
-  document.querySelectorAll('#tbl_drivers > tbody > tr[data-prio]').forEach(tr => {{
-    if (tr.style.display !== 'none') {{
-      ativos++;
-      if (tr.dataset.prio === 'prioridade maxima' || tr.dataset.prio === 'alta') criticos++;
-    }}
-  }});
-  set('cv-criticos', criticos);
-  set('count-drivers-ativos', ativos);
+  // Drivers críticos — contagem estática (prioridade calculada no Python sobre todos os dados)
+  set('cv-criticos', CRITICOS_COUNT);
+
+  // Contagem period-aware (independe da aba ter sido visitada)
+  const _cntMths = (tblId) => {{
+    let n = 0;
+    const tbl = document.getElementById(tblId);
+    if (!tbl) return 0;
+    tbl.querySelectorAll('tbody > tr[data-months]').forEach(tr => {{
+      const months = (tr.dataset.months||'').split(' ');
+      if ((!_periodDe && !_periodAte) || months.some(m => (!_periodDe||m>=_periodDe)&&(!_periodAte||m<=_periodAte))) n++;
+    }});
+    return n;
+  }};
 
   // Places
-  const placesN = vis('#tbl_places > tbody > tr[data-months]');
+  const placesN = _cntMths('tbl_places');
   set('cv-places', placesN);
   set('tab-count-places', placesN);
 
   // DxP
-  set('tab-count-dxp', vis('#tbl_dxp > tbody > tr[data-months]'));
+  set('tab-count-dxp', _cntMths('tbl_dxp'));
 
   // Damaged
-  set('tab-count-damaged', vis('#tbl_damaged > tbody > tr[data-months]'));
+  set('tab-count-damaged', _cntMths('tbl_damaged'));
 
   // Cruzados F+D — filtra tabela e alerta
   let cruzados = 0;
@@ -3064,10 +3069,16 @@ function renderDrMes() {{
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
   const tb = document.getElementById('dr-mes-tbody');
-  if (!tb) return;
-  tb.innerHTML = rows.length ? rows.map((r, i) =>
+  if (tb) tb.innerHTML = rows.length ? rows.map((r, i) =>
     `<tr><td style="color:#6b7280">#${{i+1}}</td><td style="color:#e2e8f0;font-weight:500">${{r.id}}</td><td style="color:#ef4444">${{r.fraudes}}</td><td style="color:#f59e0b">${{r.damaged}}</td><td>${{r.bpp.toFixed(2)}}</td><td style="color:#FFE600;font-weight:700">${{r.score}}</td></tr>`
   ).join('') : '<tr><td colspan="6" style="color:#6b7280;text-align:center;padding:16px">Sem dados para este período</td></tr>';
+  // Atualiza gráfico Top 10 Drivers com dados do período filtrado
+  if (_cDriversChart && rows.length) {{
+    _cDriversChart.data.labels = rows.map(r => r.id);
+    _cDriversChart.data.datasets[0].data = rows.map(r => r.fraudes);
+    _cDriversChart.data.datasets[1].data = rows.map(r => r.damaged);
+    _cDriversChart.update();
+  }}
 }}
 function renderCrzMes() {{
   const meses = Object.keys(_crzMes).filter(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
@@ -3087,6 +3098,10 @@ function renderCrzMes() {{
   if (tbB) tbB.innerHTML = buyers.length ? buyers.map((r, i) =>
     `<tr><td style="color:#6b7280">#${{i+1}}</td><td style="color:#e2e8f0">${{r.id}}</td><td style="color:#60a5fa;font-weight:700">${{r.qtd}}</td></tr>`
   ).join('') : '<tr><td colspan="3" style="color:#6b7280;text-align:center;padding:12px">Sem dados</td></tr>';
+  // Atualiza cards de totais do período (sellers e buyers são reativos; pares/drivers ficam estáticos)
+  const _s = (id, v) => {{ const e = document.getElementById(id); if (e) e.textContent = v; }};
+  _s('crz-cv-sellers', Object.keys(accS).length);
+  _s('crz-cv-buyers',  Object.keys(accB).length);
 }}
 
 // Tendência — Gráfico combo barras (Fraudes+Damaged) + linha (BPP)
@@ -4260,19 +4275,19 @@ lucide.createIcons();
   <div class="cards-grid" style="grid-template-columns:repeat(4,1fr)">
     <div class="card">
       <div class="card-header"><i data-lucide="store" class="ci" width="14" height="14"></i><span class="cl">Sellers Ofensores</span></div>
-      <div class="cv" style="color:#f59e0b">{d["crz"]["total_sellers"]}</div><div class="cd">Vendedores c/ ≥2 fraudes</div>
+      <div class="cv" style="color:#f59e0b" id="crz-cv-sellers">{d["crz"]["total_sellers"]}</div><div class="cd" id="crz-cd-sellers">Vendedores c/ ≥2 fraudes</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="user" class="ci" width="14" height="14"></i><span class="cl">Buyers Ofensores</span></div>
-      <div class="cv" style="color:#60a5fa">{d["crz"]["total_buyers"]}</div><div class="cd">Compradores c/ ≥2 fraudes</div>
+      <div class="cv" style="color:#60a5fa" id="crz-cv-buyers">{d["crz"]["total_buyers"]}</div><div class="cd" id="crz-cd-buyers">Compradores c/ ≥2 fraudes</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="git-merge" class="ci" width="14" height="14"></i><span class="cl">Pares Seller×Buyer</span></div>
-      <div class="cv">{d["crz"]["total_pares"]}</div><div class="cd">Combinações suspeitas</div>
+      <div class="cv" id="crz-cv-pares">{d["crz"]["total_pares"]}</div><div class="cd" id="crz-cd-pares">Combinações suspeitas</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="truck" class="ci" width="14" height="14"></i><span class="cl">Drivers Conectados</span></div>
-      <div class="cv" style="color:#4ade80">{d["crz"]["total_drivers"]}</div><div class="cd">Motoristas envolvidos</div>
+      <div class="cv" style="color:#4ade80" id="crz-cv-drivers">{d["crz"]["total_drivers"]}</div><div class="cd" id="crz-cd-drivers">Motoristas envolvidos</div>
     </div>
   </div>
 
