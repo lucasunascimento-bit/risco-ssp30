@@ -1502,6 +1502,42 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         p['months'] = ' '.join(sorted({_ym(s['data']) for s in shp_por_place.get(p['nome'], []) if s.get('data')}))
     for dmg in damaged:
         dmg['months'] = ' '.join(sorted({_ym(s['data']) for s in shp_por_driver.get(dmg['id'], []) if s.get('data') and 'DAMAGED' in s.get('class','')}))
+    # Agrega damaged por mês por driver (para recalcular totais no JS ao filtrar período)
+    for dmg in damaged:
+        monthly = {}
+        for s in shp_por_driver.get(dmg['id'], []):
+            if 'DAMAGED' not in s.get('class', ''):
+                continue
+            ym = _ym(s['data'])
+            if not ym:
+                continue
+            if ym not in monthly:
+                monthly[ym] = {'total': 0, 'bpp': 0.0, 'route': 0, 'station': 0, 'ene': 0}
+            monthly[ym]['total'] += 1
+            monthly[ym]['bpp']    = round(monthly[ym]['bpp'] + s.get('bpp', 0.0), 2)
+            cls = s.get('class', '')
+            if 'ON ROUTE' in cls:
+                monthly[ym]['route'] += 1
+            elif 'AT STATION' in cls:
+                monthly[ym]['station'] += 1
+            elif 'ENE' in cls:
+                monthly[ym]['ene'] += 1
+        dmg['monthly'] = monthly
+    # Ranking de transportadoras por damaged (usa routes_map já construído)
+    _transp_dmg_agg = {}
+    for dmg in damaged:
+        rt     = routes_map.get(dmg['id'], {})
+        transp = (rt.get('transportadora') or 'N/A').strip() or 'N/A'
+        if transp not in _transp_dmg_agg:
+            _transp_dmg_agg[transp] = {'total': 0, 'bpp': 0.0, 'drivers': set()}
+        _transp_dmg_agg[transp]['total'] += dmg['total']
+        _transp_dmg_agg[transp]['bpp']    = round(_transp_dmg_agg[transp]['bpp'] + dmg['bpp'], 2)
+        _transp_dmg_agg[transp]['drivers'].add(dmg['id'])
+    transp_damaged_ranking = sorted(
+        [{'transp': k, 'total': v['total'], 'bpp': v['bpp'], 'n_drivers': len(v['drivers'])}
+         for k, v in _transp_dmg_agg.items()],
+        key=lambda x: -x['total']
+    )[:15]
 
     # Agrega KPIs por mês — mesmo escopo dos top-60 (consistente com os cards)
     ids_top60   = {d['id'] for d in drivers}
@@ -1601,6 +1637,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         'monthly_agg':         monthly_agg,
         'monthly_dr':          monthly_dr,
         'acumulo_bloqueio': processar_acumulo_bloqueio(drivers, shp_por_driver),
+        'transp_damaged_ranking': transp_damaged_ranking,
     }
 
 # ============================================================
@@ -1989,16 +2026,53 @@ def rows_damaged(damaged, cruzados_fraude, shp_por_driver):
             </tr>'''
         seta   = f' <span id="arrow_dmg_{i}" style="font-size:10px;color:#4b5563">▶ {len(shps)} ids</span>' if shps else ''
         toggle = f'onclick="toggleDriver(\'dmg_{i}\')" style="cursor:pointer"' if shps else ''
-        out += f'''<tr {toggle} data-months="{d.get("months","")}">
+        out += f'''<tr {toggle} data-months="{d.get("months","")}" data-driver="{d["id"]}">
             <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta}{cruz}</td>
-            <td style="text-align:center;font-weight:700;color:#f59e0b">{d["total"]}</td>
-            <td style="color:#10b981">${d["bpp"]:,.2f}</td>
-            <td style="text-align:center">{d["route"]}</td>
-            <td style="text-align:center">{d["station"]}</td>
-            <td style="text-align:center">{d["ene"]}</td>
+            <td class="dmg-total" style="text-align:center;font-weight:700;color:#f59e0b">{d["total"]}</td>
+            <td class="dmg-bpp" style="color:#10b981">${d["bpp"]:,.2f}</td>
+            <td class="dmg-route" style="text-align:center">{d["route"]}</td>
+            <td class="dmg-station" style="text-align:center">{d["station"]}</td>
+            <td class="dmg-ene" style="text-align:center">{d["ene"]}</td>
         </tr>
         <tbody id="dmg_{i}" style="display:none">{shp_rows}</tbody>'''
     return out
+
+def _transp_damaged_html(ranking):
+    if not ranking:
+        return ''
+    rows = ''
+    max_total = ranking[0]['total'] if ranking else 1
+    for i, r in enumerate(ranking, 1):
+        bar_w = max(4, round(r['total'] / max_total * 100))
+        color = '#f87171' if i <= 3 else '#f59e0b' if i <= 7 else '#6b7280'
+        rows += f'''<tr>
+            <td style="text-align:center;color:#4b5563;font-size:11px">{i}</td>
+            <td style="font-weight:600;color:#f9fafb">
+              {r["transp"]}
+              <div style="height:3px;background:#1a2035;border-radius:2px;margin-top:3px;width:140px">
+                <div style="height:3px;background:{color};border-radius:2px;width:{bar_w}%"></div>
+              </div>
+            </td>
+            <td style="text-align:center;font-weight:700;color:{color}">{r["total"]}</td>
+            <td style="color:#10b981">${r["bpp"]:,.2f}</td>
+            <td style="text-align:center;color:#9ca3af">{r["n_drivers"]}</td>
+        </tr>'''
+    return f'''<div class="tbl-wrap" style="margin-bottom:16px">
+    <div class="tbl-title" style="color:#f59e0b">
+      <i data-lucide="truck" width="14" height="14" style="color:#f59e0b;margin-right:6px;vertical-align:middle"></i>
+      Ranking de Transportadoras — Damaged ({len(ranking)} transportadora(s))
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th style="text-align:center">#</th>
+        <th>Transportadora</th>
+        <th style="text-align:center">Total Damaged</th>
+        <th>BPP Total</th>
+        <th style="text-align:center">Drivers</th>
+      </tr></thead>
+      <tbody>{rows}</tbody>
+    </table></div>
+  </div>'''
 
 # ============================================================
 # GERAÇÃO DO HTML
@@ -2396,8 +2470,9 @@ def gerar_html(d):
 
 <!-- DAMAGED -->
 <div id="tab-damaged" class="content">
+  {_transp_damaged_html(d.get("transp_damaged_ranking", []))}
   <div class="tbl-wrap">
-    <div class="tbl-title">Damaged por Driver — ⚠️ indica driver que também tem fraudes</div>
+    <div class="tbl-title">Damaged por Driver — ⚠️ indica driver que também tem fraudes · <span style="font-weight:400;color:#6b7280">valores recalculados ao filtrar período</span></div>
     <div class="tbl-scroll"><table id="tbl_damaged">
       <thead><tr>
         <th>Driver ID</th><th>Total Damaged</th><th>BPP Total</th>
@@ -2590,6 +2665,7 @@ const SAIDAS_DATA = {j(d.get("saidas", []))};
 const DEVOLUCOES_DATA = {j(d.get("devolucoes", []))};
 const SELLERS_ENE_DATA = {j(d.get("sellers_ene", []))};
 const ENE_SERVICE_DATA = {j(d.get("ene_service", []))};
+const DAMAGED_MONTHLY = {j({{str(dmg['id']): dmg.get('monthly', {{}}) for dmg in d['damaged']}})};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
@@ -2813,10 +2889,40 @@ function applyPeriodoToTab(name) {{
   else if (name === 'acumulo')    {{ /* acumulo_bloqueio — conteúdo estático */ }}
   else if (name === 'dxp')        {{ filterByMonths('tbl_dxp'); }}
   else if (name === 'places')     {{ filterByMonths('tbl_places'); }}
-  else if (name === 'damaged')    {{ filterByMonths('tbl_damaged'); }}
+  else if (name === 'damaged')    {{ filterByMonths('tbl_damaged'); _recalcDamagedTotals(); }}
   else if (name === 'bloqueios')  {{ filtrarBloqueios(); }}
   else if (name === 'tendencia')  {{ renderTendencia(); }}
   // cruzamento: sem filtro de período (dados estáticos do BQ)
+}}
+
+function _recalcDamagedTotals() {{
+  document.querySelectorAll('#tbl_damaged > tbody > tr[data-months]').forEach(tr => {{
+    if (tr.style.display === 'none') return;
+    const did = tr.dataset.driver;
+    const monthly = DAMAGED_MONTHLY[did];
+    if (!monthly) return;
+    let total = 0, bpp = 0, route = 0, station = 0, ene = 0;
+    Object.entries(monthly).forEach(([ym, v]) => {{
+      if ((!_periodDe || ym >= _periodDe) && (!_periodAte || ym <= _periodAte)) {{
+        total   += v.total;
+        bpp     += v.bpp;
+        route   += v.route;
+        station += v.station;
+        ene     += v.ene;
+      }}
+    }});
+    const fmtBpp = '$' + bpp.toLocaleString('en-US', {{minimumFractionDigits:2, maximumFractionDigits:2}});
+    const totEl     = tr.querySelector('.dmg-total');
+    const bppEl     = tr.querySelector('.dmg-bpp');
+    const routeEl   = tr.querySelector('.dmg-route');
+    const stationEl = tr.querySelector('.dmg-station');
+    const eneEl     = tr.querySelector('.dmg-ene');
+    if (totEl)     totEl.textContent     = total;
+    if (bppEl)     bppEl.textContent     = fmtBpp;
+    if (routeEl)   routeEl.textContent   = route;
+    if (stationEl) stationEl.textContent = station;
+    if (eneEl)     eneEl.textContent     = ene;
+  }});
 }}
 
 function setPeriodo() {{
