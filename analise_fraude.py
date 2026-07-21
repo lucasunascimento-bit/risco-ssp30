@@ -2665,7 +2665,7 @@ const SAIDAS_DATA = {j(d.get("saidas", []))};
 const DEVOLUCOES_DATA = {j(d.get("devolucoes", []))};
 const SELLERS_ENE_DATA = {j(d.get("sellers_ene", []))};
 const ENE_SERVICE_DATA = {j(d.get("ene_service", []))};
-const DAMAGED_MONTHLY = {j({{str(dmg['id']): dmg.get('monthly', {{}}) for dmg in d['damaged']}})};
+const DAMAGED_MONTHLY = {j({str(dmg['id']): dmg.get('monthly', {}) for dmg in d['damaged']})};
 const CRITICOS_COUNT  = {d.get('criticos', 0)};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','ofensores','bloqueios','cruzamento','relatorio'];
