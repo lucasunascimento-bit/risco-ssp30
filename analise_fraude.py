@@ -2007,11 +2007,12 @@ def rows_dc_nex(dc_nex_data):
         <tbody id="{row_id}" style="display:none">{sub}</tbody>'''
     return out
 
-def rows_damaged(damaged, cruzados_fraude, shp_por_driver):
+def rows_damaged(damaged, cruzados_fraude, shp_por_driver, driver_transp_map=None):
     out = ''
     for i, d in enumerate(damaged):
         cruz   = ' ⚠️' if d['id'] in cruzados_fraude else ''
         row_id = f'dmg_{i}'
+        _transp = (driver_transp_map or {}).get(str(d['id']), 'N/A')
         # filtra só DAMAGED
         shps   = [s for s in shp_por_driver.get(d['id'], []) if 'DAMAGED' in s['class']]
         shp_rows = ''
@@ -2024,16 +2025,18 @@ def rows_damaged(damaged, cruzados_fraude, shp_por_driver):
                 <td style="color:{cls_cor};font-size:11px" colspan="2">{s["class"]}</td>
                 <td style="color:#10b981;font-size:12px">${s["bpp"]:,.2f}</td>
                 <td style="color:#6b7280;font-size:11px">{s["data"]}</td>
+                <td></td>
             </tr>'''
         seta   = f' <span id="arrow_dmg_{i}" style="font-size:10px;color:#4b5563">▶ {len(shps)} ids</span>' if shps else ''
         toggle = f'onclick="toggleDriver(\'dmg_{i}\')" style="cursor:pointer"' if shps else ''
-        out += f'''<tr {toggle} data-months="{d.get("months","")}" data-driver="{d["id"]}">
+        out += f'''<tr {toggle} data-months="{d.get("months","")}" data-driver="{d["id"]}" data-transp="{_transp}">
             <td style="font-weight:700;color:#f9fafb">{d["id"]}{seta}{cruz}</td>
             <td class="dmg-total" style="text-align:center;font-weight:700;color:#f59e0b">{d["total"]}</td>
             <td class="dmg-bpp" style="color:#10b981">${d["bpp"]:,.2f}</td>
             <td class="dmg-route" style="text-align:center">{d["route"]}</td>
             <td class="dmg-station" style="text-align:center">{d["station"]}</td>
             <td class="dmg-ene" style="text-align:center">{d["ene"]}</td>
+            <td class="dmg-transp" style="color:#9ca3af;font-size:12px;white-space:nowrap">{_transp}</td>
         </tr>
         <tbody id="dmg_{i}" style="display:none">{shp_rows}</tbody>'''
     return out
@@ -2473,13 +2476,21 @@ def gerar_html(d):
 <div id="tab-damaged" class="content">
   <div class="tbl-wrap" id="transp_damaged_ranking" style="margin-bottom:16px"></div>
   <div class="tbl-wrap">
-    <div class="tbl-title">Damaged por Driver — ⚠️ indica driver que também tem fraudes · <span style="font-weight:400;color:#6b7280">valores recalculados ao filtrar período</span></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+      <div class="tbl-title" style="margin-bottom:0">Damaged por Driver — ⚠️ indica driver que também tem fraudes · <span style="font-weight:400;color:#6b7280">valores recalculados ao filtrar período</span></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+        <label style="color:#9ca3af;font-size:12px">Transportadora:</label>
+        <select id="dmg-transp-filter" onchange="_applyDamagedFilters()" style="background:#0a1120;color:#f9fafb;border:1px solid #1e293b;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer">
+          <option value="">Todas</option>
+        </select>
+      </div>
+    </div>
     <div class="tbl-scroll"><table id="tbl_damaged">
       <thead><tr>
         <th>Driver ID</th><th>Total Damaged</th><th>BPP Total</th>
-        <th>On Route</th><th>At Station</th><th>ENE</th>
+        <th>On Route</th><th>At Station</th><th>ENE</th><th>Transportadora</th>
       </tr></thead>
-      <tbody>{rows_damaged(d["damaged"], d["cruzados"], d["shp_por_driver"])}</tbody>
+      <tbody>{rows_damaged(d["damaged"], d["cruzados"], d["shp_por_driver"], d.get("driver_transp", {}))}</tbody>
     </table></div>
   </div>
 </div>
@@ -2892,7 +2903,7 @@ function applyPeriodoToTab(name) {{
   else if (name === 'acumulo')    {{ /* acumulo_bloqueio — conteúdo estático */ }}
   else if (name === 'dxp')        {{ filterByMonths('tbl_dxp'); }}
   else if (name === 'places')     {{ filterByMonths('tbl_places'); }}
-  else if (name === 'damaged')    {{ filterByMonths('tbl_damaged'); _recalcDamagedTotals(); }}
+  else if (name === 'damaged')    {{ _applyDamagedFilters(); }}
   else if (name === 'bloqueios')  {{ filtrarBloqueios(); }}
   else if (name === 'tendencia')  {{ renderTendencia(); }}
   else if (name === 'ofensores')  {{ try {{ renderOfensores(); }} catch(e) {{}} }}
@@ -2930,6 +2941,22 @@ function _recalcDamagedTotals() {{
     if (arrowEl)   arrowEl.textContent   = '▶ ' + total + ' ids';
   }});
   _rebuildTranspRanking();
+}}
+
+function _applyDamagedFilters() {{
+  const selTransp = document.getElementById('dmg-transp-filter');
+  const filterTransp = selTransp ? selTransp.value : '';
+  document.querySelectorAll('#tbl_damaged > tbody > tr[data-months]').forEach(tr => {{
+    const months = (tr.dataset.months||'').split(' ');
+    const periodOk = (!_periodDe && !_periodAte) ? true
+      : months.some(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
+    const transpOk = !filterTransp || (tr.dataset.transp || '') === filterTransp;
+    const show = periodOk && transpOk;
+    tr.style.display = show ? '' : 'none';
+    const nx = tr.nextElementSibling;
+    if (nx && nx.tagName === 'TBODY' && !show) nx.style.display = 'none';
+  }});
+  _recalcDamagedTotals();
 }}
 
 function _rebuildTranspRanking() {{
@@ -4130,6 +4157,19 @@ function renderOfensores() {{
 
 lucide.createIcons();
 {_SB_DRAG_JS}
+
+// Popula select de transportadoras na aba Damaged
+(function() {{
+  const sel = document.getElementById('dmg-transp-filter');
+  if (!sel) return;
+  const seen = {{}};
+  Object.values(DRIVER_TRANSP).forEach(t => {{ seen[t] = 1; }});
+  Object.keys(seen).sort().forEach(t => {{
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    sel.appendChild(opt);
+  }});
+}})();
 
 
 </script>
