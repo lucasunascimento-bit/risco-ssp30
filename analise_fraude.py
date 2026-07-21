@@ -1638,6 +1638,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         'monthly_dr':          monthly_dr,
         'acumulo_bloqueio': processar_acumulo_bloqueio(drivers, shp_por_driver),
         'transp_damaged_ranking': transp_damaged_ranking,
+        'driver_transp': {str(dmg['id']): ((routes_map.get(dmg['id'], {}) or {}).get('transportadora') or 'N/A').strip() or 'N/A' for dmg in damaged},
     }
 
 # ============================================================
@@ -2470,7 +2471,7 @@ def gerar_html(d):
 
 <!-- DAMAGED -->
 <div id="tab-damaged" class="content">
-  {_transp_damaged_html(d.get("transp_damaged_ranking", []))}
+  <div class="tbl-wrap" id="transp_damaged_ranking" style="margin-bottom:16px"></div>
   <div class="tbl-wrap">
     <div class="tbl-title">Damaged por Driver — ⚠️ indica driver que também tem fraudes · <span style="font-weight:400;color:#6b7280">valores recalculados ao filtrar período</span></div>
     <div class="tbl-scroll"><table id="tbl_damaged">
@@ -2666,6 +2667,7 @@ const DEVOLUCOES_DATA = {j(d.get("devolucoes", []))};
 const SELLERS_ENE_DATA = {j(d.get("sellers_ene", []))};
 const ENE_SERVICE_DATA = {j(d.get("ene_service", []))};
 const DAMAGED_MONTHLY = {j({str(dmg['id']): dmg.get('monthly', {}) for dmg in d['damaged']})};
+const DRIVER_TRANSP   = {j(d.get('driver_transp', {}))};
 const CRITICOS_COUNT  = {d.get('criticos', 0)};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','ofensores','bloqueios','cruzamento','relatorio'];
@@ -2893,7 +2895,8 @@ function applyPeriodoToTab(name) {{
   else if (name === 'damaged')    {{ filterByMonths('tbl_damaged'); _recalcDamagedTotals(); }}
   else if (name === 'bloqueios')  {{ filtrarBloqueios(); }}
   else if (name === 'tendencia')  {{ renderTendencia(); }}
-  // cruzamento: sem filtro de período (dados estáticos do BQ)
+  else if (name === 'ofensores')  {{ try {{ renderOfensores(); }} catch(e) {{}} }}
+  else if (name === 'cruzamento') {{ renderCrzMes(); }}
 }}
 
 function _recalcDamagedTotals() {{
@@ -2918,12 +2921,64 @@ function _recalcDamagedTotals() {{
     const routeEl   = tr.querySelector('.dmg-route');
     const stationEl = tr.querySelector('.dmg-station');
     const eneEl     = tr.querySelector('.dmg-ene');
+    const arrowEl   = tr.querySelector('span[id^="arrow_dmg_"]');
     if (totEl)     totEl.textContent     = total;
     if (bppEl)     bppEl.textContent     = fmtBpp;
     if (routeEl)   routeEl.textContent   = route;
     if (stationEl) stationEl.textContent = station;
     if (eneEl)     eneEl.textContent     = ene;
+    if (arrowEl)   arrowEl.textContent   = '▶ ' + total + ' ids';
   }});
+  _rebuildTranspRanking();
+}}
+
+function _rebuildTranspRanking() {{
+  const agg = {{}};
+  Object.entries(DAMAGED_MONTHLY).forEach(([did, monthly]) => {{
+    let total = 0, bpp = 0;
+    Object.entries(monthly).forEach(([ym, v]) => {{
+      if ((!_periodDe || ym >= _periodDe) && (!_periodAte || ym <= _periodAte)) {{
+        total += v.total; bpp += v.bpp;
+      }}
+    }});
+    if (total === 0) return;
+    const transp = DRIVER_TRANSP[did] || 'N/A';
+    if (!agg[transp]) agg[transp] = {{total: 0, bpp: 0, drivers: new Set()}};
+    agg[transp].total += total;
+    agg[transp].bpp    = Math.round((agg[transp].bpp + bpp) * 100) / 100;
+    agg[transp].drivers.add(did);
+  }});
+  const ranking = Object.entries(agg)
+    .map(([transp, v]) => ({{transp, total: v.total, bpp: v.bpp, n: v.drivers.size}}))
+    .sort((a, b) => b.total - a.total).slice(0, 15);
+  const container = document.getElementById('transp_damaged_ranking');
+  if (!container) return;
+  if (ranking.length === 0) {{ container.innerHTML = ''; return; }}
+  const maxT = ranking[0].total || 1;
+  const clr  = (i) => i < 3 ? '#f87171' : i < 7 ? '#f59e0b' : '#6b7280';
+  let rows = '';
+  ranking.forEach((r, i) => {{
+    const barW = Math.max(4, Math.round(r.total / maxT * 100));
+    const c = clr(i);
+    const fmtBpp = '$' + r.bpp.toLocaleString('en-US', {{minimumFractionDigits:2,maximumFractionDigits:2}});
+    rows += '<tr>' +
+      '<td style="text-align:center;color:#4b5563;font-size:11px">' + (i+1) + '</td>' +
+      '<td style="font-weight:600;color:#f9fafb">' + r.transp +
+        '<div style="height:3px;background:#1a2035;border-radius:2px;margin-top:3px;width:140px">' +
+        '<div style="height:3px;background:' + c + ';border-radius:2px;width:' + barW + '%"></div></div></td>' +
+      '<td style="text-align:center;font-weight:700;color:' + c + '">' + r.total + '</td>' +
+      '<td style="color:#10b981">' + fmtBpp + '</td>' +
+      '<td style="text-align:center;color:#9ca3af">' + r.n + '</td>' +
+      '</tr>';
+  }});
+  container.innerHTML =
+    '<div class="tbl-title" style="color:#f59e0b">Ranking de Transportadoras — Damaged (' + ranking.length + ' transportadora(s))' +
+    '<span style="font-weight:400;font-size:11px;color:#9ca3af;margin-left:8px">· reativo ao período</span></div>' +
+    '<div class="tbl-scroll"><table>' +
+    '<thead><tr><th style="text-align:center">#</th><th>Transportadora</th>' +
+    '<th style="text-align:center">Total Damaged</th><th>BPP Total</th>' +
+    '<th style="text-align:center">Drivers</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div>';
 }}
 
 function setPeriodo() {{
@@ -3631,7 +3686,7 @@ let _ofensChart = null;
 
 function _sellerENEInPeriod(r) {{
   if (!_periodDe && !_periodAte) return true;
-  const meses = (r.meses || '').split(' ');
+  const meses = (r.meses || '').split(',');
   return meses.some(m => m && (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
 }}
 function _updateOfensKPIs() {{
