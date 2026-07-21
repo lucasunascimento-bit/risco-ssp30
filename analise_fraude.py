@@ -2385,6 +2385,9 @@ def gerar_html(d):
       <div class="card-delta">de {d["bl"]["total"]} sol. · ${d["bl"]["gmv_protegido"]:,.0f} protegido</div>
     </div>
   </div>
+  <div style="font-size:11px;color:#4b5563;padding:2px 0 10px;text-align:right">
+    ℹ️ Fraudes, Damaged e BPP calculados sobre os top 60 drivers por score · BSD e DC/NEX podem incluir pacotes de drivers fora deste grupo
+  </div>
 
   {"" if not d["cruzados"] else f'''
   <div class="alerta-box" id="alerta-cruzados">
@@ -3604,6 +3607,8 @@ function initDevolucoes() {{
   }}
   const badge = document.getElementById('tab-count-devolucoes');
   if (badge) badge.textContent = DEVOLUCOES_DATA.length;
+  const semDados = document.getElementById('dv-sem-dados');
+  if (semDados) semDados.style.display = DEVOLUCOES_DATA.length === 0 ? 'block' : 'none';
   filtrarDevolucoes();
 }}
 initDevolucoes();
@@ -4499,6 +4504,7 @@ lucide.createIcons();
     <div class="tbl-title" style="color:#f59e0b">
       <i data-lucide="warehouse" width="14" height="14" style="color:#f59e0b;margin-right:6px;vertical-align:middle"></i>
       Ranking de Ofensores DC / NEX / XPT — {len(d["dc_nex"]["facilities"])} facilities · {d["dc_nex"]["total_pkgs"]} pacotes
+      <span style="font-size:10px;font-weight:400;color:#f59e0b;margin-left:6px">· exibindo até 300 registros</span>
       <span style="font-size:10px;font-weight:400;color:#6b7280;float:right">Clique na linha para expandir os pacotes · Cobrar OTR editável no painel ON ROUTE</span>
     </div>
     <div class="tbl-scroll"><table>
@@ -4619,6 +4625,9 @@ lucide.createIcons();
 <!-- ABA DEVOLUÇÕES -->
 <div id="tab-devolucoes" class="content">
   <div style="padding:20px 28px">
+    <div id="dv-sem-dados" style="display:none;background:#7c2d1222;border:1px solid #dc2626;color:#fca5a5;padding:12px 16px;border-radius:6px;margin-bottom:14px;font-size:13px">
+      ⚠️ Nenhum dado de devoluções carregado — a query BQ retornou vazio ou o cache está desatualizado. Aguarde a próxima atualização ou rode <code>analise_fraude.py</code> novamente.
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
       <div>
         <div style="font-size:18px;font-weight:700;color:#f9fafb">Devoluções / Empty Box</div>
