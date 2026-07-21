@@ -519,11 +519,10 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver):
         residual  = round(total_bpp - max_bpp, 2)
         n_pkgs    = len(shps)
         apto, motivo = True, ''
-        if tipo in ('lost_fraude', 'fraude_pura'):
-            if n_pkgs < 5:
-                apto, motivo = False, f'Apenas {n_pkgs} pacotes (mínimo 5)'
-            elif residual < 300:
-                apto, motivo = False, f'Residual ${residual:.0f} abaixo de $300'
+        if n_pkgs < 5:
+            apto, motivo = False, f'Apenas {n_pkgs} pacotes (mínimo 5)'
+        elif residual < 300:
+            apto, motivo = False, f'Residual ${residual:.0f} abaixo de $300'
         nome = str(d.get('nome','') or d.get('transportadora','') or '').strip()
         transp = str(d.get('transportadora','') or '').strip()
         result.append({
@@ -2596,8 +2595,9 @@ function updateBloqueiosCards() {{
   const set = (id, v) => {{ const e = document.getElementById(id); if(e) e.textContent = v; }};
   const counts = {{}};
   const byTransp = {{}};
-  let total = 0, gmv = 0;
+  let total = 0, allTotal = 0, gmv = 0;
   document.querySelectorAll('.bl-row').forEach(tr => {{
+    allTotal++;
     if (tr.style.display !== 'none') {{
       total++;
       const st  = tr.dataset.status || '';
@@ -2608,7 +2608,19 @@ function updateBloqueiosCards() {{
       if (st === 'Bloqueado') gmv += usd;
     }}
   }});
-  set('bl-cv-total',      total);
+  set('bl-cv-total', total);
+  const noteEl = document.getElementById('bl-period-note');
+  if (noteEl) {{
+    if (allTotal > 0 && total === 0) {{
+      noteEl.textContent = allTotal + (allTotal > 1 ? ' entradas ocultadas' : ' entrada ocultada') + ' pelo filtro de período — limpe o período para ver todas';
+      noteEl.style.display = '';
+    }} else if (total > 0 && total < allTotal) {{
+      noteEl.textContent = 'Exibindo ' + total + ' de ' + allTotal + ' entradas no período selecionado';
+      noteEl.style.display = '';
+    }} else {{
+      noteEl.style.display = 'none';
+    }}
+  }}
   set('bl-cv-bloqueados', counts['Bloqueado']  || 0);
   set('bl-cv-solicitados',counts['Solicitado'] || 0);
   set('bl-cv-monitorados',counts['Monitorado'] || 0);
@@ -4311,6 +4323,9 @@ lucide.createIcons();
     </div>
   </div>
 
+  {'<div style="background:#1c1008;border:1px solid #92400e;border-radius:8px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px"><span style="font-size:18px">📋</span><div><div style="font-size:12px;font-weight:600;color:#fbbf24">Block List vazia</div><div style="font-size:11px;color:#9ca3af;margin-top:4px">Nenhum driver adicionado ainda. Preencha a aba <em>Drivers Bloqueados</em> na planilha e reprocesse o dashboard.</div></div></div>' if not d["bl"]["rows"] else ''}
+  <div id="bl-period-note" style="display:none;font-size:11px;color:#fb923c;background:#1c1008;border:1px solid #92400e;border-radius:6px;padding:6px 14px;margin-bottom:16px;text-align:center"></div>
+
   <div class="grid2 mb16">
     <div class="box"><div class="bt">Por Status</div><div style="position:relative;height:220px"><canvas id="cBlStatus"></canvas></div></div>
     <div class="box"><div class="bt">Por Transportadora</div><div style="position:relative;height:220px"><canvas id="cBlTransp"></canvas></div></div>
@@ -4886,7 +4901,12 @@ def gerar_sinistros_html(dados):
     sin_rec        = sin_d.get('recuperados', 0)
     sin_bpp_r      = sin_d.get('bpp_recuperado', 0.0)
     taxa_rec       = round(sin_rec / sin_total * 100, 1) if sin_total else 0
-    sin_rows       = ''.join(_sin_row_html(c) for c in reversed(sin_casos[-200:]))
+    sin_rows       = (''.join(_sin_row_html(c) for c in reversed(sin_casos[-200:])) or
+                     '<tr><td colspan="10" style="text-align:center;padding:48px 20px;color:#6b7280">'
+                     '<div style="font-size:15px;margin-bottom:10px">⚠️ Nenhum evento SVC cadastrado</div>'
+                     '<div style="font-size:12px;line-height:1.6">Clique em <span style="color:#f97316;font-weight:600">🚨 Novo Caso</span>'
+                     ' para registrar o primeiro sinistro na planilha <em>Eventos SVC</em>.</div>'
+                     '</td></tr>')
     sin_json       = json.dumps(sin_casos, ensure_ascii=False)
     cep_cluster_map = dados.get('cep_cluster_map', {})
     cep_cluster_json = json.dumps(cep_cluster_map, ensure_ascii=False)
