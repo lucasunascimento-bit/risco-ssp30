@@ -17,9 +17,9 @@
     "tipo": "outro",
     "apto": true,
     "motivo": "",
-    "placa": "",
-    "data_solicitacao": "",
-    "status_bl": ""
+    "placa": "DCG4490",
+    "data_solicitacao": "01/06/2026",
+    "status_bl": "Inativo"
   },
   {
     "id": "292999",
@@ -38,32 +38,10 @@
     "residual": 69.67,
     "tipo": "outro",
     "apto": false,
-    "motivo": "Residual $70 abaixo de $300",
-    "placa": "",
-    "data_solicitacao": "",
-    "status_bl": ""
-  },
-  {
-    "id": "4326130",
-    "nome": "Agencias Kangu",
-    "transportadora": "Agencias Kangu",
-    "status": "",
-    "n_meses": 3,
-    "meses": [
-      "05/2026",
-      "06/2026",
-      "07/2026"
-    ],
-    "n_pkgs": 7,
-    "total_bpp": 75.57,
-    "max_bpp": 35.06,
-    "residual": 40.51,
-    "tipo": "outro",
-    "apto": false,
-    "motivo": "Residual $41 abaixo de $300",
-    "placa": "",
-    "data_solicitacao": "",
-    "status_bl": ""
+    "motivo": "Apenas 5 pacotes (mínimo 6)",
+    "placa": "DCG0346",
+    "data_solicitacao": "01/06/2026",
+    "status_bl": "Inativo"
   },
   {
     "id": "860778",
@@ -82,7 +60,7 @@
     "residual": 29.08,
     "tipo": "outro",
     "apto": false,
-    "motivo": "Apenas 4 pacotes (mínimo 5)",
+    "motivo": "Apenas 4 pacotes (mínimo 6)",
     "placa": "",
     "data_solicitacao": "",
     "status_bl": ""
