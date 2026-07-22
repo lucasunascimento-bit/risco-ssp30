@@ -1135,7 +1135,9 @@ def processar_briefing(bq_rows, wy):
         try:
             with open(_acumulo_json, 'r', encoding='utf-8') as _f:
                 _raw = json.load(_f)
-            for c in _raw:
+            # suporte ao novo formato {periodo: [...]} e ao formato antigo [...]
+            _lista = _raw.get('90', _raw) if isinstance(_raw, dict) else _raw
+            for c in _lista:
                 drivers_bloqueio.append({
                     'id':      str(c.get('id', '')),
                     'nome':    str(c.get('transportadora', '') or c.get('nome', '')),

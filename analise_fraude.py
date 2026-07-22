@@ -480,10 +480,11 @@ def conectar():
     gs = gspread.authorize(creds)
     return bq, gs
 
-def processar_acumulo_bloqueio(drivers, shp_por_driver):
+def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
     from datetime import datetime as _dta, timedelta as _td
     STATUS_NAO_BLOQ = {'inactive','inativo','bloqueado','blocked','suspendido','suspended'}
-    cutoff = _dta.now() - _td(days=90)
+    cutoff = _dta.now() - _td(days=days)
+    min_meses = 2 if days <= 60 else 3
     result = []
     for d in drivers:
         did  = str(d.get('id','') or '').strip()
@@ -509,7 +510,7 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver):
                 dr = _dta.strptime(s.get('data',''), '%d/%m/%Y')
                 meses.add(f'{dr.month:02d}/{dr.year}')
             except Exception: pass
-        if len(meses) < 3: continue
+        if len(meses) < min_meses: continue
         classes = [str(s.get('class','')) for s in shps]
         has_fraud = any('FRAUD' in c for c in classes)
         has_lost  = any('LOST'  in c for c in classes)
@@ -535,14 +536,15 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver):
     result.sort(key=lambda x: (0 if x['apto'] else 1, -x['n_meses'], -x['total_bpp']))
     return result
 
-def rows_acumulo_bloqueio(candidatos):
+def rows_acumulo_bloqueio(candidatos, pid=''):
     if not candidatos:
-        return '<div style="padding:32px;text-align:center;color:#6b7280">Nenhum driver com acúmulo BPP em 3+ meses encontrado.</div>'
+        return '<div style="padding:32px;text-align:center;color:#6b7280">Nenhum driver com acúmulo BPP neste período encontrado.</div>'
     TIPO_LBL = {'fraude_pura':'Fraude','lost_fraude':'Lost + Fraude','outro':'Outro'}
     TIPO_COR  = {'fraude_pura':'#A32D2D;background:#FCEBEB','lost_fraude':'#0C447C;background:#E6F1FB','outro':'#5F5E5A;background:#F1EFE8'}
     html = ''
+    _pfx = f'p{pid}_' if pid else ''
     for i, c in enumerate(candidatos):
-        tid = f'acbl_{c["id"]}'
+        tid = f'acbl_{_pfx}{c["id"]}'
         tipo_lbl = TIPO_LBL.get(c['tipo'], c['tipo'])
         tipo_cor  = TIPO_COR.get(c['tipo'], '#5F5E5A;background:#F1EFE8')
         if c['apto']:
@@ -1635,7 +1637,13 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         'top10_places_vals':   top10_places_vals,
         'monthly_agg':         monthly_agg,
         'monthly_dr':          monthly_dr,
-        'acumulo_bloqueio': processar_acumulo_bloqueio(drivers, shp_por_driver),
+        'acumulo_bloqueio': processar_acumulo_bloqueio(drivers, shp_por_driver, days=90),
+        'acumulo_por_periodo': {
+            '30':  processar_acumulo_bloqueio(drivers, shp_por_driver, days=30),
+            '60':  processar_acumulo_bloqueio(drivers, shp_por_driver, days=60),
+            '90':  processar_acumulo_bloqueio(drivers, shp_por_driver, days=90),
+            '180': processar_acumulo_bloqueio(drivers, shp_por_driver, days=180),
+        },
         'transp_damaged_ranking': transp_damaged_ranking,
         'driver_transp': {str(dmg['id']): ((routes_map.get(dmg['id'], {}) or {}).get('transportadora') or 'N/A').strip() or 'N/A' for dmg in damaged},
     }
@@ -2166,6 +2174,9 @@ def gerar_html(d):
   .sb-badge.green{{background:rgba(74,222,128,.15);color:#4ade80}}
   .sb-badge.amber{{background:rgba(245,158,11,.15);color:#f59e0b}}
   .sb-badge.purple{{background:rgba(167,139,250,.15);color:#a78bfa}}
+  .acbl-prd-btn{{background:#1f2937;border:1px solid #374151;color:#9ca3af;font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .15s}}
+  .acbl-prd-btn:hover{{border-color:#6b7280;color:#e2e8f0}}
+  .acbl-prd-btn.acbl-prd-active{{background:#ef4444;border-color:#ef4444;color:#fff;font-weight:600}}
   .main-content{{flex:1;overflow-y:auto}}
   .content{{display:none;padding:28px 32px}}
   .content.active{{display:block}}
@@ -2409,30 +2420,32 @@ def gerar_html(d):
 
 <!-- ACÚMULO BLOQUEIO -->
 <div id="tab-acumulo" class="content">
-  <div style="font-size:18px;font-weight:700;color:#f9fafb;margin-bottom:6px">
-    Acúmulo BPP 
+  <div style="font-size:18px;font-weight:700;color:#f9fafb;margin-bottom:6px">Acúmulo BPP</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <span style="font-size:11px;color:#9ca3af;font-weight:500">Janela:</span>
+    {''.join(f'<button class="acbl-prd-btn{" acbl-prd-active" if p=="90" else ""}" onclick="switchAcblPeriod({p},this)">{p} dias</button>' for p in ["30","60","90","180"])}
   </div>
-  <div style="font-size:12px;color:#6b7280;margin-bottom:18px">
-    Drivers com BPP registrado em 3+ meses distintos · Apenas status ativo · Últimos 90 dias
+  <div id="acbl-subtitle" style="font-size:12px;color:#6b7280;margin-bottom:18px">
+    Drivers com BPP em 3+ meses distintos · Apenas status ativo · Últimos 90 dias
   </div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
     <div class="card">
       <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14" style="color:#E24B4A"></i><span class="cl">Candidatos</span></div>
-      <div class="card-value" style="color:#E24B4A">{len(d["acumulo_bloqueio"])}</div>
-      <div class="card-delta">drivers com 3+ meses BPP</div>
+      <div id="acbl-card-total" class="card-value" style="color:#E24B4A">{len(d["acumulo_bloqueio"])}</div>
+      <div class="card-delta" id="acbl-card-delta-total">drivers com 3+ meses BPP</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="shield-x" class="ci" width="14" height="14" style="color:#10b981"></i><span class="cl">Aptos</span></div>
-      <div class="card-value" style="color:#10b981">{sum(1 for x in d["acumulo_bloqueio"] if x["apto"])}</div>
-      <div class="card-delta">atendem aos critérios</div>
+      <div id="acbl-card-aptos" class="card-value" style="color:#10b981">{sum(1 for x in d["acumulo_bloqueio"] if x["apto"])}</div>
+      <div class="card-delta">atendem aos critérios (&gt;6 pkgs e &gt;$300)</div>
     </div>
     <div class="card">
       <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14"></i><span class="cl">BPP Total</span></div>
-      <div class="card-value" style="font-size:20px">${sum(x["total_bpp"] for x in d["acumulo_bloqueio"]):,.0f}</div>
+      <div id="acbl-card-bpp" class="card-value" style="font-size:20px">${sum(x["total_bpp"] for x in d["acumulo_bloqueio"]):,.0f}</div>
       <div class="card-delta">acumulado pelos candidatos</div>
     </div>
   </div>
-  {rows_acumulo_bloqueio(d["acumulo_bloqueio"])}
+  {''.join(f'<div id="acbl-content-{p}" class="acbl-period-content" style="display:{"" if p=="90" else "none"}">{rows_acumulo_bloqueio(d["acumulo_por_periodo"][p], pid=p)}</div>' for p in ["30","60","90","180"])}
 </div>
 
 <!-- DRIVER × PLACE -->
@@ -2688,6 +2701,8 @@ function toggleDriver(id) {{
 }}
 
 const ACUMULO_DATA = {j(d.get("acumulo_bloqueio", []))};
+const ACUMULO_POR_PERIODO = {j({str(k): [{k2: v2 for k2, v2 in c.items() if k2 != 'shps'} for c in v] for k, v in d.get("acumulo_por_periodo", {}).items()})};
+
 const SAIDAS_DATA = {j(d.get("saidas", []))};
 const DEVOLUCOES_DATA = {j(d.get("devolucoes", []))};
 const SELLERS_ENE_DATA = {j(d.get("sellers_ene", []))};
@@ -2856,6 +2871,28 @@ new Chart(document.getElementById('cPlacesBar'), {{
 const BL_COLORS = {{Bloqueado:'#10b981',Solicitado:'#3b82f6',Monitorado:'#f59e0b',Inativo:'#6b7280'}};
 function _blColors(labels) {{ return labels.map(l => BL_COLORS[l] || '#94a3b8'); }}
 
+// ── Acúmulo BPP: filtro de janela temporal ──────────────────────────────────
+function switchAcblPeriod(dias, btn) {{
+  document.querySelectorAll('.acbl-prd-btn').forEach(b => b.classList.remove('acbl-prd-active'));
+  if (btn) btn.classList.add('acbl-prd-active');
+  document.querySelectorAll('.acbl-period-content').forEach(el => el.style.display = 'none');
+  const el = document.getElementById('acbl-content-' + dias);
+  if (el) el.style.display = '';
+  const candidatos = ACUMULO_POR_PERIODO[String(dias)] || [];
+  const total = candidatos.length;
+  const aptos = candidatos.filter(x => x.apto).length;
+  const bpp   = candidatos.reduce((s, x) => s + (x.total_bpp || 0), 0);
+  const setEl = (id, v) => {{ const e = document.getElementById(id); if (e) e.textContent = v; }};
+  setEl('acbl-card-total', total);
+  setEl('acbl-card-aptos', aptos);
+  setEl('acbl-card-bpp', '$' + bpp.toLocaleString('pt-BR', {{maximumFractionDigits:0}}));
+  const minM = dias <= 60 ? 2 : 3;
+  const sub = document.getElementById('acbl-subtitle');
+  if (sub) sub.textContent = `Drivers com BPP em ${{minM}}+ meses distintos · Apenas status ativo · Últimos ${{dias}} dias`;
+  const dt = document.getElementById('acbl-card-delta-total');
+  if (dt) dt.textContent = `drivers com ${{minM}}+ meses BPP`;
+}}
+
 // Gráficos de Bloqueios — criados na 1ª vez que a aba abre
 // setTimeout(0) garante reflow do CSS antes do Chart.js medir o canvas
 let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
@@ -2915,7 +2952,7 @@ function applyPeriodoToTab(name) {{
     }});
   }};
   if      (name === 'geral')      {{ filterByMonths('tbl_cruzados'); updateCountCards(); }}
-  else if (name === 'acumulo')    {{ /* acumulo_bloqueio — conteúdo estático */ }}
+  else if (name === 'acumulo')    {{ /* período gerenciado por switchAcblPeriod */ }}
   else if (name === 'dxp')        {{ filterByMonths('tbl_dxp'); }}
   else if (name === 'places')     {{ filterByMonths('tbl_places'); }}
   else if (name === 'damaged')    {{ _applyDamagedFilters(); }}
@@ -5512,18 +5549,18 @@ if __name__ == '__main__':
                   if str(r.get('LICENCE_PLATE', '') or '').strip()}
     _bl_map = {r['driver_id']: r for r in dados['bl'].get('rows', [])}
     _JA_BLOQUEADOS = {'bloqueado', 'blocked'}
-    for _c in dados.get('acumulo_bloqueio', []):
-        _bl = _bl_map.get(_c['id'], {})
-        if not _c.get('nome') and _bl.get('nome'):
-            _c['nome'] = _bl['nome']
-        _c['placa']           = _placa_map.get(_c['id']) or _bl.get('placa', '')
-        _c['data_solicitacao']= _bl.get('data', '')
-        _c['status_bl']       = _bl.get('status', '')
-    # Remover drivers já bloqueados na block list (BQ CROWD pode não ter o registro)
-    dados['acumulo_bloqueio'] = [
-        c for c in dados.get('acumulo_bloqueio', [])
-        if c.get('status_bl', '').strip().lower() not in _JA_BLOQUEADOS
-    ]
+    def _enrich_acbl(lista):
+        for _c in lista:
+            _bl = _bl_map.get(_c['id'], {})
+            if not _c.get('nome') and _bl.get('nome'):
+                _c['nome'] = _bl['nome']
+            _c['placa']           = _placa_map.get(_c['id']) or _bl.get('placa', '')
+            _c['data_solicitacao']= _bl.get('data', '')
+            _c['status_bl']       = _bl.get('status', '')
+        return [c for c in lista if c.get('status_bl', '').strip().lower() not in _JA_BLOQUEADOS]
+    dados['acumulo_bloqueio'] = _enrich_acbl(dados.get('acumulo_bloqueio', []))
+    for _pk in list(dados.get('acumulo_por_periodo', {}).keys()):
+        dados['acumulo_por_periodo'][_pk] = _enrich_acbl(dados['acumulo_por_periodo'][_pk])
     dados['crz']       = processar_cruzamento(df_cruzamento)
     dados['crz_mes']   = processar_cruzamento_mes(df_cruzamento_mes)
     dados['dc_nex']    = processar_dc_nex(df_dc_nex, cobrar_otr_map)
@@ -5881,10 +5918,14 @@ if __name__ == '__main__':
 
     # Exporta acumulo_bloqueio para que gerar_dashboard.py use a mesma fonte de dados
     _acumulo_export = os.path.join(os.path.dirname(__file__), '_acumulo_bloqueio.json')
-    _acumulo_export_data = [
-        {k: v for k, v in c.items() if k != 'shps'}
-        for c in dados.get('acumulo_bloqueio', [])
-    ]
+    _acumulo_export_data = {
+        str(pk): [
+            {k: v for k, v in c.items() if k != 'shps'}
+            for c in pv
+        ]
+        for pk, pv in dados.get('acumulo_por_periodo', {}).items()
+    }
+    # mantém compatibilidade: chave '90' é o padrão
     with open(_acumulo_export, 'w', encoding='utf-8') as _f:
         json.dump(_acumulo_export_data, _f, ensure_ascii=False, indent=2)
 
