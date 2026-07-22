@@ -519,9 +519,9 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver):
         residual  = round(total_bpp - max_bpp, 2)
         n_pkgs    = len(shps)
         apto, motivo = True, ''
-        if n_pkgs < 5:
-            apto, motivo = False, f'Apenas {n_pkgs} pacotes (mínimo 5)'
-        elif residual < 300:
+        if n_pkgs <= 5:
+            apto, motivo = False, f'Apenas {n_pkgs} pacotes (mínimo 6)'
+        elif residual <= 300:
             apto, motivo = False, f'Residual ${residual:.0f} abaixo de $300'
         nome = str(d.get('nome','') or d.get('transportadora','') or '').strip()
         transp = str(d.get('transportadora','') or '').strip()
