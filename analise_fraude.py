@@ -5879,6 +5879,15 @@ if __name__ == '__main__':
         })
     dados['monthly'] = monthly
 
+    # Exporta acumulo_bloqueio para que gerar_dashboard.py use a mesma fonte de dados
+    _acumulo_export = os.path.join(os.path.dirname(__file__), '_acumulo_bloqueio.json')
+    _acumulo_export_data = [
+        {k: v for k, v in c.items() if k != 'shps'}
+        for c in dados.get('acumulo_bloqueio', [])
+    ]
+    with open(_acumulo_export, 'w', encoding='utf-8') as _f:
+        json.dump(_acumulo_export_data, _f, ensure_ascii=False, indent=2)
+
     print("Gerando dashboard...")
     html = gerar_html(dados)
     with open(OUTPUT, 'w', encoding='utf-8') as f:

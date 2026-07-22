@@ -1,5 +1,6 @@
 # Credenciais (NUNCA subir para o GitHub)
 *.json
+!_acumulo_bloqueio.json
 credentials*.json
 application_default_credentials.json
 

@@ -1119,52 +1119,75 @@ def processar_briefing(bq_rows, wy):
          for r in wy if flt(r[21] if len(r)>21 else 0) > 0],
         key=lambda x: -x['gmv'])
 
-    # ---- Drivers para bloqueio: acumulo BPP em 3+ meses distintos ----
-    # Agrega direto dos rows brutos (não do top-N por semana) para não perder drivers
-    _drv_acc = {}
-    _STATUS_NAO_BLOQ = {'inactive','inativo','bloqueado','blocked','suspendido','suspended'}
-    _CLASSES_VALIDAS_BRF = ('FRAUD', 'LOST ON ROUTE')
-    for r in bq_rows:
-        did = str(r.get('driver_id') or '').strip()
-        if not did or did in ('None','nan',''): continue
-        # Mesmo filtro do processar_acumulo_bloqueio: apenas FRAUD e LOST ON ROUTE
-        cls = str(r.get('tipo_fraude') or '').upper()
-        if not any(k in cls for k in _CLASSES_VALIDAS_BRF): continue
-        dbpp = r.get('DATE_BPP')
-        if dbpp is None: continue
+    # ---- Drivers para bloqueio: lê do JSON exportado por analise_fraude.py ----
+    # Fonte única de verdade: processar_acumulo_bloqueio() usa DM_LP_MELI_OPTIMIZADO
+    # filtrado FRAUD+LOST ON ROUTE — mesmos dados do detalhe em fraude.html.
+    _acumulo_json = os.path.join(os.path.dirname(__file__), '_acumulo_bloqueio.json')
+    drivers_bloqueio = []
+    _json_ok = False
+    if os.path.exists(_acumulo_json):
         try:
-            d_ref = dbpp if hasattr(dbpp, 'month') else _date.fromisoformat(str(dbpp)[:10])
-            mes_key = f'{d_ref.month:02d}/{d_ref.year}'
-        except Exception:
-            continue
-        dnm = str(r.get('driver_nome') or '').strip()
-        if dnm in ('None','nan',''): dnm = ''
-        dst = str(r.get('driver_status') or '').strip()
-        if dst in ('None','nan',''): dst = ''
-        bpp_val = max(0.0, float(r.get('bpp_usd') or 0))
-        shp = str(r.get('shp_id') or '').strip()
-        if did not in _drv_acc:
-            _drv_acc[did] = {'id':did,'nome':dnm,'status':dst,'meses':set(),'total':0,'gmv':0.0,'seen':set(),'max_bpp':0.0}
-        dm = _drv_acc[did]
-        if dnm and not dm['nome']: dm['nome'] = dnm
-        if dst and not dm['status']: dm['status'] = dst
-        dm['meses'].add(mes_key)
-        if shp and shp not in dm['seen']:
-            dm['total'] += 1; dm['gmv'] += bpp_val; dm['seen'].add(shp)
-            if bpp_val > dm['max_bpp']: dm['max_bpp'] = bpp_val
-        elif not shp:
-            dm['total'] += 1; dm['gmv'] += bpp_val
-            if bpp_val > dm['max_bpp']: dm['max_bpp'] = bpp_val
-    drivers_bloqueio = sorted(
-        [{'id':v['id'],'nome':v['nome'],'status':v['status'],
-          'n_meses':len(v['meses']),'total':v['total'],'gmv':round(v['gmv'],2)}
-         for v in _drv_acc.values()
-         if len(v['meses']) >= 3
-         and v['total'] >= 5
-         and (v['gmv'] - v['max_bpp']) >= 300
-         and v['status'].lower() not in _STATUS_NAO_BLOQ],
-        key=lambda x: (-x['n_meses'], -x['gmv'])
-    )[:10]
+            with open(_acumulo_json, 'r', encoding='utf-8') as _f:
+                _raw = json.load(_f)
+            for c in _raw:
+                drivers_bloqueio.append({
+                    'id':      str(c.get('id', '')),
+                    'nome':    str(c.get('transportadora', '') or c.get('nome', '')),
+                    'status':  str(c.get('status', '')),
+                    'n_meses': int(c.get('n_meses', 0)),
+                    'total':   int(c.get('n_pkgs', 0)),
+                    'gmv':     float(c.get('total_bpp', 0)),
+                })
+            drivers_bloqueio = sorted(drivers_bloqueio, key=lambda x: (-x['n_meses'], -x['gmv']))[:10]
+            _json_ok = True
+            print(f"  Acúmulo bloqueio: {len(drivers_bloqueio)} drivers (fonte: _acumulo_bloqueio.json)")
+        except Exception as _e:
+            print(f"  Aviso: falha ao ler _acumulo_bloqueio.json ({_e}), usando fallback BQ")
+    if not _json_ok:
+        # Fallback: calcula direto do BQ (menos preciso — inclui todos os tipos ISFRAUD=1)
+        _drv_acc = {}
+        _STATUS_NAO_BLOQ = {'inactive','inativo','bloqueado','blocked','suspendido','suspended'}
+        _CLASSES_VALIDAS_BRF = ('FRAUD', 'LOST ON ROUTE')
+        for r in bq_rows:
+            did = str(r.get('driver_id') or '').strip()
+            if not did or did in ('None','nan',''): continue
+            cls = str(r.get('tipo_fraude') or '').upper()
+            if not any(k in cls for k in _CLASSES_VALIDAS_BRF): continue
+            dbpp = r.get('DATE_BPP')
+            if dbpp is None: continue
+            try:
+                d_ref = dbpp if hasattr(dbpp, 'month') else _date.fromisoformat(str(dbpp)[:10])
+                mes_key = f'{d_ref.month:02d}/{d_ref.year}'
+            except Exception:
+                continue
+            dnm = str(r.get('driver_nome') or '').strip()
+            if dnm in ('None','nan',''): dnm = ''
+            dst = str(r.get('driver_status') or '').strip()
+            if dst in ('None','nan',''): dst = ''
+            bpp_val = max(0.0, float(r.get('bpp_usd') or 0))
+            shp = str(r.get('shp_id') or '').strip()
+            if did not in _drv_acc:
+                _drv_acc[did] = {'id':did,'nome':dnm,'status':dst,'meses':set(),'total':0,'gmv':0.0,'seen':set(),'max_bpp':0.0}
+            dm = _drv_acc[did]
+            if dnm and not dm['nome']: dm['nome'] = dnm
+            if dst and not dm['status']: dm['status'] = dst
+            dm['meses'].add(mes_key)
+            if shp and shp not in dm['seen']:
+                dm['total'] += 1; dm['gmv'] += bpp_val; dm['seen'].add(shp)
+                if bpp_val > dm['max_bpp']: dm['max_bpp'] = bpp_val
+            elif not shp:
+                dm['total'] += 1; dm['gmv'] += bpp_val
+                if bpp_val > dm['max_bpp']: dm['max_bpp'] = bpp_val
+        drivers_bloqueio = sorted(
+            [{'id':v['id'],'nome':v['nome'],'status':v['status'],
+              'n_meses':len(v['meses']),'total':v['total'],'gmv':round(v['gmv'],2)}
+             for v in _drv_acc.values()
+             if len(v['meses']) >= 3
+             and v['total'] >= 5
+             and (v['gmv'] - v['max_bpp']) >= 300
+             and v['status'].lower() not in _STATUS_NAO_BLOQ],
+            key=lambda x: (-x['n_meses'], -x['gmv'])
+        )[:10]
 
     cur = by_week.get(current_week, {})
     return {

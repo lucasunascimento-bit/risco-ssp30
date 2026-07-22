@@ -1,0 +1,90 @@
+[
+  {
+    "id": "4428742",
+    "nome": "Agencias Kangu",
+    "transportadora": "Agencias Kangu",
+    "status": "",
+    "n_meses": 3,
+    "meses": [
+      "05/2026",
+      "06/2026",
+      "07/2026"
+    ],
+    "n_pkgs": 19,
+    "total_bpp": 797.89,
+    "max_bpp": 296.74,
+    "residual": 501.15,
+    "tipo": "outro",
+    "apto": true,
+    "motivo": "",
+    "placa": "",
+    "data_solicitacao": "",
+    "status_bl": ""
+  },
+  {
+    "id": "292999",
+    "nome": "Kangu Logistics",
+    "transportadora": "Kangu Logistics",
+    "status": "",
+    "n_meses": 3,
+    "meses": [
+      "04/2026",
+      "06/2026",
+      "07/2026"
+    ],
+    "n_pkgs": 5,
+    "total_bpp": 248.75,
+    "max_bpp": 179.08,
+    "residual": 69.67,
+    "tipo": "outro",
+    "apto": false,
+    "motivo": "Residual $70 abaixo de $300",
+    "placa": "",
+    "data_solicitacao": "",
+    "status_bl": ""
+  },
+  {
+    "id": "4326130",
+    "nome": "Agencias Kangu",
+    "transportadora": "Agencias Kangu",
+    "status": "",
+    "n_meses": 3,
+    "meses": [
+      "05/2026",
+      "06/2026",
+      "07/2026"
+    ],
+    "n_pkgs": 7,
+    "total_bpp": 75.57,
+    "max_bpp": 35.06,
+    "residual": 40.51,
+    "tipo": "outro",
+    "apto": false,
+    "motivo": "Residual $41 abaixo de $300",
+    "placa": "",
+    "data_solicitacao": "",
+    "status_bl": ""
+  },
+  {
+    "id": "860778",
+    "nome": "Kangu Logistics",
+    "transportadora": "Kangu Logistics",
+    "status": "",
+    "n_meses": 3,
+    "meses": [
+      "04/2026",
+      "05/2026",
+      "06/2026"
+    ],
+    "n_pkgs": 4,
+    "total_bpp": 45.62,
+    "max_bpp": 16.54,
+    "residual": 29.08,
+    "tipo": "outro",
+    "apto": false,
+    "motivo": "Apenas 4 pacotes (mínimo 5)",
+    "placa": "",
+    "data_solicitacao": "",
+    "status_bl": ""
+  }
+]
