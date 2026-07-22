@@ -8,6 +8,7 @@ from datetime import datetime
 from google.auth import default
 from google.cloud import bigquery
 import gspread
+from google.oauth2 import service_account as _sa_module
 
 # ============================================================
 # CONFIGURAÇÃO
@@ -205,7 +206,12 @@ def carregar():
     scopes = ['https://www.googleapis.com/auth/spreadsheets',
               'https://www.googleapis.com/auth/drive',
               'https://www.googleapis.com/auth/cloud-platform']
-    creds, _ = default(scopes=scopes)
+    _sa_file = os.path.join(os.path.dirname(__file__), 'google_credentials.json')
+    if os.path.exists(_sa_file):
+        creds = _sa_module.Credentials.from_service_account_file(_sa_file, scopes=scopes)
+        print("  Usando service account local (google_credentials.json)")
+    else:
+        creds, _ = default(scopes=scopes)
     gc = gspread.authorize(creds)
     pl = gc.open_by_key(PLANILHA_CONTROLE_ID)
 
