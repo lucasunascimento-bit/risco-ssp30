@@ -1123,9 +1123,13 @@ def processar_briefing(bq_rows, wy):
     # Agrega direto dos rows brutos (não do top-N por semana) para não perder drivers
     _drv_acc = {}
     _STATUS_NAO_BLOQ = {'inactive','inativo','bloqueado','blocked','suspendido','suspended'}
+    _CLASSES_VALIDAS_BRF = ('FRAUD', 'LOST ON ROUTE')
     for r in bq_rows:
         did = str(r.get('driver_id') or '').strip()
         if not did or did in ('None','nan',''): continue
+        # Mesmo filtro do processar_acumulo_bloqueio: apenas FRAUD e LOST ON ROUTE
+        cls = str(r.get('tipo_fraude') or '').upper()
+        if not any(k in cls for k in _CLASSES_VALIDAS_BRF): continue
         dbpp = r.get('DATE_BPP')
         if dbpp is None: continue
         try:
