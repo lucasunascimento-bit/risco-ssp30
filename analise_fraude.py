@@ -2829,7 +2829,7 @@ const ENE_SERVICE_DATA = {j(d.get("ene_service", []))};
 const DAMAGED_MONTHLY = {j({str(dmg['id']): dmg.get('monthly', {}) for dmg in d['damaged']})};
 const DRIVER_TRANSP   = {j(d.get('driver_transp', {}))};
 const CRITICOS_COUNT  = {d.get('criticos', 0)};
-const DAMAGED_ENE_DATA = {j(d.get("damaged_ene", {{'casos':[],'sellers':[],'meses':[],'causas':[],'wordcloud':[],'total':0,'total_bpp':0,'total_sellers':0}}))};
+const DAMAGED_ENE_DATA = {j(d['damaged_ene'])};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','damaged_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
@@ -6338,6 +6338,11 @@ if __name__ == '__main__':
     # mantém compatibilidade: chave '90' é o padrão
     with open(_acumulo_export, 'w', encoding='utf-8') as _f:
         json.dump(_acumulo_export_data, _f, ensure_ascii=False, indent=2)
+
+    _dene_default = {'casos':[],'sellers':[],'meses':[],'causas':[],'wordcloud':[],'total':0,'total_bpp':0.0,'total_sellers':0}
+    dados.setdefault('damaged_ene', _dene_default)
+    if not isinstance(dados['damaged_ene'], dict):
+        dados['damaged_ene'] = _dene_default
 
     print("Gerando dashboard...")
     html = gerar_html(dados)
