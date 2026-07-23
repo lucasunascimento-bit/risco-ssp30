@@ -2840,7 +2840,7 @@ function showTab(name, el) {{
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
   const bp = document.getElementById('barra-periodo');
-  const _noPeriod = ['acumulo','relatorio','dcnex','sellers_ene','damaged_ene','saidas','devolucoes'];
+  const _noPeriod = ['acumulo','relatorio','dcnex','sellers_ene','saidas','devolucoes'];
   if (bp) bp.style.display = _noPeriod.includes(name) ? 'none' : 'flex';
   applyPeriodoToTab(name);
   if (name === 'bloqueios') initBlCharts();
@@ -3081,6 +3081,7 @@ function applyPeriodoToTab(name) {{
   else if (name === 'tendencia')  {{ renderTendencia(); }}
   else if (name === 'ofensores')  {{ try {{ renderOfensores(); }} catch(e) {{}} }}
   else if (name === 'cruzamento') {{ renderCrzMes(); }}
+  else if (name === 'damaged_ene') {{ initDamagedENE(); }}
 }}
 
 function _recalcDamagedTotals() {{
@@ -3886,18 +3887,47 @@ let _deneWCDone = false;
 
 function initDamagedENE() {{
   const d = DAMAGED_ENE_DATA;
+
+  // Filtra casos pelo período global
+  const allCasos = d.casos || [];
+  const casosFiltrados = allCasos.filter(r =>
+    (!_periodDe || r.mes >= _periodDe) && (!_periodAte || r.mes <= _periodAte)
+  );
+
+  // Re-agrega sellers e meses a partir dos casos filtrados
+  const _selMap = {{}};
+  const _mesMap = {{}};
+  let totalBpp = 0;
+  casosFiltrados.forEach(c => {{
+    totalBpp += c.bpp || 0;
+    const key = c.seller_nome || '—';
+    if (!_selMap[key]) _selMap[key] = {{ seller_nome: key, total: 0, bpp: 0, meses: new Set() }};
+    _selMap[key].total++;
+    _selMap[key].bpp += c.bpp || 0;
+    _selMap[key].meses.add(c.mes);
+    if (!_mesMap[c.mes]) _mesMap[c.mes] = {{ mes: c.mes, total: 0, bpp: 0 }};
+    _mesMap[c.mes].total++;
+    _mesMap[c.mes].bpp += c.bpp || 0;
+  }});
+  const sellers = Object.values(_selMap)
+    .map(s => ({{ ...s, n_meses: s.meses.size, meses: [...s.meses].sort() }}))
+    .sort((a, b) => b.total - a.total);
+  const meses = Object.entries(_mesMap)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([, v]) => v);
+
+  // KPI cards
   const badge = document.getElementById('tab-count-damaged-ene');
-  if (badge) badge.textContent = d.total || 0;
-  _setEl('dene-total', (d.total || 0).toLocaleString('pt-BR'));
-  _setEl('dene-bpp', 'US$ ' + (d.total_bpp || 0).toLocaleString('pt-BR', {{minimumFractionDigits:2,maximumFractionDigits:2}}));
-  _setEl('dene-sellers', d.total_sellers || 0);
-  _setEl('dene-meses', (d.meses || []).length);
+  if (badge) badge.textContent = casosFiltrados.length;
+  _setEl('dene-total', casosFiltrados.length.toLocaleString('pt-BR'));
+  _setEl('dene-bpp', 'US$ ' + totalBpp.toLocaleString('pt-BR', {{minimumFractionDigits:2,maximumFractionDigits:2}}));
+  _setEl('dene-sellers', sellers.length);
+  _setEl('dene-meses', meses.length);
 
   // Monthly chart
   const ctxM = document.getElementById('dene-chart-mensal');
   if (ctxM) {{
     if (_deneChartMensal) {{ _deneChartMensal.destroy(); _deneChartMensal = null; }}
-    const meses = (d.meses || []);
     _deneChartMensal = new Chart(ctxM, {{
       type: 'bar',
       data: {{
@@ -3919,15 +3949,15 @@ function initDamagedENE() {{
     }});
   }}
 
-  // Seller bar chart (top 10)
+  // Sellers bar chart (top 10)
   const ctxS = document.getElementById('dene-chart-sellers');
   if (ctxS) {{
     if (_deneChartSellers) {{ _deneChartSellers.destroy(); _deneChartSellers = null; }}
-    const top = (d.sellers || []).slice(0, 10);
+    const top = sellers.slice(0, 10);
     _deneChartSellers = new Chart(ctxS, {{
       type: 'bar',
       data: {{
-        labels: top.map(s => s.seller_nome || ('#'+s.seller_id)),
+        labels: top.map(s => s.seller_nome),
         datasets: [{{ label: 'Casos', data: top.map(s => s.total), backgroundColor: '#818cf8' }}]
       }},
       options: {{
@@ -3941,7 +3971,7 @@ function initDamagedENE() {{
     }});
   }}
 
-  // Word cloud
+  // Word cloud — estático (causas do BT_LP_NODES, independente do período)
   if (!_deneWCDone) {{
     const wcEl = document.getElementById('dene-wordcloud');
     const wc = (d.wordcloud || []);
@@ -3965,7 +3995,7 @@ function initDamagedENE() {{
     }}
   }}
 
-  // Causas recorrentes
+  // Causas recorrentes — estáticas (BT_LP_NODES)
   const clEl = document.getElementById('dene-causas-lista');
   if (clEl) {{
     const causas = (d.causas || []).slice(0, 20);
@@ -3990,8 +4020,7 @@ function initDamagedENE() {{
   // Sellers ranking table
   const stb = document.getElementById('dene-sellers-tbody');
   if (stb) {{
-    const sellers = (d.sellers || []).slice(0, 50);
-    stb.innerHTML = sellers.map((s,i) => `
+    stb.innerHTML = sellers.slice(0, 50).map((s,i) => `
       <tr style="border-bottom:1px solid #1e293b;${{i<3?'background:#1a0a0a':''}}">
         <td style="padding:7px 10px;text-align:center;color:#64748b;font-size:11px">${{i+1}}</td>
         <td style="padding:7px 10px;color:#38bdf8;font-weight:600">${{s.seller_nome||'—'}}</td>
@@ -4002,12 +4031,16 @@ function initDamagedENE() {{
       </tr>`).join('');
   }}
 
-  filtrarDamagedENE();
+  filtrarDamagedENE(casosFiltrados);
 }}
 
-function filtrarDamagedENE() {{
+function filtrarDamagedENE(casosPeriodo) {{
+  // Se chamado sem argumento (pelo oninput do search), re-aplica filtro de período
+  const base = casosPeriodo || (DAMAGED_ENE_DATA.casos || []).filter(r =>
+    (!_periodDe || r.mes >= _periodDe) && (!_periodAte || r.mes <= _periodAte)
+  );
   const busca = ((document.getElementById('dene-busca')||{{}}).value || '').toLowerCase();
-  const casos = (DAMAGED_ENE_DATA.casos || []).filter(r =>
+  const casos = base.filter(r =>
     !busca ||
     r.shp_id.includes(busca) ||
     (r.seller_nome||'').toLowerCase().includes(busca)
@@ -4032,8 +4065,11 @@ function filtrarDamagedENE() {{
 }}
 
 function exportCSVDamagedENE() {{
+  const casos = (DAMAGED_ENE_DATA.casos || []).filter(r =>
+    (!_periodDe || r.mes >= _periodDe) && (!_periodAte || r.mes <= _periodAte)
+  );
   const rows = [['SHP ID','Seller Nome','BPP USD','Data BPP','Mês']];
-  (DAMAGED_ENE_DATA.casos || []).forEach(r => rows.push([r.shp_id, r.seller_nome, r.bpp, r.data, r.mes]));
+  casos.forEach(r => rows.push([r.shp_id, r.seller_nome, r.bpp, r.data, r.mes]));
   const csv = rows.map(r => r.map(v => `"${{String(v||'').replace(/"/g,'""')}}"`).join(',')).join('\\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,\\uFEFF' + encodeURIComponent(csv);
