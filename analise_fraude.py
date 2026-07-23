@@ -6171,14 +6171,12 @@ if __name__ == '__main__':
             LIMIT 50
         """
 
-        # ── Dispara as 6 em paralelo (sem esperar) ───────────────
+        # ── Dispara as 4 em paralelo (sem esperar) ───────────────
         _job_saidas    = _bqc.query(_q_saidas)
         _job_devos     = _bqc.query(_q_devos)
         _job_ene       = _bqc.query(_q_ene)
         _job_ene_svc   = _bqc.query(_q_ene_svc)
-        _job_dene_cas  = _bqc.query(QUERY_DAMAGED_ENE_CASOS)
-        _job_dene_cau  = _bqc.query(QUERY_DAMAGED_ENE_CAUSAS)
-        print("  6 queries disparadas em paralelo no BQ...")
+        print("  4 queries disparadas em paralelo no BQ...")
 
         # ── Coleta resultados (agora aguarda cada uma) ───────────
         _saidas_rows = []
@@ -6277,7 +6275,11 @@ if __name__ == '__main__':
             print(f"  Aviso ENE Service: {_e}")
         dados['ene_service'] = _ene_svc_rows
 
+        # ── Dispara Damaged ENE após coletar as 4 principais (evita quota BQ) ──
         import pandas as _pd_dene
+        _job_dene_cas  = _bqc.query(QUERY_DAMAGED_ENE_CASOS)
+        _job_dene_cau  = _bqc.query(QUERY_DAMAGED_ENE_CAUSAS)
+        print("  2 queries Damaged ENE disparadas...")
         _df_dene_cas = _pd_dene.DataFrame()
         _df_dene_cau = _pd_dene.DataFrame()
         try:
