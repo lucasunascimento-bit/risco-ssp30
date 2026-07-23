@@ -472,20 +472,14 @@ LIMIT 5000
 
 QUERY_DAMAGED_ENE_CAUSAS = """
 SELECT
-  n.SHP_NODE_CAUSE      AS causa,
-  n.SHP_NODE_CAUSE_L2   AS causa_l2,
-  COUNT(DISTINCT CAST(n.SHP_SHIPMENT_BPP AS STRING)) AS total
-FROM `meli-bi-data.WHOWNER.BT_LP_NODES` n
-JOIN (
-  SELECT DISTINCT CAST(SHIPMENT_ID AS STRING) AS shp_id
-  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-  WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
-    AND date_bpp >= '2026-01-01'
-    AND date_bpp <= CURRENT_DATE()
-    AND Classification_LM = 'DAMAGED ENE'
-) d ON CAST(n.SHP_SHIPMENT_BPP AS STRING) = d.shp_id
-WHERE n.DATEPARAMETER >= '2026-01-01'
-  AND n.SHP_NODE_CAUSE IS NOT NULL
+  SHP_NODE_CAUSE    AS causa,
+  SHP_NODE_CAUSE_L2 AS causa_l2,
+  COUNT(DISTINCT CAST(SHP_SHIPMENT_BPP AS STRING)) AS total
+FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
+WHERE SHP_LG_FACILITY_ID = 'SSP30'
+  AND DATEPARAMETER >= '2026-01-01'
+  AND SHP_BKO_SUBSTATUS = 'damaged'
+  AND SHP_NODE_CAUSE IS NOT NULL
 GROUP BY 1, 2
 ORDER BY total DESC
 LIMIT 200
@@ -5927,8 +5921,6 @@ if __name__ == '__main__':
     df_cruzamento     = _res['crz']
     df_cruzamento_mes = _res['crz_mes']
     df_dc_nex         = _res['dc_nex']
-    df_dene_casos  = buscar(bq, QUERY_DAMAGED_ENE_CASOS,  'Damaged ENE Casos')
-    df_dene_causas = buscar(bq, QUERY_DAMAGED_ENE_CAUSAS, 'Damaged ENE Causas')
 
     bl_rows   = carregar_block_list(gs)
     sincronizar_status_block_list(gs, bq, bl_rows)
@@ -5959,7 +5951,6 @@ if __name__ == '__main__':
     dados['crz']       = processar_cruzamento(df_cruzamento)
     dados['crz_mes']   = processar_cruzamento_mes(df_cruzamento_mes)
     dados['dc_nex']    = processar_dc_nex(df_dc_nex, cobrar_otr_map)
-    dados['damaged_ene'] = processar_damaged_ene(df_dene_casos, df_dene_causas)
     # --- CEP → Cluster (SSP30) ---
     print("  Buscando mapa CEP->Cluster no BQ...")
     try:
@@ -6057,7 +6048,8 @@ if __name__ == '__main__':
         dados['devolucoes']  = _bq_cache.get('devolucoes', [])
         dados['sellers_ene'] = _bq_cache.get('sellers_ene', [])
         dados['ene_service'] = _bq_cache.get('ene_service', [])
-        print(f"  Cache: {len(dados['saidas'])} saídas | {len(dados['devolucoes'])} devoluções | {len(dados['sellers_ene'])} sellers ENE | {len(dados['ene_service'])} ENE svc")
+        dados['damaged_ene'] = _bq_cache.get('damaged_ene', {})
+        print(f"  Cache: {len(dados['saidas'])} saídas | {len(dados['devolucoes'])} devoluções | {len(dados['sellers_ene'])} sellers ENE | {len(dados['ene_service'])} ENE svc | {dados['damaged_ene'].get('total',0)} damaged ENE")
     else:
         print("  Buscando BQ: 4 queries disparadas em paralelo...")
         from google.cloud import bigquery as _bqm
@@ -6179,12 +6171,14 @@ if __name__ == '__main__':
             LIMIT 50
         """
 
-        # ── Dispara as 4 em paralelo (sem esperar) ───────────────
-        _job_saidas  = _bqc.query(_q_saidas)
-        _job_devos   = _bqc.query(_q_devos)
-        _job_ene     = _bqc.query(_q_ene)
-        _job_ene_svc = _bqc.query(_q_ene_svc)
-        print("  4 queries disparadas em paralelo no BQ...")
+        # ── Dispara as 6 em paralelo (sem esperar) ───────────────
+        _job_saidas    = _bqc.query(_q_saidas)
+        _job_devos     = _bqc.query(_q_devos)
+        _job_ene       = _bqc.query(_q_ene)
+        _job_ene_svc   = _bqc.query(_q_ene_svc)
+        _job_dene_cas  = _bqc.query(QUERY_DAMAGED_ENE_CASOS)
+        _job_dene_cau  = _bqc.query(QUERY_DAMAGED_ENE_CAUSAS)
+        print("  6 queries disparadas em paralelo no BQ...")
 
         # ── Coleta resultados (agora aguarda cada uma) ───────────
         _saidas_rows = []
@@ -6283,10 +6277,29 @@ if __name__ == '__main__':
             print(f"  Aviso ENE Service: {_e}")
         dados['ene_service'] = _ene_svc_rows
 
+        import pandas as _pd_dene
+        _df_dene_cas = _pd_dene.DataFrame()
+        _df_dene_cau = _pd_dene.DataFrame()
+        try:
+            _df_dene_cas = _job_dene_cas.result().to_dataframe()
+            print(f"  Damaged ENE casos: {len(_df_dene_cas)} casos")
+        except Exception as _e:
+            print(f"  Aviso Damaged ENE casos: {_e}")
+        try:
+            _df_dene_cau = _job_dene_cau.result().to_dataframe()
+            print(f"  Damaged ENE causas: {len(_df_dene_cau)} causas")
+        except Exception as _e:
+            print(f"  Aviso Damaged ENE causas: {_e}")
+        dados['damaged_ene'] = processar_damaged_ene(_df_dene_cas, _df_dene_cau)
+
         # ── Salva cache para próximos builds (válido 4h) ─────────
         try:
             with open(_BQ_CACHE_PATH, 'w', encoding='utf-8') as _cf:
-                _json_bq.dump({'saidas': dados['saidas'], 'devolucoes': dados['devolucoes'], 'sellers_ene': dados['sellers_ene'], 'ene_service': dados['ene_service']}, _cf, ensure_ascii=False, default=str)
+                _json_bq.dump({
+                    'saidas': dados['saidas'], 'devolucoes': dados['devolucoes'],
+                    'sellers_ene': dados['sellers_ene'], 'ene_service': dados['ene_service'],
+                    'damaged_ene': dados['damaged_ene'],
+                }, _cf, ensure_ascii=False, default=str)
             print("  Cache BQ salvo (válido por 4h).")
         except Exception as _ec:
             print(f"  Aviso cache: {_ec}")
@@ -6295,6 +6308,7 @@ if __name__ == '__main__':
         dados.setdefault('devolucoes', [])
         dados.setdefault('sellers_ene', [])
         dados.setdefault('ene_service', [])
+        dados.setdefault('damaged_ene', {})
 
     MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
                  7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
