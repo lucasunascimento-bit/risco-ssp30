@@ -4087,7 +4087,8 @@ function initDamagedENE() {{
         '<td style="padding:4px 10px 4px 30px;font-family:monospace;color:#60a5fa;font-size:11px;user-select:all">' + c.shp_id + '</td>' +
         '<td style="padding:4px 10px;text-align:right;color:#f87171;font-size:11px">US$ ' + c.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}) + '</td>' +
         '<td style="padding:4px 10px;color:#94a3b8;font-size:11px">' + (c.data||'') + '</td>' +
-        '<td style="padding:4px 10px;color:#64748b;font-size:11px" colspan="3">' + (c.mes||'') + '</td>' +
+        '<td style="padding:4px 10px;color:#64748b;font-size:11px" colspan="2">' + (c.mes||'') + '</td>' +
+        '<td style="padding:4px 10px;color:#cbd5e1;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (c.item_title||'') + '">' + (c.item_title||'—') + '</td>' +
         '</tr>'
       ).join('');
       return (
@@ -4109,7 +4110,8 @@ function initDamagedENE() {{
         '<th style="padding:4px 10px 4px 30px;text-align:left;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">SHP ID</th>' +
         '<th style="padding:4px 10px;text-align:right;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">BPP USD</th>' +
         '<th style="padding:4px 10px;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Data</th>' +
-        '<th style="padding:4px 10px;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px" colspan="3">Mês</th>' +
+        '<th style="padding:4px 10px;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px" colspan="2">Mês</th>' +
+        '<th style="padding:4px 10px;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Produto</th>' +
         '</tr></thead><tbody>' +
         (idsRows || '<tr><td colspan="4" style="padding:8px 30px;color:#64748b;font-size:11px">Sem casos no período selecionado</td></tr>') +
         '</tbody></table></div></td></tr>'
