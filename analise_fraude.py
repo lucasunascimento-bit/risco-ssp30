@@ -5909,8 +5909,6 @@ if __name__ == '__main__':
         'crz':      (QUERY_CRUZAMENTO,      'Sellers/Buyers Ofensores'),
         'crz_mes':  (QUERY_CRUZAMENTO_MES,  'Sellers/Buyers por Mês'),
         'dc_nex':   (QUERY_DC_NEX,          'DC/NEX/XPT Passages'),
-        'dene_casos': (QUERY_DAMAGED_ENE_CASOS,  'Damaged ENE Casos'),
-        'dene_causas': (QUERY_DAMAGED_ENE_CAUSAS,'Damaged ENE Causas'),
     }
     _res = {}
     with ThreadPoolExecutor(max_workers=6) as _pool:
@@ -5929,8 +5927,8 @@ if __name__ == '__main__':
     df_cruzamento     = _res['crz']
     df_cruzamento_mes = _res['crz_mes']
     df_dc_nex         = _res['dc_nex']
-    df_dene_casos     = _res['dene_casos']
-    df_dene_causas    = _res['dene_causas']
+    df_dene_casos  = buscar(bq, QUERY_DAMAGED_ENE_CASOS,  'Damaged ENE Casos')
+    df_dene_causas = buscar(bq, QUERY_DAMAGED_ENE_CAUSAS, 'Damaged ENE Causas')
 
     bl_rows   = carregar_block_list(gs)
     sincronizar_status_block_list(gs, bq, bl_rows)
