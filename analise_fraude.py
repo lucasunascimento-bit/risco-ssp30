@@ -485,6 +485,22 @@ ORDER BY total DESC
 LIMIT 200
 """
 
+QUERY_FRAUD_ENE_CASOS = """
+SELECT
+  CAST(SHIPMENT_ID AS STRING)           AS shp_id,
+  CUS_NICKNAME_SEL                      AS seller_nome,
+  ROUND(BPP_CASHOUT_USD, 2)            AS bpp,
+  FORMAT_DATE('%d/%m/%Y', date_bpp)    AS data,
+  FORMAT_DATE('%Y-%m', date_bpp)       AS mes
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  AND date_bpp >= '2026-01-01'
+  AND date_bpp <= CURRENT_DATE()
+  AND Classification_LM = 'FRAUD ENE'
+ORDER BY date_bpp DESC
+LIMIT 5000
+"""
+
 # ============================================================
 # CONEXÃO E CONSULTAS
 # ============================================================
@@ -2830,6 +2846,7 @@ const DAMAGED_MONTHLY = {j({str(dmg['id']): dmg.get('monthly', {}) for dmg in d[
 const DRIVER_TRANSP   = {j(d.get('driver_transp', {}))};
 const CRITICOS_COUNT  = {d.get('criticos', 0)};
 const DAMAGED_ENE_DATA = {j(d['damaged_ene'])};
+const FRAUD_ENE_DATA   = {j(d['fraud_ene'])};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','damaged_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
@@ -6330,13 +6347,29 @@ if __name__ == '__main__':
             print(f"  Aviso Damaged ENE causas: {_e}")
         dados['damaged_ene'] = processar_damaged_ene(_df_dene_cas, _df_dene_cau)
 
+        # ── Dispara FRAUD ENE após Damaged ENE (evita quota BQ) ──
+        import pandas as _pd_frene
+        _job_frene = _bqc.query(QUERY_FRAUD_ENE_CASOS)
+        print("  1 query Fraud ENE disparada...")
+        _df_frene = _pd_frene.DataFrame()
+        try:
+            _df_frene = _job_frene.result().to_dataframe()
+            print(f"  Fraud ENE casos: {len(_df_frene)} casos")
+        except Exception as _e:
+            print(f"  Aviso Fraud ENE casos: {_e}")
+        dados['fraud_ene'] = [
+            {'shp_id': str(r.shp_id), 'seller_nome': str(r.seller_nome or ''),
+             'bpp': float(r.bpp or 0), 'data': str(r.data or ''), 'mes': str(r.mes or '')}
+            for _, r in _df_frene.iterrows()
+        ] if not _df_frene.empty else []
+
         # ── Salva cache para próximos builds (válido 4h) ─────────
         try:
             with open(_BQ_CACHE_PATH, 'w', encoding='utf-8') as _cf:
                 _json_bq.dump({
                     'saidas': dados['saidas'], 'devolucoes': dados['devolucoes'],
                     'sellers_ene': dados['sellers_ene'], 'ene_service': dados['ene_service'],
-                    'damaged_ene': dados['damaged_ene'],
+                    'damaged_ene': dados['damaged_ene'], 'fraud_ene': dados['fraud_ene'],
                 }, _cf, ensure_ascii=False, default=str)
             print("  Cache BQ salvo (válido por 4h).")
         except Exception as _ec:
@@ -6347,6 +6380,7 @@ if __name__ == '__main__':
         dados.setdefault('sellers_ene', [])
         dados.setdefault('ene_service', [])
         dados.setdefault('damaged_ene', {})
+        dados.setdefault('fraud_ene', [])
 
     MONTHS_PT = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
                  7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
@@ -6381,6 +6415,9 @@ if __name__ == '__main__':
     dados.setdefault('damaged_ene', _dene_default)
     if not isinstance(dados['damaged_ene'], dict):
         dados['damaged_ene'] = _dene_default
+    dados.setdefault('fraud_ene', [])
+    if not isinstance(dados['fraud_ene'], list):
+        dados['fraud_ene'] = []
 
     print("Gerando dashboard...")
     html = gerar_html(dados)
