@@ -491,12 +491,15 @@ SELECT
   CUS_NICKNAME_SEL                      AS seller_nome,
   ROUND(BPP_CASHOUT_USD, 2)            AS bpp,
   FORMAT_DATE('%d/%m/%Y', date_bpp)    AS data,
-  FORMAT_DATE('%Y-%m', date_bpp)       AS mes
+  FORMAT_DATE('%Y-%m', date_bpp)       AS mes,
+  Classification_LM                     AS classificacao,
+  TIPO_FRAUDE                           AS tipo_fraude
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
   AND date_bpp >= '2026-01-01'
   AND date_bpp <= CURRENT_DATE()
-  AND Classification_LM = 'FRAUD ENE'
+  AND CAST(FLAG_ENE AS STRING) = '1'
+  AND TIPO_FRAUDE != 'NOT_FRAUD'
 ORDER BY date_bpp DESC
 LIMIT 5000
 """
