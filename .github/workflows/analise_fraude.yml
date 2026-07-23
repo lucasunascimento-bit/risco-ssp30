@@ -3,7 +3,7 @@ name: Análise de Fraude SSP30
 on:
   workflow_dispatch:        # Rodado manualmente pelo botão no dashboard
   schedule:
-    - cron: '0 11 * * 1'   # Toda segunda-feira às 08:00 BRT (11:00 UTC)
+    - cron: '0 11 * * *'   # Todos os dias às 08:00 BRT (11:00 UTC)
 
 permissions:
   contents: write
