@@ -454,6 +454,44 @@ ORDER BY l.bpp DESC
 LIMIT 300
 """
 
+QUERY_DAMAGED_ENE_CASOS = """
+SELECT
+  CAST(SHIPMENT_ID AS STRING)           AS shp_id,
+  CAST(SHP_SENDER_ID AS STRING)         AS seller_id,
+  CUS_NICKNAME_SEL                      AS seller_nome,
+  ROUND(BPP_CASHOUT_USD, 2)            AS bpp,
+  FORMAT_DATE('%d/%m/%Y', date_bpp)    AS data,
+  FORMAT_DATE('%Y-%m', date_bpp)       AS mes
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  AND date_bpp >= '2026-01-01'
+  AND date_bpp <= CURRENT_DATE()
+  AND Classification_LM = 'DAMAGED ENE'
+ORDER BY date_bpp DESC
+LIMIT 5000
+"""
+
+QUERY_DAMAGED_ENE_CAUSAS = """
+SELECT
+  n.SHP_NODE_CAUSE      AS causa,
+  n.SHP_NODE_CAUSE_L2   AS causa_l2,
+  COUNT(DISTINCT CAST(n.SHP_SHIPMENT_BPP AS STRING)) AS total
+FROM `meli-bi-data.WHOWNER.BT_LP_NODES` n
+JOIN (
+  SELECT DISTINCT CAST(SHIPMENT_ID AS STRING) AS shp_id
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+    AND date_bpp >= '2026-01-01'
+    AND date_bpp <= CURRENT_DATE()
+    AND Classification_LM = 'DAMAGED ENE'
+) d ON CAST(n.SHP_SHIPMENT_BPP AS STRING) = d.shp_id
+WHERE n.DATEPARAMETER >= '2026-01-01'
+  AND n.SHP_NODE_CAUSE IS NOT NULL
+GROUP BY 1, 2
+ORDER BY total DESC
+LIMIT 200
+"""
+
 # ============================================================
 # CONEXÃO E CONSULTAS
 # ============================================================
@@ -1190,6 +1228,91 @@ def processar_dc_nex(df, cobrar_otr_map):
         'drivers':    drivers,
         'total_pkgs': len(seen_shp),
         'total_gmv':  total_gmv,
+    }
+
+def processar_damaged_ene(df_casos, df_causas):
+    import re
+    if df_casos is None or df_casos.empty:
+        return {
+            'casos': [], 'sellers': [], 'meses': [],
+            'causas': [], 'wordcloud': [],
+            'total': 0, 'total_bpp': 0.0, 'total_sellers': 0,
+        }
+    casos = []
+    for _, r in df_casos.iterrows():
+        casos.append({
+            'shp_id':      str(r.get('shp_id', '')),
+            'seller_id':   str(r.get('seller_id', '') or ''),
+            'seller_nome': str(r.get('seller_nome', '') or ''),
+            'bpp':         float(r.get('bpp', 0) or 0),
+            'data':        str(r.get('data', '')),
+            'mes':         str(r.get('mes', '')),
+        })
+    seller_map = {}
+    for c in casos:
+        key = c['seller_id'] or c['seller_nome'] or 'desconhecido'
+        if key not in seller_map:
+            seller_map[key] = {
+                'seller_id':   c['seller_id'],
+                'seller_nome': c['seller_nome'],
+                'total': 0, 'bpp': 0.0, 'meses': set(),
+            }
+        s = seller_map[key]
+        s['total'] += 1
+        s['bpp'] += c['bpp']
+        s['meses'].add(c['mes'])
+    sellers = sorted(seller_map.values(), key=lambda x: -x['total'])
+    for s in sellers:
+        s['bpp'] = round(s['bpp'], 2)
+        s['meses'] = sorted(s['meses'])
+        s['n_meses'] = len(s['meses'])
+    mes_map = {}
+    for c in casos:
+        m = c['mes']
+        if not m:
+            continue
+        if m not in mes_map:
+            mes_map[m] = {'mes': m, 'total': 0, 'bpp': 0.0}
+        mes_map[m]['total'] += 1
+        mes_map[m]['bpp'] += c['bpp']
+    meses = sorted(mes_map.values(), key=lambda x: x['mes'])
+    for m in meses:
+        m['bpp'] = round(m['bpp'], 2)
+    STOP = {
+        'de','do','da','dos','das','e','o','a','os','as','em','no','na','por',
+        'para','com','que','se','ao','um','uma','the','of','in','to','and','or',
+        'is','at','n/a','sim','nao','não','sem','outro','outros','foi','ser','nao',
+    }
+    word_freq = {}
+    causas = []
+    if df_causas is not None and not df_causas.empty:
+        for _, r in df_causas.iterrows():
+            causa    = str(r.get('causa', '') or '').strip()
+            causa_l2 = str(r.get('causa_l2', '') or '').strip()
+            total    = int(r.get('total', 0) or 0)
+            if not causa or total == 0:
+                continue
+            causas.append({'causa': causa, 'causa_l2': causa_l2, 'total': total})
+            for txt in [causa, causa_l2]:
+                if not txt or txt.lower() in ('none', 'null', 'nan', ''):
+                    continue
+                for w in re.split(r'[\s_/\-\+&]+', txt.upper()):
+                    w = w.strip('.,;:!?()"\'')
+                    if len(w) > 2 and w.lower() not in STOP:
+                        word_freq[w] = word_freq.get(w, 0) + total
+    wordcloud = sorted(
+        [{'word': w, 'count': c} for w, c in word_freq.items()],
+        key=lambda x: -x['count']
+    )[:80]
+    return {
+        'casos':         casos[:2000],
+        'sellers':       sellers[:100],
+        'meses':         meses,
+        'causas':        causas[:50],
+        'wordcloud':     wordcloud,
+        'total':         len(casos),
+        'total_bpp':     round(sum(c['bpp'] for c in casos), 2),
+        'total_sellers': len(sellers),
     }
 
 def processar_cftv(rows):
@@ -2151,6 +2274,7 @@ def gerar_html(d):
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}}
@@ -2320,6 +2444,10 @@ def gerar_html(d):
   <div class="sb-item" data-tab="sellers_ene" onclick="showTab('sellers_ene',this)">
     <i data-lucide="store" width="14" height="14" class="ci"></i>
     Sellers ENE <span class="sb-badge red" id="tab-count-sellers-ene">0</span>
+  </div>
+  <div class="sb-item" data-tab="damaged_ene" onclick="showTab('damaged_ene',this)">
+    <i data-lucide="package-open" width="14" height="14" class="ci"></i>
+    Damaged ENE <span class="sb-badge red" id="tab-count-damaged-ene">0</span>
   </div>
   <div class="sb-item" data-tab="ofensores" onclick="showTab('ofensores',this)">
     <i data-lucide="target" width="14" height="14" class="ci"></i>
@@ -2710,8 +2838,9 @@ const ENE_SERVICE_DATA = {j(d.get("ene_service", []))};
 const DAMAGED_MONTHLY = {j({str(dmg['id']): dmg.get('monthly', {}) for dmg in d['damaged']})};
 const DRIVER_TRANSP   = {j(d.get('driver_transp', {}))};
 const CRITICOS_COUNT  = {d.get('criticos', 0)};
+const DAMAGED_ENE_DATA = {j(d.get("damaged_ene", {{'casos':[],'sellers':[],'meses':[],'causas':[],'wordcloud':[],'total':0,'total_bpp':0,'total_sellers':0}}))};
 
-const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','ofensores','bloqueios','cruzamento','relatorio'];
+const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','damaged_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
   _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
@@ -2720,7 +2849,7 @@ function showTab(name, el) {{
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
   const bp = document.getElementById('barra-periodo');
-  const _noPeriod = ['acumulo','relatorio','dcnex','sellers_ene','saidas','devolucoes'];
+  const _noPeriod = ['acumulo','relatorio','dcnex','sellers_ene','damaged_ene','saidas','devolucoes'];
   if (bp) bp.style.display = _noPeriod.includes(name) ? 'none' : 'flex';
   applyPeriodoToTab(name);
   if (name === 'bloqueios') initBlCharts();
@@ -2728,6 +2857,7 @@ function showTab(name, el) {{
   if (name === 'saidas') initSaidas();
   if (name === 'devolucoes') initDevolucoes();
   if (name === 'sellers_ene') initSellersENE();
+  if (name === 'damaged_ene') initDamagedENE();
   if (name === 'ofensores') initOfensores();
 }}
 function _handleHashNav(delay) {{
@@ -3756,6 +3886,175 @@ function filtrarSellersENE() {{
     </tr>`).join('');
   const emEl = document.getElementById('ene-empty');
   if (emEl) emEl.style.display = dados.length ? 'none' : 'block';
+}}
+
+// ── DAMAGED ENE ──────────────────────────────────────────────
+let _deneChartMensal = null;
+let _deneChartSellers = null;
+let _deneWCDone = false;
+
+function initDamagedENE() {{
+  const d = DAMAGED_ENE_DATA;
+  const badge = document.getElementById('tab-count-damaged-ene');
+  if (badge) badge.textContent = d.total || 0;
+  _setEl('dene-total', (d.total || 0).toLocaleString('pt-BR'));
+  _setEl('dene-bpp', 'US$ ' + (d.total_bpp || 0).toLocaleString('pt-BR', {{minimumFractionDigits:2,maximumFractionDigits:2}}));
+  _setEl('dene-sellers', d.total_sellers || 0);
+  _setEl('dene-meses', (d.meses || []).length);
+
+  // Monthly chart
+  const ctxM = document.getElementById('dene-chart-mensal');
+  if (ctxM) {{
+    if (_deneChartMensal) {{ _deneChartMensal.destroy(); _deneChartMensal = null; }}
+    const meses = (d.meses || []);
+    _deneChartMensal = new Chart(ctxM, {{
+      type: 'bar',
+      data: {{
+        labels: meses.map(m => m.mes),
+        datasets: [
+          {{ label: 'Casos', data: meses.map(m => m.total), backgroundColor: '#f87171', yAxisID: 'y', order: 2 }},
+          {{ label: 'BPP USD', data: meses.map(m => m.bpp), type: 'line', borderColor: '#fbbf24', backgroundColor: 'transparent', tension: 0.3, yAxisID: 'y2', order: 1 }},
+        ]
+      }},
+      options: {{
+        responsive: true, maintainAspectRatio: false,
+        plugins: {{ legend: {{ labels: {{ color: '#94a3b8', font: {{ size: 11 }} }} }} }},
+        scales: {{
+          x: {{ ticks: {{ color: '#64748b', font: {{ size: 10 }} }}, grid: {{ color: '#1e293b' }} }},
+          y: {{ ticks: {{ color: '#94a3b8', font: {{ size: 10 }} }}, grid: {{ color: '#1e293b' }}, title: {{ display: true, text: 'Casos', color: '#64748b', font: {{ size: 10 }} }} }},
+          y2: {{ position: 'right', ticks: {{ color: '#fbbf24', font: {{ size: 10 }}, callback: v => 'US$ '+v.toLocaleString('pt-BR',{{minimumFractionDigits:0}}) }}, grid: {{ drawOnChartArea: false }}, title: {{ display: true, text: 'BPP USD', color: '#fbbf24', font: {{ size: 10 }} }} }},
+        }}
+      }}
+    }});
+  }}
+
+  // Seller bar chart (top 10)
+  const ctxS = document.getElementById('dene-chart-sellers');
+  if (ctxS) {{
+    if (_deneChartSellers) {{ _deneChartSellers.destroy(); _deneChartSellers = null; }}
+    const top = (d.sellers || []).slice(0, 10);
+    _deneChartSellers = new Chart(ctxS, {{
+      type: 'bar',
+      data: {{
+        labels: top.map(s => s.seller_nome || ('#'+s.seller_id)),
+        datasets: [{{ label: 'Casos', data: top.map(s => s.total), backgroundColor: '#818cf8' }}]
+      }},
+      options: {{
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: {{ legend: {{ display: false }} }},
+        scales: {{
+          x: {{ ticks: {{ color: '#94a3b8', font: {{ size: 10 }} }}, grid: {{ color: '#1e293b' }} }},
+          y: {{ ticks: {{ color: '#e2e8f0', font: {{ size: 10 }} }}, grid: {{ color: '#1e293b' }} }},
+        }}
+      }}
+    }});
+  }}
+
+  // Word cloud
+  if (!_deneWCDone) {{
+    const wcEl = document.getElementById('dene-wordcloud');
+    const wc = (d.wordcloud || []);
+    if (wcEl && wc.length > 0 && typeof WordCloud !== 'undefined') {{
+      _deneWCDone = true;
+      const maxCount = wc[0].count || 1;
+      WordCloud(wcEl, {{
+        list: wc.map(w => [w.word, Math.max(8, Math.round(w.count / maxCount * 48))]),
+        gridSize: 8, weightFactor: 1, fontFamily: 'sans-serif',
+        color: function() {{
+          const colors = ['#60a5fa','#f87171','#fbbf24','#34d399','#a78bfa','#fb923c'];
+          return colors[Math.floor(Math.random() * colors.length)];
+        }},
+        rotateRatio: 0.3, rotationSteps: 2,
+        backgroundColor: 'transparent', drawOutOfBound: false,
+      }});
+    }} else if (wcEl && wc.length === 0) {{
+      wcEl.style.display = 'none';
+      const em = document.getElementById('dene-wc-empty');
+      if (em) em.style.display = 'block';
+    }}
+  }}
+
+  // Causas recorrentes
+  const clEl = document.getElementById('dene-causas-lista');
+  if (clEl) {{
+    const causas = (d.causas || []).slice(0, 20);
+    if (causas.length === 0) {{
+      clEl.innerHTML = '<div style="color:#64748b;font-size:12px;text-align:center;padding:20px">Sem dados de causa disponíveis</div>';
+    }} else {{
+      const maxT = causas[0].total || 1;
+      clEl.innerHTML = causas.map((c,i) => `
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-size:11px;color:#e2e8f0;font-weight:${{i<3?700:400}}">${{c.causa}}</span>
+            <span style="font-size:11px;color:#fbbf24;font-weight:700">${{c.total}}</span>
+          </div>
+          ${{c.causa_l2 ? `<div style="font-size:10px;color:#64748b;margin-bottom:3px">${{c.causa_l2}}</div>` : ''}}
+          <div style="height:4px;background:#1e293b;border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${{Math.round(c.total/maxT*100)}}%;background:${{i<3?'#f87171':'#334155'}};border-radius:2px"></div>
+          </div>
+        </div>`).join('');
+    }}
+  }}
+
+  // Sellers ranking table
+  const stb = document.getElementById('dene-sellers-tbody');
+  if (stb) {{
+    const sellers = (d.sellers || []).slice(0, 50);
+    stb.innerHTML = sellers.map((s,i) => `
+      <tr style="border-bottom:1px solid #1e293b;${{i<3?'background:#1a0a0a':''}}">
+        <td style="padding:7px 10px;text-align:center;color:#64748b;font-size:11px">${{i+1}}</td>
+        <td style="padding:7px 10px">
+          <span style="color:#38bdf8;font-weight:600">${{s.seller_nome||('Seller '+s.seller_id)}}</span>
+          <span style="color:#475569;font-size:10px;margin-left:6px;font-family:monospace">#${{s.seller_id}}</span>
+        </td>
+        <td style="padding:7px 10px;text-align:center;font-weight:700;color:${{s.total>=10?'#f87171':s.total>=5?'#fb923c':'#fbbf24'}}">${{s.total}}</td>
+        <td style="padding:7px 10px;text-align:right;color:#86efac;font-weight:600">US$ ${{s.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</td>
+        <td style="padding:7px 10px;text-align:center;color:#818cf8">${{s.n_meses}}</td>
+        <td style="padding:7px 10px;color:#64748b;font-size:11px">${{(s.meses||[]).join(' · ')}}</td>
+      </tr>`).join('');
+  }}
+
+  filtrarDamagedENE();
+}}
+
+function filtrarDamagedENE() {{
+  const busca = ((document.getElementById('dene-busca')||{{}}).value || '').toLowerCase();
+  const casos = (DAMAGED_ENE_DATA.casos || []).filter(r =>
+    !busca ||
+    r.shp_id.includes(busca) ||
+    (r.seller_nome||'').toLowerCase().includes(busca) ||
+    r.seller_id.includes(busca)
+  );
+  const tb = document.getElementById('dene-casos-tbody');
+  const em = document.getElementById('dene-casos-empty');
+  if (!tb) return;
+  if (casos.length === 0) {{
+    tb.innerHTML = '';
+    if (em) em.style.display = 'block';
+    return;
+  }}
+  if (em) em.style.display = 'none';
+  tb.innerHTML = casos.slice(0, 500).map(r => `
+    <tr style="border-bottom:1px solid #1e293b">
+      <td style="padding:6px 10px;font-family:monospace;color:#60a5fa;font-size:11px">${{r.shp_id}}</td>
+      <td style="padding:6px 10px">
+        <span style="color:#e2e8f0;font-size:12px">${{r.seller_nome||'—'}}</span>
+        ${{r.seller_id ? `<span style="color:#475569;font-size:10px;margin-left:4px">#${{r.seller_id}}</span>` : ''}}
+      </td>
+      <td style="padding:6px 10px;text-align:right;color:#f87171;font-weight:600;font-size:12px">US$ ${{r.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</td>
+      <td style="padding:6px 10px;color:#94a3b8;font-size:11px">${{r.data}}</td>
+      <td style="padding:6px 10px;color:#64748b;font-size:11px">${{r.mes}}</td>
+    </tr>`).join('');
+}}
+
+function exportCSVDamagedENE() {{
+  const rows = [['SHP ID','Seller Nome','Seller ID','BPP USD','Data BPP','Mês']];
+  (DAMAGED_ENE_DATA.casos || []).forEach(r => rows.push([r.shp_id, r.seller_nome, r.seller_id, r.bpp, r.data, r.mes]));
+  const csv = rows.map(r => r.map(v => `"${{String(v||'').replace(/"/g,'""')}}"`).join(',')).join('\\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\\uFEFF' + encodeURIComponent(csv);
+  a.download = 'damaged_ene_ssp30.csv';
+  a.click();
 }}
 
 // ═══════════════════════════════════════════════════════
@@ -4837,6 +5136,110 @@ lucide.createIcons();
   </div>
 </div>
 
+<!-- DAMAGED ENE -->
+<div id="tab-damaged_ene" class="content">
+  <div style="padding:24px 32px;max-width:1200px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#fff">Damaged ENE — Embalagem Danificada</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px">Casos desde jan/2026 — seller alega embalagem chegou danificada · SSP30 · fonte: DM_LP_MELI_OPTIMIZADO + BT_LP_NODES</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="dene-busca" oninput="filtrarDamagedENE()" placeholder="Buscar SHP / Seller…"
+          style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 12px;font-size:12px;width:220px">
+        <button onclick="exportCSVDamagedENE()" style="background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer">
+          ⬇ Exportar CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:16px 20px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Total Casos</div>
+        <div id="dene-total" style="font-size:28px;font-weight:800;color:#fff">0</div>
+      </div>
+      <div style="background:#0f172a;border:2px solid #f8717122;border-radius:10px;padding:16px 20px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">BPP Total USD</div>
+        <div id="dene-bpp" style="font-size:22px;font-weight:800;color:#f87171">$0</div>
+      </div>
+      <div style="background:#0f172a;border:2px solid #fbbf2422;border-radius:10px;padding:16px 20px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Sellers Únicos</div>
+        <div id="dene-sellers" style="font-size:28px;font-weight:800;color:#fbbf24">0</div>
+      </div>
+      <div style="background:#0f172a;border:2px solid #818cf822;border-radius:10px;padding:16px 20px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Meses com Dado</div>
+        <div id="dene-meses" style="font-size:28px;font-weight:800;color:#818cf8">0</div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px">
+      <div style="background:#0c1a2e;border:1px solid #1e3a5f;border-radius:10px;padding:18px">
+        <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:14px">Evolução Mensal de Casos</div>
+        <div style="height:200px"><canvas id="dene-chart-mensal"></canvas></div>
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a5f;border-radius:10px;padding:18px">
+        <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:14px">Top 10 Sellers por Casos</div>
+        <div style="height:200px"><canvas id="dene-chart-sellers"></canvas></div>
+      </div>
+    </div>
+
+    <!-- WORD CLOUD + CAUSAS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px">
+      <div style="background:#0c1a2e;border:1px solid #1e3a5f;border-radius:10px;padding:18px">
+        <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:12px">Nuvem de Palavras — Reclamações</div>
+        <div id="dene-wordcloud" style="width:100%;height:220px;position:relative;overflow:hidden"></div>
+        <div id="dene-wc-empty" style="display:none;text-align:center;padding:40px;color:#64748b;font-size:12px">Sem dados de causa disponíveis</div>
+      </div>
+      <div style="background:#0c1a2e;border:1px solid #1e3a5f;border-radius:10px;padding:18px">
+        <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:12px">Causas Recorrentes</div>
+        <div id="dene-causas-lista" style="max-height:240px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <!-- SELLERS RANKING TABLE -->
+    <div style="margin-bottom:22px">
+      <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:10px">Ranking de Sellers Ofensores</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr>
+              <th style="text-align:center;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155;width:36px">#</th>
+              <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Seller</th>
+              <th style="text-align:center;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Casos</th>
+              <th style="text-align:right;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">BPP USD</th>
+              <th style="text-align:center;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Meses</th>
+              <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Período</th>
+            </tr>
+          </thead>
+          <tbody id="dene-sellers-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CASE TABLE -->
+    <div>
+      <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:10px">Casos Detalhados (máx. 500 exibidos)</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">SHP ID</th>
+              <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Seller</th>
+              <th style="text-align:right;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">BPP USD</th>
+              <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Data BPP</th>
+              <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Mês</th>
+            </tr>
+          </thead>
+          <tbody id="dene-casos-tbody"></tbody>
+        </table>
+      </div>
+      <div id="dene-casos-empty" style="display:none;text-align:center;padding:40px;color:#94a3b8;font-size:13px">Nenhum caso encontrado</div>
+    </div>
+  </div>
+</div>
+
 <!-- RELATÓRIO SEMANAL -->
 <div id="tab-relatorio" class="content">
   <div style="padding:24px 32px;max-width:1100px">
@@ -5516,6 +5919,8 @@ if __name__ == '__main__':
         'crz':      (QUERY_CRUZAMENTO,      'Sellers/Buyers Ofensores'),
         'crz_mes':  (QUERY_CRUZAMENTO_MES,  'Sellers/Buyers por Mês'),
         'dc_nex':   (QUERY_DC_NEX,          'DC/NEX/XPT Passages'),
+        'dene_casos': (QUERY_DAMAGED_ENE_CASOS,  'Damaged ENE Casos'),
+        'dene_causas': (QUERY_DAMAGED_ENE_CAUSAS,'Damaged ENE Causas'),
     }
     _res = {}
     with ThreadPoolExecutor(max_workers=6) as _pool:
@@ -5534,6 +5939,8 @@ if __name__ == '__main__':
     df_cruzamento     = _res['crz']
     df_cruzamento_mes = _res['crz_mes']
     df_dc_nex         = _res['dc_nex']
+    df_dene_casos     = _res['dene_casos']
+    df_dene_causas    = _res['dene_causas']
 
     bl_rows   = carregar_block_list(gs)
     sincronizar_status_block_list(gs, bq, bl_rows)
@@ -5564,6 +5971,7 @@ if __name__ == '__main__':
     dados['crz']       = processar_cruzamento(df_cruzamento)
     dados['crz_mes']   = processar_cruzamento_mes(df_cruzamento_mes)
     dados['dc_nex']    = processar_dc_nex(df_dc_nex, cobrar_otr_map)
+    dados['damaged_ene'] = processar_damaged_ene(df_dene_casos, df_dene_causas)
     # --- CEP → Cluster (SSP30) ---
     print("  Buscando mapa CEP->Cluster no BQ...")
     try:
