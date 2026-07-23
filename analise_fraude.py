@@ -457,7 +457,6 @@ LIMIT 300
 QUERY_DAMAGED_ENE_CASOS = """
 SELECT
   CAST(SHIPMENT_ID AS STRING)           AS shp_id,
-  CAST(SHP_SENDER_ID AS STRING)         AS seller_id,
   CUS_NICKNAME_SEL                      AS seller_nome,
   ROUND(BPP_CASHOUT_USD, 2)            AS bpp,
   FORMAT_DATE('%d/%m/%Y', date_bpp)    AS data,
@@ -1242,7 +1241,6 @@ def processar_damaged_ene(df_casos, df_causas):
     for _, r in df_casos.iterrows():
         casos.append({
             'shp_id':      str(r.get('shp_id', '')),
-            'seller_id':   str(r.get('seller_id', '') or ''),
             'seller_nome': str(r.get('seller_nome', '') or ''),
             'bpp':         float(r.get('bpp', 0) or 0),
             'data':        str(r.get('data', '')),
@@ -1250,10 +1248,9 @@ def processar_damaged_ene(df_casos, df_causas):
         })
     seller_map = {}
     for c in casos:
-        key = c['seller_id'] or c['seller_nome'] or 'desconhecido'
+        key = c['seller_nome'] or 'desconhecido'
         if key not in seller_map:
             seller_map[key] = {
-                'seller_id':   c['seller_id'],
                 'seller_nome': c['seller_nome'],
                 'total': 0, 'bpp': 0.0, 'meses': set(),
             }
@@ -1263,9 +1260,9 @@ def processar_damaged_ene(df_casos, df_causas):
         s['meses'].add(c['mes'])
     sellers = sorted(seller_map.values(), key=lambda x: -x['total'])
     for s in sellers:
-        s['bpp'] = round(s['bpp'], 2)
-        s['meses'] = sorted(s['meses'])
-        s['n_meses'] = len(s['meses'])
+        s['bpp']    = round(s['bpp'], 2)
+        s['meses']  = sorted(s['meses'])
+        s['n_meses']= len(s['meses'])
     mes_map = {}
     for c in casos:
         m = c['mes']
@@ -4003,10 +4000,7 @@ function initDamagedENE() {{
     stb.innerHTML = sellers.map((s,i) => `
       <tr style="border-bottom:1px solid #1e293b;${{i<3?'background:#1a0a0a':''}}">
         <td style="padding:7px 10px;text-align:center;color:#64748b;font-size:11px">${{i+1}}</td>
-        <td style="padding:7px 10px">
-          <span style="color:#38bdf8;font-weight:600">${{s.seller_nome||('Seller '+s.seller_id)}}</span>
-          <span style="color:#475569;font-size:10px;margin-left:6px;font-family:monospace">#${{s.seller_id}}</span>
-        </td>
+        <td style="padding:7px 10px;color:#38bdf8;font-weight:600">${{s.seller_nome||'—'}}</td>
         <td style="padding:7px 10px;text-align:center;font-weight:700;color:${{s.total>=10?'#f87171':s.total>=5?'#fb923c':'#fbbf24'}}">${{s.total}}</td>
         <td style="padding:7px 10px;text-align:right;color:#86efac;font-weight:600">US$ ${{s.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</td>
         <td style="padding:7px 10px;text-align:center;color:#818cf8">${{s.n_meses}}</td>
@@ -4022,8 +4016,7 @@ function filtrarDamagedENE() {{
   const casos = (DAMAGED_ENE_DATA.casos || []).filter(r =>
     !busca ||
     r.shp_id.includes(busca) ||
-    (r.seller_nome||'').toLowerCase().includes(busca) ||
-    r.seller_id.includes(busca)
+    (r.seller_nome||'').toLowerCase().includes(busca)
   );
   const tb = document.getElementById('dene-casos-tbody');
   const em = document.getElementById('dene-casos-empty');
@@ -4037,10 +4030,7 @@ function filtrarDamagedENE() {{
   tb.innerHTML = casos.slice(0, 500).map(r => `
     <tr style="border-bottom:1px solid #1e293b">
       <td style="padding:6px 10px;font-family:monospace;color:#60a5fa;font-size:11px">${{r.shp_id}}</td>
-      <td style="padding:6px 10px">
-        <span style="color:#e2e8f0;font-size:12px">${{r.seller_nome||'—'}}</span>
-        ${{r.seller_id ? `<span style="color:#475569;font-size:10px;margin-left:4px">#${{r.seller_id}}</span>` : ''}}
-      </td>
+      <td style="padding:6px 10px;color:#e2e8f0;font-size:12px">${{r.seller_nome||'—'}}</td>
       <td style="padding:6px 10px;text-align:right;color:#f87171;font-weight:600;font-size:12px">US$ ${{r.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</td>
       <td style="padding:6px 10px;color:#94a3b8;font-size:11px">${{r.data}}</td>
       <td style="padding:6px 10px;color:#64748b;font-size:11px">${{r.mes}}</td>
@@ -4048,8 +4038,8 @@ function filtrarDamagedENE() {{
 }}
 
 function exportCSVDamagedENE() {{
-  const rows = [['SHP ID','Seller Nome','Seller ID','BPP USD','Data BPP','Mês']];
-  (DAMAGED_ENE_DATA.casos || []).forEach(r => rows.push([r.shp_id, r.seller_nome, r.seller_id, r.bpp, r.data, r.mes]));
+  const rows = [['SHP ID','Seller Nome','BPP USD','Data BPP','Mês']];
+  (DAMAGED_ENE_DATA.casos || []).forEach(r => rows.push([r.shp_id, r.seller_nome, r.bpp, r.data, r.mes]));
   const csv = rows.map(r => r.map(v => `"${{String(v||'').replace(/"/g,'""')}}"`).join(',')).join('\\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,\\uFEFF' + encodeURIComponent(csv);
