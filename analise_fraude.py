@@ -456,17 +456,20 @@ LIMIT 300
 
 QUERY_DAMAGED_ENE_CASOS = """
 SELECT
-  CAST(SHIPMENT_ID AS STRING)           AS shp_id,
-  CUS_NICKNAME_SEL                      AS seller_nome,
-  ROUND(BPP_CASHOUT_USD, 2)            AS bpp,
-  FORMAT_DATE('%d/%m/%Y', date_bpp)    AS data,
-  FORMAT_DATE('%Y-%m', date_bpp)       AS mes
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
-  AND date_bpp >= '2026-01-01'
-  AND date_bpp <= CURRENT_DATE()
-  AND Classification_LM = 'DAMAGED ENE'
-ORDER BY date_bpp DESC
+  CAST(lp.SHIPMENT_ID AS STRING)           AS shp_id,
+  lp.CUS_NICKNAME_SEL                      AS seller_nome,
+  ROUND(lp.BPP_CASHOUT_USD, 2)             AS bpp,
+  FORMAT_DATE('%d/%m/%Y', lp.date_bpp)     AS data,
+  FORMAT_DATE('%Y-%m', lp.date_bpp)        AS mes,
+  COALESCE(o.ITEM_TITLE, '')               AS item_title
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
+LEFT JOIN `meli-bi-data.WHOWNER.BT_VIEW_ORD_ORDERS` o
+  ON CAST(lp.SHIPMENT_ID AS INT64) = o.SHP_SHIPMENT_ID
+WHERE lp.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  AND lp.date_bpp >= '2026-01-01'
+  AND lp.date_bpp <= CURRENT_DATE()
+  AND lp.Classification_LM = 'DAMAGED ENE'
+ORDER BY lp.date_bpp DESC
 LIMIT 5000
 """
 
@@ -487,20 +490,23 @@ LIMIT 200
 
 QUERY_FRAUD_ENE_CASOS = """
 SELECT
-  CAST(SHIPMENT_ID AS STRING)           AS shp_id,
-  CUS_NICKNAME_SEL                      AS seller_nome,
-  ROUND(BPP_CASHOUT_USD, 2)            AS bpp,
-  FORMAT_DATE('%d/%m/%Y', date_bpp)    AS data,
-  FORMAT_DATE('%Y-%m', date_bpp)       AS mes,
-  Classification_LM                     AS classificacao,
-  TIPO_FRAUDE                           AS tipo_fraude
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
-  AND date_bpp >= '2026-01-01'
-  AND date_bpp <= CURRENT_DATE()
-  AND CAST(FLAG_ENE AS STRING) = '1'
-  AND TIPO_FRAUDE != 'NOT_FRAUD'
-ORDER BY date_bpp DESC
+  CAST(lp.SHIPMENT_ID AS STRING)           AS shp_id,
+  lp.CUS_NICKNAME_SEL                      AS seller_nome,
+  ROUND(lp.BPP_CASHOUT_USD, 2)             AS bpp,
+  FORMAT_DATE('%d/%m/%Y', lp.date_bpp)     AS data,
+  FORMAT_DATE('%Y-%m', lp.date_bpp)        AS mes,
+  lp.Classification_LM                     AS classificacao,
+  lp.TIPO_FRAUDE                           AS tipo_fraude,
+  COALESCE(o.ITEM_TITLE, '')               AS item_title
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
+LEFT JOIN `meli-bi-data.WHOWNER.BT_VIEW_ORD_ORDERS` o
+  ON CAST(lp.SHIPMENT_ID AS INT64) = o.SHP_SHIPMENT_ID
+WHERE lp.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  AND lp.date_bpp >= '2026-01-01'
+  AND lp.date_bpp <= CURRENT_DATE()
+  AND CAST(lp.FLAG_ENE AS STRING) = '1'
+  AND lp.TIPO_FRAUDE != 'NOT_FRAUD'
+ORDER BY lp.date_bpp DESC
 LIMIT 5000
 """
 
@@ -805,6 +811,39 @@ def carregar_sinistros(gs):
     except Exception as e:
         print(f"  Aviso Sinistros: {e}")
         return {'casos': [], 'total': 0, 'bpp_total': 0.0, 'recuperados': 0, 'bpp_recuperado': 0.0}
+
+
+def atualizar_planilha_ene(gs, damaged_ene, fraud_ene):
+    """Reescreve A:F da planilha ENE SSP30 com os casos mais recentes do BQ."""
+    SPREADSHEET_ENE = '1Ua5HDoP9HyPccMMYGel-GdCqj7cQh6G5w6MIf2wRjdo'
+    try:
+        sh = gs.open_by_key(SPREADSHEET_ENE)
+        ws = sh.worksheet('Hoja 1')
+        rows = [['SHP ID', 'Seller', 'Valor (USD)', 'KPI', 'Data', 'Descrição']]
+        for c in (damaged_ene.get('casos') or []):
+            rows.append([
+                c.get('shp_id', ''),
+                c.get('seller_nome', ''),
+                str(c.get('bpp', '')),
+                'Damaged ENE',
+                c.get('data', ''),
+                c.get('item_title', ''),
+            ])
+        for c in (fraud_ene or []):
+            tipo = c.get('tipo_fraude', 'FRAUDE')
+            rows.append([
+                c.get('shp_id', ''),
+                c.get('seller_nome', ''),
+                str(c.get('bpp', '')),
+                f'Fraud ENE ({tipo})',
+                c.get('data', ''),
+                c.get('item_title', ''),
+            ])
+        n = len(rows)
+        ws.update(f'A1:F{n}', rows, value_input_option='USER_ENTERED')
+        print(f"  Planilha ENE atualizada: {n - 1} casos → A1:F{n}")
+    except Exception as e:
+        print(f"  Aviso planilha ENE: {e}")
 
 
 def sincronizar_status_block_list(gs, bq, bl_rows):
@@ -1258,6 +1297,7 @@ def processar_damaged_ene(df_casos, df_causas):
             'bpp':         float(r.get('bpp', 0) or 0),
             'data':        str(r.get('data', '')),
             'mes':         str(r.get('mes', '')),
+            'item_title':  str(r.get('item_title', '') or ''),
         })
     seller_map = {}
     for c in casos:
@@ -6397,9 +6437,14 @@ if __name__ == '__main__':
             print(f"  Aviso Fraud ENE casos: {_e}")
         dados['fraud_ene'] = [
             {'shp_id': str(r.shp_id), 'seller_nome': str(r.seller_nome or ''),
-             'bpp': float(r.bpp or 0), 'data': str(r.data or ''), 'mes': str(r.mes or '')}
+             'bpp': float(r.bpp or 0), 'data': str(r.data or ''), 'mes': str(r.mes or ''),
+             'tipo_fraude': str(r.tipo_fraude or ''), 'item_title': str(r.item_title or '')}
             for _, r in _df_frene.iterrows()
         ] if not _df_frene.empty else []
+
+        # ── Sincroniza planilha ENE com os dados frescos do BQ ────
+        print("\nAtualizando planilha ENE SSP30...")
+        atualizar_planilha_ene(gs, dados['damaged_ene'], dados['fraud_ene'])
 
         # ── Salva cache para próximos builds (válido 4h) ─────────
         try:
