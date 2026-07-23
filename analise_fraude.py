@@ -4037,18 +4037,53 @@ function initDamagedENE() {{
     }}
   }}
 
-  // Sellers ranking table
+  // Sellers ranking table — com dropdown expansível de SHP IDs
   const stb = document.getElementById('dene-sellers-tbody');
   if (stb) {{
-    stb.innerHTML = sellers.slice(0, 50).map((s,i) => `
-      <tr style="border-bottom:1px solid #1e293b;${{i<3?'background:#1a0a0a':''}}">
-        <td style="padding:7px 10px;text-align:center;color:#64748b;font-size:11px">${{i+1}}</td>
-        <td style="padding:7px 10px;color:#38bdf8;font-weight:600">${{s.seller_nome||'—'}}</td>
-        <td style="padding:7px 10px;text-align:center;font-weight:700;color:${{s.total>=10?'#f87171':s.total>=5?'#fb923c':'#fbbf24'}}">${{s.total}}</td>
-        <td style="padding:7px 10px;text-align:right;color:#86efac;font-weight:600">US$ ${{s.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</td>
-        <td style="padding:7px 10px;text-align:center;color:#818cf8">${{s.n_meses}}</td>
-        <td style="padding:7px 10px;color:#64748b;font-size:11px">${{(s.meses||[]).join(' · ')}}</td>
-      </tr>`).join('');
+    stb.innerHTML = sellers.slice(0, 50).map((s,i) => {{
+      const casosSeller = (DAMAGED_ENE_DATA.casos || []).filter(c => c.seller_nome === s.seller_nome);
+      const idsRows = casosSeller.map(c =>
+        '<tr style="background:#070e1c">' +
+        '<td style="padding:4px 10px 4px 30px;font-family:monospace;color:#60a5fa;font-size:11px;user-select:all">' + c.shp_id + '</td>' +
+        '<td style="padding:4px 10px;text-align:right;color:#f87171;font-size:11px">US$ ' + c.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}) + '</td>' +
+        '<td style="padding:4px 10px;color:#94a3b8;font-size:11px">' + (c.data||'') + '</td>' +
+        '<td style="padding:4px 10px;color:#64748b;font-size:11px" colspan="3">' + (c.mes||'') + '</td>' +
+        '</tr>'
+      ).join('');
+      return (
+        '<tr id="dene-sr-' + i + '" style="border-bottom:1px solid #1e293b;cursor:pointer;' + (i<3?'background:#1a0a0a':'') + '" onclick="toggleDeneSeller(' + i + ')">' +
+        '<td style="padding:7px 10px;text-align:center;color:#64748b;font-size:11px">' + (i+1) + '</td>' +
+        '<td style="padding:7px 10px;color:#38bdf8;font-weight:600">' +
+          '<span id="dene-sc-' + i + '" style="display:inline-block;transition:transform .15s;margin-right:5px;font-size:9px;color:#64748b;vertical-align:middle">▶</span>' +
+          (s.seller_nome||'—') + '</td>' +
+        '<td style="padding:7px 10px;text-align:center;font-weight:700;color:' + (s.total>=10?'#f87171':s.total>=5?'#fb923c':'#fbbf24') + '">' + s.total + '</td>' +
+        '<td style="padding:7px 10px;text-align:right;color:#86efac;font-weight:600">US$ ' + s.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}) + '</td>' +
+        '<td style="padding:7px 10px;text-align:center;color:#818cf8">' + s.n_meses + '</td>' +
+        '<td style="padding:7px 10px;color:#64748b;font-size:11px">' + (s.meses||[]).join(' · ') + '</td>' +
+        '</tr>' +
+        '<tr id="dene-sd-' + i + '" style="display:none">' +
+        '<td colspan="6" style="padding:0;border-bottom:2px solid #1e3a5f">' +
+        '<div style="padding:6px 0 4px 0;background:#070e1c">' +
+        '<table style="width:100%;border-collapse:collapse">' +
+        '<thead><tr>' +
+        '<th style="padding:4px 10px 4px 30px;text-align:left;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">SHP ID</th>' +
+        '<th style="padding:4px 10px;text-align:right;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">BPP USD</th>' +
+        '<th style="padding:4px 10px;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Data</th>' +
+        '<th style="padding:4px 10px;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px" colspan="3">Mês</th>' +
+        '</tr></thead><tbody>' +
+        (idsRows || '<tr><td colspan="4" style="padding:8px 30px;color:#64748b;font-size:11px">Sem casos no período selecionado</td></tr>') +
+        '</tbody></table></div></td></tr>'
+      );
+    }}).join('');
+  }}
+
+  function toggleDeneSeller(i) {{
+    const det = document.getElementById('dene-sd-' + i);
+    const chev = document.getElementById('dene-sc-' + i);
+    if (!det) return;
+    const open = det.style.display !== 'none';
+    det.style.display = open ? 'none' : 'table-row';
+    if (chev) chev.style.transform = open ? '' : 'rotate(90deg)';
   }}
 
   filtrarDamagedENE(casosFiltrados);
