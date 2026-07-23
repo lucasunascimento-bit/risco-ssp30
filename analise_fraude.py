@@ -5905,7 +5905,7 @@ if __name__ == '__main__':
         'dc_nex':   (QUERY_DC_NEX,          'DC/NEX/XPT Passages'),
     }
     _res = {}
-    with ThreadPoolExecutor(max_workers=6) as _pool:
+    with ThreadPoolExecutor(max_workers=12) as _pool:
         _futs = {_pool.submit(buscar, bq, q, nm): key for key, (q, nm) in _queries.items()}
         for _f in _as_completed(_futs):
             _res[_futs[_f]] = _f.result()
