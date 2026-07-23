@@ -75,13 +75,13 @@
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 18,
-      "total_bpp": 230.16,
+      "n_pkgs": 19,
+      "total_bpp": 240.45,
       "max_bpp": 39.37,
-      "residual": 190.79,
+      "residual": 201.08,
       "tipo": "outro",
       "apto": false,
-      "motivo": "Residual $191 abaixo de $300",
+      "motivo": "Residual $201 abaixo de $300",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
