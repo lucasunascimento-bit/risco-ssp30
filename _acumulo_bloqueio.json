@@ -1,27 +1,5 @@
 {
-  "30": [
-    {
-      "id": "4326130",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 7,
-      "total_bpp": 116.9,
-      "max_bpp": 48.54,
-      "residual": 68.36,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Residual $68 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    }
-  ],
+  "30": [],
   "60": [
     {
       "id": "4428742",
@@ -41,9 +19,9 @@
       "tipo": "outro",
       "apto": true,
       "motivo": "",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "placa": "DCG4490",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "4554970",
@@ -62,30 +40,9 @@
       "tipo": "outro",
       "apto": true,
       "motivo": "",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4507603",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "05/2026",
-        "06/2026"
-      ],
-      "n_pkgs": 28,
-      "total_bpp": 465.94,
-      "max_bpp": 55.95,
-      "residual": 409.99,
-      "tipo": "outro",
-      "apto": true,
-      "motivo": "",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "placa": "DCG5151",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "292999",
@@ -104,9 +61,9 @@
       "tipo": "outro",
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "placa": "DCG0346",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "4561835",
@@ -125,27 +82,6 @@
       "tipo": "outro",
       "apto": false,
       "motivo": "Residual $201 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4326130",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 8,
-      "total_bpp": 122.36,
-      "max_bpp": 48.54,
-      "residual": 73.82,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Residual $74 abaixo de $300",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
@@ -212,9 +148,9 @@
       "tipo": "outro",
       "apto": true,
       "motivo": "",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "placa": "DCG4490",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "292999",
@@ -234,31 +170,9 @@
       "tipo": "outro",
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4326130",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 9,
-      "total_bpp": 129.96,
-      "max_bpp": 48.54,
-      "residual": 81.42,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Residual $81 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "placa": "DCG0346",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "860778",
@@ -305,9 +219,9 @@
       "tipo": "outro",
       "apto": true,
       "motivo": "",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "placa": "DCG0346",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "4428742",
@@ -327,31 +241,9 @@
       "tipo": "outro",
       "apto": true,
       "motivo": "",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3602956",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026"
-      ],
-      "n_pkgs": 45,
-      "total_bpp": 767.67,
-      "max_bpp": 114.8,
-      "residual": 652.87,
-      "tipo": "outro",
-      "apto": true,
-      "motivo": "",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "placa": "DCG4490",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "1573090",
@@ -371,9 +263,9 @@
       "tipo": "outro",
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "placa": "RUZ8A64",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "3556158",
@@ -394,8 +286,8 @@
       "apto": false,
       "motivo": "Residual $160 abaixo de $300",
       "placa": "TZG8C97",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "05/05/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "3232607",
@@ -438,30 +330,8 @@
       "apto": false,
       "motivo": "Residual $73 abaixo de $300",
       "placa": "TBK9C81",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4326130",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 9,
-      "total_bpp": 129.96,
-      "max_bpp": 48.54,
-      "residual": 81.42,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Residual $81 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "2450077",
@@ -548,8 +418,8 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "11/02/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "331128",
@@ -569,9 +439,9 @@
       "tipo": "outro",
       "apto": false,
       "motivo": "Residual $30 abaixo de $300",
-      "placa": "",
+      "placa": "DCG0518",
       "data_solicitacao": "",
-      "status_bl": ""
+      "status_bl": "Monitorado"
     },
     {
       "id": "1504741",
