@@ -16,8 +16,18 @@ from google.auth import default
 import gspread
 from datetime import datetime
 import json
+import logging
 import os
+import sys
 import urllib.request
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)-8s | %(message)s',
+    datefmt='%H:%M:%S',
+    stream=sys.stdout,
+)
+log = logging.getLogger('risco_ssp30')
 
 # ============================================================
 # CONFIGURAÇÕES
@@ -667,7 +677,7 @@ def enviar_alerta_urgente(novos_criticos_route, novos_criticos_way):
     todos = [('ON ROUTE', p) for p in novos_criticos_route] + \
             [('ON WAY',   p) for p in novos_criticos_way]
     if not todos:
-        print("  Sem novos Possivel Lost de alto valor.")
+        log.info("Sem novos Possivel Lost de alto valor.")
         return
     for origem, pkg in todos:
         msg = (
@@ -684,9 +694,9 @@ def enviar_alerta_urgente(novos_criticos_route, novos_criticos_way):
                 headers={'Content-Type': 'application/json'},
             )
             urllib.request.urlopen(req)
-            print(f"  Alerta urgente enviado: {pkg['id']} (${pkg['gmv']:,.2f})")
+            log.info("Alerta urgente enviado: %s ($%.2f)", pkg['id'], pkg['gmv'])
         except Exception as e:
-            print(f"  Aviso alerta urgente: {e}")
+            log.warning("Falha no alerta urgente: %s", e)
 
 
 def salvar_snapshot(planilha_controle, stats_route, stats_way):
@@ -709,7 +719,7 @@ def salvar_snapshot(planilha_controle, stats_route, stats_way):
                          'GMV Total ($)']],
                 value_input_option='USER_ENTERED',
             )
-            print("  Aba 'Snapshots' criada")
+            log.info("Aba 'Snapshots' criada")
         hoje      = datetime.now().strftime('%d/%m/%Y')
         gmv_total = round(stats_route['gmv_total'] + stats_way['gmv_total'], 2)
         aba.append_rows([[
@@ -725,21 +735,21 @@ def salvar_snapshot(planilha_controle, stats_route, stats_way):
             stats_way['novos'],      stats_way['recuperados'],
             gmv_total,
         ]], value_input_option='USER_ENTERED')
-        print(f"  Snapshot: OTR={stats_route['total']} OW={stats_way['total']} GMV Total=${gmv_total:,.2f}")
+        log.info("Snapshot: OTR=%d OW=%d GMV Total=$%.2f", stats_route['total'], stats_way['total'], gmv_total)
     except Exception as e:
-        print(f"  Aviso Snapshot: {e}")
+        log.error("Falha ao salvar snapshot: %s", e)
 
 
 def gerar_analise_claude(stats_route, stats_way, cftv, stats_mensais):
     """Gera parágrafo de análise em português via Claude API. Retorna '' se indisponível."""
     api_key = os.environ.get('ANTHROPIC_API_KEY', '')
     if not api_key:
-        print("  Claude API: ANTHROPIC_API_KEY não configurada, pulando análise IA")
+        log.warning("ANTHROPIC_API_KEY não configurada — análise IA pulada")
         return ''
     try:
         import anthropic
     except ImportError:
-        print("  Claude API: pacote 'anthropic' não instalado, pulando análise IA")
+        log.warning("Pacote 'anthropic' não instalado — análise IA pulada")
         return ''
 
     def sit(stats, chave):
@@ -765,7 +775,7 @@ def gerar_analise_claude(stats_route, stats_way, cftv, stats_mensais):
     )
 
     try:
-        print("  Gerando análise com Claude...")
+        log.info("Gerando análise com Claude (claude-opus-4-8)...")
         client = anthropic.Anthropic(api_key=api_key)
         resp = client.messages.create(
             model='claude-opus-4-8',
@@ -785,11 +795,11 @@ def gerar_analise_claude(stats_route, stats_way, cftv, stats_mensais):
         for block in resp.content:
             if block.type == 'text':
                 texto = block.text.strip()
-                print(f"  Análise IA gerada ({len(texto)} chars)")
+                log.info("Análise IA gerada (%d chars)", len(texto))
                 return texto
         return ''
     except Exception as e:
-        print(f"  Aviso Claude API: {e}")
+        log.error("Falha na Claude API: %s", e)
         return ''
 
 

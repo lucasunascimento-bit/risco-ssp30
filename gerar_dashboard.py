@@ -426,6 +426,9 @@ def processar(rt, wy, hi, descricoes=None, cftv_map=None, entregues=None):
                   for m in sorted(set(r['mes'] for r in hist_todos if r['mes']),
                                   key=lambda m: datetime.strptime('01/'+m, '%d/%m/%Y'))]
 
+    # Meta mensal de recupero
+    META_RECUPERO = 20
+
     # Taxa de recupero, GMV recuperado e GMV perdido
     taxa_recupero  = round(recuperados / removidos * 100, 1) if removidos > 0 else 0
     gmv_recuperado = sum(flt(r['gmv']) for r in hist_rows if _recuperado(r['final']))
@@ -507,7 +510,7 @@ def processar(rt, wy, hi, descricoes=None, cftv_map=None, entregues=None):
         'hist_todos': hist_todos, 'meses_hist': meses_hist,
         'mes_ano':    mes_ano,
         'taxa_recupero': taxa_recupero, 'gmv_recuperado': gmv_recuperado,
-        'gmv_perdido': gmv_perdido,
+        'gmv_perdido': gmv_perdido, 'meta_recupero': META_RECUPERO,
         # Heatmap
         'heatmap_labels': dias_labels, 'heatmap': heatmap,
         # Críticos
@@ -2097,6 +2100,10 @@ def gerar_html(d):
         '<p style="padding:24px;color:#64748b;text-align:center">Nenhum registro arquivado este mês ainda.</p>'
     )
 
+    _meta_rec  = d.get('meta_recupero', 20)
+    _pct_meta  = min(100.0, round(d['recuperados'] / _meta_rec * 100, 1)) if _meta_rec > 0 else 0.0
+    _cor_meta  = '#10b981' if _pct_meta >= 100 else '#FFE600' if _pct_meta >= 50 else '#f97316'
+
     return f'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -2457,6 +2464,24 @@ def gerar_html(d):
       <div class="card-header"><i data-lucide="percent" class="card-icon" width="14" height="14"></i><span class="card-label">Taxa de Recupero</span></div>
       <div class="card-value" id="cv-taxa">{d["taxa_recupero"]}%</div>
       <div class="card-delta" id="cd-taxa">{d["recuperados"]} de {d["removidos"]} removidos</div>
+    </div>
+  </div>
+
+  <!-- Meta Mensal de Recupero -->
+  <div style="background:#0d1321;border-radius:8px;border:1px solid #111827;padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <i data-lucide="target" width="14" height="14" style="color:#FFE600"></i>
+        <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Meta Mensal de Recupero</span>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:#f9fafb">{d["recuperados"]} <span style="color:#94a3b8;font-weight:400">/ {_meta_rec} pacotes</span></span>
+    </div>
+    <div style="background:#1f2937;border-radius:99px;height:10px;overflow:hidden">
+      <div style="background:linear-gradient(90deg,{_cor_meta},{_cor_meta}cc);width:{_pct_meta}%;height:100%;border-radius:99px;transition:width .6s ease"></div>
+    </div>
+    <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;font-weight:600;color:{_cor_meta}">{_pct_meta}% atingido</span>
+      <span style="font-size:11px;color:#64748b">{d["mes_lbl"]}</span>
     </div>
   </div>
 
