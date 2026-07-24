@@ -4412,6 +4412,10 @@ function _ofensENEService() {{
   }})).sort((a,b) => b.nao_entregue - a.nao_entregue);
 }}
 
+function _copyShps(btn) {{
+  const ids = (btn.dataset.shps || '').split(',').filter(Boolean).join('\n');
+  navigator.clipboard.writeText(ids).then(() => {{ btn.textContent = '✓ Copiado'; setTimeout(() => btn.textContent = '⎘ Copiar todos', 1500); }});
+}}
 var _selBuyerId = null;
 var _fuseBuyers = null;
 function _renderBuyerFraude() {{
@@ -4487,7 +4491,7 @@ function _selectBuyer(bid) {{
     ${{clsChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Tipo de Ocorrência</div>' + clsChips + '</div>' : ''}}
     ${{selChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sellers Envolvidos</div>' + selChips + '</div>' : ''}}
     ${{drvChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Drivers Envolvidos</div>' + drvChips + '</div>' : ''}}
-    ${{shpLinks ? '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Pacotes Envolvidos (' + (r.shp_ids||[]).length + ')</div>' + shpLinks + '</div>' : ''}}
+    ${{shpLinks ? '<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Pacotes Envolvidos (' + (r.shp_ids||[]).length + ')</span><button data-shps="' + (r.shp_ids||[]).join(',') + '" onclick="_copyShps(this)" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;font-size:9px;padding:2px 8px;border-radius:4px;cursor:pointer">⎘ Copiar todos</button></div>' + shpLinks + '</div>' : ''}}
   `;
 }}
 
@@ -4868,7 +4872,7 @@ lucide.createIcons();
         </div>
         <div id="ofens-buyer-list" style="overflow-y:auto;max-height:410px"></div>
       </div>
-      <div class="box" id="ofens-buyer-detail">
+      <div class="box" id="ofens-buyer-detail" style="overflow-y:auto;max-height:480px">
         <div class="bt" style="color:#475569">Selecione um buyer</div>
         <div style="color:#334155;font-size:13px;padding:20px 0">← Clique em um buyer para ver detalhes</div>
       </div>
