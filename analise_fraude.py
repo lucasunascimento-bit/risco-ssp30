@@ -3098,37 +3098,42 @@ function switchAcblPeriod(dias, btn) {{
 }}
 
 // Gráficos de Bloqueios — criados na 1ª vez que a aba abre
-// setTimeout(0) garante reflow do CSS antes do Chart.js medir o canvas
+// requestAnimationFrame garante pós-layout do CSS grid antes do Chart.js medir o canvas
 let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
 function initBlCharts() {{
   if (_blDone) return;
   _blDone = true;
-  setTimeout(function() {{
-    const _stLabels = {j([k for k in d["bl"]["por_status"].keys() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
-    const _stData   = {j([v for k, v in d["bl"]["por_status"].items() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
-    _chartBlStatus = new Chart(document.getElementById('cBlStatus'), {{
-      type: 'doughnut',
-      data: {{
-        labels: _stLabels,
-        datasets: [{{ data: _stData,
-          backgroundColor: _blColors(_stLabels), borderWidth:0 }}]
-      }},
-      options: {{ responsive:true, maintainAspectRatio:false, plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:11}} }} }} }}, cutout:'40%' }}
-    }});
-    _chartBlTransp = new Chart(document.getElementById('cBlTransp'), {{
-      type: 'bar',
-      data: {{
-        labels: {j(list(d["bl"]["por_transp"].keys()))},
-        datasets: [{{ data: {j(list(d["bl"]["por_transp"].values()))},
-          backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }}]
-      }},
-      options: {{
-        responsive:true, maintainAspectRatio:false, plugins:{{ legend:{{display:false}} }},
-        scales:{{ x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#1e293b'}} }},
-                  y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
-      }}
-    }});
-  }}, 0);
+  requestAnimationFrame(function() {{
+    try {{
+      const _stLabels = {j([k for k in d["bl"]["por_status"].keys() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
+      const _stData   = {j([v for k, v in d["bl"]["por_status"].items() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
+      _chartBlStatus = new Chart(document.getElementById('cBlStatus'), {{
+        type: 'doughnut',
+        data: {{
+          labels: _stLabels,
+          datasets: [{{ data: _stData,
+            backgroundColor: _blColors(_stLabels), borderWidth:0 }}]
+        }},
+        options: {{ responsive:true, maintainAspectRatio:false, plugins:{{ legend:{{ labels:{{ color:'#94a3b8',font:{{size:11}} }} }} }}, cutout:'40%' }}
+      }});
+      _chartBlTransp = new Chart(document.getElementById('cBlTransp'), {{
+        type: 'bar',
+        data: {{
+          labels: {j(list(d["bl"]["por_transp"].keys()))},
+          datasets: [{{ data: {j(list(d["bl"]["por_transp"].values()))},
+            backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }}]
+        }},
+        options: {{
+          responsive:true, maintainAspectRatio:false, plugins:{{ legend:{{display:false}} }},
+          scales:{{ x:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#1e293b'}} }},
+                    y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
+        }}
+      }});
+    }} catch(e) {{
+      console.error('[initBlCharts] Erro ao criar gráficos:', e);
+      _blDone = false;
+    }}
+  }});
 }}
 
 // ---- Filtro de período ----
