@@ -4430,6 +4430,11 @@ function renderOfensores() {{
     labels = rows.map(r => 'Buyer ' + (r.buyer_id || '—'));
     vals   = rows.map(r => r.qtd);
     metricLabel = 'SHPs c/ Fraude'; title = 'Buyers Ofensores — Compradores em ≥2 SHPs Fraude/Perda';
+  }} else if (_ofensView === 'buyer_vel') {{
+    rows = BUYER_VEL_DATA.slice(0, 20);
+    labels = rows.map(r => 'Buyer ' + (r.buyer_id || '—'));
+    vals   = rows.map(r => r.pico_pedidos_mes);
+    metricLabel = 'Pico Pedidos/Mês'; title = 'Velocidade de Compra — Pico de Pedidos em 1 Mês';
   }} else {{
     rows = _ofensTopBuyersDevo();
     labels = rows.map(r => r.nome || r.id);
@@ -4519,6 +4524,15 @@ function renderOfensores() {{
       <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Sellers Distintos</th>
       <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Drivers Envolvidos</th>
     </tr>`;
+  }} else if (_ofensView === 'buyer_vel') {{
+    if (thead) thead.innerHTML = `<tr>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
+      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Buyer ID</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Pico / Mês</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Total Pedidos</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">SHPs Fraude</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">BPP Fraude</th>
+    </tr>`;
   }} else {{
     const metricHeader = _ofensView === 'ene'
       ? (_ofensMetric === 'cashout' ? 'Cashout USD' : 'Qtd ENE')
@@ -4583,6 +4597,39 @@ function renderOfensores() {{
         <td style="padding:8px 10px;text-align:right"><span style="color:${{risco}};font-weight:700">${{r.qtd}}</span></td>
         <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.sellers || 0}}</td>
         <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.n_drivers || 0}}</td>
+      </tr>`;
+    }}).join('');
+    return;
+  }}
+
+  // ── tbody Velocidade de Compra ───────────────────────────────
+  if (_ofensView === 'buyer_vel') {{
+    const maxPico = rows.length ? rows[0].pico_pedidos_mes : 1;
+    tbody.innerHTML = rows.map((r, i) => {{
+      const barW  = Math.round((r.pico_pedidos_mes / maxPico) * 100);
+      const risco = r.pico_pedidos_mes >= 15 ? '#f87171' : r.pico_pedidos_mes >= 8 ? '#fb923c' : '#fbbf24';
+      const boLink = `https://adminml.com/users/${{r.buyer_id}}`;
+      const hist   = r.historico || {{}};
+      const meses  = Object.keys(hist).sort();
+      const histEl = meses.map(m => {{
+        const qtd = hist[m];
+        const cor = qtd >= 15 ? '#f87171' : qtd >= 8 ? '#fb923c' : qtd >= 3 ? '#fbbf24' : '#475569';
+        return `<span title="${{m}}: ${{qtd}} pedidos" style="color:${{cor}};font-size:10px;margin-right:6px">${{m.slice(5)}}: ${{qtd}}</span>`;
+      }}).join('');
+      return `<tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:8px 10px;color:#475569;font-size:11px">${{i+1}}</td>
+        <td style="padding:8px 10px">
+          <a href="${{boLink}}" target="_blank" style="color:#a78bfa;font-weight:700;font-family:monospace;text-decoration:none">${{r.buyer_id}} ↗</a>
+          <span style="color:#475569;font-size:10px;margin-left:6px;cursor:pointer" onclick="navigator.clipboard.writeText('${{r.buyer_id}}')" title="Copiar">⎘</span>
+          <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:5px;width:140px">
+            <div style="height:3px;background:${{risco}};border-radius:2px;width:${{barW}}%"></div>
+          </div>
+          ${{histEl ? `<div style="margin-top:5px">${{histEl}}</div>` : ''}}
+        </td>
+        <td style="padding:8px 10px;text-align:right"><span style="color:${{risco}};font-weight:700">${{r.pico_pedidos_mes}}</span></td>
+        <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.total_pedidos}}</td>
+        <td style="padding:8px 10px;text-align:right;color:#f87171;font-weight:600">${{r.qtd_fraudes}}</td>
+        <td style="padding:8px 10px;text-align:right;color:#fbbf24">${{r.bpp_fraude_usd != null ? '$' + r.bpp_fraude_usd.toFixed(2) : '—'}}</td>
       </tr>`;
     }}).join('');
     return;
@@ -4794,6 +4841,9 @@ lucide.createIcons();
     </button>
     <button onclick="setOfensView('buyer_fraude')" id="ofens-btn-buyer_fraude" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
       <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>🛒 Buyers Fraude
+    </button>
+    <button onclick="setOfensView('buyer_vel')" id="ofens-btn-buyer_vel" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>⚡ Velocidade
     </button>
   </div>
   <div id="ofens-metric-toggle" style="display:flex;gap:8px;padding:12px 0 14px 0">
@@ -6128,7 +6178,7 @@ if __name__ == '__main__':
         'dc_nex':   (QUERY_DC_NEX,          'DC/NEX/XPT Passages'),
     }
     _res = {}
-    with ThreadPoolExecutor(max_workers=12) as _pool:
+    with ThreadPoolExecutor(max_workers=13) as _pool:
         _futs = {_pool.submit(buscar, bq, q, nm): key for key, (q, nm) in _queries.items()}
         for _f in _as_completed(_futs):
             _res[_futs[_f]] = _f.result()
