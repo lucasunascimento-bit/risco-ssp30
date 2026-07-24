@@ -2155,6 +2155,9 @@ def gerar_html(d):
 <title>Risco SSP30 — Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔔</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
@@ -2544,7 +2547,13 @@ def gerar_html(d):
   <div class="box mb16"><div class="box-title">Volume de Entradas por Data</div><canvas id="cEvo" height="180"></canvas></div>
   <div class="box mb16"><div class="box-title">Entradas por Dia da Semana</div><canvas id="cHeatmap" height="160"></canvas></div>
   <div class="box mb16">
-    <div class="box-title">Evolução do GMV em Risco — Snapshots Diários</div>
+    <div class="box-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Evolução do GMV em Risco — Snapshots Diários</span>
+      <button onclick="if(window._snapChart)_snapChart.resetZoom()" title="Resetar zoom"
+        style="background:#1e293b;border:1px solid #334155;color:#94a3b8;font-size:10px;padding:3px 10px;border-radius:4px;cursor:pointer;transition:all .15s"
+        onmouseover="this.style.borderColor='#6b7280';this.style.color='#e2e8f0'"
+        onmouseout="this.style.borderColor='#334155';this.style.color='#94a3b8'">↺ Reset zoom</button>
+    </div>
     <div id="snap-no-data" style="display:none;text-align:center;padding:32px;color:#64748b;font-size:13px">Dados insuficientes — gráfico disponível após acúmulo de snapshots diários</div>
     <canvas id="cGmvSnap" height="180"></canvas>
   </div>
@@ -3271,7 +3280,7 @@ new Chart(document.getElementById('cHeatmap'), {{
     document.getElementById('snap-no-data').style.display = 'block';
     document.getElementById('cGmvSnap').style.display     = 'none';
   }} else {{
-    new Chart(document.getElementById('cGmvSnap'), {{
+    window._snapChart = new Chart(document.getElementById('cGmvSnap'), {{
       type: 'line',
       data: {{
         labels: snapLabels,
@@ -3287,7 +3296,8 @@ new Chart(document.getElementById('cHeatmap'), {{
           y: {{ ticks:{{ color:'#8a8a8a', callback: v=>'$'+v.toLocaleString('pt-BR') }}, grid:{{ color:'#334155' }} }}
         }},
         plugins: {{ ...defOpts.plugins,
-          tooltip: {{ callbacks: {{ label: ctx => ctx.dataset.label+': $'+ctx.raw.toLocaleString('pt-BR',{{minimumFractionDigits:2}}) }} }}
+          tooltip: {{ callbacks: {{ label: ctx => ctx.dataset.label+': $'+ctx.raw.toLocaleString('pt-BR',{{minimumFractionDigits:2}}) }} }},
+          zoom: {{ zoom:{{ wheel:{{ enabled:true }}, pinch:{{ enabled:true }}, mode:'x' }}, pan:{{ enabled:true, mode:'x' }} }}
         }}
       }}
     }});
