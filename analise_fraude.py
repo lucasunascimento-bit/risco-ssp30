@@ -2341,6 +2341,9 @@ def gerar_html(d):
 <title>Fraude SSP30 — Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
 <style>
@@ -2518,7 +2521,7 @@ def gerar_html(d):
   </div>
   <div class="sb-item" data-tab="ofensores" onclick="showTab('ofensores',this)">
     <i data-lucide="target" width="14" height="14" class="ci"></i>
-    Ofensores
+    Ofensores <span class="sb-badge purple">{d["crz"]["total_buyers"]}</span>
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Block List</div>
@@ -3502,7 +3505,11 @@ function renderTendencia() {{
           legend:{{display:true, position:'top', labels:{{color:'#9ca3af', font:{{size:11}}, boxWidth:12}}}},
           tooltip:{{callbacks:{{label: ctx => ctx.dataset.label === 'BPP USD'
             ? ' BPP: $' + ctx.raw.toLocaleString('en-US', {{minimumFractionDigits:2}})
-            : ' ' + ctx.dataset.label + ': ' + ctx.raw}}}}
+            : ' ' + ctx.dataset.label + ': ' + ctx.raw}}}},
+          zoom:{{
+            zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}},
+            pan:{{enabled:true, mode:'x'}}
+          }}
         }},
         scales:{{
           x:{{grid:{{display:false}}, ticks:{{color:'#6b7280', font:{{size:11}}}}}},
@@ -3930,11 +3937,16 @@ function exportCSVSellersENE() {{
   a.download = 'sellers_ene_ssp30.csv'; a.click();
 }}
 
+var _fuseENE = null;
 function filtrarSellersENE() {{
-  const busca = ((document.getElementById('ene-busca')||{{}}).value || '').toLowerCase();
-  const dados = SELLERS_ENE_DATA.filter(r =>
-    (!busca || (r.seller_nome||'').toLowerCase().includes(busca) || r.seller_id.includes(busca) || r.shp_ids.toLowerCase().includes(busca))
-  );
+  const busca = ((document.getElementById('ene-busca')||{{}}).value || '').trim();
+  let dados;
+  if (!busca) {{
+    dados = SELLERS_ENE_DATA;
+  }} else {{
+    if (!_fuseENE) _fuseENE = new Fuse(SELLERS_ENE_DATA, {{keys:['seller_nome','seller_id','shp_ids'], threshold:0.35}});
+    dados = _fuseENE.search(busca).map(r => r.item);
+  }}
   _setEl('ene-total-sellers', dados.length);
   _setEl('ene-total-cashout', 'US$ ' + dados.reduce((s,r)=>s+r.cashout,0).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}));
   _setEl('ene-total-ene',    dados.reduce((s,r)=>s+r.qtd,0));
@@ -4396,10 +4408,13 @@ function _ofensENEService() {{
 }}
 
 var _selBuyerId = null;
+var _fuseBuyers = null;
 function _renderBuyerFraude() {{
   const list = document.getElementById('ofens-buyer-list');
   if (!list) return;
-  const rows = CRZ_BUYERS_DATA.slice(0, 50);
+  if (!_fuseBuyers) _fuseBuyers = new Fuse(CRZ_BUYERS_DATA, {{keys:['buyer_id'], threshold:0.3}});
+  const q = ((document.getElementById('buyer-busca')||{{}}).value||'').trim();
+  const rows = q ? _fuseBuyers.search(q).map(r => r.item).slice(0, 50) : CRZ_BUYERS_DATA.slice(0, 50);
   list.innerHTML = rows.map((r, i) => {{
     const risco = r.qtd >= 5 ? '#f87171' : r.qtd >= 3 ? '#fb923c' : '#fbbf24';
     return `<div id="bl-${{r.buyer_id}}" onclick="_selectBuyer('${{r.buyer_id}}')"
@@ -4842,7 +4857,11 @@ lucide.createIcons();
     <div style="display:grid;grid-template-columns:230px 1fr;gap:14px;align-items:start">
       <div class="box" style="padding:0;overflow:hidden">
         <div class="bt" style="padding:10px 14px;font-size:12px">🛒 Buyers c/ Fraude</div>
-        <div id="ofens-buyer-list" style="overflow-y:auto;max-height:430px"></div>
+        <div style="padding:6px 10px;border-bottom:1px solid #1e293b">
+          <input id="buyer-busca" oninput="_renderBuyerFraude()" placeholder="Buscar buyer ID…"
+            style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:4px;font-size:11px;outline:none">
+        </div>
+        <div id="ofens-buyer-list" style="overflow-y:auto;max-height:410px"></div>
       </div>
       <div class="box" id="ofens-buyer-detail">
         <div class="bt" style="color:#475569">Selecione um buyer</div>
@@ -5131,7 +5150,13 @@ lucide.createIcons();
   </div>
 
   <div class="box" style="margin-top:18px">
-    <div class="bt">Evolução Mensal — Fraudes, Damaged e BPP em Risco</div>
+    <div class="bt" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Evolução Mensal — Fraudes, Damaged e BPP em Risco</span>
+      <button onclick="if(_tendChart)_tendChart.resetZoom()" title="Resetar zoom"
+        style="background:#1e293b;border:1px solid #334155;color:#94a3b8;font-size:10px;padding:3px 10px;border-radius:4px;cursor:pointer;transition:all .15s"
+        onmouseover="this.style.borderColor='#6b7280';this.style.color='#e2e8f0'"
+        onmouseout="this.style.borderColor='#334155';this.style.color='#94a3b8'">↺ Reset zoom</button>
+    </div>
     <div style="position:relative;height:300px"><canvas id="cTendencia"></canvas></div>
   </div>
 
