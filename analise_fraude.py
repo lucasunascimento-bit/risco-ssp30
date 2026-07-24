@@ -1083,11 +1083,13 @@ def processar_cruzamento(df):
 
     sellers = sorted([{**v,
                        'buyers':len(v['buyers']),
+                       'drivers':sorted(v['drivers'])[:6],
                        'n_drivers':len(v['drivers']),
                        'driver_ids':sorted(v['drivers'])[:6]}
                       for v in seller_map.values()], key=lambda x:-x['qtd'])
     buyers  = sorted([{**v,
                        'sellers':len(v['sellers']),
+                       'drivers':sorted(v['drivers'])[:6],
                        'n_drivers':len(v['drivers']),
                        'driver_ids':sorted(v['drivers'])[:6]}
                       for v in buyer_map.values()],  key=lambda x:-x['qtd'])
