@@ -2664,9 +2664,12 @@ def gerar_html(d):
 <div id="tab-gmv" class="content">
   <div class="box" style="margin-bottom:24px"><h3>💰 Top 15 por GMV (ON ROUTE + ON WAY)</h3><canvas id="cTop" height="350"></canvas></div>
   <div class="tbl-wrap">
-    <div class="tbl-title">Ranking completo</div>
+    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Ranking completo</span>
+      <button onclick="exportCSV('gmv', 'top_gmv_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
+    </div>
     <div class="tbl-scroll">
-    <table>
+    <table id="tbl_gmv">
       <thead><tr>
         <th>#</th><th>Origem</th><th>SHP ID</th><th>Situation</th>
         <th>GMV USD</th><th>Responsável</th><th>Status</th><th>Dias Cart.</th>
@@ -2712,7 +2715,10 @@ def gerar_html(d):
   </div>
 
   <div class="tbl-wrap">
-    <div class="tbl-title">Pacotes arquivados</div>
+    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span>Pacotes arquivados</span>
+      <button onclick="exportCSV('hist', 'historico_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
+    </div>
     <div class="tbl-scroll">
     <table id="tbl_hist">
       <thead><tr>

@@ -1047,7 +1047,7 @@ def processar_cruzamento(df):
         buyer_map[bid]['class_set'].update(classes)
 
         pares.append({'seller_id':sid,'buyer_id':bid,'qtd':qtd,
-                      'drivers':_clean(r.get('DRIVERS','')) or '—',
+                      'drivers':sorted(drv)[:6],
                       'shp_ids':shp_ids,'classes':classes})
 
     sellers = sorted([{
@@ -4245,6 +4245,8 @@ function _updateOfensKPIs() {{
 }}
 function initOfensores() {{
   _updateOfensKPIs();
+  const bp = document.getElementById('barra-periodo');
+  if (bp) bp.style.display = (_ofensView === 'buyer_fraude' || _ofensView === 'seller_fraude') ? 'none' : 'flex';
   renderOfensores();
 }}
 
@@ -4276,6 +4278,8 @@ function setOfensView(v) {{
   ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer','origem','dominio','ene_svc','buyer_fraude','seller_fraude'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
   const mt = document.getElementById('ofens-metric-toggle');
   if (mt) mt.style.display = v === 'ene' ? 'flex' : 'none';
+  const bp = document.getElementById('barra-periodo');
+  if (bp) bp.style.display = (v === 'buyer_fraude' || v === 'seller_fraude') ? 'none' : 'flex';
   try {{
     renderOfensores();
   }} catch(e) {{
@@ -5199,8 +5203,8 @@ lucide.createIcons();
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">{p["seller_id"]}</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">{p["buyer_id"]}</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">{p["qtd"]}</td>
-          <td style="font-size:11px;color:#9ca3af">{p["drivers"]}</td>
-          <td style="font-size:11px">{' '.join(f'<a href="{MELI_URL}/{s}" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">{s}</a>' for s in p["shp_ids"])}</td>
+          <td style="font-size:10px">{' '.join(f'<span style="background:#1a2035;padding:1px 5px;border-radius:3px;color:#9ca3af;margin-right:2px">{dr}</span>' for dr in p["drivers"]) or '<span style="color:#4b5563">—</span>'}</td>
+          <td style="font-size:11px">{(' '.join(f'<a href="{MELI_URL}/{s}" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">{s}</a>' for s in p["shp_ids"]) + (f' <button data-shps="{",".join(p["shp_ids"])}" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">⎘</button>' if p["shp_ids"] else '')) if p["shp_ids"] else '<span style="color:#4b5563">—</span>'}</td>
         </tr>""" for i,p in enumerate(d["crz"]["pares"]))}
       </tbody>
     </table></div>
