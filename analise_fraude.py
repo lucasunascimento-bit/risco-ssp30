@@ -4466,7 +4466,7 @@ function _selectBuyer(bid) {{
     ${{clsChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Tipo de Ocorrência</div>' + clsChips + '</div>' : ''}}
     ${{selChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sellers Envolvidos</div>' + selChips + '</div>' : ''}}
     ${{drvChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Drivers Envolvidos</div>' + drvChips + '</div>' : ''}}
-    ${{shpLinks ? '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Pacotes Envolvidos (${{(r.shp_ids||[]).length}})</div>' + shpLinks + '</div>' : ''}}
+    ${{shpLinks ? '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Pacotes Envolvidos (' + (r.shp_ids||[]).length + ')</div>' + shpLinks + '</div>' : ''}}
   `;
 }}
 
