@@ -1809,12 +1809,12 @@ function pdToggle(cb) {
   const lbl = cb.dataset.label || cb.dataset.id;
   const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   if (done) {
-    fetch('http://localhost:5000/diario/extra', {
+    fetch(OW_SERVER + '/diario/extra', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({data: PD_TODAY, atividade: lbl, hora_ini: agora, hora_fim: agora, obs:''})
     }).catch(()=>{});
   } else {
-    fetch('http://localhost:5000/diario/delete_extra', {
+    fetch(OW_SERVER + '/diario/delete_extra', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({data: PD_TODAY, atividade: lbl})
     }).catch(()=>{});
@@ -2951,8 +2951,8 @@ function copiarReportPlaces() {{
 async function carregarValoresOW() {{
   try {{
     const [rWy, rRt] = await Promise.all([
-      fetch('http://localhost:5000/ow_values?tab=wy'),
-      fetch('http://localhost:5000/ow_values?tab=rt'),
+      fetch(OW_SERVER + '/ow_values?tab=wy'),
+      fetch(OW_SERVER + '/ow_values?tab=rt'),
     ]);
     const valsWy = rWy.ok ? await rWy.json() : {{}};
     const valsRt = rRt.ok ? await rRt.json() : {{}};
@@ -3438,7 +3438,7 @@ function owVerificarArquivar(shp_id, tab) {{
   if (!statusSel || !finalSel) return;
   if (!statusSel.value.toLowerCase().includes('conclu') || !finalSel.value.trim()) return;
   const hoje = new Date().toLocaleDateString('pt-BR');
-  fetch('http://localhost:5000/mover_historico', {{
+  fetch(OW_SERVER + '/mover_historico', {{
     method: 'POST',
     headers: {{'Content-Type': 'application/json'}},
     body: JSON.stringify({{shp_id, tab: tab || 'wy', hoje}})

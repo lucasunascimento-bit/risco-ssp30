@@ -5939,7 +5939,7 @@ def gerar_sinistros_html(dados):
     <div style="margin-bottom:16px">
       <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:6px">Cole o texto do WhatsApp (o parser preenche os campos automaticamente):</label>
       <textarea id="sin-raw" rows="6"
-        placeholder="REPORT DE SINISTRO&#10;🗓️ Data: 13/06/2025&#10;⌚ Horário: 23:25h&#10;🚚 Transportadora: BR LOGISTICS&#10;📱 ROTA: 8005&#10;👤 Nome completo do driver: ..."
+        placeholder="REPORT DE SINISTRO&#10;🗓️ Data: {datetime.now().strftime('%d/%m/%Y')}&#10;⌚ Horário: 23:25h&#10;🚚 Transportadora: BR LOGISTICS&#10;📱 ROTA: 8005&#10;👤 Nome completo do driver: ..."
         style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:8px;padding:12px;font-size:12px;resize:vertical;font-family:monospace"></textarea>
       <button onclick="parsearSinistro()" style="margin-top:8px;background:#1f2937;color:#60a5fa;border:1px solid #374151;border-radius:6px;padding:7px 18px;font-size:12px;cursor:pointer">
         ⚡ Parsear campos automaticamente
