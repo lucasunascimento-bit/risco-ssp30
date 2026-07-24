@@ -474,12 +474,11 @@ LIMIT 5000
 """
 
 QUERY_BUYER_VELOCIDADE = f"""
--- Velocidade de compra: buyers suspeitos com pico anômalo de pedidos
-WITH buyers_fraude AS (
-  SELECT
-    CAST(shp.SHP_RECEIVER_ID AS STRING) AS BUYER_ID,
-    COUNT(DISTINCT lp.SHIPMENT_ID)       AS QTD_FRAUDES,
-    ROUND(SUM(lp.BPP_CASHOUT_USD), 2)   AS BPP_FRAUDE_USD
+-- Velocidade de fraude: pico de SHPs de fraude/perda por mes (escopo nacional)
+WITH sssp30_buyers AS (
+  -- Step 1: identifica receivers que tiveram SHP de fraude/perda na SSP30
+  SELECT DISTINCT
+    CAST(shp.SHP_RECEIVER_ID AS STRING) AS BUYER_ID
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
   INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
     ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = CAST(lp.SHIPMENT_ID AS STRING)
@@ -490,47 +489,45 @@ WITH buyers_fraude AS (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
       'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
     )
-  GROUP BY 1
 ),
 historico_mensal AS (
+  -- Step 2: conta incidentes mensais para esses buyers em todo o Brasil
   SELECT
     CAST(shp.SHP_RECEIVER_ID AS STRING)       AS BUYER_ID,
-    FORMAT_DATE('%Y-%m', shp._PARTITIONDATE)  AS MES,
-    COUNT(DISTINCT shp.SHP_SHIPMENT_ID)       AS PEDIDOS_MES
-  FROM `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
-  INNER JOIN buyers_fraude bf
-    ON CAST(shp.SHP_RECEIVER_ID AS STRING) = bf.BUYER_ID
-  WHERE shp._PARTITIONDATE >= '{ANO_INICIO}'
+    FORMAT_DATE('%Y-%m', lp.date_bpp)         AS MES,
+    COUNT(DISTINCT lp.SHIPMENT_ID)            AS FRAUDES_MES,
+    ROUND(SUM(lp.BPP_CASHOUT_USD), 2)        AS BPP_MES,
+    COUNT(DISTINCT lp.SHP_LG_FACILITY_NAME)  AS FACILITIES_MES
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
+  INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
+    ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = CAST(lp.SHIPMENT_ID AS STRING)
+  INNER JOIN sssp30_buyers sb
+    ON CAST(shp.SHP_RECEIVER_ID AS STRING) = sb.BUYER_ID
+  WHERE lp.date_bpp >= '{ANO_INICIO}'
+    AND lp.date_bpp <= CURRENT_DATE()
+    AND lp.Classification_LM IN (
+      'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
+    )
   GROUP BY 1, 2
-),
-resumo AS (
-  SELECT
-    BUYER_ID,
-    SUM(PEDIDOS_MES)   AS TOTAL_PEDIDOS,
-    MAX(PEDIDOS_MES)   AS PICO_PEDIDOS_MES,
-    COUNT(DISTINCT MES) AS MESES_ATIVOS,
-    MAX(MES)            AS MES_PICO,
-    STRING_AGG(
-      CONCAT(MES, ':', CAST(PEDIDOS_MES AS STRING)),
-      '|' ORDER BY MES
-    )                   AS HISTORICO_MENSAL
-  FROM historico_mensal
-  GROUP BY 1
-  HAVING MAX(PEDIDOS_MES) >= 3
 )
 SELECT
-  bf.BUYER_ID,
-  bf.QTD_FRAUDES,
-  bf.BPP_FRAUDE_USD,
-  COALESCE(r.TOTAL_PEDIDOS, 0)     AS TOTAL_PEDIDOS,
-  COALESCE(r.PICO_PEDIDOS_MES, 0)  AS PICO_PEDIDOS_MES,
-  COALESCE(r.MESES_ATIVOS, 0)      AS MESES_ATIVOS,
-  COALESCE(r.MES_PICO, '')         AS MES_PICO,
-  COALESCE(r.HISTORICO_MENSAL, '') AS HISTORICO_MENSAL
-FROM buyers_fraude bf
-LEFT JOIN resumo r ON bf.BUYER_ID = r.BUYER_ID
-WHERE COALESCE(r.TOTAL_PEDIDOS, 0) > 0
-ORDER BY COALESCE(r.PICO_PEDIDOS_MES, 0) DESC, bf.QTD_FRAUDES DESC
+  BUYER_ID,
+  SUM(FRAUDES_MES)                                              AS TOTAL_FRAUDES,
+  MAX(FRAUDES_MES)                                              AS PICO_FRAUDES_MES,
+  ROUND(SUM(BPP_MES), 2)                                        AS BPP_TOTAL_USD,
+  MAX(BPP_MES)                                                  AS BPP_PICO_MES,
+  COUNT(DISTINCT MES)                                           AS MESES_ATIVOS,
+  MAX(MES)                                                      AS MES_PICO,
+  MAX(FACILITIES_MES)                                           AS MAX_FACILITIES,
+  STRING_AGG(
+    CONCAT(MES, ':', CAST(FRAUDES_MES AS STRING)),
+    '|' ORDER BY MES
+  )                                                             AS HISTORICO_MENSAL
+FROM historico_mensal
+GROUP BY 1
+HAVING SUM(FRAUDES_MES) >= 2
+ORDER BY BPP_TOTAL_USD DESC, PICO_FRAUDES_MES DESC
 LIMIT 100
 """
 
@@ -1220,12 +1217,14 @@ def processar_buyer_velocidade(df):
                 except: pass
         rows.append({
             'buyer_id':         str(r.get('BUYER_ID', '')),
-            'qtd_fraudes':      int(r.get('QTD_FRAUDES', 0) or 0),
-            'bpp_fraude_usd':   float(r.get('BPP_FRAUDE_USD', 0) or 0),
-            'total_pedidos':    int(r.get('TOTAL_PEDIDOS', 0) or 0),
-            'pico_pedidos_mes': int(r.get('PICO_PEDIDOS_MES', 0) or 0),
+            'qtd_fraudes':      int(r.get('TOTAL_FRAUDES', 0) or 0),
+            'bpp_fraude_usd':   float(r.get('BPP_TOTAL_USD', 0) or 0),
+            'bpp_pico_mes':     float(r.get('BPP_PICO_MES', 0) or 0),
+            'pico_pedidos_mes': int(r.get('PICO_FRAUDES_MES', 0) or 0),
+            'total_pedidos':    int(r.get('TOTAL_FRAUDES', 0) or 0),
             'meses_ativos':     int(r.get('MESES_ATIVOS', 0) or 0),
             'mes_pico':         str(r.get('MES_PICO', '') or ''),
+            'max_facilities':   int(r.get('MAX_FACILITIES', 0) or 0),
             'historico':        hist,
         })
     return rows
@@ -4614,10 +4613,10 @@ function renderOfensores() {{
     if (thead) thead.innerHTML = `<tr>
       <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
       <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Buyer ID</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Pico / Mês</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Total Pedidos</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">SHPs Fraude</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">BPP Fraude</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Pico/Mês</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Total Fraudes</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">BPP Total USD</th>
+      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px" title="BPP no mês de pico">BPP Pico</th>
     </tr>`;
   }} else {{
     const metricHeader = _ofensView === 'ene'
