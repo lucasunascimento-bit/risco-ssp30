@@ -5781,6 +5781,7 @@ def gerar_sinistros_html(dados):
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚨</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
@@ -5869,6 +5870,11 @@ def gerar_sinistros_html(dados):
       <div class="cv green">${sin_bpp_r:,.2f}</div>
       <div class="cd">Valor recuperado</div>
     </div>
+  </div>
+
+  <div class="box" style="margin-bottom:20px">
+    <div class="bt">Evolução Mensal — Sinistros e BPP</div>
+    <canvas id="cSinMes" height="90"></canvas>
   </div>
 
   <div class="box">
@@ -6191,6 +6197,42 @@ function renderSinistrosTable(data) {{
   }}).join('');
 }}
 
+function initSinChart() {{
+  const ctx = document.getElementById('cSinMes');
+  if (!ctx || !window.Chart) return;
+  const byMes = {{}};
+  (SINISTROS_DATA || []).forEach(c => {{
+    if (!c.data) return;
+    const parts = c.data.split('/');
+    if (parts.length < 3) return;
+    const key = parts[2] + '-' + parts[1];
+    if (!byMes[key]) byMes[key] = {{cnt:0, bpp:0}};
+    byMes[key].cnt++;
+    byMes[key].bpp += parseFloat(c.bpp || 0);
+  }});
+  const labels = Object.keys(byMes).sort();
+  const cfg = {{
+    type:'bar',
+    data:{{
+      labels: labels.map(k => {{ const [a,m]=k.split('-'); return m+'/'+a.slice(2); }}),
+      datasets:[
+        {{label:'Sinistros', data:labels.map(k=>byMes[k].cnt), backgroundColor:'rgba(248,113,113,.4)', borderColor:'#f87171', borderWidth:1, yAxisID:'y'}},
+        {{label:'BPP (USD)', data:labels.map(k=>Math.round(byMes[k].bpp)), type:'line', fill:false, borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,.15)', tension:.3, yAxisID:'y2', pointRadius:3}}
+      ]
+    }},
+    options:{{
+      responsive:true, interaction:{{mode:'index',intersect:false}},
+      plugins:{{legend:{{labels:{{color:'#9ca3af',font:{{size:11}}}}}}, tooltip:{{callbacks:{{label:(c)=>c.dataset.yAxisID==='y2'?c.dataset.label+': $'+c.raw.toLocaleString('pt-BR'):c.dataset.label+': '+c.raw}}}}}},
+      scales:{{
+        x:{{ticks:{{color:'#6b7280',font:{{size:10}}}},grid:{{color:'#111827'}}}},
+        y:{{position:'left',ticks:{{color:'#6b7280',font:{{size:10}}}},grid:{{color:'#111827'}}}},
+        y2:{{position:'right',ticks:{{color:'#fbbf24',font:{{size:10}},callback:v=>'$'+v.toLocaleString('pt-BR')}},grid:{{drawOnChartArea:false}}}}
+      }}
+    }}
+  }};
+  new Chart(ctx, cfg);
+}}
+
 let _sinistrosFiltradosAtual = null;
 function exportCSVSinistros() {{
   const dados = _sinistrosFiltradosAtual || SINISTROS_DATA;
@@ -6329,6 +6371,7 @@ function initMapa() {{
 }}
 
 lucide.createIcons();
+initSinChart();
 {diario_js()}
 </script>
 
