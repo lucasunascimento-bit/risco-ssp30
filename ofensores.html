@@ -123,6 +123,22 @@
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<style id="restrict-ofensores">
+nav.sidebar { display:none !important; }
+.mod-nav     { display:none !important; }
+#srv-status  { display:none !important; }
+</style>
+<script>
+window.addEventListener('load', function() {
+  var el = document.querySelector('.sb-item[data-tab="ofensores"]');
+  if (el) { showTab('ofensores', el); }
+  var orig = window.showTab;
+  window.showTab = function(name, el) {
+    if (name !== 'ofensores') return;
+    orig(name, el);
+  };
+}, { once: true });
+</script>
 </head>
 <body>
 
@@ -23943,42 +23959,37 @@ function switchAcblPeriod(dias, btn) {
 }
 
 // Gráficos de Bloqueios — criados na 1ª vez que a aba abre
-// requestAnimationFrame garante pós-layout do CSS grid antes do Chart.js medir o canvas
+// setTimeout(0) garante reflow do CSS antes do Chart.js medir o canvas
 let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
 function initBlCharts() {
   if (_blDone) return;
   _blDone = true;
-  requestAnimationFrame(function() {
-    try {
-      const _stLabels = ["Bloqueado", "Monitorado", "Solicitado", "Inativo"];
-      const _stData   = [85, 42, 2, 21];
-      _chartBlStatus = new Chart(document.getElementById('cBlStatus'), {
-        type: 'doughnut',
-        data: {
-          labels: _stLabels,
-          datasets: [{ data: _stData,
-            backgroundColor: _blColors(_stLabels), borderWidth:0 }]
-        },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#94a3b8',font:{size:11} } } }, cutout:'40%' }
-      });
-      _chartBlTransp = new Chart(document.getElementById('cBlTransp'), {
-        type: 'bar',
-        data: {
-          labels: ["ME Extra", "Hawk", "Pantera", "Cargobr", "Kangu", "Eco Express", "Murici", "Pantera Log", "ME extra", "Jm transportes", "Euro", "Me extra", "me extra", "Flashlog", "Pantera log", "DHL", "Flight Cargo"],
-          datasets: [{ data: [4, 18, 21, 1, 32, 10, 8, 1, 40, 1, 1, 4, 6, 2, 1, 3, 1],
-            backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }]
-        },
-        options: {
-          responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
-          scales:{ x:{ ticks:{color:'#8a8a8a'}, grid:{color:'#1e293b'} },
-                    y:{ ticks:{color:'#8a8a8a'}, grid:{color:'#334155'} } }
-        }
-      });
-    } catch(e) {
-      console.error('[initBlCharts] Erro ao criar gráficos:', e);
-      _blDone = false;
-    }
-  });
+  setTimeout(function() {
+    const _stLabels = ["Bloqueado", "Monitorado", "Solicitado", "Inativo"];
+    const _stData   = [85, 42, 2, 21];
+    _chartBlStatus = new Chart(document.getElementById('cBlStatus'), {
+      type: 'doughnut',
+      data: {
+        labels: _stLabels,
+        datasets: [{ data: _stData,
+          backgroundColor: _blColors(_stLabels), borderWidth:0 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#94a3b8',font:{size:11} } } }, cutout:'40%' }
+    });
+    _chartBlTransp = new Chart(document.getElementById('cBlTransp'), {
+      type: 'bar',
+      data: {
+        labels: ["ME Extra", "Hawk", "Pantera", "Cargobr", "Kangu", "Eco Express", "Murici", "Pantera Log", "ME extra", "Jm transportes", "Euro", "Me extra", "me extra", "Flashlog", "Pantera log", "DHL", "Flight Cargo"],
+        datasets: [{ data: [4, 18, 21, 1, 32, 10, 8, 1, 40, 1, 1, 4, 6, 2, 1, 3, 1],
+          backgroundColor: 'rgba(74,222,128,0.75)', borderRadius:4 }]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+        scales:{ x:{ ticks:{color:'#8a8a8a'}, grid:{color:'#1e293b'} },
+                  y:{ ticks:{color:'#8a8a8a'}, grid:{color:'#334155'} } }
+      }
+    });
+  }, 0);
 }
 
 // ---- Filtro de período ----
