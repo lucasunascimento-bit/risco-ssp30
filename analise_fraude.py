@@ -338,7 +338,8 @@ QUERY_CRUZAMENTO = f"""
 WITH fraudes AS (
   SELECT
     CAST(SHIPMENT_ID AS STRING)    AS SHP_ID,
-    SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID
+    SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID,
+    Classification_LM              AS CLASSE
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
   WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
     AND date_bpp >= '{ANO_INICIO}'
@@ -353,7 +354,8 @@ SELECT
   CAST(shp.SHP_RECEIVER_ID AS STRING)     AS BUYER_ID,
   COUNT(DISTINCT f.SHP_ID)                AS QTD_FRAUDES,
   STRING_AGG(DISTINCT f.DRIVER_ID, ',')   AS DRIVERS,
-  STRING_AGG(DISTINCT f.SHP_ID, ',')      AS SHP_IDS
+  STRING_AGG(DISTINCT f.SHP_ID, ',')      AS SHP_IDS,
+  STRING_AGG(DISTINCT f.CLASSE, ',')      AS CLASSIFICACOES
 FROM fraudes f
 INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
   ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = f.SHP_ID
@@ -471,61 +473,6 @@ WHERE lp.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
   AND lp.Classification_LM = 'DAMAGED ENE'
 ORDER BY lp.date_bpp DESC
 LIMIT 5000
-"""
-
-QUERY_BUYER_VELOCIDADE = f"""
--- Velocidade de fraude: buyers com pico de SHPs de fraude/perda na SSP30 por mês
--- Mesmo padrão do CRUZAMENTO: filtra SSP30 primeiro (pequeno), depois join BT_SHP_SHIPMENTS
-WITH fraudes AS (
-  SELECT
-    CAST(SHIPMENT_ID AS STRING)         AS SHP_ID,
-    FORMAT_DATE('%Y-%m', date_bpp)      AS MES,
-    ROUND(BPP_CASHOUT_USD, 2)           AS BPP
-  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-  WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-    AND date_bpp >= '{ANO_INICIO}'
-    AND date_bpp <= CURRENT_DATE()
-    AND Classification_LM IN (
-      'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
-    )
-),
-com_buyer AS (
-  SELECT
-    CAST(shp.SHP_RECEIVER_ID AS STRING) AS BUYER_ID,
-    f.MES,
-    f.SHP_ID,
-    f.BPP
-  FROM fraudes f
-  INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
-    ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = f.SHP_ID
-),
-mensal AS (
-  SELECT
-    BUYER_ID,
-    MES,
-    COUNT(DISTINCT SHP_ID)   AS FRAUDES_MES,
-    ROUND(SUM(BPP), 2)       AS BPP_MES
-  FROM com_buyer
-  GROUP BY 1, 2
-)
-SELECT
-  BUYER_ID,
-  SUM(FRAUDES_MES)                                              AS TOTAL_FRAUDES,
-  MAX(FRAUDES_MES)                                              AS PICO_FRAUDES_MES,
-  ROUND(SUM(BPP_MES), 2)                                        AS BPP_TOTAL_USD,
-  MAX(BPP_MES)                                                  AS BPP_PICO_MES,
-  COUNT(DISTINCT MES)                                           AS MESES_ATIVOS,
-  MAX(MES)                                                      AS MES_PICO,
-  STRING_AGG(
-    CONCAT(MES, ':', CAST(FRAUDES_MES AS STRING)),
-    '|' ORDER BY MES
-  )                                                             AS HISTORICO_MENSAL
-FROM mensal
-GROUP BY 1
-HAVING SUM(FRAUDES_MES) >= 2
-ORDER BY BPP_TOTAL_USD DESC, PICO_FRAUDES_MES DESC
-LIMIT 100
 """
 
 QUERY_DAMAGED_ENE_CAUSAS = """
@@ -1071,15 +1018,32 @@ def processar_cruzamento(df):
     def _drivers(raw):
         if not raw or str(raw) in ('None','nan',''): return set()
         return {d.strip() for d in str(raw).split(',') if d.strip() and d.strip() != 'None'}
+    def _clean(v): return str(v) if v and str(v) not in ('None','nan','') else ''
 
     seller_map, buyer_map = {}, {}
+    pares = []
     for r in rows:
         sid = str(r['SELLER_ID']); bid = str(r['BUYER_ID']); qtd = int(r['QTD_FRAUDES'])
         drv = _drivers(r.get('DRIVERS',''))
+        shp_raw = _clean(r.get('SHP_IDS',''))
+        shp_ids = [s.strip() for s in shp_raw.split(',') if s.strip()] if shp_raw else []
+        cls_raw = _clean(r.get('CLASSIFICACOES',''))
+        classes = [c.strip() for c in cls_raw.split(',') if c.strip()] if cls_raw else []
+
         if sid not in seller_map: seller_map[sid] = {'seller_id':sid,'qtd':0,'buyers':set(),'drivers':set()}
         seller_map[sid]['qtd'] += qtd; seller_map[sid]['buyers'].add(bid); seller_map[sid]['drivers'] |= drv
-        if bid not in buyer_map:  buyer_map[bid]  = {'buyer_id':bid, 'qtd':0,'sellers':set(),'drivers':set()}
-        buyer_map[bid]['qtd']  += qtd; buyer_map[bid]['sellers'].add(sid); buyer_map[bid]['drivers']  |= drv
+
+        if bid not in buyer_map:
+            buyer_map[bid] = {'buyer_id':bid,'qtd':0,'sellers':set(),'drivers':set(),'shp_list':[],'class_set':set()}
+        buyer_map[bid]['qtd'] += qtd
+        buyer_map[bid]['sellers'].add(sid)
+        buyer_map[bid]['drivers'] |= drv
+        buyer_map[bid]['shp_list'].extend(shp_ids[:20])
+        buyer_map[bid]['class_set'].update(classes)
+
+        pares.append({'seller_id':sid,'buyer_id':bid,'qtd':qtd,
+                      'drivers':_clean(r.get('DRIVERS','')) or '—',
+                      'shp_ids':shp_ids,'classes':classes})
 
     sellers = sorted([{**v,
                        'buyers':len(v['buyers']),
@@ -1087,22 +1051,18 @@ def processar_cruzamento(df):
                        'n_drivers':len(v['drivers']),
                        'driver_ids':sorted(v['drivers'])[:6]}
                       for v in seller_map.values()], key=lambda x:-x['qtd'])
-    buyers  = sorted([{**v,
+    buyers  = sorted([{
+                       'buyer_id':v['buyer_id'],
+                       'qtd':v['qtd'],
                        'sellers':len(v['sellers']),
                        'seller_ids':sorted(v['sellers'])[:10],
                        'drivers':sorted(v['drivers'])[:6],
                        'n_drivers':len(v['drivers']),
-                       'driver_ids':sorted(v['drivers'])[:6]}
+                       'driver_ids':sorted(v['drivers'])[:6],
+                       'shp_ids':list(dict.fromkeys(v['shp_list']))[:30],
+                       'classes':sorted(v['class_set'])}
                       for v in buyer_map.values()],  key=lambda x:-x['qtd'])
-    def _clean(v): return str(v) if v and str(v) not in ('None','nan','') else ''
-    pares = []
-    for r in rows:
-        shp_raw = _clean(r.get('SHP_IDS',''))
-        shp_ids = [s.strip() for s in shp_raw.split(',') if s.strip()] if shp_raw else []
-        pares.append({'seller_id':str(r['SELLER_ID']),'buyer_id':str(r['BUYER_ID']),
-                      'qtd':int(r['QTD_FRAUDES']),
-                      'drivers':_clean(r.get('DRIVERS','')) or '—',
-                      'shp_ids':shp_ids})
+
     # Driver × Seller/Buyer cross-reference
     driver_map = {}
     for r in rows:
@@ -1202,31 +1162,6 @@ def processar_cruzamento_mes(df):
             'buyers':  sorted([{'id':k,'qtd':v} for k,v in buyer_by_mes[mes].items()],  key=lambda x:-x['qtd'])[:10],
         }
     return result
-
-def processar_buyer_velocidade(df):
-    if df is None or df.empty:
-        return []
-    rows = []
-    for _, r in df.iterrows():
-        hist_raw = str(r.get('HISTORICO_MENSAL', '') or '')
-        hist = {}
-        for part in hist_raw.split('|'):
-            if ':' in part:
-                mes, qtd = part.rsplit(':', 1)
-                try: hist[mes.strip()] = int(qtd.strip())
-                except: pass
-        rows.append({
-            'buyer_id':         str(r.get('BUYER_ID', '')),
-            'qtd_fraudes':      int(r.get('TOTAL_FRAUDES', 0) or 0),
-            'bpp_fraude_usd':   float(r.get('BPP_TOTAL_USD', 0) or 0),
-            'bpp_pico_mes':     float(r.get('BPP_PICO_MES', 0) or 0),
-            'pico_pedidos_mes': int(r.get('PICO_FRAUDES_MES', 0) or 0),
-            'total_pedidos':    int(r.get('TOTAL_FRAUDES', 0) or 0),
-            'meses_ativos':     int(r.get('MESES_ATIVOS', 0) or 0),
-            'mes_pico':         str(r.get('MES_PICO', '') or ''),
-            'historico':        hist,
-        })
-    return rows
 
 def carregar_cobrar_otr(gs):
     """Lê coluna 'Cobrar OTR' (col 33 = r[32]) da aba ON ROUTE.
@@ -2975,7 +2910,6 @@ const FRAUD_ENE_DATA   = {j(d['fraud_ene'])};
 const CRZ_DRIVERS_DATA = {j(d['crz'].get('driver_crz', [])[:50])};
 const CRZ_BUYERS_DATA  = {j(d['crz'].get('buyers', [])[:50])};
 const CRZ_SELLERS_DATA = {j(d['crz'].get('sellers', [])[:50])};
-const BUYER_VEL_DATA   = {j(d.get('buyer_vel', [])[:50])};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','damaged_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
@@ -4311,7 +4245,7 @@ function _ofensStyleMetric(id, active) {{
 function setOfensView(v) {{
   console.log('[Ofensores] setOfensView:', v);
   _ofensView = v;
-  ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer','origem','dominio','ene_svc','buyer_fraude','buyer_vel'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
+  ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer','origem','dominio','ene_svc','buyer_fraude'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
   const mt = document.getElementById('ofens-metric-toggle');
   if (mt) mt.style.display = v === 'ene' ? 'flex' : 'none';
   try {{
@@ -4492,11 +4426,23 @@ function _selectBuyer(bid) {{
   if (!detail) return;
   const risco = r.qtd >= 5 ? '#f87171' : r.qtd >= 3 ? '#fb923c' : '#fbbf24';
   const boLink = 'https://adminml.com/users/' + bid;
+  const _CLS_PT = {{'FRAUD ON ROUTE':'Fraude Rota','FRAUD AT STATION':'Fraude Station','FRAUD ENE':'Fraude ENE',
+                    'LOST ON ROUTE':'Perda Rota','LOST ON WAY':'Perda Way','LOST AT STATION':'Perda Station','LOST ENE':'Perda ENE'}};
+  const _CLS_COLOR = {{'FRAUD ON ROUTE':'#f87171','FRAUD AT STATION':'#f87171','FRAUD ENE':'#f87171',
+                       'LOST ON ROUTE':'#fb923c','LOST ON WAY':'#fb923c','LOST AT STATION':'#fb923c','LOST ENE':'#fb923c'}};
+  const clsChips = (r.classes || []).map(c =>
+    `<span style="display:inline-block;margin:2px;padding:3px 10px;border-radius:8px;background:#1c0f0f;color:${{_CLS_COLOR[c]||'#94a3b8'}};font-size:11px;font-weight:600">${{_CLS_PT[c]||c}}</span>`
+  ).join('');
   const selChips = (r.seller_ids || []).map(s =>
     `<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:8px;background:#1c2030;color:#f59e0b;font-size:11px;font-family:monospace">${{s}}</span>`
   ).join('');
   const drvChips = (r.driver_ids || []).map(d =>
     `<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:8px;background:#1c2030;color:#94a3b8;font-size:11px;font-family:monospace">${{d}}</span>`
+  ).join('');
+  const shpLinks = (r.shp_ids || []).map(s =>
+    `<a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/${{s}}" target="_blank"
+        style="display:inline-flex;align-items:center;gap:4px;margin:2px;padding:4px 10px;border-radius:6px;background:#0a1628;border:1px solid #1e3a5f;color:#60a5fa;font-family:monospace;font-size:11px;text-decoration:none"
+        title="Abrir no BO: ${{s}}">📦 ${{s}} ↗</a>`
   ).join('');
   detail.innerHTML = `
     <div class="bt" style="margin-bottom:14px">
@@ -4517,8 +4463,10 @@ function _selectBuyer(bid) {{
         <div style="font-size:24px;font-weight:800;color:#38bdf8">${{r.n_drivers}}</div>
       </div>
     </div>
+    ${{clsChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Tipo de Ocorrência</div>' + clsChips + '</div>' : ''}}
     ${{selChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sellers Envolvidos</div>' + selChips + '</div>' : ''}}
-    ${{drvChips ? '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Drivers Envolvidos</div>' + drvChips + '</div>' : ''}}
+    ${{drvChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Drivers Envolvidos</div>' + drvChips + '</div>' : ''}}
+    ${{shpLinks ? '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Pacotes Envolvidos (${{(r.shp_ids||[]).length}})</div>' + shpLinks + '</div>' : ''}}
   `;
 }}
 
@@ -4573,11 +4521,6 @@ function renderOfensores() {{
     labels = rows.map(r => r.carrier);
     vals   = rows.map(r => r.nao_entregue);
     metricLabel = 'Não Entregue'; title = 'ENE Service — Carriers c/ Entrega Não Efetiva (por Transportadora)';
-  }} else if (_ofensView === 'buyer_vel') {{
-    rows = BUYER_VEL_DATA.slice(0, 20);
-    labels = rows.map(r => 'Buyer ' + (r.buyer_id || '—'));
-    vals   = rows.map(r => r.pico_pedidos_mes);
-    metricLabel = 'Pico Pedidos/Mês'; title = 'Velocidade de Compra — Pico de Pedidos em 1 Mês';
   }} else {{
     rows = _ofensTopBuyersDevo();
     labels = rows.map(r => r.nome || r.id);
@@ -4651,15 +4594,6 @@ function renderOfensores() {{
       <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">${{col2Label}}</th>
       <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Devoluções</th>
     </tr>`;
-  }} else if (_ofensView === 'buyer_vel') {{
-    if (thead) thead.innerHTML = `<tr>
-      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
-      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Buyer ID</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Pico/Mês</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Total Fraudes</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">BPP Total USD</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px" title="BPP no mês de pico">BPP Pico</th>
-    </tr>`;
   }} else {{
     const metricHeader = _ofensView === 'ene'
       ? (_ofensMetric === 'cashout' ? 'Cashout USD' : 'Qtd ENE')
@@ -4674,38 +4608,6 @@ function renderOfensores() {{
   const tbody = document.getElementById('ofens-tbody');
   if (!tbody) return;
 
-  // ── tbody Velocidade de Compra ───────────────────────────────
-  if (_ofensView === 'buyer_vel') {{
-    const maxPico = rows.length ? rows[0].pico_pedidos_mes : 1;
-    tbody.innerHTML = rows.map((r, i) => {{
-      const barW  = Math.round((r.pico_pedidos_mes / maxPico) * 100);
-      const risco = r.pico_pedidos_mes >= 15 ? '#f87171' : r.pico_pedidos_mes >= 8 ? '#fb923c' : '#fbbf24';
-      const boLink = `https://adminml.com/users/${{r.buyer_id}}`;
-      const hist   = r.historico || {{}};
-      const meses  = Object.keys(hist).sort();
-      const histEl = meses.map(m => {{
-        const qtd = hist[m];
-        const cor = qtd >= 15 ? '#f87171' : qtd >= 8 ? '#fb923c' : qtd >= 3 ? '#fbbf24' : '#475569';
-        return `<span title="${{m}}: ${{qtd}} pedidos" style="color:${{cor}};font-size:10px;margin-right:6px">${{m.slice(5)}}: ${{qtd}}</span>`;
-      }}).join('');
-      return `<tr style="border-bottom:1px solid #1e293b">
-        <td style="padding:8px 10px;color:#475569;font-size:11px">${{i+1}}</td>
-        <td style="padding:8px 10px">
-          <a href="${{boLink}}" target="_blank" style="color:#a78bfa;font-weight:700;font-family:monospace;text-decoration:none">${{r.buyer_id}} ↗</a>
-          <span style="color:#475569;font-size:10px;margin-left:6px;cursor:pointer" onclick="navigator.clipboard.writeText('${{r.buyer_id}}')" title="Copiar">⎘</span>
-          <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:5px;width:140px">
-            <div style="height:3px;background:${{risco}};border-radius:2px;width:${{barW}}%"></div>
-          </div>
-          ${{histEl ? `<div style="margin-top:5px">${{histEl}}</div>` : ''}}
-        </td>
-        <td style="padding:8px 10px;text-align:right"><span style="color:${{risco}};font-weight:700">${{r.pico_pedidos_mes}}</span></td>
-        <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.qtd_fraudes}}</td>
-        <td style="padding:8px 10px;text-align:right;color:#fbbf24;font-weight:600">${{r.bpp_fraude_usd != null ? '$' + r.bpp_fraude_usd.toFixed(2) : '—'}}</td>
-        <td style="padding:8px 10px;text-align:right;color:#fb923c">${{r.bpp_pico_mes != null ? '$' + r.bpp_pico_mes.toFixed(2) : '—'}}</td>
-      </tr>`;
-    }}).join('');
-    return;
-  }}
 
   // ── tbody para view ENE Service (por Transportadora) ────────
   if (_ofensView === 'ene_svc') {{
@@ -4910,9 +4812,6 @@ lucide.createIcons();
     </button>
     <button onclick="setOfensView('buyer_fraude')" id="ofens-btn-buyer_fraude" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
       <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>🛒 Buyers Fraude
-    </button>
-    <button onclick="setOfensView('buyer_vel')" id="ofens-btn-buyer_vel" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
-      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>⚡ Velocidade
     </button>
   </div>
   <div id="ofens-metric-toggle" style="display:flex;gap:8px;padding:12px 0 14px 0">
@@ -6257,7 +6156,6 @@ if __name__ == '__main__':
         'crz':      (QUERY_CRUZAMENTO,       'Sellers/Buyers Ofensores'),
         'crz_mes':  (QUERY_CRUZAMENTO_MES,  'Sellers/Buyers por Mês'),
         'dc_nex':   (QUERY_DC_NEX,          'DC/NEX/XPT Passages'),
-        'buyer_vel':(QUERY_BUYER_VELOCIDADE,'Velocidade de Compra Buyers'),
     }
     _res = {}
     with ThreadPoolExecutor(max_workers=13) as _pool:
@@ -6276,7 +6174,6 @@ if __name__ == '__main__':
     df_cruzamento     = _res['crz']
     df_cruzamento_mes = _res['crz_mes']
     df_dc_nex         = _res['dc_nex']
-    df_buyer_vel      = _res['buyer_vel']
 
     bl_rows   = carregar_block_list(gs)
     sincronizar_status_block_list(gs, bq, bl_rows)
@@ -6307,7 +6204,6 @@ if __name__ == '__main__':
     dados['crz']       = processar_cruzamento(df_cruzamento)
     dados['crz_mes']   = processar_cruzamento_mes(df_cruzamento_mes)
     dados['dc_nex']    = processar_dc_nex(df_dc_nex, cobrar_otr_map)
-    dados['buyer_vel'] = processar_buyer_velocidade(df_buyer_vel)
     # --- CEP → Cluster (SSP30) ---
     print("  Buscando mapa CEP->Cluster no BQ...")
     try:
