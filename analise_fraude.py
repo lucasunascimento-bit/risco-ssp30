@@ -4712,9 +4712,9 @@ function renderOfensores() {{
           ${{histEl ? `<div style="margin-top:5px">${{histEl}}</div>` : ''}}
         </td>
         <td style="padding:8px 10px;text-align:right"><span style="color:${{risco}};font-weight:700">${{r.pico_pedidos_mes}}</span></td>
-        <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.total_pedidos}}</td>
-        <td style="padding:8px 10px;text-align:right;color:#f87171;font-weight:600">${{r.qtd_fraudes}}</td>
-        <td style="padding:8px 10px;text-align:right;color:#fbbf24">${{r.bpp_fraude_usd != null ? '$' + r.bpp_fraude_usd.toFixed(2) : '—'}}</td>
+        <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.qtd_fraudes}}</td>
+        <td style="padding:8px 10px;text-align:right;color:#fbbf24;font-weight:600">${{r.bpp_fraude_usd != null ? '$' + r.bpp_fraude_usd.toFixed(2) : '—'}}</td>
+        <td style="padding:8px 10px;text-align:right;color:#fb923c">${{r.bpp_pico_mes != null ? '$' + r.bpp_pico_mes.toFixed(2) : '—'}}</td>
       </tr>`;
     }}).join('');
     return;
