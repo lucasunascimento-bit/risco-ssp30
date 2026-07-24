@@ -17,6 +17,7 @@ PLANILHA_CONTROLE_ID = '1rFcUXxl53WVQf_ASRx3mhlEvFoJevcaiwjMZY1vso5Y'
 ABA_ON_ROUTE  = 'Tratativas Risco On Route (HV) - Lucas'
 ABA_ON_WAY    = 'Tratativas Risco On Way (HV) - Lucas'
 ABA_HISTORICO = 'Histórico'
+ABA_SNAPSHOTS = 'Snapshots'
 OUTPUT        = os.path.join(os.path.dirname(__file__), 'index.html')
 _FRAUDE_HTML  = os.path.join(os.path.dirname(__file__), 'fraude.html')
 
@@ -236,7 +237,12 @@ def carregar():
         h_hi, hi = ler(ABA_HISTORICO)
     except Exception:
         h_hi, hi = [], []
-    return rt, wy, hi, creds
+    try:
+        snap_rows = pl.worksheet(ABA_SNAPSHOTS).get_all_values()
+        snaps = snap_rows[1:] if len(snap_rows) > 1 else []
+    except Exception:
+        snaps = []
+    return rt, wy, hi, snaps, creds
 
 # ============================================================
 # PROCESSAMENTO
@@ -244,6 +250,41 @@ def carregar():
 def flt(v):
     try:    return float(str(v).replace(',','.'))
     except: return 0.0
+
+def _processar_snapshots(snaps):
+    """Converte linhas brutas da aba Snapshots em séries prontas para o Chart.js."""
+    rows = []
+    for r in snaps:
+        if not r or not r[0].strip():
+            continue
+        try:
+            rows.append({
+                'data':      r[0].strip(),
+                'gmv_otr':   flt(r[2])  if len(r) > 2  else 0.0,
+                'gmv_ow':    flt(r[8])  if len(r) > 8  else 0.0,
+                'gmv_total': flt(r[14]) if len(r) > 14 else 0.0,
+                'otr_total': flt(r[1])  if len(r) > 1  else 0.0,
+                'ow_total':  flt(r[7])  if len(r) > 7  else 0.0,
+            })
+        except Exception:
+            continue
+    def _parse_dt(s):
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+            try: return datetime.strptime(s.strip(), fmt)
+            except: pass
+        return datetime.min
+    rows.sort(key=lambda r: _parse_dt(r['data']))
+    def fmt_eixo(d):
+        try: return datetime.strptime(d, '%d/%m/%Y').strftime('%d/%m')
+        except: return d
+    return {
+        'labels':    [fmt_eixo(r['data']) for r in rows],
+        'gmv_total': [round(r['gmv_total'], 2) for r in rows],
+        'gmv_otr':   [round(r['gmv_otr'],   2) for r in rows],
+        'gmv_ow':    [round(r['gmv_ow'],    2) for r in rows],
+        'otr_total': [int(r['otr_total']) for r in rows],
+        'ow_total':  [int(r['ow_total'])  for r in rows],
+    }
 
 def calc_dias(entrada_str):
     try:
@@ -2031,6 +2072,8 @@ def _briefing_html(b, on_route=None, on_way=None):
 
 def gerar_html(d):
     j = lambda x: json.dumps(x, ensure_ascii=False)
+    if 'snapshots' not in d:
+        d['snapshots'] = {'labels': [], 'gmv_total': [], 'gmv_otr': [], 'gmv_ow': [], 'otr_total': [], 'ow_total': []}
 
     # --- Estatísticas mensais para o filtro de período da Visão Geral ---
     def _rec_h(f): fl = f.lower(); return any(k in fl for k in ('fluxo','revers','localizado'))
@@ -2500,6 +2543,11 @@ def gerar_html(d):
   </div>
   <div class="box mb16"><div class="box-title">Volume de Entradas por Data</div><canvas id="cEvo" height="180"></canvas></div>
   <div class="box mb16"><div class="box-title">Entradas por Dia da Semana</div><canvas id="cHeatmap" height="160"></canvas></div>
+  <div class="box mb16">
+    <div class="box-title">Evolução do GMV em Risco — Snapshots Diários</div>
+    <div id="snap-no-data" style="display:none;text-align:center;padding:32px;color:#64748b;font-size:13px">Dados insuficientes — gráfico disponível após acúmulo de snapshots diários</div>
+    <canvas id="cGmvSnap" height="180"></canvas>
+  </div>
 </div>
 
 <!-- ===================== ABA 2: CRÍTICOS ===================== -->
@@ -3213,6 +3261,39 @@ new Chart(document.getElementById('cHeatmap'), {{
   }}
 }});
 
+// Evolução GMV Snapshots
+(function() {{
+  const snapLabels    = {j(d["snapshots"]["labels"])};
+  const snapGmvTotal  = {j(d["snapshots"]["gmv_total"])};
+  const snapGmvOtr    = {j(d["snapshots"]["gmv_otr"])};
+  const snapGmvOw     = {j(d["snapshots"]["gmv_ow"])};
+  if (snapLabels.length < 2) {{
+    document.getElementById('snap-no-data').style.display = 'block';
+    document.getElementById('cGmvSnap').style.display     = 'none';
+  }} else {{
+    new Chart(document.getElementById('cGmvSnap'), {{
+      type: 'line',
+      data: {{
+        labels: snapLabels,
+        datasets: [
+          {{ label:'GMV Total',  data: snapGmvTotal,  borderColor:'#FBBF24', backgroundColor:'rgba(251,191,36,0.10)',  borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#FBBF24',  fill:false, tension:0.3 }},
+          {{ label:'GMV OTR',    data: snapGmvOtr,    borderColor:'#3B82F6', backgroundColor:'rgba(59,130,246,0.08)',  borderWidth:2,   pointRadius:3, pointBackgroundColor:'#3B82F6',  fill:false, tension:0.3 }},
+          {{ label:'GMV OW',     data: snapGmvOw,     borderColor:'#10B981', backgroundColor:'rgba(16,185,129,0.08)', borderWidth:2,   pointRadius:3, pointBackgroundColor:'#10B981', fill:false, tension:0.3 }},
+        ]
+      }},
+      options: {{ ...defOpts,
+        scales: {{
+          x: {{ ticks:{{ color:'#8a8a8a', maxRotation:45 }}, grid:{{ color:'#1e293b' }} }},
+          y: {{ ticks:{{ color:'#8a8a8a', callback: v=>'$'+v.toLocaleString('pt-BR') }}, grid:{{ color:'#334155' }} }}
+        }},
+        plugins: {{ ...defOpts.plugins,
+          tooltip: {{ callbacks: {{ label: ctx => ctx.dataset.label+': $'+ctx.raw.toLocaleString('pt-BR',{{minimumFractionDigits:2}}) }} }}
+        }}
+      }}
+    }});
+  }}
+}})();
+
 // Top GMV horizontal
 new Chart(document.getElementById('cTop'), {{
   type: 'bar',
@@ -3704,8 +3785,8 @@ setInterval(checkSrv, 30000);
 # ============================================================
 if __name__ == '__main__':
     print("Lendo planilha...")
-    rt, wy, hi, creds = carregar()
-    print(f"  ON ROUTE: {len(rt)} | ON WAY: {len(wy)} | Histórico: {len(hi)}")
+    rt, wy, hi, snaps, creds = carregar()
+    print(f"  ON ROUTE: {len(rt)} | ON WAY: {len(wy)} | Histórico: {len(hi)} | Snapshots: {len(snaps)}")
     print("Lendo Places (BigQuery)...")
     try:
         places_rows = carregar_places(creds)
@@ -3802,6 +3883,7 @@ if __name__ == '__main__':
     dados['places']      = processar_places(places_rows, dit_data)
     dados['r_devolvidos'] = n_devolvidos_rt
     dados['briefing']    = processar_briefing(bq_briefing, wy)
+    dados['snapshots']   = _processar_snapshots(snaps)
     print("Gerando HTML...")
     html = gerar_html(dados)
     with open(OUTPUT, 'w', encoding='utf-8') as f:
