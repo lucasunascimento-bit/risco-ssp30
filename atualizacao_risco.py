@@ -774,6 +774,13 @@ def gerar_analise_claude(stats_route, stats_way, cftv, stats_mensais):
         f"  Pendente: {stats_mensais['pendente']} | Sem acompanhamento: {stats_mensais['sem_acompanhamento']}"
     )
 
+    # Verifica se a API key tem só chars ASCII (problema comum de copy-paste)
+    api_key_non_ascii = [(i, hex(ord(c))) for i, c in enumerate(api_key) if ord(c) >= 128]
+    if api_key_non_ascii:
+        log.error("ANTHROPIC_API_KEY contem chars nao-ASCII: pos=%s — recadastre a key no GitHub Secrets",
+                  api_key_non_ascii[:5])
+        return ''
+
     try:
         log.info("Gerando analise com Claude (claude-opus-4-8)...")
         client = anthropic.Anthropic(api_key=api_key)
