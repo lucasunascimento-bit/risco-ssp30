@@ -4422,6 +4422,28 @@ function _ofensENEService() {{
   }})).sort((a,b) => b.nao_entregue - a.nao_entregue);
 }}
 
+function exportCSVBuyersFraude() {{
+  const rows = [['Buyer ID','SHPs Fraude','Sellers','Drivers','Tipos','Seller IDs','Driver IDs','SHP IDs']];
+  CRZ_BUYERS_DATA.forEach(r => rows.push([
+    r.buyer_id, r.qtd, r.sellers, r.n_drivers,
+    (r.classes||[]).join('|'), (r.seller_ids||[]).join('|'),
+    (r.driver_ids||[]).join('|'), (r.shp_ids||[]).join('|')
+  ]));
+  const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
+  a.download = 'buyers_fraude_ssp30.csv'; a.click();
+}}
+function exportCSVSellersFraude() {{
+  const rows = [['Seller ID','SHPs Fraude','Buyers','Drivers','Tipos','Buyer IDs','Driver IDs','SHP IDs']];
+  CRZ_SELLERS_DATA.forEach(r => rows.push([
+    r.seller_id, r.qtd, r.buyers, r.n_drivers,
+    (r.classes||[]).join('|'), (r.buyer_ids||[]).join('|'),
+    (r.driver_ids||[]).join('|'), (r.shp_ids||[]).join('|')
+  ]));
+  const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
+  a.download = 'sellers_fraude_ssp30.csv'; a.click();
+}}
 function _copyShps(btn) {{
   const ids = (btn.dataset.shps || '').split(',').filter(Boolean).join('\n');
   navigator.clipboard.writeText(ids).then(() => {{ btn.textContent = '✓ Copiado'; setTimeout(() => btn.textContent = '⎘ Copiar todos', 1500); }});
@@ -4967,7 +4989,10 @@ lucide.createIcons();
   <div id="ofens-buyer-panel" style="display:none">
     <div style="display:grid;grid-template-columns:230px 1fr;gap:14px;align-items:start">
       <div class="box" style="padding:0;overflow:hidden">
-        <div class="bt" style="padding:10px 14px;font-size:12px">🛒 Buyers c/ Fraude</div>
+        <div class="bt" style="padding:10px 14px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
+          <span>🛒 Buyers c/ Fraude</span>
+          <button onclick="exportCSVBuyersFraude()" title="Exportar CSV" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;border-radius:4px;font-size:9px;padding:2px 8px;cursor:pointer">⬇ CSV</button>
+        </div>
         <div style="padding:6px 10px;border-bottom:1px solid #1e293b">
           <input id="buyer-busca" oninput="_renderBuyerFraude()" placeholder="Buscar buyer ID…"
             style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:4px;font-size:11px;outline:none">
@@ -4983,7 +5008,10 @@ lucide.createIcons();
   <div id="ofens-seller-panel" style="display:none">
     <div style="display:grid;grid-template-columns:230px 1fr;gap:14px;align-items:start">
       <div class="box" style="padding:0;overflow:hidden">
-        <div class="bt" style="padding:10px 14px;font-size:12px">🏪 Sellers c/ Fraude</div>
+        <div class="bt" style="padding:10px 14px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
+          <span>🏪 Sellers c/ Fraude</span>
+          <button onclick="exportCSVSellersFraude()" title="Exportar CSV" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;border-radius:4px;font-size:9px;padding:2px 8px;cursor:pointer">⬇ CSV</button>
+        </div>
         <div style="padding:6px 10px;border-bottom:1px solid #1e293b">
           <input id="seller-busca" oninput="_renderSellerFraude()" placeholder="Buscar seller ID…"
             style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:4px;font-size:11px;outline:none">
