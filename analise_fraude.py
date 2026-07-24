@@ -5882,6 +5882,10 @@ def gerar_sinistros_html(dados):
         <input id="sin-filter" type="text" placeholder="Filtrar por driver, placa, tipo..."
           oninput="filtrarSinistrosPeriodo()"
           style="background:#1f2937;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:6px 12px;font-size:11px;width:220px">
+        <button onclick="exportCSVSinistros()"
+          style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;white-space:nowrap">
+          ⬇ Exportar CSV
+        </button>
         <button onclick="toggleMapa()"
           style="background:#1f2937;color:#60a5fa;border:1px solid #374151;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;white-space:nowrap">
           🗺️ Mapa
@@ -6158,6 +6162,7 @@ function filtrarSinistrosPeriodo() {{
       .toLowerCase().includes(q)
     );
   }}
+  _sinistrosFiltradosAtual = filtered;
   renderSinistrosTable(filtered);
 }}
 
@@ -6184,6 +6189,21 @@ function renderSinistrosTable(data) {{
       <td style="padding:7px 10px;font-size:10px;color:#9ca3af;max-width:200px">${{relato}}</td>
     </tr>`;
   }}).join('');
+}}
+
+let _sinistrosFiltradosAtual = null;
+function exportCSVSinistros() {{
+  const dados = _sinistrosFiltradosAtual || SINISTROS_DATA;
+  const header = ['Data','Hora','Tipo','Driver ID','Nome','Transportadora','Placa','Qtd SHP','BPP','Recuperado','Relato','Rua','Bairro','Natureza'];
+  const rows = [header, ...dados.map(c => [
+    c.data||'', c.horario||'', c.tipo||'', c.driver_id||'', c.nome||'',
+    c.transportadora||'', c.placa||'', c.qtd_shp||'', c.bpp||'', c.recup_carga||'',
+    c.relato||'', c.rua||'', c.bairro||'', c.natureza||''
+  ])];
+  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
+  a.download = 'sinistros_ssp30.csv'; a.click();
 }}
 
 async function salvarSinistro() {{
