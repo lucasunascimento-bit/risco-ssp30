@@ -473,6 +473,67 @@ ORDER BY lp.date_bpp DESC
 LIMIT 5000
 """
 
+QUERY_BUYER_VELOCIDADE = f"""
+-- Velocidade de compra: buyers suspeitos com pico anômalo de pedidos
+WITH buyers_fraude AS (
+  SELECT
+    CAST(shp.SHP_RECEIVER_ID AS STRING) AS BUYER_ID,
+    COUNT(DISTINCT lp.SHIPMENT_ID)       AS QTD_FRAUDES,
+    ROUND(SUM(lp.BPP_CASHOUT_USD), 2)   AS BPP_FRAUDE_USD
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
+  INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
+    ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = CAST(lp.SHIPMENT_ID AS STRING)
+  WHERE lp.SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+    AND lp.date_bpp >= '{ANO_INICIO}'
+    AND lp.date_bpp <= CURRENT_DATE()
+    AND lp.Classification_LM IN (
+      'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
+    )
+  GROUP BY 1
+),
+historico_mensal AS (
+  SELECT
+    CAST(shp.SHP_RECEIVER_ID AS STRING)                AS BUYER_ID,
+    FORMAT_DATE('%Y-%m', DATE(shp.SHP_CREATION_DATE))  AS MES,
+    COUNT(DISTINCT shp.SHP_SHIPMENT_ID)                AS PEDIDOS_MES
+  FROM `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
+  INNER JOIN buyers_fraude bf
+    ON CAST(shp.SHP_RECEIVER_ID AS STRING) = bf.BUYER_ID
+  WHERE DATE(shp.SHP_CREATION_DATE) >= '{ANO_INICIO}'
+  GROUP BY 1, 2
+),
+resumo AS (
+  SELECT
+    BUYER_ID,
+    SUM(PEDIDOS_MES)   AS TOTAL_PEDIDOS,
+    MAX(PEDIDOS_MES)   AS PICO_PEDIDOS_MES,
+    COUNT(DISTINCT MES) AS MESES_ATIVOS,
+    MAX(MES)            AS MES_PICO,
+    STRING_AGG(
+      CONCAT(MES, ':', CAST(PEDIDOS_MES AS STRING)),
+      '|' ORDER BY MES
+    )                   AS HISTORICO_MENSAL
+  FROM historico_mensal
+  GROUP BY 1
+  HAVING MAX(PEDIDOS_MES) >= 3
+)
+SELECT
+  bf.BUYER_ID,
+  bf.QTD_FRAUDES,
+  bf.BPP_FRAUDE_USD,
+  COALESCE(r.TOTAL_PEDIDOS, 0)     AS TOTAL_PEDIDOS,
+  COALESCE(r.PICO_PEDIDOS_MES, 0)  AS PICO_PEDIDOS_MES,
+  COALESCE(r.MESES_ATIVOS, 0)      AS MESES_ATIVOS,
+  COALESCE(r.MES_PICO, '')         AS MES_PICO,
+  COALESCE(r.HISTORICO_MENSAL, '') AS HISTORICO_MENSAL
+FROM buyers_fraude bf
+LEFT JOIN resumo r ON bf.BUYER_ID = r.BUYER_ID
+WHERE COALESCE(r.TOTAL_PEDIDOS, 0) > 0
+ORDER BY COALESCE(r.PICO_PEDIDOS_MES, 0) DESC, bf.QTD_FRAUDES DESC
+LIMIT 100
+"""
+
 QUERY_DAMAGED_ENE_CAUSAS = """
 SELECT
   SHP_NODE_CAUSE    AS causa,
@@ -1144,6 +1205,30 @@ def processar_cruzamento_mes(df):
             'buyers':  sorted([{'id':k,'qtd':v} for k,v in buyer_by_mes[mes].items()],  key=lambda x:-x['qtd'])[:10],
         }
     return result
+
+def processar_buyer_velocidade(df):
+    if df is None or df.empty:
+        return []
+    rows = []
+    for _, r in df.iterrows():
+        hist_raw = str(r.get('HISTORICO_MENSAL', '') or '')
+        hist = {}
+        for part in hist_raw.split('|'):
+            if ':' in part:
+                mes, qtd = part.rsplit(':', 1)
+                try: hist[mes.strip()] = int(qtd.strip())
+                except: pass
+        rows.append({
+            'buyer_id':         str(r.get('BUYER_ID', '')),
+            'qtd_fraudes':      int(r.get('QTD_FRAUDES', 0) or 0),
+            'bpp_fraude_usd':   float(r.get('BPP_FRAUDE_USD', 0) or 0),
+            'total_pedidos':    int(r.get('TOTAL_PEDIDOS', 0) or 0),
+            'pico_pedidos_mes': int(r.get('PICO_PEDIDOS_MES', 0) or 0),
+            'meses_ativos':     int(r.get('MESES_ATIVOS', 0) or 0),
+            'mes_pico':         str(r.get('MES_PICO', '') or ''),
+            'historico':        hist,
+        })
+    return rows
 
 def carregar_cobrar_otr(gs):
     """Lê coluna 'Cobrar OTR' (col 33 = r[32]) da aba ON ROUTE.
@@ -2893,6 +2978,7 @@ const FRAUD_ENE_DATA   = {j(d['fraud_ene'])};
 const CRZ_DRIVERS_DATA = {j(d['crz'].get('driver_crz', [])[:50])};
 const CRZ_BUYERS_DATA  = {j(d['crz'].get('buyers', [])[:50])};
 const CRZ_SELLERS_DATA = {j(d['crz'].get('sellers', [])[:50])};
+const BUYER_VEL_DATA   = {j(d.get('buyer_vel', [])[:50])};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','damaged_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
@@ -6173,9 +6259,10 @@ if __name__ == '__main__':
         'places':   (QUERY_PLACES,          'Places'),
         'place_shp':(QUERY_PLACE_SHIPMENTS, 'SHP IDs por Place'),
         'damaged':  (QUERY_DAMAGED,         'Damaged por Driver'),
-        'crz':      (QUERY_CRUZAMENTO,      'Sellers/Buyers Ofensores'),
+        'crz':      (QUERY_CRUZAMENTO,       'Sellers/Buyers Ofensores'),
         'crz_mes':  (QUERY_CRUZAMENTO_MES,  'Sellers/Buyers por Mês'),
         'dc_nex':   (QUERY_DC_NEX,          'DC/NEX/XPT Passages'),
+        'buyer_vel':(QUERY_BUYER_VELOCIDADE,'Velocidade de Compra Buyers'),
     }
     _res = {}
     with ThreadPoolExecutor(max_workers=13) as _pool:
@@ -6194,6 +6281,7 @@ if __name__ == '__main__':
     df_cruzamento     = _res['crz']
     df_cruzamento_mes = _res['crz_mes']
     df_dc_nex         = _res['dc_nex']
+    df_buyer_vel      = _res['buyer_vel']
 
     bl_rows   = carregar_block_list(gs)
     sincronizar_status_block_list(gs, bq, bl_rows)
@@ -6224,6 +6312,7 @@ if __name__ == '__main__':
     dados['crz']       = processar_cruzamento(df_cruzamento)
     dados['crz_mes']   = processar_cruzamento_mes(df_cruzamento_mes)
     dados['dc_nex']    = processar_dc_nex(df_dc_nex, cobrar_otr_map)
+    dados['buyer_vel'] = processar_buyer_velocidade(df_buyer_vel)
     # --- CEP → Cluster (SSP30) ---
     print("  Buscando mapa CEP->Cluster no BQ...")
     try:
