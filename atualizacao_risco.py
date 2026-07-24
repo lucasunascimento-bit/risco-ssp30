@@ -16,6 +16,7 @@ from google.auth import default
 import gspread
 from datetime import datetime
 import json
+import os
 import urllib.request
 
 # ============================================================
@@ -38,6 +39,9 @@ ABA_HISTORICO = 'Histórico'
 
 MESES_PT = {1:'jan',2:'fev',3:'mar',4:'abr',5:'mai',6:'jun',
             7:'jul',8:'ago',9:'set',10:'out',11:'nov',12:'dez'}
+
+ABA_SNAPSHOTS  = 'Snapshots'
+GMV_ALERTA_USD = 1000  # limiar para alerta urgente de Possivel Lost
 
 # ============================================================
 # QUERY ON ROUTE
@@ -436,15 +440,31 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv, bq_client, col_acao_lp
     else:
         print(f"  Nenhuma linha para remover")
 
+    try:
+        gmv_total = round(sum(float(str(v) or '0') for v in df['GMV_USD']), 2)
+    except Exception:
+        gmv_total = 0.0
+
+    novos_criticos = []
+    if not novos.empty:
+        for _, row in novos.iterrows():
+            try:
+                if str(row['Situation']) == 'Possivel Lost' and float(str(row['GMV_USD'])) >= GMV_ALERTA_USD:
+                    novos_criticos.append({'id': str(row['SHP_SHIPMENT_ID']), 'gmv': float(str(row['GMV_USD']))})
+            except Exception:
+                continue
+
     return {
-        'novos':         len(novos),
-        'removidos':     len(para_remover),
-        'recuperados':   recuperados,
-        'arquivados':    arquivados,
-        'total':         len(ids_bigquery),
-        'por_situation': df['Situation'].value_counts().to_dict() if not df.empty else {},
-        'top_id':        str(df.iloc[0]['SHP_SHIPMENT_ID']) if not df.empty else '-',
-        'top_gmv':       str(df.iloc[0]['GMV_USD'])         if not df.empty else '-',
+        'novos':          len(novos),
+        'removidos':      len(para_remover),
+        'recuperados':    recuperados,
+        'arquivados':     arquivados,
+        'total':          len(ids_bigquery),
+        'por_situation':  df['Situation'].value_counts().to_dict() if not df.empty else {},
+        'top_id':         str(df.iloc[0]['SHP_SHIPMENT_ID']) if not df.empty else '-',
+        'top_gmv':        str(df.iloc[0]['GMV_USD'])         if not df.empty else '-',
+        'gmv_total':      gmv_total,
+        'novos_criticos': novos_criticos,
     }
 
 
@@ -642,8 +662,141 @@ def ler_stats_mensais(planilha_controle, aba_route, aba_way):
     }
 
 
+def enviar_alerta_urgente(novos_criticos_route, novos_criticos_way):
+    """Envia mensagem urgente no Chat para cada novo Possivel Lost com GMV >= GMV_ALERTA_USD."""
+    todos = [('ON ROUTE', p) for p in novos_criticos_route] + \
+            [('ON WAY',   p) for p in novos_criticos_way]
+    if not todos:
+        print("  Sem novos Possivel Lost de alto valor.")
+        return
+    for origem, pkg in todos:
+        msg = (
+            f"🚨 *ALERTA — Possível Lost Alto Valor | {origem}*\n"
+            f"Novo pacote identificado agora:\n"
+            f"📦 `{pkg['id']}`\n"
+            f"💰 GMV: *${pkg['gmv']:,.2f}*\n"
+            f"⚠️ Verificar imediatamente na planilha de controle."
+        )
+        try:
+            payload = json.dumps({'text': msg}).encode('utf-8')
+            req = urllib.request.Request(
+                WEBHOOK_GCHAT, data=payload,
+                headers={'Content-Type': 'application/json'},
+            )
+            urllib.request.urlopen(req)
+            print(f"  Alerta urgente enviado: {pkg['id']} (${pkg['gmv']:,.2f})")
+        except Exception as e:
+            print(f"  Aviso alerta urgente: {e}")
+
+
+def salvar_snapshot(planilha_controle, stats_route, stats_way):
+    """Salva linha de snapshot diário na aba Snapshots."""
+    def sit(stats, chave):
+        return stats['por_situation'].get(chave, 0)
+    try:
+        try:
+            aba = planilha_controle.worksheet(ABA_SNAPSHOTS)
+        except gspread.exceptions.WorksheetNotFound:
+            aba = planilha_controle.add_worksheet(title=ABA_SNAPSHOTS, rows=2000, cols=16)
+            aba.update(
+                range_name='A1',
+                values=[['Data',
+                         'OTR Total', 'OTR GMV ($)', 'OTR Poss.Lost', 'OTR Procurar',
+                         'OTR Novos',  'OTR Recuperados',
+                         'OW Total',   'OW GMV ($)',  'OW Poss.Lost',
+                         'OW >=11d',   'OW <11d',
+                         'OW Novos',   'OW Recuperados',
+                         'GMV Total ($)']],
+                value_input_option='USER_ENTERED',
+            )
+            print("  Aba 'Snapshots' criada")
+        hoje      = datetime.now().strftime('%d/%m/%Y')
+        gmv_total = round(stats_route['gmv_total'] + stats_way['gmv_total'], 2)
+        aba.append_rows([[
+            hoje,
+            stats_route['total'],    stats_route['gmv_total'],
+            sit(stats_route, 'Possivel Lost'),
+            sit(stats_route, 'Procurar Pacote'),
+            stats_route['novos'],    stats_route['recuperados'],
+            stats_way['total'],      stats_way['gmv_total'],
+            sit(stats_way, 'Possivel Lost'),
+            sit(stats_way, '>= 11 dias OW'),
+            sit(stats_way, '< 11 dias OW'),
+            stats_way['novos'],      stats_way['recuperados'],
+            gmv_total,
+        ]], value_input_option='USER_ENTERED')
+        print(f"  Snapshot: OTR={stats_route['total']} OW={stats_way['total']} GMV Total=${gmv_total:,.2f}")
+    except Exception as e:
+        print(f"  Aviso Snapshot: {e}")
+
+
+def gerar_analise_claude(stats_route, stats_way, cftv, stats_mensais):
+    """Gera parágrafo de análise em português via Claude API. Retorna '' se indisponível."""
+    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        print("  Claude API: ANTHROPIC_API_KEY não configurada, pulando análise IA")
+        return ''
+    try:
+        import anthropic
+    except ImportError:
+        print("  Claude API: pacote 'anthropic' não instalado, pulando análise IA")
+        return ''
+
+    def sit(stats, chave):
+        return stats['por_situation'].get(chave, 0)
+
+    cftv_r = cftv.get(ABA_ON_ROUTE, {})
+    cftv_w = cftv.get(ABA_ON_WAY,   {})
+
+    contexto = (
+        f"ON ROUTE — {stats_route['total']} pacotes\n"
+        f"  Procurar Pacote: {sit(stats_route,'Procurar Pacote')} | Possível Lost: {sit(stats_route,'Possivel Lost')}\n"
+        f"  Novos: +{stats_route['novos']} | Removidos: -{stats_route['removidos']} | Recuperados: {stats_route['recuperados']}\n"
+        f"  Top GMV: ${stats_route['top_gmv']}\n"
+        f"  CFTV: {cftv_r.get('sim',0)}/{cftv_r.get('total',0)}\n\n"
+        f"ON WAY — {stats_way['total']} pacotes\n"
+        f"  Possível Lost: {sit(stats_way,'Possivel Lost')} | >=11 dias: {sit(stats_way,'>= 11 dias OW')} | <11 dias: {sit(stats_way,'< 11 dias OW')}\n"
+        f"  Novos: +{stats_way['novos']} | Removidos: -{stats_way['removidos']} | Recuperados: {stats_way['recuperados']}\n"
+        f"  Top GMV: ${stats_way['top_gmv']}\n"
+        f"  CFTV: {cftv_w.get('sim',0)}/{cftv_w.get('total',0)}\n\n"
+        f"Visibilidade {stats_mensais['mes']}:\n"
+        f"  Concluídos: {stats_mensais['concluidos_mes']} | Em andamento: {stats_mensais['em_andamento']}\n"
+        f"  Pendente: {stats_mensais['pendente']} | Sem acompanhamento: {stats_mensais['sem_acompanhamento']}"
+    )
+
+    try:
+        print("  Gerando análise com Claude...")
+        client = anthropic.Anthropic(api_key=api_key)
+        resp = client.messages.create(
+            model='claude-opus-4-8',
+            max_tokens=1024,
+            thinking={'type': 'adaptive'},
+            messages=[{
+                'role': 'user',
+                'content': (
+                    "Você é analista de Loss Prevention do SSP30 (MercadoLivre, Guarulhos). "
+                    "Com base nos dados abaixo, escreva 2 a 3 frases de análise em português "
+                    "destacando o ponto mais relevante do dia: tendência de risco, pacotes críticos, "
+                    "recuperos expressivos ou alertas. Seja direto e objetivo, sem títulos nem bullet points.\n\n"
+                    f"{contexto}"
+                ),
+            }],
+        )
+        for block in resp.content:
+            if block.type == 'text':
+                texto = block.text.strip()
+                print(f"  Análise IA gerada ({len(texto)} chars)")
+                return texto
+        return ''
+    except Exception as e:
+        print(f"  Aviso Claude API: {e}")
+        return ''
+
+
 def enviar_gchat(stats_route, stats_way, cftv, stats_mensais, duracao, data_hora):
     """Monta e envia o report diário para o Google Chat."""
+
+    analise_ia = gerar_analise_claude(stats_route, stats_way, cftv, stats_mensais)
 
     def sit(stats, chave):
         return stats['por_situation'].get(chave, 0)
@@ -679,7 +832,8 @@ def enviar_gchat(stats_route, stats_way, cftv, stats_mensais, duracao, data_hora
         f"  ⏳ Pendente           : *{sm['pendente']}*\n"
         f"  📭 Sem acompanhamento : *{sm['sem_acompanhamento']}*\n"
         f"\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        + (f"\n🤖 *Análise IA*\n_{analise_ia}_\n" if analise_ia else '')
+        + f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"⏱ Atualizado em {duracao}s"
     )
 
@@ -722,12 +876,17 @@ if __name__ == '__main__':
     stats_way = atualizar_aba(aba_way, df_way, ABA_ON_WAY, montar_linha_on_way,
                               idx_gmv=21, bq_client=bq_client, col_acao_lp='W')
 
+    print("\n--- Alertas urgentes ---")
+    enviar_alerta_urgente(stats_route['novos_criticos'], stats_way['novos_criticos'])
+
     salvar_historico(planilha_controle, stats_route['arquivados'], stats_way['arquivados'])
     corrigir_historico(planilha_controle, bq_client)
 
     cftv = atualizar_cftv(planilha_controle, planilha_cftv)
 
     stats_mensais = ler_stats_mensais(planilha_controle, aba_route, aba_way)
+
+    salvar_snapshot(planilha_controle, stats_route, stats_way)
 
     fim     = datetime.now()
     duracao = (fim - inicio).seconds
