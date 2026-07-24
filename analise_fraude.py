@@ -4433,7 +4433,7 @@ function exportCSVBuyersFraude() {{
     (r.classes||[]).join('|'), (r.seller_ids||[]).join('|'),
     (r.driver_ids||[]).join('|'), (r.shp_ids||[]).join('|')
   ]));
-  const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\\n');
   const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
   a.download = 'buyers_fraude_ssp30.csv'; a.click();
 }}
@@ -4444,12 +4444,12 @@ function exportCSVSellersFraude() {{
     (r.classes||[]).join('|'), (r.buyer_ids||[]).join('|'),
     (r.driver_ids||[]).join('|'), (r.shp_ids||[]).join('|')
   ]));
-  const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\\n');
   const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
   a.download = 'sellers_fraude_ssp30.csv'; a.click();
 }}
 function _copyShps(btn) {{
-  const ids = (btn.dataset.shps || '').split(',').filter(Boolean).join('\n');
+  const ids = (btn.dataset.shps || '').split(',').filter(Boolean).join('\\n');
   navigator.clipboard.writeText(ids).then(() => {{ btn.textContent = '✓ Copiado'; setTimeout(() => btn.textContent = '⎘ Copiar todos', 1500); }});
 }}
 var _selBuyerId = null;
@@ -6242,7 +6242,7 @@ function exportCSVSinistros() {{
     c.transportadora||'', c.placa||'', c.qtd_shp||'', c.bpp||'', c.recup_carga||'',
     c.relato||'', c.rua||'', c.bairro||'', c.natureza||''
   ])];
-  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
   a.download = 'sinistros_ssp30.csv'; a.click();
