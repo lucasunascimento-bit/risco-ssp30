@@ -474,41 +474,39 @@ LIMIT 5000
 """
 
 QUERY_BUYER_VELOCIDADE = f"""
--- Velocidade de fraude: pico de SHPs de fraude/perda por mes (escopo nacional)
-WITH sssp30_buyers AS (
-  -- Step 1: identifica receivers que tiveram SHP de fraude/perda na SSP30
-  SELECT DISTINCT
-    CAST(shp.SHP_RECEIVER_ID AS STRING) AS BUYER_ID
-  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
-  INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
-    ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = CAST(lp.SHIPMENT_ID AS STRING)
-  WHERE lp.SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-    AND lp.date_bpp >= '{ANO_INICIO}'
-    AND lp.date_bpp <= CURRENT_DATE()
-    AND lp.Classification_LM IN (
+-- Velocidade de fraude: buyers com pico de SHPs de fraude/perda na SSP30 por mês
+-- Mesmo padrão do CRUZAMENTO: filtra SSP30 primeiro (pequeno), depois join BT_SHP_SHIPMENTS
+WITH fraudes AS (
+  SELECT
+    CAST(SHIPMENT_ID AS STRING)         AS SHP_ID,
+    FORMAT_DATE('%Y-%m', date_bpp)      AS MES,
+    ROUND(BPP_CASHOUT_USD, 2)           AS BPP
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+    AND date_bpp >= '{ANO_INICIO}'
+    AND date_bpp <= CURRENT_DATE()
+    AND Classification_LM IN (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
       'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
     )
 ),
-historico_mensal AS (
-  -- Step 2: conta incidentes mensais para esses buyers em todo o Brasil
+com_buyer AS (
   SELECT
-    CAST(shp.SHP_RECEIVER_ID AS STRING)       AS BUYER_ID,
-    FORMAT_DATE('%Y-%m', lp.date_bpp)         AS MES,
-    COUNT(DISTINCT lp.SHIPMENT_ID)            AS FRAUDES_MES,
-    ROUND(SUM(lp.BPP_CASHOUT_USD), 2)        AS BPP_MES,
-    COUNT(DISTINCT lp.SHP_LG_FACILITY_NAME)  AS FACILITIES_MES
-  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
+    CAST(shp.SHP_RECEIVER_ID AS STRING) AS BUYER_ID,
+    f.MES,
+    f.SHP_ID,
+    f.BPP
+  FROM fraudes f
   INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` shp
-    ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = CAST(lp.SHIPMENT_ID AS STRING)
-  INNER JOIN sssp30_buyers sb
-    ON CAST(shp.SHP_RECEIVER_ID AS STRING) = sb.BUYER_ID
-  WHERE lp.date_bpp >= '{ANO_INICIO}'
-    AND lp.date_bpp <= CURRENT_DATE()
-    AND lp.Classification_LM IN (
-      'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
-    )
+    ON CAST(shp.SHP_SHIPMENT_ID AS STRING) = f.SHP_ID
+),
+mensal AS (
+  SELECT
+    BUYER_ID,
+    MES,
+    COUNT(DISTINCT SHP_ID)   AS FRAUDES_MES,
+    ROUND(SUM(BPP), 2)       AS BPP_MES
+  FROM com_buyer
   GROUP BY 1, 2
 )
 SELECT
@@ -519,12 +517,11 @@ SELECT
   MAX(BPP_MES)                                                  AS BPP_PICO_MES,
   COUNT(DISTINCT MES)                                           AS MESES_ATIVOS,
   MAX(MES)                                                      AS MES_PICO,
-  MAX(FACILITIES_MES)                                           AS MAX_FACILITIES,
   STRING_AGG(
     CONCAT(MES, ':', CAST(FRAUDES_MES AS STRING)),
     '|' ORDER BY MES
   )                                                             AS HISTORICO_MENSAL
-FROM historico_mensal
+FROM mensal
 GROUP BY 1
 HAVING SUM(FRAUDES_MES) >= 2
 ORDER BY BPP_TOTAL_USD DESC, PICO_FRAUDES_MES DESC
@@ -1224,7 +1221,6 @@ def processar_buyer_velocidade(df):
             'total_pedidos':    int(r.get('TOTAL_FRAUDES', 0) or 0),
             'meses_ativos':     int(r.get('MESES_ATIVOS', 0) or 0),
             'mes_pico':         str(r.get('MES_PICO', '') or ''),
-            'max_facilities':   int(r.get('MAX_FACILITIES', 0) or 0),
             'historico':        hist,
         })
     return rows
