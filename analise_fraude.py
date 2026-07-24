@@ -1089,6 +1089,7 @@ def processar_cruzamento(df):
                       for v in seller_map.values()], key=lambda x:-x['qtd'])
     buyers  = sorted([{**v,
                        'sellers':len(v['sellers']),
+                       'seller_ids':sorted(v['sellers'])[:10],
                        'drivers':sorted(v['drivers'])[:6],
                        'n_drivers':len(v['drivers']),
                        'driver_ids':sorted(v['drivers'])[:6]}
@@ -4310,7 +4311,7 @@ function _ofensStyleMetric(id, active) {{
 function setOfensView(v) {{
   console.log('[Ofensores] setOfensView:', v);
   _ofensView = v;
-  ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer','origem','dominio','ene_svc','driver_fraude','buyer_fraude','buyer_vel'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
+  ['ene','seller_devo','buyer_devo','ene_dam_seller','ene_dam_buyer','origem','dominio','ene_svc','buyer_fraude','buyer_vel'].forEach(id => _ofensStyleBtn('ofens-btn-' + id, id === v));
   const mt = document.getElementById('ofens-metric-toggle');
   if (mt) mt.style.display = v === 'ene' ? 'flex' : 'none';
   try {{
@@ -4459,8 +4460,80 @@ function _ofensENEService() {{
   }})).sort((a,b) => b.nao_entregue - a.nao_entregue);
 }}
 
+var _selBuyerId = null;
+function _renderBuyerFraude() {{
+  const list = document.getElementById('ofens-buyer-list');
+  if (!list) return;
+  const rows = CRZ_BUYERS_DATA.slice(0, 50);
+  list.innerHTML = rows.map((r, i) => {{
+    const risco = r.qtd >= 5 ? '#f87171' : r.qtd >= 3 ? '#fb923c' : '#fbbf24';
+    return `<div id="bl-${{r.buyer_id}}" onclick="_selectBuyer('${{r.buyer_id}}')"
+      style="padding:10px 14px;border-bottom:1px solid #1e293b;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s"
+      onmouseover="if('${{r.buyer_id}}'!==_selBuyerId)this.style.background='#0c1626'"
+      onmouseout="if('${{r.buyer_id}}'!==_selBuyerId)this.style.background=''">
+      <span style="color:#475569;font-size:10px;min-width:20px">${{i+1}}.</span>
+      <span style="color:#a78bfa;font-weight:700;font-family:monospace;flex:1;font-size:12px">${{r.buyer_id}}</span>
+      <span style="color:${{risco}};font-weight:700;font-size:13px">${{r.qtd}}</span>
+    </div>`;
+  }}).join('');
+  if (!_selBuyerId && rows.length) _selectBuyer(rows[0].buyer_id);
+}}
+function _selectBuyer(bid) {{
+  if (_selBuyerId) {{
+    const prev = document.getElementById('bl-' + _selBuyerId);
+    if (prev) prev.style.background = '';
+  }}
+  _selBuyerId = bid;
+  const el = document.getElementById('bl-' + bid);
+  if (el) el.style.background = '#0f1629';
+  const r = CRZ_BUYERS_DATA.find(x => x.buyer_id === bid);
+  if (!r) return;
+  const detail = document.getElementById('ofens-buyer-detail');
+  if (!detail) return;
+  const risco = r.qtd >= 5 ? '#f87171' : r.qtd >= 3 ? '#fb923c' : '#fbbf24';
+  const boLink = 'https://adminml.com/users/' + bid;
+  const selChips = (r.seller_ids || []).map(s =>
+    `<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:8px;background:#1c2030;color:#f59e0b;font-size:11px;font-family:monospace">${{s}}</span>`
+  ).join('');
+  const drvChips = (r.driver_ids || []).map(d =>
+    `<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:8px;background:#1c2030;color:#94a3b8;font-size:11px;font-family:monospace">${{d}}</span>`
+  ).join('');
+  detail.innerHTML = `
+    <div class="bt" style="margin-bottom:14px">
+      <a href="${{boLink}}" target="_blank" style="color:#a78bfa;text-decoration:none;font-family:monospace">Buyer ${{bid}} ↗</a>
+      <span onclick="navigator.clipboard.writeText('${{bid}}')" title="Copiar" style="margin-left:8px;cursor:pointer;color:#475569;font-size:11px">⎘</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:#060c1a;border-radius:8px;padding:12px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:4px">SHPs Fraude</div>
+        <div style="font-size:24px;font-weight:800;color:${{risco}}">${{r.qtd}}</div>
+      </div>
+      <div style="background:#060c1a;border-radius:8px;padding:12px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:4px">Sellers</div>
+        <div style="font-size:24px;font-weight:800;color:#f59e0b">${{r.sellers}}</div>
+      </div>
+      <div style="background:#060c1a;border-radius:8px;padding:12px">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:4px">Drivers</div>
+        <div style="font-size:24px;font-weight:800;color:#38bdf8">${{r.n_drivers}}</div>
+      </div>
+    </div>
+    ${{selChips ? '<div style="margin-bottom:12px"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sellers Envolvidos</div>' + selChips + '</div>' : ''}}
+    ${{drvChips ? '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Drivers Envolvidos</div>' + drvChips + '</div>' : ''}}
+  `;
+}}
+
 function renderOfensores() {{
   _updateOfensKPIs();
+  const _ng = document.getElementById('ofens-normal-grid');
+  const _bp = document.getElementById('ofens-buyer-panel');
+  if (_ofensView === 'buyer_fraude') {{
+    if (_ng) _ng.style.display = 'none';
+    if (_bp) _bp.style.display = '';
+    _renderBuyerFraude();
+    return;
+  }}
+  if (_ng) _ng.style.display = '';
+  if (_bp) _bp.style.display = 'none';
   let rows, labels, vals, title, metricLabel;
   const COLS = ['#6366f1','#fca311','#2a9d8f','#e76f51','#457b9d','#8172B3','#937860','#DD8452','#55A868','#C44E52'];
 
@@ -4500,16 +4573,6 @@ function renderOfensores() {{
     labels = rows.map(r => r.carrier);
     vals   = rows.map(r => r.nao_entregue);
     metricLabel = 'Não Entregue'; title = 'ENE Service — Carriers c/ Entrega Não Efetiva (por Transportadora)';
-  }} else if (_ofensView === 'driver_fraude') {{
-    rows = CRZ_DRIVERS_DATA.slice(0, 20);
-    labels = rows.map(r => 'Driver ' + (r.driver_id || '—'));
-    vals   = rows.map(r => r.qtd);
-    metricLabel = 'SHPs Fraude/Perda'; title = 'Drivers Ofensores — Motoristas em SHPs Fraude/Perda';
-  }} else if (_ofensView === 'buyer_fraude') {{
-    rows = CRZ_BUYERS_DATA.slice(0, 20);
-    labels = rows.map(r => 'Buyer ' + (r.buyer_id || '—'));
-    vals   = rows.map(r => r.qtd);
-    metricLabel = 'SHPs c/ Fraude'; title = 'Buyers Ofensores — Compradores em ≥2 SHPs Fraude/Perda';
   }} else if (_ofensView === 'buyer_vel') {{
     rows = BUYER_VEL_DATA.slice(0, 20);
     labels = rows.map(r => 'Buyer ' + (r.buyer_id || '—'));
@@ -4588,22 +4651,6 @@ function renderOfensores() {{
       <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">${{col2Label}}</th>
       <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Devoluções</th>
     </tr>`;
-  }} else if (_ofensView === 'driver_fraude') {{
-    if (thead) thead.innerHTML = `<tr>
-      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
-      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Driver ID</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">SHPs Fraude</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Sellers</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Buyers</th>
-    </tr>`;
-  }} else if (_ofensView === 'buyer_fraude') {{
-    if (thead) thead.innerHTML = `<tr>
-      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
-      <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Buyer ID</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">SHPs Fraude</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Sellers Distintos</th>
-      <th style="text-align:right;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Drivers Envolvidos</th>
-    </tr>`;
   }} else if (_ofensView === 'buyer_vel') {{
     if (thead) thead.innerHTML = `<tr>
       <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;width:28px">#</th>
@@ -4626,61 +4673,6 @@ function renderOfensores() {{
 
   const tbody = document.getElementById('ofens-tbody');
   if (!tbody) return;
-
-  // ── tbody Drivers Ofensores ──────────────────────────────────
-  if (_ofensView === 'driver_fraude') {{
-    const maxQtd = rows.length ? rows[0].qtd : 1;
-    tbody.innerHTML = rows.map((r, i) => {{
-      const barW = Math.round((r.qtd / maxQtd) * 100);
-      const risco = r.qtd >= 10 ? '#f87171' : r.qtd >= 5 ? '#fb923c' : '#fbbf24';
-      const driversEl = (r.sellers || []).slice(0,4).map(s =>
-        `<span style="display:inline-block;margin:2px 2px 0 0;padding:1px 6px;border-radius:8px;background:#1c2030;color:#64748b;font-size:10px;font-family:monospace">${{s}}</span>`
-      ).join('');
-      return `<tr style="border-bottom:1px solid #1e293b">
-        <td style="padding:8px 10px;color:#475569;font-size:11px">${{i+1}}</td>
-        <td style="padding:8px 10px">
-          <span style="color:#38bdf8;font-weight:700;font-family:monospace">${{r.driver_id}}</span>
-          <span style="color:#475569;font-size:10px;margin-left:6px;cursor:pointer" onclick="navigator.clipboard.writeText('${{r.driver_id}}')" title="Copiar">⎘</span>
-          <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:5px;width:140px">
-            <div style="height:3px;background:${{risco}};border-radius:2px;width:${{barW}}%"></div>
-          </div>
-          ${{driversEl ? '<div style="margin-top:4px">Sellers: ' + driversEl + '</div>' : ''}}
-        </td>
-        <td style="padding:8px 10px;text-align:right"><span style="color:${{risco}};font-weight:700">${{r.qtd}}</span></td>
-        <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.n_sellers || 0}}</td>
-        <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.n_buyers || 0}}</td>
-      </tr>`;
-    }}).join('');
-    return;
-  }}
-
-  // ── tbody Buyers Ofensores (Fraude) ──────────────────────────
-  if (_ofensView === 'buyer_fraude') {{
-    const maxQtd = rows.length ? rows[0].qtd : 1;
-    tbody.innerHTML = rows.map((r, i) => {{
-      const barW = Math.round((r.qtd / maxQtd) * 100);
-      const risco = r.qtd >= 5 ? '#f87171' : r.qtd >= 3 ? '#fb923c' : '#fbbf24';
-      const driverChips = (r.driver_ids || []).slice(0,4).map(d =>
-        `<span style="display:inline-block;margin:2px 2px 0 0;padding:1px 6px;border-radius:8px;background:#1c2030;color:#64748b;font-size:10px;font-family:monospace">${{d}}</span>`
-      ).join('');
-      const boLink = `https://adminml.com/users/${{r.buyer_id}}`;
-      return `<tr style="border-bottom:1px solid #1e293b">
-        <td style="padding:8px 10px;color:#475569;font-size:11px">${{i+1}}</td>
-        <td style="padding:8px 10px">
-          <a href="${{boLink}}" target="_blank" style="color:#a78bfa;font-weight:700;font-family:monospace;text-decoration:none">${{r.buyer_id}} ↗</a>
-          <span style="color:#475569;font-size:10px;margin-left:6px;cursor:pointer" onclick="navigator.clipboard.writeText('${{r.buyer_id}}')" title="Copiar">⎘</span>
-          <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:5px;width:140px">
-            <div style="height:3px;background:${{risco}};border-radius:2px;width:${{barW}}%"></div>
-          </div>
-          ${{driverChips ? '<div style="margin-top:4px">Drivers: ' + driverChips + '</div>' : ''}}
-        </td>
-        <td style="padding:8px 10px;text-align:right"><span style="color:${{risco}};font-weight:700">${{r.qtd}}</span></td>
-        <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.sellers || 0}}</td>
-        <td style="padding:8px 10px;text-align:right;color:#94a3b8">${{r.n_drivers || 0}}</td>
-      </tr>`;
-    }}).join('');
-    return;
-  }}
 
   // ── tbody Velocidade de Compra ───────────────────────────────
   if (_ofensView === 'buyer_vel') {{
@@ -4916,9 +4908,6 @@ lucide.createIcons();
     <button onclick="setOfensView('ene_svc')" id="ofens-btn-ene_svc" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
       <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>ENE Service
     </button>
-    <button onclick="setOfensView('driver_fraude')" id="ofens-btn-driver_fraude" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
-      <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>🚗 Drivers
-    </button>
     <button onclick="setOfensView('buyer_fraude')" id="ofens-btn-buyer_fraude" style="padding:11px 20px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
       <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span>🛒 Buyers Fraude
     </button>
@@ -4930,7 +4919,7 @@ lucide.createIcons();
     <button onclick="setOfensMetric('cashout')" id="ofens-metric-cashout" style="padding:6px 14px;border-radius:6px;border:none;background:#92400e;color:#fbbf24;font-size:11px;cursor:pointer;font-weight:600">↓ Cashout USD</button>
     <button onclick="setOfensMetric('qty')" id="ofens-metric-qty" style="padding:6px 14px;border-radius:6px;border:1px solid #334155;background:transparent;color:#64748b;font-size:11px;cursor:pointer;font-weight:600">↓ Qtd ENE</button>
   </div>
-  <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px">
+  <div id="ofens-normal-grid" style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px">
     <div class="box">
       <div class="bt" id="ofens-chart-title">Top 10 Sellers ENE por Cashout USD</div>
       <div style="position:relative;height:320px"><canvas id="ofens-chart"></canvas></div>
@@ -4946,6 +4935,18 @@ lucide.createIcons();
           </tr></thead>
           <tbody id="ofens-tbody"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+  <div id="ofens-buyer-panel" style="display:none">
+    <div style="display:grid;grid-template-columns:230px 1fr;gap:14px;align-items:start">
+      <div class="box" style="padding:0;overflow:hidden">
+        <div class="bt" style="padding:10px 14px;font-size:12px">🛒 Buyers c/ Fraude</div>
+        <div id="ofens-buyer-list" style="overflow-y:auto;max-height:430px"></div>
+      </div>
+      <div class="box" id="ofens-buyer-detail">
+        <div class="bt" style="color:#475569">Selecione um buyer</div>
+        <div style="color:#334155;font-size:13px;padding:20px 0">← Clique em um buyer para ver detalhes</div>
       </div>
     </div>
   </div>
