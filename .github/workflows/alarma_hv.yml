@@ -1,0 +1,35 @@
+name: Alarma HV SSP30 - Sorting
+
+on:
+  schedule:
+    # A cada 30 min durante horário de sorting (07h-20h BRT = 10h-23h UTC)
+    # Segunda a Sábado
+    - cron: '*/30 10-23 * * 1-6'
+  workflow_dispatch:           # Disparo manual pelo GitHub
+
+permissions:
+  contents: read
+
+jobs:
+  alarma-hv:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Configurar credenciais Google
+        run: |
+          mkdir -p ~/.config/gcloud
+          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > ~/.config/gcloud/application_default_credentials.json
+
+      - name: Rodar Alarma HV
+        run: python alarma_hv.py

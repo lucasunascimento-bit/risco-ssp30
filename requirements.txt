@@ -3,3 +3,4 @@ google-auth
 gspread
 pandas
 db-dtypes
+anthropic

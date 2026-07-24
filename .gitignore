@@ -17,3 +17,7 @@ ler_cabecalho.py
 
 # Cache BQ local
 _bq_cache/
+
+# Logs e temporários
+*.log
+_tmp_lines.txt

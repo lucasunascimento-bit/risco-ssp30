@@ -30,6 +30,8 @@ jobs:
           echo '${{ secrets.GOOGLE_CREDENTIALS }}' > ~/.config/gcloud/application_default_credentials.json
 
       - name: Rodar script de atualização
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python atualizacao_risco.py
 
       - name: Gerar dashboard HTML
