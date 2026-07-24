@@ -2438,9 +2438,11 @@ def gerar_html(d):
   <div class="sb-section-header">Análise</div>
   <div class="sb-item" data-tab="gmv" onclick="showTab('gmv',this)">
     <i data-lucide="dollar-sign" width="14" height="14" class="ci"></i> Top GMV
+    <span class="sb-badge">{len(d["top15"])}</span>
   </div>
   <div class="sb-item" data-tab="hist" onclick="showTab('hist',this)">
     <i data-lucide="clock" width="14" height="14" class="ci"></i> Histórico
+    <span class="sb-badge">{len(d["hist_todos"])}</span>
   </div>
 </nav>
 <main class="main-content">
