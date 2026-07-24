@@ -775,31 +775,50 @@ def gerar_analise_claude(stats_route, stats_way, cftv, stats_mensais):
     )
 
     try:
-        log.info("Gerando análise com Claude (claude-opus-4-8)...")
+        log.info("Gerando analise com Claude (claude-opus-4-8)...")
         client = anthropic.Anthropic(api_key=api_key)
+        # Normaliza para ASCII puro (remove acentos) para evitar UnicodeEncodeError
+        # no SDK/httpx — a analise retornada pelo modelo continua em portugues correto
+        import unicodedata
+        def _ascii(s):
+            return unicodedata.normalize('NFKD', str(s)).encode('ascii', 'ignore').decode('ascii')
+
+        contexto_ascii = (
+            f"ON ROUTE - {stats_route['total']} pacotes\n"
+            f"  Procurar Pacote: {sit(stats_route,'Procurar Pacote')} | Possivel Lost: {sit(stats_route,'Possivel Lost')}\n"
+            f"  Novos: +{stats_route['novos']} | Removidos: -{stats_route['removidos']} | Recuperados: {stats_route['recuperados']}\n"
+            f"  Top GMV: ${_ascii(stats_route['top_gmv'])}\n"
+            f"  CFTV: {cftv_r.get('sim',0)}/{cftv_r.get('total',0)}\n\n"
+            f"ON WAY - {stats_way['total']} pacotes\n"
+            f"  Possivel Lost: {sit(stats_way,'Possivel Lost')} | >=11 dias: {sit(stats_way,'>= 11 dias OW')} | <11 dias: {sit(stats_way,'< 11 dias OW')}\n"
+            f"  Novos: +{stats_way['novos']} | Removidos: -{stats_way['removidos']} | Recuperados: {stats_way['recuperados']}\n"
+            f"  Top GMV: ${_ascii(stats_way['top_gmv'])}\n"
+            f"  CFTV: {cftv_w.get('sim',0)}/{cftv_w.get('total',0)}\n\n"
+            f"Visibilidade {stats_mensais['mes']}:\n"
+            f"  Concluidos: {stats_mensais['concluidos_mes']} | Em andamento: {stats_mensais['em_andamento']}\n"
+            f"  Pendente: {stats_mensais['pendente']} | Sem acompanhamento: {stats_mensais['sem_acompanhamento']}"
+        )
+        prompt = (
+            "Voce e analista de Loss Prevention do SSP30 (MercadoLivre, Guarulhos). "
+            "Com base nos dados abaixo, escreva 2 a 3 frases de analise em portugues "
+            "destacando o ponto mais relevante do dia: tendencia de risco, pacotes criticos, "
+            "recuperos expressivos ou alertas. Seja direto e objetivo, sem titulos nem bullet points.\n\n"
+            + contexto_ascii
+        )
         resp = client.messages.create(
             model='claude-opus-4-8',
             max_tokens=1024,
-            thinking={'type': 'adaptive'},
-            messages=[{
-                'role': 'user',
-                'content': (
-                    "Você é analista de Loss Prevention do SSP30 (MercadoLivre, Guarulhos). "
-                    "Com base nos dados abaixo, escreva 2 a 3 frases de análise em português "
-                    "destacando o ponto mais relevante do dia: tendência de risco, pacotes críticos, "
-                    "recuperos expressivos ou alertas. Seja direto e objetivo, sem títulos nem bullet points.\n\n"
-                    f"{contexto}"
-                ),
-            }],
+            messages=[{'role': 'user', 'content': prompt}],
         )
         for block in resp.content:
-            if block.type == 'text':
+            if hasattr(block, 'text'):
                 texto = block.text.strip()
-                log.info("Análise IA gerada (%d chars)", len(texto))
+                log.info("Analise IA gerada (%d chars)", len(texto))
                 return texto
         return ''
     except Exception as e:
-        log.error("Falha na Claude API: %s", e)
+        import traceback as _tb
+        log.error("Falha na Claude API: %s\n%s", e, _tb.format_exc())
         return ''
 
 
