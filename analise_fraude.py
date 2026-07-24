@@ -2528,7 +2528,7 @@ def gerar_html(d):
   </div>
   <div class="sb-item" data-tab="cruzamento" onclick="showTab('cruzamento',this)">
     <i data-lucide="git-merge" width="14" height="14" class="ci"></i>
-    BSD <span class="sb-badge amber">{d["crz"]["total_pares"]}</span>
+    Cruzamento <span class="sb-badge amber">{d["crz"]["total_pares"]}</span>
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Relatórios</div>
@@ -3920,6 +3920,7 @@ function initSellersENE() {{
   filtrarSellersENE();
 }}
 initSellersENE();
+{{ const b = document.getElementById('tab-count-damaged-ene'); if (b) b.textContent = (DAMAGED_ENE_DATA.casos || []).length; }}
 
 function exportCSVSellersENE() {{
   const rows = [['Seller Nome','Seller ID','Qtd ENE','Cashout USD','Causas','Primeira','Última','Meses','SHP IDs']];
@@ -6379,7 +6380,7 @@ if __name__ == '__main__':
         _q_ene = f"""
             SELECT
               CUS_NICKNAME_SEL                                                AS seller_nome,
-              ''                                                              AS seller_id,
+              CAST(ANY_VALUE(CUS_ID_SEL) AS STRING)                          AS seller_id,
               COUNT(DISTINCT SHIPMENT_ID)                                     AS qtd_ene,
               ROUND(SUM(BPP_CASHOUT_USD), 2)                                  AS total_cashout,
               STRING_AGG(DISTINCT CLASSIFICATION_LM
