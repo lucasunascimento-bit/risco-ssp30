@@ -33,13 +33,13 @@
         "05/2026",
         "06/2026"
       ],
-      "n_pkgs": 22,
-      "total_bpp": 370.62,
+      "n_pkgs": 13,
+      "total_bpp": 271.21,
       "max_bpp": 55.92,
-      "residual": 314.7,
+      "residual": 215.29,
       "tipo": "outro",
-      "apto": true,
-      "motivo": "",
+      "apto": false,
+      "motivo": "Residual $215 abaixo de $300",
       "placa": "DCG5151",
       "data_solicitacao": "01/06/2026",
       "status_bl": "Inativo"
