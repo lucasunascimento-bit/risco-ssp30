@@ -12,35 +12,14 @@
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 19,
-      "total_bpp": 789.64,
+      "n_pkgs": 20,
+      "total_bpp": 805.25,
       "max_bpp": 296.74,
-      "residual": 492.9,
+      "residual": 508.51,
       "tipo": "outro",
       "apto": true,
       "motivo": "",
       "placa": "DCG4490",
-      "data_solicitacao": "01/06/2026",
-      "status_bl": "Inativo"
-    },
-    {
-      "id": "4554970",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "05/2026",
-        "06/2026"
-      ],
-      "n_pkgs": 13,
-      "total_bpp": 271.21,
-      "max_bpp": 55.92,
-      "residual": 215.29,
-      "tipo": "outro",
-      "apto": false,
-      "motivo": "Residual $215 abaixo de $300",
-      "placa": "DCG5151",
       "data_solicitacao": "01/06/2026",
       "status_bl": "Inativo"
     },
@@ -54,13 +33,13 @@
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 20,
-      "total_bpp": 252.54,
+      "n_pkgs": 21,
+      "total_bpp": 303.92,
       "max_bpp": 39.37,
-      "residual": 213.17,
-      "tipo": "lost_fraude",
+      "residual": 264.55,
+      "tipo": "outro",
       "apto": false,
-      "motivo": "Residual $213 abaixo de $300",
+      "motivo": "Residual $265 abaixo de $300",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
@@ -83,6 +62,27 @@
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
       "placa": "DCG0346",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4554970",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "05/2026",
+        "06/2026"
+      ],
+      "n_pkgs": 6,
+      "total_bpp": 70.88,
+      "max_bpp": 17.7,
+      "residual": 53.18,
+      "tipo": "outro",
+      "apto": false,
+      "motivo": "Residual $53 abaixo de $300",
+      "placa": "DCG5151",
       "data_solicitacao": "01/06/2026",
       "status_bl": "Inativo"
     },
@@ -127,27 +127,6 @@
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
-    },
-    {
-      "id": "3505508",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 2,
-      "total_bpp": 10.35,
-      "max_bpp": 6.24,
-      "residual": 4.11,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 2 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
     }
   ],
   "90": [
@@ -162,10 +141,10 @@
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 20,
-      "total_bpp": 813.41,
+      "n_pkgs": 21,
+      "total_bpp": 829.02,
       "max_bpp": 296.74,
-      "residual": 516.67,
+      "residual": 532.28,
       "tipo": "outro",
       "apto": true,
       "motivo": "",
@@ -216,28 +195,6 @@
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
-    },
-    {
-      "id": "3505508",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 27.98,
-      "max_bpp": 17.63,
-      "residual": 10.35,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
     }
   ],
   "180": [
@@ -277,10 +234,10 @@
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 20,
-      "total_bpp": 813.41,
+      "n_pkgs": 21,
+      "total_bpp": 829.02,
       "max_bpp": 296.74,
-      "residual": 516.67,
+      "residual": 532.28,
       "tipo": "outro",
       "apto": true,
       "motivo": "",
@@ -504,28 +461,6 @@
       "tipo": "outro",
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3505508",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 27.98,
-      "max_bpp": 17.63,
-      "residual": 10.35,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
