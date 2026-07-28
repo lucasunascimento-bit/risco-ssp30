@@ -155,6 +155,7 @@ def add_cors(response):
     response.headers['Access-Control-Allow-Origin']  = '*'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Private-Network'] = 'true'
     return response
 
 
@@ -428,29 +429,31 @@ def sinistros_add():
                 row[idx] = value
             except StopIteration:
                 pass
-        set_col('F',               payload.get('data', ''))
-        set_col('Data',            payload.get('data', ''))
-        set_col('Horario',         payload.get('horario', ''))
-        set_col('Rota',            payload.get('rota', ''))
-        set_col('Drive',           payload.get('id_driver', ''))
-        set_col('Nome Drive',      payload.get('nome', ''))
-        set_col('Placa',           payload.get('placa', ''))
-        set_col('Qtde Shp',        payload.get('qtd_total', ''))
-        set_col('Bpp Cashout Usd', payload.get('valor', ''))
-        set_col('Recup. Shp',      payload.get('qtd_rec', ''))
-        set_col('CEP',             payload.get('cep', ''))
-        set_col('Rua',             payload.get('local', ''))
-        set_col('MLP',             payload.get('transp', ''))
-        set_col('Veículo',         payload.get('veiculo', ''))
-        set_col('Bairro ',         payload.get('bairro', ''))
-        set_col('Cidade ',         payload.get('cidade', ''))
-        set_col('CLUSTER',         payload.get('cluster', ''))
-        set_col('Natureza do evento', payload.get('natureza', ''))
-        set_col('TIPO 2',          payload.get('natureza', ''))
-        set_col('MODUS OPERANDI',  payload.get('modus', ''))
-        set_col('Boletim de ocorrência', payload.get('boletim', ''))
-        set_col('Link boletim',    payload.get('link_bo', ''))
-        set_col('Relato',          payload.get('relato', ''))
+        # Colunas conforme estrutura real da aba "Eventos SVC"
+        set_col('F',                    payload.get('data', ''))       # A: data
+        set_col('Horario',              payload.get('horario', ''))    # B
+        set_col('Rota',                 payload.get('rota', ''))       # F
+        set_col('Drive',                payload.get('id_driver', ''))  # G
+        set_col('Nome Drive',           payload.get('nome', ''))       # H
+        set_col('Placa',                payload.get('placa', ''))      # M
+        set_col('TIPO 2',               payload.get('tipo2', ''))      # O: Sinistro/Tentativa
+        set_col('Qtde Shp',             payload.get('qtd_total', ''))  # V
+        set_col('Bpp Cashout Usd',      payload.get('valor', ''))      # W
+        set_col('Recup. da Carga?',     payload.get('recup_carga', ''))# Y: Sim/Não
+        set_col('Recup. Shp',           payload.get('qtd_rec', ''))    # Z
+        set_col('Recup. Cashout Usd',   payload.get('recup_bpp', ''))  # AA
+        set_col('Cidade ',              payload.get('cidade', ''))      # AB
+        set_col('Bairro ',              payload.get('bairro', ''))      # AD
+        set_col('CEP',                  payload.get('cep', ''))         # AE
+        set_col('CLUSTER',              payload.get('cluster', ''))     # AF
+        set_col('Rua',                  payload.get('local', ''))       # AH
+        set_col('MLP',                  payload.get('transp', ''))      # AJ
+        set_col('Veículo',              payload.get('veiculo', ''))     # AK
+        set_col('Natureza do evento',   payload.get('natureza', ''))    # AR
+        set_col('MODUS OPERANDI',       payload.get('modus', ''))       # AS
+        set_col('Boletim de ocorrência',payload.get('boletim', ''))     # AU
+        set_col('Link boletim',         payload.get('link_bo', ''))     # AV
+        set_col('Relato',               payload.get('relato', ''))      # AW
         ws.append_row(row, value_input_option='USER_ENTERED')
         return jsonify({'ok': True})
     except Exception as e:

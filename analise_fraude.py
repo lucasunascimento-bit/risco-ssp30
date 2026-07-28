@@ -6010,6 +6010,12 @@ def gerar_sinistros_html(dados):
         <input id="sf-cidade" type="text" placeholder="Auto-preenchido via CEP" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Cluster</label>
         <input id="sf-cluster" type="text" placeholder="Auto-preenchido via CEP" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Tipo (TIPO 2)</label>
+        <select id="sf-tipo2" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
+          <option value="">Selecione...</option>
+          <option>Sinistro</option>
+          <option>Tentativa</option>
+        </select></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Natureza do Evento</label>
         <select id="sf-natureza" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
           <option value="">Selecione...</option>
@@ -6019,6 +6025,14 @@ def gerar_sinistros_html(dados):
           <option>Dano</option>
           <option>Outros</option>
         </select></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Recuperou a Carga?</label>
+        <select id="sf-recup-carga" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
+          <option value="">Selecione...</option>
+          <option>Sim</option>
+          <option>Não</option>
+        </select></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Valor Recuperado (USD)</label>
+        <input id="sf-recup-bpp" type="text" placeholder="Ex: 0" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Boletim de Ocorrência</label>
         <select id="sf-boletim" onchange="toggleLinkBO()" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
           <option value="">Selecione...</option>
@@ -6287,27 +6301,30 @@ async function salvarSinistro() {{
   btn.disabled = true; btn.textContent = 'Salvando...';
   msg.textContent = '';
   const payload = {{
-    data:      document.getElementById('sf-data').value.trim(),
-    horario:   document.getElementById('sf-horario').value.trim(),
-    transp:    document.getElementById('sf-transp').value.trim(),
-    rota:      document.getElementById('sf-rota').value.trim(),
-    id_driver: document.getElementById('sf-id-driver').value.trim(),
-    nome:      document.getElementById('sf-nome').value.trim(),
-    placa:     document.getElementById('sf-placa').value.trim(),
-    veiculo:   document.getElementById('sf-veiculo').value.trim(),
-    qtd_total: document.getElementById('sf-qtd-total').value.trim(),
-    qtd_rec:   document.getElementById('sf-qtd-rec').value.trim(),
-    valor:     document.getElementById('sf-valor').value.trim(),
-    cep:       document.getElementById('sf-cep').value.trim(),
-    bairro:    document.getElementById('sf-bairro').value.trim(),
-    cidade:    document.getElementById('sf-cidade').value.trim(),
-    cluster:   document.getElementById('sf-cluster').value.trim(),
-    local:     document.getElementById('sf-local').value.trim(),
-    natureza:  document.getElementById('sf-natureza').value.trim(),
-    modus:     document.getElementById('sf-modus').value.trim(),
-    boletim:   document.getElementById('sf-boletim').value.trim(),
-    link_bo:   document.getElementById('sf-link-bo').value.trim(),
-    relato:    document.getElementById('sf-relato').value.trim(),
+    data:         document.getElementById('sf-data').value.trim(),
+    horario:      document.getElementById('sf-horario').value.trim(),
+    transp:       document.getElementById('sf-transp').value.trim(),
+    rota:         document.getElementById('sf-rota').value.trim(),
+    id_driver:    document.getElementById('sf-id-driver').value.trim(),
+    nome:         document.getElementById('sf-nome').value.trim(),
+    placa:        document.getElementById('sf-placa').value.trim(),
+    veiculo:      document.getElementById('sf-veiculo').value.trim(),
+    tipo2:        document.getElementById('sf-tipo2').value.trim(),
+    qtd_total:    document.getElementById('sf-qtd-total').value.trim(),
+    qtd_rec:      document.getElementById('sf-qtd-rec').value.trim(),
+    valor:        document.getElementById('sf-valor').value.trim(),
+    recup_carga:  document.getElementById('sf-recup-carga').value.trim(),
+    recup_bpp:    document.getElementById('sf-recup-bpp').value.trim(),
+    cep:          document.getElementById('sf-cep').value.trim(),
+    bairro:       document.getElementById('sf-bairro').value.trim(),
+    cidade:       document.getElementById('sf-cidade').value.trim(),
+    cluster:      document.getElementById('sf-cluster').value.trim(),
+    local:        document.getElementById('sf-local').value.trim(),
+    natureza:     document.getElementById('sf-natureza').value.trim(),
+    modus:        document.getElementById('sf-modus').value.trim(),
+    boletim:      document.getElementById('sf-boletim').value.trim(),
+    link_bo:      document.getElementById('sf-link-bo').value.trim(),
+    relato:       document.getElementById('sf-relato').value.trim(),
   }};
   try {{
     const r = await fetch('http://localhost:5000/sinistros/add', {{
@@ -6327,12 +6344,12 @@ async function salvarSinistro() {{
         driver_id:     payload.id_driver,
         nome:          payload.nome,
         placa:         payload.placa,
-        tipo:          payload.natureza || 'Sinistro',
+        tipo:          payload.tipo2 || payload.natureza || 'Sinistro',
         qtd_shp:       payload.qtd_total,
         bpp:           bppNum,
-        recup_carga:   '',
+        recup_carga:   payload.recup_carga,
         recup_shp:     payload.qtd_rec,
-        recup_bpp:     0,
+        recup_bpp:     parseFloat((payload.recup_bpp||'0').replace(/[$\s,]/g,'')) || 0,
         cep:           payload.cep,
         rua:           payload.local,
         bairro:        payload.bairro,
