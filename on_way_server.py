@@ -92,6 +92,34 @@ _CACHE_TTL = 600  # 10 minutos — reler planilha se edição direta no Sheets
 _cache_diario     = None
 _cache_diario_dia = None   # date string quando o cache foi construído
 
+# ─── Cache BPP para auto-preenchimento de sinistros ───────────────
+_bpp_rows   = []   # linhas de dados da aba BPP (sem cabeçalho)
+_bpp_header = {}   # nome_coluna → índice
+_bpp_loaded = False
+
+def _parse_usd(val):
+    """Converte '$1,234.56' ou '13' para float."""
+    v = (val or '').strip().replace('$', '').replace(',', '')
+    try:
+        return float(v)
+    except Exception:
+        return 0.0
+
+def _load_bpp_cache():
+    global _bpp_rows, _bpp_header, _bpp_loaded
+    try:
+        creds, _ = default(scopes=['https://www.googleapis.com/auth/spreadsheets'])
+        gc = gspread.authorize(creds)
+        ws = gc.open_by_key(SINISTRO_SHEET_ID).worksheet('BPP')
+        all_vals = ws.get_all_values()
+        if all_vals:
+            _bpp_header = {h.strip(): i for i, h in enumerate(all_vals[0])}
+            _bpp_rows   = all_vals[1:]
+            _bpp_loaded = True
+            print(f'[BPP cache] {len(_bpp_rows)} linhas carregadas')
+    except Exception as e:
+        print(f'[BPP cache] Erro ao carregar: {e}')
+
 
 def get_cache_diario():
     global _cache_diario, _cache_diario_dia
@@ -412,6 +440,55 @@ def diario_delete_extra():
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 
+@app.route('/sinistros/rota-info')
+def sinistros_rota_info():
+    rota_id = request.args.get('rota', '').strip()
+    if not rota_id:
+        return jsonify({'ok': False, 'error': 'rota obrigatório'})
+    if not _bpp_loaded:
+        _load_bpp_cache()
+    if not _bpp_rows:
+        return jsonify({'ok': False, 'error': 'BPP cache vazio — reinicie o servidor'})
+
+    ri = _bpp_header.get('Rota', -1)
+    bi = _bpp_header.get('Bpp Cashout Usd', -1)
+    ci = _bpp_header.get('Causa BPP', -1)
+    mi = _bpp_header.get('MLP', -1)
+
+    if ri < 0 or bi < 0:
+        return jsonify({'ok': False, 'error': 'Colunas Rota/Bpp não encontradas'})
+
+    matching = [r for r in _bpp_rows if len(r) > ri and r[ri].strip() == rota_id]
+    if not matching:
+        return jsonify({'ok': True, 'found': 0, 'qtd_shp': 0, 'bpp_valor': 0.0, 'rota_total': 0.0, 'mlp': ''})
+
+    stolen     = [r for r in matching if ci >= 0 and len(r) > ci and 'stolen' in r[ci].lower()]
+    qtd_shp    = len(stolen)
+    bpp_valor  = sum(_parse_usd(r[bi]) for r in stolen if len(r) > bi)
+    rota_total = sum(_parse_usd(r[bi]) for r in matching if len(r) > bi)
+    mlp        = (matching[0][mi] if mi >= 0 and len(matching[0]) > mi else '') or ''
+
+    return jsonify({
+        'ok':        True,
+        'found':     len(matching),
+        'qtd_shp':   qtd_shp,
+        'bpp_valor':  round(bpp_valor,  2),
+        'rota_total': round(rota_total, 2),
+        'mlp':       mlp,
+    })
+
+
+@app.route('/sinistros/bpp-reload', methods=['POST', 'OPTIONS'])
+def sinistros_bpp_reload():
+    """Força recarga do cache BPP (útil após atualização da planilha)."""
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True})
+    global _bpp_loaded
+    _bpp_loaded = False
+    _load_bpp_cache()
+    return jsonify({'ok': True, 'rows': len(_bpp_rows)})
+
+
 @app.route('/sinistros/add', methods=['POST', 'OPTIONS'])
 def sinistros_add():
     if request.method == 'OPTIONS':
@@ -437,15 +514,17 @@ def sinistros_add():
         set_col('Nome Drive',           payload.get('nome', ''))       # H
         set_col('Placa',                payload.get('placa', ''))      # M
         set_col('TIPO 2',               payload.get('tipo2', ''))      # O: Sinistro/Tentativa
-        set_col('Qtde Shp',             payload.get('qtd_total', ''))  # V
-        set_col('Bpp Cashout Usd',      payload.get('valor', ''))      # W
-        set_col('Recup. da Carga?',     payload.get('recup_carga', ''))# Y: Sim/Não
-        set_col('Recup. Shp',           payload.get('qtd_rec', ''))    # Z
-        set_col('Recup. Cashout Usd',   payload.get('recup_bpp', ''))  # AA
-        set_col('Cidade ',              payload.get('cidade', ''))      # AB
-        set_col('Bairro ',              payload.get('bairro', ''))      # AD
-        set_col('CEP',                  payload.get('cep', ''))         # AE
-        set_col('CLUSTER',              payload.get('cluster', ''))     # AF
+        set_col('Qtde Shp',             payload.get('qtd_total', ''))   # V
+        set_col('Bpp Cashout Usd',      payload.get('valor', ''))       # W
+        set_col('$Rota',                payload.get('rota_total', ''))  # X
+        set_col('Recup. da Carga?',     payload.get('recup_carga', '')) # Y
+        set_col('Recup. Shp',           payload.get('qtd_rec', ''))     # Z
+        set_col('Recup. Cashout Usd',   payload.get('recup_bpp', ''))   # AA
+        set_col('Cidade ',              payload.get('cidade', ''))       # AB
+        set_col('Distrito',             payload.get('distrito', ''))     # AC
+        set_col('Bairro ',              payload.get('bairro', ''))       # AD
+        set_col('CEP',                  payload.get('cep', ''))          # AE
+        set_col('CLUSTER',              payload.get('cluster', ''))      # AF
         set_col('Rua',                  payload.get('local', ''))       # AH
         set_col('MLP',                  payload.get('transp', ''))      # AJ
         set_col('Veículo',              payload.get('veiculo', ''))     # AK

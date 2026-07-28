@@ -251,8 +251,9 @@ Para faz...</td></tr><tr style="border-top:1px solid #111827"><td style="padding
         <input id="sf-horario" type="text" placeholder="HH:MM" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Transportadora (MLP)</label>
         <input id="sf-transp" type="text" placeholder="Ex: BR LOGISTICS" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
-      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Rota <span style="color:#f59e0b;font-size:9px">(só o número)</span></label>
-        <input id="sf-rota" type="text" placeholder="Ex: 396250478" oninput="sanitizarRota(this)" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Rota <span style="color:#f59e0b;font-size:9px">(só o número)</span> <span id="sf-rota-spin" style="display:none;color:#60a5fa;font-size:9px">⟳ buscando...</span></label>
+        <input id="sf-rota" type="text" placeholder="Ex: 396250478" oninput="sanitizarRota(this)" onblur="buscarInfoRota(this.value)" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
+        <span id="sf-rota-status" style="font-size:9px;color:#6b7280;margin-top:2px;display:block"></span></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">ID do Driver <span style="color:#f59e0b;font-size:9px">(Looker)</span></label>
         <input id="sf-id-driver" type="text" placeholder="Ex: 3416578" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Nome do Driver</label>
@@ -261,19 +262,23 @@ Para faz...</td></tr><tr style="border-top:1px solid #111827"><td style="padding
         <input id="sf-placa" type="text" placeholder="Ex: BJK5A49" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Veículo</label>
         <input id="sf-veiculo" type="text" placeholder="Ex: FURGÃO" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
-      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Qtd Total de Embalagens</label>
-        <input id="sf-qtd-total" type="text" placeholder="Ex: 22" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Qtde SHP Sinistrados <span style="color:#60a5fa;font-size:9px">auto via Rota</span></label>
+        <input id="sf-qtd-total" type="text" placeholder="Auto-preenchido via Rota" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Qtd Recuperada</label>
         <input id="sf-qtd-rec" type="text" placeholder="Ex: 0" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
-      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Valor do Sinistro (BPP)</label>
-        <input id="sf-valor" type="text" placeholder="Ex: $405.43" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">BPP Sinistrado (W) <span style="color:#60a5fa;font-size:9px">auto via Rota</span></label>
+        <input id="sf-valor" type="text" placeholder="Auto-preenchido via Rota" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">$Rota — Total (X) <span style="color:#60a5fa;font-size:9px">auto via Rota</span></label>
+        <input id="sf-rota-total" type="text" placeholder="Auto-preenchido via Rota" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">CEP <span id="sf-cep-spin" style="display:none;color:#60a5fa">⟳</span></label>
         <input id="sf-cep" type="text" placeholder="Ex: 02533010" oninput="buscarCEP(this.value)" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
-      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Bairro</label>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Bairro <span style="color:#60a5fa;font-size:9px">auto via CEP</span></label>
         <input id="sf-bairro" type="text" placeholder="Auto-preenchido via CEP" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
-      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Cidade</label>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Cidade <span style="color:#60a5fa;font-size:9px">auto via CEP</span></label>
         <input id="sf-cidade" type="text" placeholder="Auto-preenchido via CEP" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
-      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Cluster</label>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Distrito/UF <span style="color:#60a5fa;font-size:9px">auto via CEP</span></label>
+        <input id="sf-distrito" type="text" placeholder="Auto-preenchido via CEP" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
+      <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Cluster <span style="color:#60a5fa;font-size:9px">auto via CEP</span></label>
         <input id="sf-cluster" type="text" placeholder="Auto-preenchido via CEP" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px"></div>
       <div><label style="font-size:10px;color:#6b7280;display:block;margin-bottom:4px">Tipo (TIPO 2) <span style="color:#f87171;font-size:9px">★ obrigatório</span></label>
         <select id="sf-tipo2" style="width:100%;background:#060a14;border:1px solid #374151;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px">
@@ -390,8 +395,9 @@ async function buscarCEP(rawCep) {
     const r = await fetch('https://viacep.com.br/ws/' + cep + '/json/', {signal: AbortSignal.timeout(5000)});
     const d = await r.json();
     if (!d.erro) {
-      if (d.bairro) { document.getElementById('sf-bairro').value = d.bairro; preenchido = true; }
-      if (d.localidade) { document.getElementById('sf-cidade').value = d.localidade; preenchido = true; }
+      if (d.bairro)    { document.getElementById('sf-bairro').value   = d.bairro;    preenchido = true; }
+      if (d.localidade){ document.getElementById('sf-cidade').value   = d.localidade; preenchido = true; }
+      if (d.uf)          document.getElementById('sf-distrito').value = d.uf;
       if (d.logradouro && !document.getElementById('sf-local').value)
         document.getElementById('sf-local').value = d.logradouro;
     }
@@ -405,6 +411,36 @@ async function buscarCEP(rawCep) {
       if (cidadeEl && !cidadeEl.value) cidadeEl.placeholder = 'Digite manualmente';
     }
   }
+}
+
+async function buscarInfoRota(rawRota) {
+  const rota = rawRota.includes('·') ? rawRota.replace(/^[^·]*·\s*#?/, '').trim() : rawRota.trim();
+  if (!rota || rota.length < 5) return;
+  const spin   = document.getElementById('sf-rota-spin');
+  const status = document.getElementById('sf-rota-status');
+  if (spin) spin.style.display = 'inline';
+  if (status) { status.textContent = ''; status.style.color = '#6b7280'; }
+  try {
+    const r = await fetch('http://localhost:5000/sinistros/rota-info?rota=' + encodeURIComponent(rota),
+                          {signal: AbortSignal.timeout(15000)});
+    const d = await r.json();
+    if (d.ok && d.found > 0) {
+      const fmt = v => v ? '$' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+      document.getElementById('sf-qtd-total').value   = d.qtd_shp   || '';
+      document.getElementById('sf-valor').value        = fmt(d.bpp_valor);
+      document.getElementById('sf-rota-total').value   = fmt(d.rota_total);
+      if (d.mlp && !document.getElementById('sf-transp').value)
+        document.getElementById('sf-transp').value = d.mlp;
+      if (status) { status.textContent = `✓ ${d.found} SHPs na aba BPP — ${d.qtd_shp} stolen`; status.style.color = '#4ade80'; }
+    } else if (d.ok) {
+      if (status) { status.textContent = 'Rota não encontrada na aba BPP — preencha manualmente'; status.style.color = '#f59e0b'; }
+    } else {
+      if (status) { status.textContent = d.error || 'Erro na busca'; status.style.color = '#f87171'; }
+    }
+  } catch(e) {
+    if (status) { status.textContent = 'Servidor offline — preencha V, W, X manualmente'; status.style.color = '#f87171'; }
+  }
+  if (spin) spin.style.display = 'none';
 }
 
 function parsearSinistro() {
@@ -453,6 +489,7 @@ function parsearSinistro() {
   sv('sf-cep',       fld.cep);
   sv('sf-bairro',    fld.bairro);
   sv('sf-cidade',    fld.cidade);
+  sv('sf-distrito',  fld.distrito);
   sv('sf-tipo2',     fld.tipo2);
   sv('sf-natureza',  fld.natureza);
   sv('sf-modus',     fld.modus);
@@ -591,9 +628,11 @@ async function salvarSinistro() {
     qtd_total:   document.getElementById('sf-qtd-total').value.trim(),
     qtd_rec:     document.getElementById('sf-qtd-rec').value.trim(),
     valor:       document.getElementById('sf-valor').value.trim(),
+    rota_total:  document.getElementById('sf-rota-total').value.trim(),
     cep:         document.getElementById('sf-cep').value.trim(),
     bairro:      document.getElementById('sf-bairro').value.trim(),
     cidade:      document.getElementById('sf-cidade').value.trim(),
+    distrito:    document.getElementById('sf-distrito').value.trim(),
     cluster:     document.getElementById('sf-cluster').value.trim(),
     local:       document.getElementById('sf-local').value.trim(),
     tipo2:       document.getElementById('sf-tipo2').value.trim(),
