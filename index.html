@@ -188,6 +188,53 @@
   .db-modal{background:#111827;border:1px solid #374151;border-radius:10px;padding:20px;width:360px;max-width:95vw}
   .db-modal-inp{width:100%;padding:7px 10px;background:#1f2937;border:1px solid #374151;border-radius:6px;color:#F9FAFB;font-size:13px;margin-bottom:8px;box-sizing:border-box}
   .db-modal-inp:focus{outline:none;border-color:#10B981}
+  /* ===== KANBAN BOARD ===== */
+  .kb-wrap{display:none}.kb-wrap.active{display:block}
+  .kb-tbl-scroll.kb-hidden{display:none}
+  .kb-toggle{float:right;font-size:10px;padding:2px 8px;border:1px solid #374151;border-radius:4px;background:#111827;color:#6b7280;cursor:pointer;margin-left:8px;font-weight:500}
+  .kb-toggle:hover{background:#1f2937;color:#e5e7eb}
+  .kb-board{display:flex;gap:10px;padding:12px 0 4px;overflow-x:auto;min-height:200px}
+  .kb-col{flex:0 0 210px;display:flex;flex-direction:column;gap:8px}
+  .kb-col-head{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:6px;margin-bottom:2px}
+  .kb-col-head.ks{background:#1f0a0a;border:1px solid #4a1010}
+  .kb-col-head.ka{background:#1a1408;border:1px solid #4a3808}
+  .kb-col-head.kp{background:#0a1020;border:1px solid #1a305a}
+  .kb-col-head.kc{background:#0a1a0a;border:1px solid #1a4a1a}
+  .kb-col-name{font-size:11px;font-weight:600}
+  .kb-col-head.ks .kb-col-name{color:#ef4444}
+  .kb-col-head.ka .kb-col-name{color:#eab308}
+  .kb-col-head.kp .kb-col-name{color:#60a5fa}
+  .kb-col-head.kc .kb-col-name{color:#4ade80}
+  .kb-col-count{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700}
+  .kb-col-head.ks .kb-col-count{background:rgba(239,68,68,.15);color:#ef4444}
+  .kb-col-head.ka .kb-col-count{background:rgba(234,179,8,.15);color:#eab308}
+  .kb-col-head.kp .kb-col-count{background:rgba(96,165,250,.15);color:#60a5fa}
+  .kb-col-head.kc .kb-col-count{background:rgba(74,222,128,.15);color:#4ade80}
+  .kb-card{background:#0d1526;border:1px solid #1f2937;border-radius:8px;padding:10px 12px;transition:border-color .15s}
+  .kb-card:hover{border-color:#374151}
+  .kb-card.bs{border-left:3px solid #ef4444}
+  .kb-card.ba{border-left:3px solid #eab308}
+  .kb-card.bp{border-left:3px solid #60a5fa}
+  .kb-card.bc{border-left:3px solid #4ade80;opacity:.75}
+  .kb-id{font-size:11px;color:#60a5fa;font-weight:600;font-family:monospace;text-decoration:none}
+  .kb-id:hover{color:#93c5fd}
+  .kb-gmv{font-size:15px;font-weight:700;color:#10b981;margin:3px 0 4px}
+  .kb-desc{font-size:10px;color:#4b5563;line-height:1.4;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kb-tags{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+  .kb-t{font-size:10px;padding:2px 6px;border-radius:4px}
+  .kb-t.hot{background:#2a0a0a;color:#ef4444}
+  .kb-t.mid{background:#1a1408;color:#eab308}
+  .kb-t.ok{background:#0a1a0a;color:#4ade80}
+  .kb-t.pp{background:#7c3c14;color:#fdba74}
+  .kb-t.pl{background:#7f1d1d;color:#fca5a5}
+  .kb-t.ow{background:#1e3a5f;color:#93c5fd}
+  .kb-t.owp{background:#1a1408;color:#fbbf24}
+  .kb-t.mlp{background:#1a1a2a;color:#818cf8}
+  .kb-acao{font-size:10px;color:#6b7280;margin:4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kb-acao b{color:#d1d5db;font-weight:500}
+  .kb-ssel{font-size:10px;background:#1f2937;border:1px solid #374151;color:#9ca3af;border-radius:4px;padding:2px 4px;margin-top:6px;width:100%;cursor:pointer}
+  .kb-ssel:hover{border-color:#6b7280}
+  .kb-empty{padding:16px;text-align:center;color:#374151;font-size:11px;border:1px dashed #1f2937;border-radius:8px}
 </style>
 </head>
 <body>
@@ -935,9 +982,10 @@ document.addEventListener('DOMContentLoaded', function() { renderBrfWeek('W31/20
   <div class="tbl-wrap">
     <div class="tbl-title">📦 Pacotes ON ROUTE — ordenados por GMV
       <span id="rt-server-status" style="float:right;font-size:10px;font-weight:400;color:#6b7280">verificando servidor...</span>
+      <button class="kb-toggle" id="kb-toggle-route" onclick="toggleKbView('route')">☰ Tabela</button>
     </div>
-    
-    
+
+
     <div class="filter-bar">
       <input type="text" id="busca_route" placeholder="🔍 Buscar por SHP ID ou responsável..."
              oninput="filtrar('route')" class="filter-input">
@@ -953,7 +1001,8 @@ document.addEventListener('DOMContentLoaded', function() { renderBrfWeek('W31/20
       </select>
       <button onclick="exportCSV('route', 'ssp30_route.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>
-    <div class="tbl-scroll">
+    <div id="kb-board-route" class="kb-wrap active"></div>
+    <div class="kb-tbl-scroll kb-hidden" id="kb-tbl-route"><div class="tbl-scroll">
     <table id="tbl_route">
       <thead><tr>
         <th class="sortable" onclick="sortTable('tbl_route',0)">SHP ID</th>
@@ -1531,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', function() { renderBrfWeek('W31/20
             <td><div class="ow-edit-wrap"><div class="ow-fake-sel"><span class="ow-fake-val">— Cobrar OTR —</span><span style="color:#6b7280;font-size:13px;flex-shrink:0">⌄</span><select class="ow-edit ow-real-sel" data-shp="47482253195" data-tab="rt" data-col="33" onchange="owSalvarSelect(this)" title="Salva automaticamente"><option value=""selected>— Cobrar OTR —</option><option value="Aguardando Retorno">Aguardando Retorno</option><option value="Cobrado">Cobrado</option><option value="Sem Retorno">Sem Retorno</option></select></div></div></td>
         </tr></tbody>
     </table>
-    </div>
+    </div></div>
   </div>
 </div>
 
@@ -1548,9 +1597,10 @@ document.addEventListener('DOMContentLoaded', function() { renderBrfWeek('W31/20
   <div class="tbl-wrap">
     <div class="tbl-title">🚛 Pacotes ON WAY — ordenados por GMV
       <span id="ow-server-status" style="float:right;font-size:10px;font-weight:400;color:#6b7280">verificando servidor...</span>
+      <button class="kb-toggle" id="kb-toggle-way" onclick="toggleKbView('way')">☰ Tabela</button>
     </div>
-    
-    
+
+
     <div class="filter-bar">
       <input type="text" id="busca_way" placeholder="🔍 Buscar por SHP ID ou responsável..."
              oninput="filtrar('way')" class="filter-input">
@@ -1566,7 +1616,8 @@ document.addEventListener('DOMContentLoaded', function() { renderBrfWeek('W31/20
       </select>
       <button onclick="exportCSV('way', 'ssp30_way.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>
-    <div class="tbl-scroll">
+    <div id="kb-board-way" class="kb-wrap active"></div>
+    <div class="kb-tbl-scroll kb-hidden" id="kb-tbl-way"><div class="tbl-scroll">
     <table id="tbl_way">
       <thead><tr>
         <th class="sortable" onclick="sortTable('tbl_way',0)">SHP ID</th>
@@ -19646,7 +19697,7 @@ document.addEventListener('DOMContentLoaded', function() { renderBrfWeek('W31/20
             <td style="font-size:11px;color:#9CA3AF">Seguiu fluxo correto</td>
         </tr></tbody>
     </table>
-    </div>
+    </div></div>
   </div>
 </div>
 
@@ -31276,7 +31327,7 @@ function showTab(name, el) {
   el.classList.add('active');
   history.replaceState(null, '', '#' + name);
   if (name === 'places') initPlCharts();
-  if (name === 'way' || name === 'route') carregarValoresOW();
+  if (name === 'way' || name === 'route') { carregarValoresOW(); setTimeout(() => buildKanban(name), 120); }
 }
 
 // Abre aba pelo hash da URL (ex: #criticos)
@@ -31287,6 +31338,8 @@ window.addEventListener('load', () => {
     if (el) showTab(hash, el);
   }
   if (!hash || hash === 'way' || hash === 'route') carregarValoresOW();
+  if (!hash || hash === 'route') setTimeout(() => buildKanban('route'), 200);
+  if (hash === 'way') setTimeout(() => buildKanban('way'), 200);
 });
 
 // Navega para uma aba ao clicar num card
@@ -31468,6 +31521,105 @@ function filtrar(tabId) {
     const matchStatus = !status || st.includes(status);
     tr.style.display = (matchBusca && matchSit && matchStatus) ? '' : 'none';
   });
+  if (tabId === 'route' || tabId === 'way') {
+    const board = document.getElementById('kb-board-' + tabId);
+    if (board && board.classList.contains('active')) buildKanban(tabId);
+  }
+}
+
+// ===== KANBAN =====
+function buildKanban(tabId) {
+  const container = document.getElementById('kb-board-' + tabId);
+  if (!container || !container.classList.contains('active')) return;
+  const statusMap = { '': 'sem', 'sem acompanhamento': 'sem', 'em andamento': 'and', 'pendente': 'pend', 'concluído': 'conc', 'concluido': 'conc' };
+  const cols = [
+    { key:'sem',  label:'Sem ação',     cls:'ks', bcls:'bs' },
+    { key:'and',  label:'Em andamento', cls:'ka', bcls:'ba' },
+    { key:'pend', label:'Pendente',     cls:'kp', bcls:'bp' },
+    { key:'conc', label:'Concluído',    cls:'kc', bcls:'bc' }
+  ];
+  const rows = Array.from(document.querySelectorAll('#tbl_' + tabId + ' .data-row'))
+    .filter(tr => tr.style.display !== 'none');
+  const buckets = { sem:[], and:[], pend:[], conc:[] };
+  rows.forEach(tr => {
+    const id = tr.dataset.id || '';
+    const sit = (tr.dataset.sit || '').toLowerCase();
+    const rawSt = (tr.dataset.status || '').toLowerCase().trim();
+    const dias = parseInt(tr.dataset.dias || 0);
+    const colKey = statusMap[rawSt] || 'sem';
+    const gmv = tr.cells[2] ? tr.cells[2].textContent.trim() : '';
+    const descEl = tr.querySelector('td:first-child div[title]');
+    const desc = descEl ? (descEl.getAttribute('title') || descEl.textContent.trim()) : '';
+    let acao = '';
+    if (tabId === 'route') { const s = tr.querySelector('.ow-real-sel[data-col="24"]'); acao = s ? s.value : ''; }
+    else { const s = tr.querySelector('.ow-text[data-col="23"]'); acao = s ? s.value : ''; }
+    let transp = '', diasOW = 0;
+    if (tabId === 'way') {
+      transp = tr.cells[4] ? tr.cells[4].textContent.trim() : '';
+      diasOW = tr.cells[3] ? parseInt(tr.cells[3].textContent.trim()) || 0 : 0;
+    }
+    let sitTag = '';
+    if (sit.includes('procurar pacote')) sitTag = '<span class="kb-t pp">Proc. Pacote</span>';
+    else if (sit.includes('possivel lost')) sitTag = '<span class="kb-t pl">Poss. Lost</span>';
+    else if (sit.includes('>= 11')) sitTag = '<span class="kb-t owp">≥ 11d OW</span>';
+    else if (sit.includes('< 11')) sitTag = '<span class="kb-t ow">< 11d OW</span>';
+    const dv = tabId === 'way' ? diasOW : dias;
+    const dCls = dv >= 14 ? 'hot' : dv >= 7 ? 'mid' : 'ok';
+    const dLabel = tabId === 'way' ? dv + 'd OW' : dv + 'd cart.';
+    buckets[colKey].push({ id, sit, rawSt, dias, diasOW, transp, gmv, desc, acao, sitTag, dCls, dLabel, colKey });
+  });
+  let html = '<div class="kb-board">';
+  cols.forEach(col => {
+    const cards = buckets[col.key] || [];
+    html += `<div class="kb-col"><div class="kb-col-head ${col.cls}"><span class="kb-col-name">${col.label}</span><span class="kb-col-count">${cards.length}</span></div>`;
+    if (!cards.length) html += '<div class="kb-empty">Nenhum caso</div>';
+    cards.forEach(c => {
+      const href = `https://envios.adminml.com/logistics/package-management/package/${c.id}`;
+      const mlpTag = c.transp ? `<span class="kb-t mlp">${c.transp}</span>` : '';
+      const acaoHtml = c.acao ? `<div class="kb-acao"><b>${c.acao}</b></div>` : '';
+      const selVal = col.key === 'sem' ? '' : col.key === 'and' ? 'Em andamento' : col.key === 'pend' ? 'Pendente' : 'Concluído';
+      html += `<div class="kb-card ${col.bcls}" data-kbid="${c.id}">
+        <a href="${href}" target="_blank" class="kb-id">${c.id}</a>
+        <div class="kb-gmv">${c.gmv}</div>
+        ${c.desc ? `<div class="kb-desc" title="${c.desc}">${c.desc}</div>` : ''}
+        <div class="kb-tags">${c.sitTag}<span class="kb-t ${c.dCls}">${c.dLabel}</span>${mlpTag}</div>
+        ${acaoHtml}
+        <select class="kb-ssel" data-kbshp="${c.id}" data-kbtab="${tabId}" onchange="kbMoveCard(this)">
+          <option value="" ${!selVal?'selected':''}>— Sem ação —</option>
+          <option value="Em andamento" ${'Em andamento'===selVal?'selected':''}>Em andamento</option>
+          <option value="Pendente" ${'Pendente'===selVal?'selected':''}>Pendente</option>
+          <option value="Concluído" ${'Concluído'===selVal?'selected':''}>Concluído</option>
+        </select>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function kbMoveCard(sel) {
+  const shpId = sel.dataset.kbshp;
+  const tabId = sel.dataset.kbtab;
+  const newStatus = sel.value;
+  const tr = document.querySelector(`#tbl_${tabId} .data-row[data-id="${shpId}"]`);
+  if (tr) {
+    tr.dataset.status = newStatus.toLowerCase();
+    const stSel = tr.querySelector('.ow-real-sel[data-col="29"]');
+    if (stSel) { stSel.value = newStatus; owSalvarSelect(stSel); }
+  }
+  buildKanban(tabId);
+}
+
+function toggleKbView(tabId) {
+  const board = document.getElementById('kb-board-' + tabId);
+  const wrap  = document.getElementById('kb-tbl-' + tabId);
+  const btn   = document.getElementById('kb-toggle-' + tabId);
+  const isKb  = board.classList.contains('active');
+  board.classList.toggle('active', !isKb);
+  wrap.classList.toggle('kb-hidden', !isKb);
+  btn.textContent = isKb ? '⊞ Kanban' : '☰ Tabela';
+  if (!isKb) buildKanban(tabId);
 }
 
 // Exportar CSV
