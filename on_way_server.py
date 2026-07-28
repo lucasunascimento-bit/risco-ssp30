@@ -187,11 +187,18 @@ def add_cors(response):
     return response
 
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve_static(path):
-    target = os.path.join(BASE_DIR, path) if path else INDEX_HTML
-    file_path = target if (path and os.path.isfile(target)) else INDEX_HTML
+@app.route('/')
+def serve_index():
+    resp = send_file(INDEX_HTML)
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
+
+@app.route('/<string:filename>')
+def serve_static(filename):
+    # <string:> não captura barras — paths de API (sinistros/*, diario/*) ficam livres
+    target = os.path.join(BASE_DIR, filename)
+    file_path = target if os.path.isfile(target) else INDEX_HTML
     resp = send_file(file_path)
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
@@ -440,9 +447,12 @@ def diario_delete_extra():
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 
-@app.route('/sinistros/rota-info')
+@app.route('/sinistros/rota-info', methods=['POST', 'OPTIONS'])
 def sinistros_rota_info():
-    rota_id = request.args.get('rota', '').strip()
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True})
+    body = request.get_json(force=True) or {}
+    rota_id = body.get('rota', '').strip()
     if not rota_id:
         return jsonify({'ok': False, 'error': 'rota obrigatório'})
     if not _bpp_loaded:

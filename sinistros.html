@@ -421,8 +421,12 @@ async function buscarInfoRota(rawRota) {
   if (spin) spin.style.display = 'inline';
   if (status) { status.textContent = ''; status.style.color = '#6b7280'; }
   try {
-    const r = await fetch('http://localhost:5000/sinistros/rota-info?rota=' + encodeURIComponent(rota),
-                          {signal: AbortSignal.timeout(15000)});
+    const r = await fetch('http://localhost:5000/sinistros/rota-info', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({rota}),
+                            signal: AbortSignal.timeout(15000)
+                          });
     const d = await r.json();
     if (d.ok && d.found > 0) {
       const fmt = v => v ? '$' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
