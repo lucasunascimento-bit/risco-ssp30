@@ -848,6 +848,39 @@ def atualizar_planilha_ene(gs, damaged_ene, fraud_ene):
         print(f"  Aviso planilha ENE: {e}")
 
 
+def atualizar_planilha_ofensores(gs, drivers):
+    """Reescreve aba 'Top ofensores' da planilha BPP Megas com ranking atualizado do BQ."""
+    SPREADSHEET_OFENSORES = '19yAeo1Oatt_dOAhJbnI7OfLWUPOpCCjI1HEMCxdV6As'
+    try:
+        sh = gs.open_by_key(SPREADSHEET_OFENSORES)
+        ws = sh.worksheet('Top ofensores')
+        from datetime import datetime as _dt
+        header = [
+            'DRIVER_ID', 'MLP', 'SUM de BPP (USD)',
+            'COUNT de Incidentes', 'Fraudes Confirmadas', 'Damaged',
+            'Score', 'Atualizado em',
+        ]
+        agora = _dt.now().strftime('%d/%m/%Y %H:%M')
+        rows = [header]
+        for d in drivers:
+            rows.append([
+                str(d.get('id', '')),
+                str(d.get('transportadora', '') or 'N/A'),
+                round(float(d.get('bpp', 0) or 0), 2),
+                int(d.get('total', 0) or 0),
+                int(d.get('fraud_c', 0) or 0),
+                int(d.get('damaged', 0) or 0),
+                int(d.get('score', 0) or 0),
+                agora,
+            ])
+        n = len(rows)
+        ws.clear()
+        ws.update(f'A1:H{n}', rows, value_input_option='USER_ENTERED')
+        print(f"  Planilha Top Ofensores atualizada: {n - 1} drivers → A1:H{n}")
+    except Exception as e:
+        print(f"  Aviso planilha Top Ofensores: {e}")
+
+
 def sincronizar_status_block_list(gs, bq, bl_rows):
     """Consulta BQ e atualiza status na planilha para drivers Solicitado/Monitorado."""
     _sync_flag = os.path.join(_CACHE_DIR, 'sh_sync_bl.pkl')
@@ -6871,6 +6904,9 @@ if __name__ == '__main__':
     dados.setdefault('fraud_ene', [])
     if not isinstance(dados['fraud_ene'], list):
         dados['fraud_ene'] = []
+
+    print("\nAtualizando planilha Top Ofensores...")
+    atualizar_planilha_ofensores(gs, dados.get('drivers', []))
 
     print("Gerando dashboard...")
     html = gerar_html(dados)
