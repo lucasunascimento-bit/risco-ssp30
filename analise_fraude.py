@@ -6317,8 +6317,38 @@ async function salvarSinistro() {{
     const res = await r.json();
     if (res.ok) {{
       msg.style.color = '#4ade80';
-      msg.textContent = '✓ Salvo com sucesso na planilha!';
-      setTimeout(() => closeSinistroModal(), 1800);
+      msg.textContent = '✓ Salvo na planilha! Atualizando lista...';
+      // Adiciona o novo caso ao array em memória e re-renderiza a tabela
+      const bppNum = parseFloat((payload.valor||'0').replace(/[$\s,]/g,'').replace(',','.')) || 0;
+      const novoCaso = {{
+        data:          payload.data,
+        horario:       payload.horario,
+        rota:          payload.rota,
+        driver_id:     payload.id_driver,
+        nome:          payload.nome,
+        placa:         payload.placa,
+        tipo:          payload.natureza || 'Sinistro',
+        qtd_shp:       payload.qtd_total,
+        bpp:           bppNum,
+        recup_carga:   '',
+        recup_shp:     payload.qtd_rec,
+        recup_bpp:     0,
+        cep:           payload.cep,
+        rua:           payload.local,
+        bairro:        payload.bairro,
+        cidade:        payload.cidade,
+        cluster:       payload.cluster,
+        transportadora:payload.transp,
+        veiculo:       payload.veiculo,
+        natureza:      payload.natureza,
+        modus:         payload.modus,
+        boletim:       payload.boletim,
+        link_bo:       payload.link_bo,
+        relato:        payload.relato,
+      }};
+      SINISTROS_DATA.push(novoCaso);
+      filtrarSinistrosPeriodo();
+      setTimeout(() => closeSinistroModal(), 1500);
     }} else {{
       msg.style.color = '#f87171';
       msg.textContent = 'Erro: ' + (res.error || 'desconhecido');

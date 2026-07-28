@@ -446,6 +446,7 @@ def sinistros_add():
         set_col('Cidade ',         payload.get('cidade', ''))
         set_col('CLUSTER',         payload.get('cluster', ''))
         set_col('Natureza do evento', payload.get('natureza', ''))
+        set_col('TIPO 2',          payload.get('natureza', ''))
         set_col('MODUS OPERANDI',  payload.get('modus', ''))
         set_col('Boletim de ocorrência', payload.get('boletim', ''))
         set_col('Link boletim',    payload.get('link_bo', ''))
