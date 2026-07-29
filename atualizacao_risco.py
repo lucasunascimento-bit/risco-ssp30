@@ -20,6 +20,16 @@ import logging
 import os
 import sys
 import urllib.request
+from pathlib import Path
+
+# Carrega .env local se existir (não usa python-dotenv para evitar dependência)
+_env_file = Path(__file__).parent / '.env'
+if _env_file.exists():
+    for _line in _env_file.read_text(encoding='utf-8').splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith('#') and '=' in _line:
+            _k, _v = _line.split('=', 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,7 +47,7 @@ GMV_MINIMO_USD            = 100   # mínimo para Possivel Lost (ON ROUTE e ON WA
 GMV_MINIMO_PROCURAR_USD   = 350   # mínimo para Procurar Pacote (ON ROUTE)
 GMV_MINIMO_OW_USD         = 500   # mínimo para pacotes < 11 dias OW (Procurar Pacote OW)
 
-WEBHOOK_GCHAT        = 'https://chat.googleapis.com/v1/spaces/AAQApxD4BfM/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=7il6D2cXjUpCmoJGwYbXo0ZzNpD1wVf1IBc00yrZXMs'
+WEBHOOK_GCHAT        = os.environ.get('GCHAT_WEBHOOK', '')
 
 PLANILHA_CONTROLE_ID = '1rFcUXxl53WVQf_ASRx3mhlEvFoJevcaiwjMZY1vso5Y'
 PLANILHA_CFTV_ID     = '18isURInofILBi-RS9YrCQyYcnb6JeU_stNqnspxiqLM'

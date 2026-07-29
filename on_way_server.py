@@ -499,6 +499,319 @@ def sinistros_bpp_reload():
     return jsonify({'ok': True, 'rows': len(_bpp_rows)})
 
 
+def _col_a1(row_n, col_idx_0):
+    """Converte (linha 1-based, coluna 0-based) para notação A1 ex: 'V522'."""
+    n = col_idx_0 + 1
+    col_str = ''
+    while n > 0:
+        n, r = divmod(n - 1, 26)
+        col_str = chr(65 + r) + col_str
+    return f'{col_str}{row_n}'
+
+
+@app.route('/sinistros/fill-all', methods=['POST', 'OPTIONS'])
+def sinistros_fill_all():
+    """
+    Preenche V (Qtde Shp), W (BPP Cashout USD) e X ($Rota) para todas as
+    linhas de Eventos SVC que têm Rota mas estão sem esses valores.
+    Parâmetro JSON opcional: { "force": true } para sobrescrever existentes.
+    """
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True})
+
+    body  = request.get_json(force=True) or {}
+    force = bool(body.get('force', False))
+
+    if not _bpp_loaded:
+        _load_bpp_cache()
+
+    if not _bpp_rows:
+        return jsonify({'ok': False, 'error': 'BPP cache vazio — rode /sinistros/bpp-reload primeiro'})
+
+    try:
+        creds, _ = default(scopes=['https://www.googleapis.com/auth/spreadsheets'])
+        gc = gspread.authorize(creds)
+        ws = gc.open_by_key(SINISTRO_SHEET_ID).worksheet(SINISTRO_ABA)
+        all_rows = ws.get_all_values()
+        headers  = all_rows[0]
+
+        def col_idx(name):
+            for i, h in enumerate(headers):
+                if h.strip() == name:
+                    return i
+            return -1
+
+        rota_col = col_idx('Rota')
+        v_col    = col_idx('Qtde Shp')
+        w_col    = col_idx('Bpp Cashout Usd')
+        x_col    = col_idx('$Rota')
+
+        if rota_col < 0:
+            return jsonify({'ok': False, 'error': 'Coluna Rota não encontrada no cabeçalho'})
+
+        ri = _bpp_header.get('Rota', -1)
+        bi = _bpp_header.get('Bpp Cashout Usd', -1)
+        ci = _bpp_header.get('Causa BPP', -1)
+
+        batch_data = []
+        updated = skipped = not_found = 0
+
+        for row_num, row in enumerate(all_rows[1:], start=2):
+            # Garante que a linha tem células suficientes para leitura
+            max_col = max(c for c in [rota_col, v_col, w_col, x_col] if c >= 0)
+            while len(row) <= max_col:
+                row.append('')
+
+            rota_id = row[rota_col].strip()
+            if not rota_id:
+                continue
+
+            v_val = row[v_col].strip() if v_col >= 0 else ''
+            w_val = row[w_col].strip() if w_col >= 0 else ''
+            x_val = (row[x_col].strip() if x_col >= 0 and x_col < len(row) else '')
+
+            if not force and v_val and w_val:
+                skipped += 1
+                continue
+
+            # Lookup no cache BPP
+            if ri < 0 or bi < 0:
+                not_found += 1
+                continue
+
+            matching = [r for r in _bpp_rows if len(r) > ri and r[ri].strip() == rota_id]
+            if not matching:
+                not_found += 1
+                continue
+
+            stolen     = [r for r in matching if ci >= 0 and len(r) > ci and 'stolen' in r[ci].lower()]
+            qtd_shp    = len(stolen)
+            bpp_valor  = sum(_parse_usd(r[bi]) for r in stolen  if len(r) > bi)
+            rota_total = sum(_parse_usd(r[bi]) for r in matching if len(r) > bi)
+
+            if v_col >= 0 and (force or not v_val):
+                batch_data.append({'range': _col_a1(row_num, v_col), 'values': [[str(qtd_shp)]]})
+            if w_col >= 0 and (force or not w_val):
+                batch_data.append({'range': _col_a1(row_num, w_col), 'values': [[str(round(bpp_valor, 2))]]})
+            if x_col >= 0 and (force or not x_val):
+                batch_data.append({'range': _col_a1(row_num, x_col), 'values': [[str(round(rota_total, 2))]]})
+
+            updated += 1
+
+        # Envia em lotes de 200 células para evitar rate-limit
+        chunk = 200
+        for i in range(0, len(batch_data), chunk):
+            ws.batch_update(batch_data[i:i + chunk], value_input_option='USER_ENTERED')
+
+        return jsonify({
+            'ok':               True,
+            'linhas_atualizadas': updated,
+            'ja_preenchidas':   skipped,
+            'sem_dados_bpp':    not_found,
+            'celulas_escritas': len(batch_data),
+        })
+
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+@app.route('/sinistros/bq-fill', methods=['POST', 'OPTIONS'])
+def sinistros_bq_fill():
+    """
+    Preenche V (Qtde Shp), W (BPP Cashout USD) e X ($Rota) usando BigQuery
+    para linhas que não têm dados no cache BPP local.
+    Usa: BT_BPP_TRAMO_DETALHADA_ENRIQUECIDA (W, X) e BT_BASEROTAS_LASTMILE (V).
+    Parâmetro JSON: { "force": false, "date_from": "2024-01-01" }
+    """
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True})
+
+    body      = request.get_json(force=True) or {}
+    force     = bool(body.get('force', False))
+    date_from = body.get('date_from', '2024-01-01')
+
+    try:
+        from google.cloud import bigquery as bq_lib
+    except ImportError:
+        return jsonify({'ok': False, 'error': 'pip install google-cloud-bigquery'})
+
+    try:
+        creds, _ = default(scopes=[
+            'https://www.googleapis.com/auth/spreadsheets',
+            'https://www.googleapis.com/auth/bigquery.readonly',
+            'https://www.googleapis.com/auth/cloud-platform',
+        ])
+        bq = bq_lib.Client(credentials=creds, project='meli-bi-data')
+        gc = gspread.authorize(creds)
+        ws = gc.open_by_key(SINISTRO_SHEET_ID).worksheet(SINISTRO_ABA)
+
+        all_rows = ws.get_all_values()
+        headers  = all_rows[0]
+
+        def col_idx(name):
+            for i, h in enumerate(headers):
+                if h.strip() == name:
+                    return i
+            return -1
+
+        rota_col = col_idx('Rota')
+        v_col    = col_idx('Qtde Shp')
+        w_col    = col_idx('Bpp Cashout Usd')
+        x_col    = col_idx('$Rota')
+
+        if rota_col < 0:
+            return jsonify({'ok': False, 'error': 'Coluna Rota não encontrada'})
+
+        # Coleta rotas que precisam de preenchimento
+        rotas_pendentes = {}  # rota_id → [row_num, ...]
+        for row_num, row in enumerate(all_rows[1:], start=2):
+            max_col = max(c for c in [rota_col, v_col, w_col, x_col] if c >= 0)
+            while len(row) <= max_col:
+                row.append('')
+            rota_id = row[rota_col].strip()
+            if not rota_id:
+                continue
+            v_val = row[v_col].strip() if v_col >= 0 else ''
+            w_val = row[w_col].strip() if w_col >= 0 else ''
+            if not force and v_val and w_val:
+                continue
+            if rota_id not in rotas_pendentes:
+                rotas_pendentes[rota_id] = []
+            rotas_pendentes[rota_id].append((row_num, row))
+
+        if not rotas_pendentes:
+            return jsonify({'ok': True, 'msg': 'Nenhuma linha pendente', 'atualizadas': 0})
+
+        # IDs numéricos para IN clause; filtra só os que são dígitos
+        ids_numericos = [r for r in rotas_pendentes.keys() if r.isdigit()]
+        if not ids_numericos:
+            return jsonify({'ok': False, 'error': 'Nenhum Rota ID numérico encontrado'})
+        ids_list = ', '.join(ids_numericos)
+
+        # ── Query 1: BPP Cashout por rota (W e X) ────────────────────────
+        q_bpp = f"""
+        SELECT
+          CAST(SHP_LG_ROUTE_ID AS STRING) AS rota_id,
+          ROUND(SUM(CASE WHEN LOWER(CAUSA_BPP) LIKE '%stolen%'
+                         THEN CAST(BPP_CASHOUT_USD AS FLOAT64) ELSE 0 END), 2) AS stolen_bpp,
+          ROUND(SUM(CAST(BPP_CASHOUT_USD AS FLOAT64)), 2) AS total_bpp
+        FROM `meli-bi-data.WHOWNER.BT_BPP_TRAMO_DETALHADA_ENRIQUECIDA`
+        WHERE SHP_LG_ROUTE_ID IN ({ids_list})
+          AND DATE_BPP >= '{date_from}'
+        GROUP BY rota_id
+        """
+        bpp_data = {}
+        for r in bq.query(q_bpp).result():
+            bpp_data[r.rota_id] = {'stolen_bpp': float(r.stolen_bpp or 0),
+                                   'total_bpp':  float(r.total_bpp  or 0)}
+
+        # ── Query 2: Stolen count por rota (V) ────────────────────────────
+        q_stolen = f"""
+        SELECT
+          CAST(SHP_LG_ROUTE_ID AS STRING) AS rota_id,
+          SUM(CAST(STOLEN AS INT64))       AS stolen_count,
+          SUM(CAST(QTDE_PACOTES AS INT64)) AS total_pacotes
+        FROM `meli-bi-data.WHOWNER.BT_BASEROTAS_LASTMILE`
+        WHERE SHP_LG_ROUTE_ID IN ({ids_list})
+          AND DATA_FIM >= '{date_from}'
+        GROUP BY rota_id
+        """
+        stolen_data = {}
+        for r in bq.query(q_stolen).result():
+            stolen_data[r.rota_id] = {'stolen_count':  int(r.stolen_count  or 0),
+                                       'total_pacotes': int(r.total_pacotes or 0)}
+
+        # ── Prepara batch update ──────────────────────────────────────────
+        batch_data = []
+        atualizadas = nao_encontradas = 0
+
+        for rota_id, linhas in rotas_pendentes.items():
+            bpp    = bpp_data.get(rota_id)
+            stolen = stolen_data.get(rota_id)
+
+            if not bpp and not stolen:
+                nao_encontradas += len(linhas)
+                continue
+
+            for row_num, row in linhas:
+                v_val = row[v_col].strip() if v_col >= 0 else ''
+                w_val = row[w_col].strip() if w_col >= 0 else ''
+                x_val = (row[x_col].strip() if x_col >= 0 and x_col < len(row) else '')
+
+                # V: stolen count (só preenche se vazio)
+                if v_col >= 0 and stolen and (force or not v_val):
+                    batch_data.append({'range': _col_a1(row_num, v_col),
+                                       'values': [[str(stolen['stolen_count'])]]})
+                # W: BPP cashout stolen
+                if w_col >= 0 and bpp and (force or not w_val):
+                    batch_data.append({'range': _col_a1(row_num, w_col),
+                                       'values': [[str(bpp['stolen_bpp'])]]})
+                # X: BPP cashout total da rota
+                if x_col >= 0 and bpp and (force or not x_val):
+                    batch_data.append({'range': _col_a1(row_num, x_col),
+                                       'values': [[str(bpp['total_bpp'])]]})
+                atualizadas += 1
+
+        # Batch write em chunks
+        chunk = 200
+        for i in range(0, len(batch_data), chunk):
+            ws.batch_update(batch_data[i:i + chunk], value_input_option='USER_ENTERED')
+
+        return jsonify({
+            'ok':               True,
+            'rotas_buscadas':   len(rotas_pendentes),
+            'com_dados_bq':     len(bpp_data) + len(stolen_data),
+            'linhas_atualizadas': atualizadas,
+            'sem_dados_bq':     nao_encontradas,
+            'celulas_escritas': len(batch_data),
+        })
+
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+@app.route('/sinistros/bq-discover', methods=['POST', 'OPTIONS'])
+def sinistros_bq_discover():
+    """
+    Tenta descobrir qual tabela no BigQuery contém os dados de BPP/Rota.
+    Precisa de google-cloud-bigquery instalado (pip install google-cloud-bigquery).
+    """
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True})
+    try:
+        from google.cloud import bigquery
+        creds, _ = default(scopes=[
+            'https://www.googleapis.com/auth/bigquery.readonly',
+            'https://www.googleapis.com/auth/cloud-platform',
+        ])
+        bq = bigquery.Client(credentials=creds, project='meli-bi-data')
+
+        # Busca tabelas com colunas que indicam dados de BPP + Rota
+        query = """
+        SELECT
+          table_name,
+          ARRAY_AGG(column_name ORDER BY ordinal_position LIMIT 30) AS colunas
+        FROM `meli-bi-data.WHOWNER.INFORMATION_SCHEMA.COLUMNS`
+        WHERE REGEXP_CONTAINS(LOWER(column_name), r'bpp|rota|cashout|sinistro|stolen')
+        GROUP BY table_name
+        HAVING COUNT(DISTINCT column_name) >= 2
+        ORDER BY table_name
+        LIMIT 30
+        """
+        rows = list(bq.query(query).result())
+        tables = [{'tabela': r.table_name, 'colunas': list(r.colunas)} for r in rows]
+        return jsonify({'ok': True, 'candidatas': tables})
+
+    except ImportError:
+        return jsonify({
+            'ok': False,
+            'error': 'google-cloud-bigquery não instalado',
+            'fix': 'pip install google-cloud-bigquery',
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+
 @app.route('/sinistros/add', methods=['POST', 'OPTIONS'])
 def sinistros_add():
     if request.method == 'OPTIONS':
@@ -517,7 +830,7 @@ def sinistros_add():
             except StopIteration:
                 pass
         # Colunas conforme estrutura real da aba "Eventos SVC"
-        set_col('F',                    payload.get('data', ''))       # A: data
+        set_col('Data',                 payload.get('data', ''))       # A: data
         set_col('Horario',              payload.get('horario', ''))    # B
         set_col('Rota',                 payload.get('rota', ''))       # F
         set_col('Drive',                payload.get('id_driver', ''))  # G

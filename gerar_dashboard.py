@@ -406,7 +406,7 @@ def processar(rt, wy, hi, descricoes=None, cftv_map=None, entregues=None):
     # ---- Histórico do mês ----
     hist_mes    = [r for r in hi if len(r) > 0 and mes_ano in r[0]]
     concluidos  = sum(1 for r in hist_mes if len(r) > 6 and 'conclu' in r[6].lower())
-    def _recuperado(final): f=final.lower(); return any(k in f for k in ('fluxo','revers','localizado'))
+    def _recuperado(final): f=final.lower(); return any(k in f for k in ('fluxo','revers','localizado','recuperado'))
     def _perdido(final):    f=final.lower(); return any(k in f for k in ('perdido','bpp'))
     recuperados = sum(1 for r in hist_mes if len(r) > 7 and _recuperado(r[7]))
     removidos   = len(hist_mes)
@@ -1664,7 +1664,7 @@ def filtros_html(tab_id, sits):
         <option value="andamento">Em andamento</option>
         <option value="pendente">Pendente</option>
         <option value="conclu">Concluído</option>
-        <option value="">Sem acompanhamento</option>
+        <option value="__sem__">Sem acompanhamento</option>
       </select>
       <button onclick="exportCSV('{tab_id}', 'ssp30_{tab_id}.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>'''
@@ -2207,6 +2207,13 @@ def gerar_html(d):
   .card-value.val-ok{{color:#10b981}}
   .card-value.val-warn{{color:#f59e0b}}
   .card-delta{{font-size:11px;color:#374151;margin-top:6px;line-height:1.4}}
+  .card .label{{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:10px}}
+  .card .value{{font-size:28px;font-weight:800;line-height:1;letter-spacing:-1px;color:#fff}}
+  .card.yellow{{border-color:#78350f;background:#1a1005}}.card.yellow .value{{color:#fbbf24}}
+  .card.green{{border-color:#022c22;background:#060f0d}}.card.green .value{{color:#10b981}}
+  .card.red{{border-color:#450a0a;background:#0f0606}}.card.red .value{{color:#f87171}}
+  .card.orange{{border-color:#7c2d12;background:#150a04}}.card.orange .value{{color:#fb923c}}
+  .card.blue{{border-color:#1e3a5f;background:#060c18}}.card.blue .value{{color:#60a5fa}}
   /* PAINEL DO DIA */
   .pd-item{{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-bottom:1px solid #0f1728}}
   .pd-item:last-child{{border-bottom:none}}
@@ -2854,7 +2861,7 @@ def gerar_html(d):
         <option value="alt">Alto</option>
         <option value="mod">Moderado</option>
       </select>
-      <button onclick="exportCSV('tbl_places', 'places_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
+      <button onclick="exportCSV('places', 'places_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>
     <div class="tbl-scroll">
     <table id="tbl_places">
@@ -3087,7 +3094,7 @@ function filtrar(tabId) {{
     const resp = tr.dataset.resp  || '';
     const matchBusca  = !busca  || id.includes(busca)  || resp.includes(busca);
     const matchSit    = !sit    || rs.includes(sit);
-    const matchStatus = !status || st.includes(status);
+    const matchStatus = !status || (status === '__sem__' ? !st.trim() : st.includes(status));
     tr.style.display = (matchBusca && matchSit && matchStatus) ? '' : 'none';
   }});
 }}
@@ -3897,7 +3904,7 @@ if __name__ == '__main__':
     else:
         print("  [AVISO] Briefing BQ falhou após 3 tentativas — continuando sem dados.")
     print("Processando dados...")
-    dados = processar(rt, wy, hi, descricoes=descricoes, cftv_map=cftv_map, entregues=set())
+    dados = processar(rt, wy, hi, descricoes=descricoes, cftv_map=cftv_map, entregues=entregues)
     dados['places']      = processar_places(places_rows, dit_data)
     dados['r_devolvidos'] = n_devolvidos_rt
     dados['briefing']    = processar_briefing(bq_briefing, wy)

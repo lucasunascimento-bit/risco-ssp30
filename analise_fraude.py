@@ -456,7 +456,7 @@ ORDER BY l.bpp DESC
 LIMIT 300
 """
 
-QUERY_DAMAGED_ENE_CASOS = """
+QUERY_DAMAGED_ENE_CASOS = f"""
 SELECT
   CAST(lp.SHIPMENT_ID AS STRING)           AS shp_id,
   lp.CUS_NICKNAME_SEL                      AS seller_nome,
@@ -467,22 +467,22 @@ SELECT
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
 LEFT JOIN `meli-bi-data.WHOWNER.BT_VIEW_ORD_ORDERS` o
   ON CAST(lp.SHIPMENT_ID AS INT64) = o.SHP_SHIPMENT_ID
-WHERE lp.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
-  AND lp.date_bpp >= '2026-01-01'
+WHERE lp.SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+  AND lp.date_bpp >= '{ANO_INICIO}'
   AND lp.date_bpp <= CURRENT_DATE()
   AND lp.Classification_LM = 'DAMAGED ENE'
 ORDER BY lp.date_bpp DESC
 LIMIT 5000
 """
 
-QUERY_DAMAGED_ENE_CAUSAS = """
+QUERY_DAMAGED_ENE_CAUSAS = f"""
 SELECT
   SHP_NODE_CAUSE    AS causa,
   SHP_NODE_CAUSE_L2 AS causa_l2,
   COUNT(DISTINCT CAST(SHP_SHIPMENT_BPP AS STRING)) AS total
 FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
 WHERE SHP_LG_FACILITY_ID = 'SSP30'
-  AND DATEPARAMETER >= '2026-01-01'
+  AND DATE_BPP >= '{ANO_INICIO}'
   AND SHP_BKO_SUBSTATUS = 'damaged'
   AND SHP_NODE_CAUSE IS NOT NULL
 GROUP BY 1, 2
@@ -490,7 +490,7 @@ ORDER BY total DESC
 LIMIT 200
 """
 
-QUERY_FRAUD_ENE_CASOS = """
+QUERY_FRAUD_ENE_CASOS = f"""
 SELECT
   CAST(lp.SHIPMENT_ID AS STRING)           AS shp_id,
   lp.CUS_NICKNAME_SEL                      AS seller_nome,
@@ -498,16 +498,15 @@ SELECT
   FORMAT_DATE('%d/%m/%Y', lp.date_bpp)     AS data,
   FORMAT_DATE('%Y-%m', lp.date_bpp)        AS mes,
   lp.Classification_LM                     AS classificacao,
-  lp.TIPO_FRAUDE                           AS tipo_fraude,
+  COALESCE(lp.CLASSIFICATION_LM, '')       AS tipo_fraude,
   COALESCE(o.ITEM_TITLE, '')               AS item_title
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
 LEFT JOIN `meli-bi-data.WHOWNER.BT_VIEW_ORD_ORDERS` o
   ON CAST(lp.SHIPMENT_ID AS INT64) = o.SHP_SHIPMENT_ID
-WHERE lp.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
-  AND lp.date_bpp >= '2026-01-01'
+WHERE lp.SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+  AND lp.date_bpp >= '{ANO_INICIO}'
   AND lp.date_bpp <= CURRENT_DATE()
   AND CAST(lp.FLAG_ENE AS STRING) = '1'
-  AND lp.TIPO_FRAUDE != 'NOT_FRAUD'
 ORDER BY lp.date_bpp DESC
 LIMIT 5000
 """
@@ -6637,7 +6636,7 @@ if __name__ == '__main__':
         _bqc = _bqm.Client(project='meli-bi-data')
 
         # ── Definição das 4 queries ──────────────────────────────
-        _q_saidas = """
+        _q_saidas = f"""
             WITH saidas AS (
               SELECT
                 SHP_SHIPMENT_ID,
@@ -6653,7 +6652,7 @@ if __name__ == '__main__':
                 ANY_VALUE(SHP_LOGISTIC_TYPE) AS tipo_logistica
               FROM `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS_LAST_MILE`
               WHERE SHP_LG_FACILITY_ID = 'SSP30'
-                AND SHP_LG_INIT_DT_TZ BETWEEN '2026-01-01' AND CURRENT_DATE()
+                AND SHP_LG_INIT_DT_TZ BETWEEN '{ANO_INICIO}' AND CURRENT_DATE()
               GROUP BY SHP_SHIPMENT_ID
               HAVING MAX(SHP_SHIPMENT_DELIVERY_ATTEMPTS) > 1
             )
@@ -6668,9 +6667,9 @@ if __name__ == '__main__':
             ORDER BY tentativas DESC, nivel_risco
             LIMIT 2000
         """
-        _q_devos = """
+        _q_devos = f"""
             SELECT
-              DATEPARAMETER AS data,
+              DATE_BPP AS data,
               CAST(SHP_SHIPMENT_BPP AS STRING) AS shipment_id,
               SHP_LG_FACILITY_ID AS facility,
               SHP_NODE_ID AS node_id,
@@ -6699,9 +6698,9 @@ if __name__ == '__main__':
               SHP_LOGISTIC_CENTER_ID AS origem_cross
             FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
             WHERE SHP_LG_FACILITY_ID = 'SSP30'
-              AND DATEPARAMETER BETWEEN '2026-01-01' AND CURRENT_DATE()
+              AND DATE_BPP BETWEEN '{ANO_INICIO}' AND CURRENT_DATE()
               AND (FLUJO = 'Devolutions' OR FLAG_DEVO_WH = '1' OR FLAG_RTS_ROUTE = 'Sí')
-            ORDER BY DATEPARAMETER DESC
+            ORDER BY DATE_BPP DESC
             LIMIT 2000
         """
         _q_ene = f"""
@@ -6745,7 +6744,7 @@ if __name__ == '__main__':
               STRING_AGG(DISTINCT CAST(SHP_SHIPMENT_BPP AS STRING) LIMIT 30) AS shp_ids
             FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
             WHERE SHP_LG_FACILITY_ID = 'SSP30'
-              AND DATEPARAMETER >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+              AND DATE_BPP >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
               AND FLUJO LIKE '%EnE%'
             GROUP BY 1
             ORDER BY nao_entregue DESC, total DESC
