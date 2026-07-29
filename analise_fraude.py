@@ -6753,16 +6753,21 @@ if __name__ == '__main__':
         """
 
         # ── Dispara as 4 em paralelo (sem esperar) ───────────────
-        _job_saidas    = _bqc.query(_q_saidas)
-        _job_devos     = _bqc.query(_q_devos)
-        _job_ene       = _bqc.query(_q_ene)
-        _job_ene_svc   = _bqc.query(_q_ene_svc)
+        _job_saidas = _job_devos = _job_ene = _job_ene_svc = None
+        try: _job_saidas  = _bqc.query(_q_saidas)
+        except Exception as _eq: print(f"  Aviso dispatch saidas: {_eq}")
+        try: _job_devos   = _bqc.query(_q_devos)
+        except Exception as _eq: print(f"  Aviso dispatch devos: {_eq}")
+        try: _job_ene     = _bqc.query(_q_ene)
+        except Exception as _eq: print(f"  Aviso dispatch ene: {_eq}")
+        try: _job_ene_svc = _bqc.query(_q_ene_svc)
+        except Exception as _eq: print(f"  Aviso dispatch ene_svc: {_eq}")
         print("  4 queries disparadas em paralelo no BQ...")
 
         # ── Coleta resultados (agora aguarda cada uma) ───────────
         _saidas_rows = []
         try:
-            for _r in _job_saidas.result():
+            for _r in (_job_saidas.result() if _job_saidas else []):
                 _saidas_rows.append({
                     'id':             str(_r.SHP_SHIPMENT_ID),
                     'tentativas':     int(_r.tentativas or 0),
@@ -6784,7 +6789,7 @@ if __name__ == '__main__':
 
         _devos_rows = []
         try:
-            for _r in _job_devos.result():
+            for _r in (_job_devos.result() if _job_devos else []):
                 _devos_rows.append({
                     'data':       str(_r.data or ''),
                     'id':         str(_r.shipment_id or ''),
@@ -6821,7 +6826,7 @@ if __name__ == '__main__':
 
         _ene_rows = []
         try:
-            for _r in _job_ene.result():
+            for _r in (_job_ene.result() if _job_ene else []):
                 _ene_rows.append({
                     'seller_id':   str(_r.seller_id or ''),
                     'seller_nome': str(_r.seller_nome or ''),
@@ -6840,7 +6845,7 @@ if __name__ == '__main__':
 
         _ene_svc_rows = []
         try:
-            for _r in _job_ene_svc.result():
+            for _r in (_job_ene_svc.result() if _job_ene_svc else []):
                 _ene_svc_rows.append({
                     'carrier':       str(_r.carrier or ''),
                     'total':         int(_r.total or 0),
@@ -6858,18 +6863,21 @@ if __name__ == '__main__':
 
         # ── Dispara Damaged ENE após coletar as 4 principais (evita quota BQ) ──
         import pandas as _pd_dene
-        _job_dene_cas  = _bqc.query(QUERY_DAMAGED_ENE_CASOS)
-        _job_dene_cau  = _bqc.query(QUERY_DAMAGED_ENE_CAUSAS)
+        _job_dene_cas = _job_dene_cau = None
+        try: _job_dene_cas = _bqc.query(QUERY_DAMAGED_ENE_CASOS)
+        except Exception as _eq: print(f"  Aviso dispatch damaged_ene_casos: {_eq}")
+        try: _job_dene_cau = _bqc.query(QUERY_DAMAGED_ENE_CAUSAS)
+        except Exception as _eq: print(f"  Aviso dispatch damaged_ene_causas: {_eq}")
         print("  2 queries Damaged ENE disparadas...")
         _df_dene_cas = _pd_dene.DataFrame()
         _df_dene_cau = _pd_dene.DataFrame()
         try:
-            _df_dene_cas = _job_dene_cas.result().to_dataframe()
+            _df_dene_cas = _job_dene_cas.result().to_dataframe() if _job_dene_cas else _pd_dene.DataFrame()
             print(f"  Damaged ENE casos: {len(_df_dene_cas)} casos")
         except Exception as _e:
             print(f"  Aviso Damaged ENE casos: {_e}")
         try:
-            _df_dene_cau = _job_dene_cau.result().to_dataframe()
+            _df_dene_cau = _job_dene_cau.result().to_dataframe() if _job_dene_cau else _pd_dene.DataFrame()
             print(f"  Damaged ENE causas: {len(_df_dene_cau)} causas")
         except Exception as _e:
             print(f"  Aviso Damaged ENE causas: {_e}")
@@ -6877,11 +6885,13 @@ if __name__ == '__main__':
 
         # ── Dispara FRAUD ENE após Damaged ENE (evita quota BQ) ──
         import pandas as _pd_frene
-        _job_frene = _bqc.query(QUERY_FRAUD_ENE_CASOS)
+        _job_frene = None
+        try: _job_frene = _bqc.query(QUERY_FRAUD_ENE_CASOS)
+        except Exception as _eq: print(f"  Aviso dispatch fraud_ene: {_eq}")
         print("  1 query Fraud ENE disparada...")
         _df_frene = _pd_frene.DataFrame()
         try:
-            _df_frene = _job_frene.result().to_dataframe()
+            _df_frene = _job_frene.result().to_dataframe() if _job_frene else _pd_frene.DataFrame()
             print(f"  Fraud ENE casos: {len(_df_frene)} casos")
         except Exception as _e:
             print(f"  Aviso Fraud ENE casos: {_e}")
