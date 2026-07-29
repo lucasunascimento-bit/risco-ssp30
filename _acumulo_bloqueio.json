@@ -39,9 +39,9 @@
       "tipo": "outro",
       "apto": false,
       "motivo": "Residual $297 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "placa": "DC",
+      "data_solicitacao": "28/07/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "292999",
@@ -176,31 +176,6 @@
   ],
   "180": [
     {
-      "id": "292999",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 6,
-      "meses": [
-        "01/2026",
-        "02/2026",
-        "03/2026",
-        "04/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 17,
-      "total_bpp": 487.14,
-      "max_bpp": 179.08,
-      "residual": 308.06,
-      "tipo": "outro",
-      "apto": true,
-      "motivo": "",
-      "placa": "DCG0346",
-      "data_solicitacao": "01/06/2026",
-      "status_bl": "Inativo"
-    },
-    {
       "id": "4428742",
       "nome": "Agencias Kangu",
       "transportadora": "Agencias Kangu",
@@ -219,6 +194,30 @@
       "apto": true,
       "motivo": "",
       "placa": "DCG4490",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "292999",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 5,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 15,
+      "total_bpp": 465.75,
+      "max_bpp": 179.08,
+      "residual": 286.67,
+      "tipo": "outro",
+      "apto": false,
+      "motivo": "Residual $287 abaixo de $300",
+      "placa": "DCG0346",
       "data_solicitacao": "01/06/2026",
       "status_bl": "Inativo"
     },
@@ -353,50 +352,6 @@
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
-    },
-    {
-      "id": "3400551",
-      "nome": "Hawk Transportes",
-      "transportadora": "Hawk Transportes",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "01/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 70.62,
-      "max_bpp": 24.29,
-      "residual": 46.33,
-      "tipo": "outro",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "885705",
-      "nome": "DHL",
-      "transportadora": "DHL",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 58.28,
-      "max_bpp": 38.19,
-      "residual": 20.09,
-      "tipo": "outro",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "11/02/2026",
-      "status_bl": "Monitorado"
     },
     {
       "id": "331128",
