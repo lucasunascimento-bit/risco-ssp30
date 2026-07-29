@@ -705,23 +705,6 @@ def carregar_block_list(gs):
         print(f"  Aviso Block List: {e}")
         return []
 
-def carregar_cftv(gs):
-    print("  Lendo planilha CFTV...")
-    def _fetch():
-        pl   = gs.open_by_key(CFTV_SHEET_ID)
-        data = pl.worksheet(CFTV_ABA).get_all_values()
-        if len(data) <= 1:
-            return []
-        header = data[0]
-        rows   = [dict(zip(header, r)) for r in data[1:] if any(r)]
-        print(f"  {len(rows)} solicitações CFTV")
-        return rows
-    try:
-        return _sheets_cache('cftv', _fetch)
-    except Exception as e:
-        print(f"  Aviso CFTV: {e}")
-        return []
-
 def _sin_row_html(c):
     rec_ok    = (c.get('recup_carga') or '').strip().lower() in ('sim', 'yes', 's')
     tipo_val  = (c.get('tipo') or '').strip()
@@ -909,11 +892,24 @@ def sincronizar_status_block_list(gs, bq, bl_rows):
         return s
 
     query = """
-    SELECT DISTINCT DRIVER_ID, DRIVER_STATUS
-    FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-    WHERE DATE_BPP >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-      AND DRIVER_ID IN UNNEST(@ids)
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY DRIVER_ID ORDER BY DATE_BPP DESC) = 1
+    SELECT DISTINCT
+      CAST(r.DRIVER_ID AS STRING) AS DRIVER_ID,
+      FIRST_VALUE(s.SHP_CROWD_STATUS) OVER (
+        PARTITION BY r.DRIVER_ID
+        ORDER BY CASE s.SHP_CROWD_STATUS
+          WHEN 'blocked'  THEN 1
+          WHEN 'inactive' THEN 2
+          WHEN 'removed'  THEN 3
+          ELSE 4
+        END
+      ) AS DRIVER_STATUS
+    FROM `meli-bi-data.WHOWNER.BT_SHP_CROWD_TRACKER_REGIST` r
+    LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_CROWD_DRIVER_REG_STATUS` ds
+      ON r.DRIVER_ID = ds.SHP_CROWD_DRIVER_ID
+    LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_CROWD_REG_STATUS` s
+      ON ds.SHP_CROWD_STATUS_ID = s.SHP_CROWD_ID
+    WHERE r.SITE = 'MLB'
+      AND CAST(r.DRIVER_ID AS STRING) IN UNNEST(@ids)
     """
     job_cfg = bigquery.QueryJobConfig(query_parameters=[
         bigquery.ArrayQueryParameter('ids', 'STRING', list(pendentes))
@@ -1423,58 +1419,6 @@ def processar_damaged_ene(df_casos, df_causas):
         'total':         len(casos),
         'total_bpp':     round(sum(c['bpp'] for c in casos), 2),
         'total_sellers': len(sellers),
-    }
-
-def processar_cftv(rows):
-    def _valor(v):
-        try:
-            return float(str(v).replace('R$','').replace('\xa0','').replace('.','').replace(',','.').strip() or 0)
-        except:
-            return 0.0
-    def _status(s):
-        s = s.strip().lower()
-        if 'conclu' in s: return 'Concluído'
-        if 'expira' in s or 'expid' in s: return 'SLA Vencido'
-        return 'Em Andamento'
-
-    out = []
-    for r in rows:
-        ts       = r.get('Carimbo de data/hora', '')
-        data     = ts.split(' ')[0] if ts else ''
-        data_iso = ''
-        if data and len(data) == 10:
-            try: data_iso = f"{data[6:]}-{data[3:5]}-{data[:2]}"
-            except: pass
-        status = _status(r.get('Status', ''))
-        out.append({
-            'data':          data,
-            'data_iso':      data_iso,
-            'week':          str(r.get('Week', '')).strip(),
-            'solicitante':   r.get('Solicitante', '').strip(),
-            'operacao':      r.get('Operação', '').strip(),
-            'shp':           str(r.get('Shipment', '')).strip(),
-            'produto':       str(r.get('Informe a descrição do ID', '')).strip()[:60],
-            'valor':         _valor(r.get('Valor em R$', '')),
-            'prioridade':    r.get('Nivel de Prioridade', '').strip(),
-            'status':        status,
-            'data_inicio':   r.get('Data Inicio', '').strip(),
-            'data_conclusao':r.get('Data Conclusão', '').strip(),
-            'sla':           str(r.get('SLA', '') or '').strip(),
-            'responsavel':   r.get('Responsável', '').strip(),
-            'conclusao':     r.get('Conclusão', '').strip(),
-            'driver':        str(r.get('Driver', '') or '').strip(),
-            'placa':         str(r.get('Placa', '') or '').strip(),
-            'mlp':           str(r.get('MLP', '') or '').strip(),
-        })
-    out.sort(key=lambda x: x['data_iso'], reverse=True)
-    total      = len(out)
-    concluidos = sum(1 for r in out if r['status'] == 'Concluído')
-    sla_venc   = sum(1 for r in out if r['status'] == 'SLA Vencido')
-    em_and     = total - concluidos - sla_venc
-    return {
-        'total': total, 'concluidos': concluidos,
-        'em_andamento': em_and, 'sla_vencido': sla_venc,
-        'rows': out,
     }
 
 _CACHE_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_bq_cache')
@@ -2037,36 +1981,6 @@ def rows_block_list(rows):
                     </table>
                 </td>
             </tr>'''
-    return out
-
-def rows_cftv(rows):
-    STATUS_COR  = {'Concluído':'#10b981','Em Andamento':'#3b82f6','SLA Vencido':'#ef4444'}
-    PRIO_COR    = {'Alto':'#ef4444','Moderado':'#f59e0b'}
-    CONCL_COR   = {'Conclusivo':'#10b981','Inconclusivo':'#ef4444'}
-    out = ''
-    for r in rows:
-        st_cor  = STATUS_COR.get(r['status'], '#9ca3af')
-        pr_cor  = PRIO_COR.get(r['prioridade'], '#9ca3af')
-        co_cor  = CONCL_COR.get(r['conclusao'], '#6b7280')
-        shp_link = (f'<a href="{MELI_URL}/{r["shp"]}" target="_blank" '
-                    f'style="color:#60a5fa;text-decoration:none;font-family:monospace;font-size:12px">{r["shp"]}</a>'
-                    if r['shp'] else '—')
-        search_txt = f'{r["shp"]} {r["driver"]} {r["solicitante"]} {r["produto"]}'.lower()
-        prod_esc   = r['produto'].replace('"', '&quot;')
-        out += f'''<tr class="cftv-row" data-operacao="{r["operacao"]}" data-status="{r["status"]}" data-prio="{r["prioridade"]}" data-resp="{r["responsavel"]}" data-search="{search_txt}">
-          <td style="font-size:11px;color:#9ca3af;white-space:nowrap">{r["data"]}</td>
-          <td style="font-size:11px;color:#6b7280">W{r["week"]}</td>
-          <td><span style="background:#1f2937;color:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">{r["operacao"]}</span></td>
-          <td>{shp_link}</td>
-          <td style="font-size:11px;color:#d1d5db;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{prod_esc}">{r["produto"]}</td>
-          <td style="color:#10b981;font-size:12px;text-align:right;white-space:nowrap">R${r["valor"]:,.2f}</td>
-          <td><span style="color:{pr_cor};font-size:11px;font-weight:600">{r["prioridade"] or "—"}</span></td>
-          <td><span style="color:{st_cor};font-size:11px;font-weight:600">{r["status"]}</span></td>
-          <td style="font-size:11px;color:#9ca3af;text-align:center">{r["sla"] or "—"}</td>
-          <td style="font-size:11px;color:#d1d5db">{r["responsavel"] or "—"}</td>
-          <td><span style="color:{co_cor};font-size:11px">{r["conclusao"] or "—"}</span></td>
-          <td style="font-size:11px;color:#9ca3af">{r["driver"] or "—"}</td>
-        </tr>'''
     return out
 
 def rows_historico_bloqueios(bloqueados):

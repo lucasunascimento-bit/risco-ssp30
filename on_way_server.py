@@ -843,9 +843,9 @@ def sinistros_add():
         set_col('Recup. da Carga?',     payload.get('recup_carga', '')) # Y
         set_col('Recup. Shp',           payload.get('qtd_rec', ''))     # Z
         set_col('Recup. Cashout Usd',   payload.get('recup_bpp', ''))   # AA
-        set_col('Cidade ',              payload.get('cidade', ''))       # AB
+        set_col('Cidade',               payload.get('cidade', ''))       # AB
         set_col('Distrito',             payload.get('distrito', ''))     # AC
-        set_col('Bairro ',              payload.get('bairro', ''))       # AD
+        set_col('Bairro',               payload.get('bairro', ''))       # AD
         set_col('CEP',                  payload.get('cep', ''))          # AE
         set_col('CLUSTER',              payload.get('cluster', ''))      # AF
         set_col('Rua',                  payload.get('local', ''))       # AH
