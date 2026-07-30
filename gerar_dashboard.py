@@ -4077,7 +4077,9 @@ if __name__ == '__main__':
         descricoes = {}
     print("Verificando pacotes entregues no ON WAY (BigQuery)...")
     try:
-        wy_ids = [r[2] for r in wy if len(r) > 2 and r[2].strip()]
+        # Exclui pacotes já Concluídos — evita re-detectar os mesmos IDs a cada run
+        wy_ids = [r[2] for r in wy if len(r) > 2 and r[2].strip()
+                  and _ow_norm(r[28] if len(r) > 28 else '') != 'concluido']
         entregues = carregar_entregues(creds, wy_ids)
         print(f"  Entregues detectados: {len(entregues)}")
     except Exception as e:
