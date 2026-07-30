@@ -9,6 +9,7 @@ import unicodedata
 from flask import Flask, request, jsonify, send_file
 import gspread
 from google.auth import default
+from _shared import _FINAL_MAP
 
 app = Flask(__name__)
 
@@ -64,11 +65,7 @@ DIARIO_SCHEDULE = {
     ],
 }
 
-_FINAL_MAP = {
-    'reversao': 'Retornou ao fluxo',
-    'reversão': 'Retornou ao fluxo',
-    'bpp':      'Perdido',
-}
+# _FINAL_MAP importado de _shared.py
 
 # Índices 0-based das colunas editáveis por tab
 _COLS = {
@@ -172,7 +169,7 @@ def get_cache(tab='wy'):
         for i, row in enumerate(rows[1:], start=2):
             if len(row) > 2 and row[2].strip():
                 idx[row[2].strip()] = i
-        cache = {'ws': ws, 'idx': idx, 'ts': time.time()}
+        cache = {'ws': ws, 'idx': idx, 'rows': rows, 'ts': time.time()}
         if tab == 'rt': _cache_rt = cache
         else:           _cache_wy = cache
     return cache
@@ -218,6 +215,7 @@ def restart_server():
     def do_restart():
         time.sleep(0.4)
         subprocess.Popen([sys.executable, os.path.abspath(__file__)])
+        sys.stdout.flush()
         os._exit(0)
     threading.Thread(target=do_restart, daemon=True).start()
     return jsonify({'ok': True})
@@ -230,9 +228,9 @@ def ow_values():
     if tab not in _COLS:
         return jsonify({'error': 'tab inválido'}), 400
     try:
-        ws   = get_cache(tab)['ws']
-        rows = ws.get_all_values()
-        c    = _COLS[tab]
+        cached = get_cache(tab)
+        rows   = cached['rows']
+        c      = _COLS[tab]
         result = {}
         for row in rows[1:]:
             while len(row) < 30:
@@ -768,48 +766,6 @@ def sinistros_bq_fill():
 
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
-
-
-@app.route('/sinistros/bq-discover', methods=['POST', 'OPTIONS'])
-def sinistros_bq_discover():
-    """
-    Tenta descobrir qual tabela no BigQuery contém os dados de BPP/Rota.
-    Precisa de google-cloud-bigquery instalado (pip install google-cloud-bigquery).
-    """
-    if request.method == 'OPTIONS':
-        return jsonify({'ok': True})
-    try:
-        from google.cloud import bigquery
-        creds, _ = default(scopes=[
-            'https://www.googleapis.com/auth/bigquery.readonly',
-            'https://www.googleapis.com/auth/cloud-platform',
-        ])
-        bq = bigquery.Client(credentials=creds, project='meli-bi-data')
-
-        # Busca tabelas com colunas que indicam dados de BPP + Rota
-        query = """
-        SELECT
-          table_name,
-          ARRAY_AGG(column_name ORDER BY ordinal_position LIMIT 30) AS colunas
-        FROM `meli-bi-data.WHOWNER.INFORMATION_SCHEMA.COLUMNS`
-        WHERE REGEXP_CONTAINS(LOWER(column_name), r'bpp|rota|cashout|sinistro|stolen')
-        GROUP BY table_name
-        HAVING COUNT(DISTINCT column_name) >= 2
-        ORDER BY table_name
-        LIMIT 30
-        """
-        rows = list(bq.query(query).result())
-        tables = [{'tabela': r.table_name, 'colunas': list(r.colunas)} for r in rows]
-        return jsonify({'ok': True, 'candidatas': tables})
-
-    except ImportError:
-        return jsonify({
-            'ok': False,
-            'error': 'google-cloud-bigquery não instalado',
-            'fix': 'pip install google-cloud-bigquery',
-        })
-    except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)})
 
 
 @app.route('/sinistros/add', methods=['POST', 'OPTIONS'])

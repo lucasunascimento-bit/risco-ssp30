@@ -9,6 +9,7 @@ from google.auth import default
 from google.cloud import bigquery
 import gspread
 from google.oauth2 import service_account as _sa_module
+from _shared import _SB_DRAG_JS, _FINAL_MAP as _FINAL_HIST_MAP
 
 # ============================================================
 # CONFIGURAÇÃO
@@ -131,74 +132,7 @@ LIMIT 10000
 MESES_PT      = {1:'jan',2:'fev',3:'mar',4:'abr',5:'mai',6:'jun',
                  7:'jul',8:'ago',9:'set',10:'out',11:'nov',12:'dez'}
 
-_SB_DRAG_JS = """
-(function(){
-var KEY='sb_order_'+(location.pathname.split('/').pop()||'idx');
-var dragEl=null,sb=null;
-function save(){
-  var dc=0,order=Array.from(sb.children).map(function(el){
-    if(el.classList.contains('sb-item'))return 'i:'+el.dataset.tab;
-    if(el.classList.contains('sb-divider'))return 'd:'+(dc++);
-    if(el.classList.contains('sb-section-header'))return 'h:'+el.textContent.trim();
-    return null;
-  }).filter(Boolean);
-  try{localStorage.setItem(KEY,JSON.stringify(order));}catch(e){}
-}
-function restore(){
-  try{
-    var saved=JSON.parse(localStorage.getItem(KEY)||'null');
-    if(!saved||!saved.length)return;
-    var im={},hm={},da=[];
-    Array.from(sb.children).forEach(function(el){
-      if(el.classList.contains('sb-item'))im[el.dataset.tab]=el;
-      else if(el.classList.contains('sb-section-header'))hm[el.textContent.trim()]=el;
-      else if(el.classList.contains('sb-divider'))da.push(el);
-    });
-    var di=0;
-    saved.forEach(function(e){
-      var el=null;
-      if(e.startsWith('i:'))el=im[e.slice(2)];
-      else if(e.startsWith('h:'))el=hm[e.slice(2)];
-      else if(e.startsWith('d:'))el=da[di++];
-      if(el)sb.appendChild(el);
-    });
-  }catch(e){}
-}
-document.addEventListener('DOMContentLoaded',function(){
-  sb=document.querySelector('.sidebar');
-  if(!sb)return;
-  restore();
-  Array.from(sb.querySelectorAll('.sb-item')).forEach(function(el){
-    el.setAttribute('draggable','true');
-    var h=document.createElement('span');
-    h.className='sb-drag-handle';h.textContent='⠿';
-    el.insertBefore(h,el.firstChild);
-  });
-  sb.addEventListener('dragstart',function(e){
-    var t=e.target.closest('.sb-item');
-    if(!t)return;
-    dragEl=t;setTimeout(function(){t.classList.add('sb-dragging');},0);
-    e.dataTransfer.effectAllowed='move';
-  });
-  sb.addEventListener('dragend',function(){
-    if(dragEl){dragEl.classList.remove('sb-dragging');dragEl=null;}
-    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
-    save();
-  });
-  sb.addEventListener('dragover',function(e){
-    e.preventDefault();if(!dragEl)return;
-    var t=e.target.closest('.sb-item');
-    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
-    if(t&&t!==dragEl){
-      var r=t.getBoundingClientRect();
-      if(e.clientY<r.top+r.height/2){sb.insertBefore(dragEl,t);t.classList.add('sb-drop-before');}
-      else{sb.insertBefore(dragEl,t.nextSibling);}
-    }
-  });
-  sb.addEventListener('drop',function(e){e.preventDefault();});
-});
-})();
-"""
+# _SB_DRAG_JS importado de _shared.py
 
 # ============================================================
 # LEITURA DA PLANILHA
@@ -668,7 +602,7 @@ def _ow_norm(s):
     """Normaliza string para comparação: minúsculo + remove acentos."""
     s = (s or '').strip().lower()
     return unicodedata.normalize('NFD', s).encode('ascii', 'ignore').decode('ascii')
-OW_FINAL_OPTS  = ['', 'BPP', 'Reversão']
+OW_FINAL_OPTS  = ['', 'BPP', 'Reversão', 'Recuperado']
 OW_ACAO_SUGEST = ['Cobrado Origem','Aguardando Retorno da Origem','Escalonado para Supervisão',
                   'Sem Retorno da Origem','Pacote Localizado','Em Investigação','BPP Solicitado']
 RT_ACAO_OPTS   = ['', 'Cobrar MLP', 'Cobrado MLP', 'Aguardando Retorno MLP',
@@ -790,13 +724,19 @@ def rows_table_top(rows):
         </tr>'''
     return out
 
+def _iso_date(s):
+    s = s.strip()
+    if '-' in s and len(s) == 10: return s
+    try: p = s.split('/'); return f'{p[2]}-{p[1]}-{p[0]}'
+    except: return ''
+
 def rows_table_hist(rows):
     out = ''
     for r in rows:
         orig_bg = '#1D4ED8' if 'Route' in r['origem'] else '#065F46'
         g       = f'${flt(r["gmv"]):,.2f}' if r['gmv'] else '—'
         mes     = r.get('mes', '')
-        out += f'''<tr class="hist-row" data-mes="{mes}">
+        out += f'''<tr class="hist-row" data-mes="{mes}" data-data="{_iso_date(r['data'])}">
             <td style="font-size:12px;color:#9CA3AF">{r["data"]}</td>
             <td><span style="background:{orig_bg};color:#fff;padding:2px 7px;border-radius:4px;font-size:11px">{"ON ROUTE" if "Route" in r["origem"] else "ON WAY"}</span></td>
             <td style="font-family:monospace;font-size:12px">{id_link(r["id"]) if r["id"] else "—"}</td>
@@ -824,6 +764,7 @@ def carregar_descricoes(creds, shp_ids):
         (SELECT SHP_ITEM_DESC FROM UNNEST(ITEMS) LIMIT 1) AS item_desc
     FROM `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS`
     WHERE SHP_SHIPMENT_ID IN ({ids_str})
+      AND _PARTITIONDATE >= DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)
     """
     try:
         return {r['shp_id']: str(r['item_desc'] or '').strip()
@@ -847,14 +788,13 @@ def carregar_entregues(creds, shp_ids):
     FROM `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS`
     WHERE SHP_SHIPMENT_ID IN ({ids_str})
       AND SHP_STATUS_ID = 'delivered'
+      AND _PARTITIONDATE >= DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)
     """
     try:
         return {r['shp_id'] for r in client.query(q).result()}
     except Exception as e:
         print(f"  [AVISO] Entregues BQ falhou: {e}")
         return set()
-
-MELI_PKG_URL_BASE = 'https://envios.adminml.com/logistics/package-management/package'
 
 def atualizar_entregues_planilha(creds, wy_raw, entregues):
     """Preenche Status=Concluído, AçãoLP=Pacote Localizado, Link e Final=Reversão
@@ -871,7 +811,7 @@ def atualizar_entregues_planilha(creds, wy_raw, entregues):
     for r in pendentes:
         row  = r[-1]  # número da linha na planilha
         shp_id = r[2]
-        link = f'{MELI_PKG_URL_BASE}/{shp_id}'
+        link = f'{MELI_PKG_URL}/{shp_id}'
         updates += [
             {'range': f'W{row}', 'values': [['Pacote Localizado']]},
             {'range': f'X{row}', 'values': [[link]]},
@@ -888,12 +828,6 @@ def atualizar_entregues_planilha(creds, wy_raw, entregues):
     if updates:
         ws.batch_update(updates, value_input_option='RAW')
     return len(pendentes)
-
-_FINAL_HIST_MAP = {
-    'reversao':  'Retornou ao fluxo',
-    'reversão':  'Retornou ao fluxo',
-    'bpp':       'Perdido',
-}
 
 def mover_concluidos_historico(creds, wy_raw, hoje_str):
     """Move para a aba Histórico todas as linhas do ON WAY com Status=Concluído
@@ -1055,8 +989,6 @@ def carregar_briefing(creds):
 
 def processar_briefing(bq_rows, wy):
     from datetime import date as _date
-    MESES = {1:'jan',2:'fev',3:'mar',4:'abr',5:'mai',6:'jun',
-             7:'jul',8:'ago',9:'set',10:'out',11:'nov',12:'dez'}
     hoje    = _date.today()
     hoje_str = hoje.isoformat()
     yr_h, wk_h, _ = hoje.isocalendar()
@@ -1088,7 +1020,7 @@ def processar_briefing(bq_rows, wy):
             try:
                 mon = _date.fromisocalendar(yr, wk, 1)
                 sun = _date.fromisocalendar(yr, wk, 7)
-                dr  = f'{mon.day:02d} {MESES[mon.month]}–{sun.day:02d} {MESES[sun.month]}'
+                dr  = f'{mon.day:02d} {MESES_PT[mon.month]}–{sun.day:02d} {MESES_PT[sun.month]}'
             except: dr = lbl
             week_data[lbl] = {'label':lbl,'yr':yr,'wk':wk,'date_range':dr,
                               'n_casos':0,'gmv':0.0,'drv_map':{},'plc_map':{},'shp_set':set()}
@@ -2721,6 +2653,16 @@ def gerar_html(d):
     {''.join(f'<button class="mes-btn" data-mes="{m["val"]}" onclick="filtrarMes(\'{m["val"]}\')">{m["lbl"]}</button>' for m in d["meses_hist"])}
   </div>
 
+  <!-- Filtro por intervalo de datas -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <span style="font-size:12px;color:#94a3b8">Período:</span>
+    <input type="date" id="hist-de"  onchange="filtrarHistRange()" style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:12px">
+    <span style="font-size:12px;color:#64748b">até</span>
+    <input type="date" id="hist-ate" onchange="filtrarHistRange()" style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:12px">
+    <button onclick="limparFiltroHist()" style="background:transparent;border:1px solid #334155;border-radius:6px;padding:4px 10px;color:#94a3b8;font-size:11px;cursor:pointer">✕ Limpar</button>
+    <span id="hist-count" style="font-size:11px;color:#64748b"></span>
+  </div>
+
   <div class="tbl-wrap">
     <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <span>Pacotes arquivados</span>
@@ -3022,13 +2964,55 @@ function togglePlaceRow(pid) {{
 
 // Filtro por mês no Histórico
 function filtrarMes(mes) {{
+  const de  = document.getElementById('hist-de');
+  const ate = document.getElementById('hist-ate');
+  if (de)  de.value  = '';
+  if (ate) ate.value = '';
+  let count = 0;
   document.querySelectorAll('.hist-row').forEach(tr => {{
-    tr.style.display = (!mes || tr.dataset.mes === mes) ? '' : 'none';
+    const show = (!mes || tr.dataset.mes === mes);
+    tr.style.display = show ? '' : 'none';
+    if (show) count++;
   }});
   document.querySelectorAll('#tab-hist .mes-btn').forEach(btn => {{
     btn.classList.toggle('mes-ativo', btn.dataset.mes === mes);
   }});
+  const cnt = document.getElementById('hist-count');
+  if (cnt) cnt.textContent = count + ' registros';
 }}
+
+function filtrarHistRange() {{
+  const de  = (document.getElementById('hist-de')?.value  || '').trim();
+  const ate = (document.getElementById('hist-ate')?.value || '').trim();
+  if (!de && !ate) {{
+    const ativo = document.querySelector('#tab-hist .mes-btn.mes-ativo');
+    filtrarMes(ativo ? ativo.dataset.mes : '');
+    return;
+  }}
+  document.querySelectorAll('#tab-hist .mes-btn').forEach(b => b.classList.remove('mes-ativo'));
+  const todos = document.querySelector('#tab-hist .mes-btn[data-mes=""]');
+  if (todos) todos.classList.add('mes-ativo');
+  let count = 0;
+  document.querySelectorAll('.hist-row').forEach(tr => {{
+    const d = tr.dataset.data || '';
+    const show = (!de || d >= de) && (!ate || d <= ate);
+    tr.style.display = show ? '' : 'none';
+    if (show) count++;
+  }});
+  const cnt = document.getElementById('hist-count');
+  if (cnt) cnt.textContent = count + ' registros';
+}}
+
+function limparFiltroHist() {{
+  const de  = document.getElementById('hist-de');
+  const ate = document.getElementById('hist-ate');
+  if (de)  de.value  = '';
+  if (ate) ate.value = '';
+  const cnt = document.getElementById('hist-count');
+  if (cnt) cnt.textContent = '';
+  filtrarMes('{d["mes_ano"]}');
+}}
+
 // Abre no mês atual por padrão
 filtrarMes('{d["mes_ano"]}');
 

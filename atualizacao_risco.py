@@ -190,19 +190,23 @@ def verificar_entrega(bq_client, ids):
     """
     if not ids:
         return {}
-    ids_sql = ', '.join(f"'{i}'" for i in ids)
+    ids_num = [str(int(i)) for i in ids if str(i).strip().isdigit()]
+    if not ids_num:
+        return {}
+    ids_sql = ', '.join(ids_num)
     query = f"""
     SELECT CAST(SHP_SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
            COALESCE(SHP_LG_SUB_STATUS, '') AS SHP_LG_SUB_STATUS
     FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENTS`
-    WHERE CAST(SHP_SHIPMENT_ID AS STRING) IN ({ids_sql})
+    WHERE SHP_SHIPMENT_ID IN ({ids_sql})
+      AND _PARTITIONDATE >= DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)
     """
     try:
         df = bq_client.query(query).to_dataframe()
         return dict(zip(df['SHP_SHIPMENT_ID'].astype(str), df['SHP_LG_SUB_STATUS'].astype(str)))
     except Exception as e:
-        print(f"  Aviso verificar_entrega: {e}")
-        return {}
+        print(f"  ERRO verificar_entrega — status dos pacotes nao verificado, arquivamento pode ser incorreto: {e}")
+        raise
 
 
 def montar_linha_on_route(row):
@@ -441,7 +445,7 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv, bq_client, col_acao_lp
     para_remover.sort(reverse=True)
 
     if para_remover:
-        sheet_id = sheet._properties['sheetId']
+        sheet_id = sheet.id
         requests = [
             {
                 'deleteDimension': {
@@ -505,11 +509,19 @@ def atualizar_cftv(planilha_controle, planilha_cftv):
             print("  Sem dados de CFTV")
             return cftv_counts
 
-        # col G (índice 6) = ID do pacote no formulário
-        ids_form = [str(r[6])  if len(r) > 6  else '' for r in dados[1:]]
-        col_w    = [r[22]      if len(r) > 22 else '' for r in dados[1:]]
-        col_y    = [r[24]      if len(r) > 24 else '' for r in dados[1:]]
-        col_ae   = [r[30]      if len(r) > 30 else '' for r in dados[1:]]
+        header = dados[0]
+        def _hi(name, fallback):
+            try: return header.index(name)
+            except ValueError: return fallback
+        idx_shp  = _hi('Shipment',    6)
+        idx_resp = _hi('Responsável', 22)
+        idx_stat = _hi('Status',      24)
+        idx_link = _hi('Link',        30)
+
+        ids_form = [str(r[idx_shp])  if len(r) > idx_shp  else '' for r in dados[1:]]
+        col_w    = [r[idx_resp]      if len(r) > idx_resp  else '' for r in dados[1:]]
+        col_y    = [r[idx_stat]      if len(r) > idx_stat  else '' for r in dados[1:]]
+        col_ae   = [r[idx_link]      if len(r) > idx_link  else '' for r in dados[1:]]
 
         mapa = {ids_form[i]: (col_w[i], col_y[i], col_ae[i])
                 for i in range(len(ids_form)) if ids_form[i]}

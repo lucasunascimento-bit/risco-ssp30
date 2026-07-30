@@ -6,6 +6,7 @@
 import json, webbrowser, os, pickle, hashlib, time
 from datetime import datetime
 from _diario_widget import diario_css, diario_nav_btn, diario_panel_html, diario_js
+from _shared import _SB_DRAG_JS
 from google.cloud import bigquery
 from google.auth import default
 import gspread
@@ -13,74 +14,6 @@ import gspread
 FACILITY_NAME  = 'Guarulhos Mega'
 ANO_INICIO     = '2026-01-01'
 
-_SB_DRAG_JS = """
-(function(){
-var KEY='sb_order_'+(location.pathname.split('/').pop()||'idx');
-var dragEl=null,sb=null;
-function save(){
-  var dc=0,order=Array.from(sb.children).map(function(el){
-    if(el.classList.contains('sb-item'))return 'i:'+el.dataset.tab;
-    if(el.classList.contains('sb-divider'))return 'd:'+(dc++);
-    if(el.classList.contains('sb-section-header'))return 'h:'+el.textContent.trim();
-    return null;
-  }).filter(Boolean);
-  try{localStorage.setItem(KEY,JSON.stringify(order));}catch(e){}
-}
-function restore(){
-  try{
-    var saved=JSON.parse(localStorage.getItem(KEY)||'null');
-    if(!saved||!saved.length)return;
-    var im={},hm={},da=[];
-    Array.from(sb.children).forEach(function(el){
-      if(el.classList.contains('sb-item'))im[el.dataset.tab]=el;
-      else if(el.classList.contains('sb-section-header'))hm[el.textContent.trim()]=el;
-      else if(el.classList.contains('sb-divider'))da.push(el);
-    });
-    var di=0;
-    saved.forEach(function(e){
-      var el=null;
-      if(e.startsWith('i:'))el=im[e.slice(2)];
-      else if(e.startsWith('h:'))el=hm[e.slice(2)];
-      else if(e.startsWith('d:'))el=da[di++];
-      if(el)sb.appendChild(el);
-    });
-  }catch(e){}
-}
-document.addEventListener('DOMContentLoaded',function(){
-  sb=document.querySelector('.sidebar');
-  if(!sb)return;
-  restore();
-  Array.from(sb.querySelectorAll('.sb-item')).forEach(function(el){
-    el.setAttribute('draggable','true');
-    var h=document.createElement('span');
-    h.className='sb-drag-handle';h.textContent='⠿';
-    el.insertBefore(h,el.firstChild);
-  });
-  sb.addEventListener('dragstart',function(e){
-    var t=e.target.closest('.sb-item');
-    if(!t)return;
-    dragEl=t;setTimeout(function(){t.classList.add('sb-dragging');},0);
-    e.dataTransfer.effectAllowed='move';
-  });
-  sb.addEventListener('dragend',function(){
-    if(dragEl){dragEl.classList.remove('sb-dragging');dragEl=null;}
-    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
-    save();
-  });
-  sb.addEventListener('dragover',function(e){
-    e.preventDefault();if(!dragEl)return;
-    var t=e.target.closest('.sb-item');
-    sb.querySelectorAll('.sb-drop-before').forEach(function(el){el.classList.remove('sb-drop-before');});
-    if(t&&t!==dragEl){
-      var r=t.getBoundingClientRect();
-      if(e.clientY<r.top+r.height/2){sb.insertBefore(dragEl,t);t.classList.add('sb-drop-before');}
-      else{sb.insertBefore(dragEl,t.nextSibling);}
-    }
-  });
-  sb.addEventListener('drop',function(e){e.preventDefault();});
-});
-})();
-"""
 OUTPUT            = os.path.join(os.path.dirname(__file__), 'fraude.html')
 SINISTROS_OUTPUT  = os.path.join(os.path.dirname(__file__), 'sinistros.html')
 BLOCK_LIST_ID  = '1521Ek2wn8qYLj7g6dh0aBBMmpVYHjCp2hftGKNG9bO0'
@@ -105,7 +38,7 @@ SELECT
     COUNTIF(Classification_LM LIKE 'DAMAGED%')                              AS TOTAL_DAMAGED,
     COUNTIF(Classification_LM LIKE 'FRAUD%')                                AS FRAUD_CONFIRMADO
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
   AND date_bpp >= '{ANO_INICIO}'
   AND date_bpp <= CURRENT_DATE()
   AND DRIVER_ID IS NOT NULL
@@ -124,7 +57,7 @@ SELECT
     FORMAT_DATE('%d/%m/%Y', date_bpp)    AS DATA,
     FORMAT_DATE('%Y-W%V', date_bpp)      AS SEMANA
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
   AND date_bpp >= '{ANO_INICIO}'
   AND date_bpp <= CURRENT_DATE()
   AND DRIVER_ID IS NOT NULL
@@ -140,7 +73,7 @@ WITH fraud_driver AS (
         Classification_LM,
         ROUND(BPP_CASHOUT_USD, 2)           AS BPP_CASHOUT_USD
     FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-    WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+    WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
       AND date_bpp >= '{ANO_INICIO}'
       AND date_bpp <= CURRENT_DATE()
       AND DRIVER_ID IS NOT NULL
@@ -170,7 +103,7 @@ WITH fraudes AS (
            Classification_LM,
            ROUND(BPP_CASHOUT_USD, 2) AS BPP_CASHOUT_USD
     FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-    WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+    WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
       AND date_bpp >= '{ANO_INICIO}'
       AND date_bpp <= CURRENT_DATE()
       AND Classification_LM IN (
@@ -257,7 +190,7 @@ status_priority AS (
 fraud_drivers AS (
   SELECT DISTINCT SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-  WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
     AND date_bpp >= '{ANO_INICIO}'
     AND DRIVER_ID IS NOT NULL
 )
@@ -289,7 +222,7 @@ WHERE r.SHP_LG_FACILITY_ID = 'SSP30'
   AND CAST(r.SHP_LG_DRIVER_ID AS STRING) IN (
       SELECT DISTINCT SAFE_CAST(DRIVER_ID AS STRING)
       FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-      WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+      WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
         AND date_bpp >= '{ANO_INICIO}'
         AND DRIVER_ID IS NOT NULL
   )
@@ -324,7 +257,7 @@ FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` f
 JOIN `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` p
     ON CAST(p.SHP_SHIPMENT_ID AS STRING) = CAST(f.SHIPMENT_ID AS STRING)
    AND p.SERVICE_TYPE = 'DO'
-WHERE f.SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+WHERE f.SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
   AND f.date_bpp >= '{ANO_INICIO}'
   AND f.date_bpp <= CURRENT_DATE()
   AND f.Classification_LM IN (
@@ -399,7 +332,7 @@ SELECT
     COUNTIF(Classification_LM = 'DAMAGED AT STATION')        AS DAMAGED_AT_STATION,
     COUNTIF(Classification_LM = 'DAMAGED ENE')               AS DAMAGED_ENE
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
   AND date_bpp >= '{ANO_INICIO}'
   AND date_bpp <= CURRENT_DATE()
   AND Classification_LM LIKE 'DAMAGED%'
@@ -418,7 +351,7 @@ WITH lost_sssp30 AS (
     Classification_LM                AS classificacao,
     FORMAT_DATE('%d/%m/%Y', date_bpp) AS data_bpp
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-  WHERE SHP_LG_FACILITY_NAME = 'Guarulhos Mega'
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
     AND date_bpp >= '{ANO_INICIO}'
     AND date_bpp <= CURRENT_DATE()
     AND Classification_LM IN (
@@ -1422,7 +1355,7 @@ def processar_damaged_ene(df_casos, df_causas):
     }
 
 _CACHE_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_bq_cache')
-_CACHE_TTL  = 4 * 60 * 60   # 4 horas (BQ — dado de fraude não muda minuto a minuto)
+_CACHE_TTL  = 12 * 60 * 60  # 12 horas (BQ — dado de fraude não muda minuto a minuto)
 _SHEETS_TTL = 2 * 60 * 60   # 2 horas (Sheets read-only: CFTV, Sinistros)
 _SYNC_TTL   = 2 * 60 * 60   # 2 horas (sync de status BL — evita BQ extra)
 
@@ -6526,7 +6459,7 @@ if __name__ == '__main__':
     # --- Investigação LP: cache + 3 queries BQ em paralelo ---
     import json as _json_bq, time as _tbq
     _BQ_CACHE_PATH = os.path.join(os.path.dirname(__file__), 'bq_investigacao_cache.json')
-    _BQ_CACHE_MAX  = 4 * 3600  # 4 horas
+    _BQ_CACHE_MAX  = 12 * 3600  # 12 horas
 
     def _bq_cache_load():
         if not os.path.exists(_BQ_CACHE_PATH): return None
