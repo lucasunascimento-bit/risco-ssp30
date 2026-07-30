@@ -50,6 +50,20 @@ WHERE SHP_LG_FACILITY_ID = 'SSP30'
   AND SHP_TRAMO IN ('NEX', 'DC')
 ORDER BY SHP_ORDER_COST_USD DESC
 """
+AT_STATION_QUERY = """
+SELECT
+  CAST(SHP_SHIPMENT_ID AS STRING)                                        AS SHP_SHIPMENT_ID,
+  SHP_TRAMO,
+  COALESCE(ACTION_DETAIL, '')                                            AS ACTION_DETAIL,
+  COALESCE(RISK_CLASIFICATION, '')                                       AS RISK_CLASIFICATION,
+  COALESCE(CAST(DAYS_HANDLING_SVC AS INT64), 0)                         AS DAYS_HANDLING_SVC,
+  COALESCE(CAST(SHP_ORDER_COST_USD AS FLOAT64), 0)                      AS SHP_ORDER_COST_USD,
+  COALESCE(CAST(FLAG_BPP AS BOOL), FALSE)                               AS FLAG_BPP,
+  COALESCE(SHP_DESTINATION_ID_LM, '')                                   AS SHP_DESTINATION_ID
+FROM `meli-bi-data.WHOWNER.LK_SHP_MISSING_MANAGEMENT_PACKAGES`
+WHERE SHP_LG_FACILITY_ID = 'SSP30'
+ORDER BY SHP_ORDER_COST_USD DESC
+"""
 DIT_QUERY = """
 WITH dit_dedup AS (
   SELECT
@@ -816,7 +830,7 @@ def atualizar_entregues_planilha(creds, wy_raw, entregues):
             {'range': f'W{row}', 'values': [['Pacote Localizado']]},
             {'range': f'X{row}', 'values': [[link]]},
             {'range': f'AC{row}', 'values': [['Concluído']]},
-            {'range': f'AD{row}', 'values': [['Reversão']]},
+            {'range': f'AD{row}', 'values': [['Recuperado']]},
         ]
         # atualiza in-memory para o passo de mover para histórico
         while len(r) < 35:
@@ -824,7 +838,7 @@ def atualizar_entregues_planilha(creds, wy_raw, entregues):
         r[22] = 'Pacote Localizado'
         r[23] = link
         r[28] = 'Concluído'
-        r[29] = 'Reversão'
+        r[29] = 'Recuperado'
     if updates:
         ws.batch_update(updates, value_input_option='RAW')
     return len(pendentes)
@@ -974,6 +988,11 @@ def carregar_cftv_status(creds):
 def carregar_places(creds):
     client = bigquery.Client(project='meli-bi-data', credentials=creds)
     job    = client.query(PLACES_QUERY)
+    return [dict(r) for r in job.result()]
+
+def carregar_at_station(creds):
+    client = bigquery.Client(project='meli-bi-data', credentials=creds)
+    job    = client.query(AT_STATION_QUERY)
     return [dict(r) for r in job.result()]
 
 def carregar_dit(creds):
@@ -1354,6 +1373,79 @@ def processar_places(rows, dit_data=None):
         'otr_imediato': sum(1 for p in otr_list if p['nivel'] == 'IMEDIATO'),
         'rows': rows,
         'ranking': ranking,
+    }
+
+def processar_at_station(rows):
+    total   = len(rows)
+    gmv_tot = sum(float(r.get('SHP_ORDER_COST_USD') or 0) for r in rows)
+    criticos = sum(1 for r in rows if int(r.get('DAYS_HANDLING_SVC') or 0) > 10)
+    bpp_ct   = sum(1 for r in rows if r.get('FLAG_BPP'))
+
+    buckets_def = [
+        ('≤3d',   lambda d: d <= 3),
+        ('4-7d',  lambda d: 4 <= d <= 7),
+        ('8-10d', lambda d: 8 <= d <= 10),
+        ('11-30d',lambda d: 11 <= d <= 30),
+        ('31d+',  lambda d: d >= 31),
+    ]
+    aging = []
+    for label, fn in buckets_def:
+        matched = [r for r in rows if fn(int(r.get('DAYS_HANDLING_SVC') or 0))]
+        gmv_b = sum(float(r.get('SHP_ORDER_COST_USD') or 0) for r in matched)
+        aging.append({'label': label, 'count': len(matched), 'gmv': round(gmv_b, 2)})
+
+    acao_cnt, acao_gmv = {}, {}
+    for r in rows:
+        a = extract_acao(r.get('ACTION_DETAIL') or '') or '—'
+        acao_cnt[a] = acao_cnt.get(a, 0) + 1
+        acao_gmv[a] = acao_gmv.get(a, 0) + float(r.get('SHP_ORDER_COST_USD') or 0)
+    acao = sorted(
+        [{'label': k, 'count': v, 'gmv': round(acao_gmv[k], 2)} for k, v in acao_cnt.items()],
+        key=lambda x: -x['count']
+    )
+
+    risk_cnt, risk_gmv = {}, {}
+    for r in rows:
+        rk = norm_risk(r.get('RISK_CLASIFICATION') or '') or '—'
+        risk_cnt[rk] = risk_cnt.get(rk, 0) + 1
+        risk_gmv[rk] = risk_gmv.get(rk, 0) + float(r.get('SHP_ORDER_COST_USD') or 0)
+    risk = sorted(
+        [{'label': k, 'count': v, 'gmv': round(risk_gmv[k], 2)} for k, v in risk_cnt.items()],
+        key=lambda x: -x['count']
+    )
+
+    tramo_cnt, tramo_gmv = {}, {}
+    for r in rows:
+        t = r.get('SHP_TRAMO') or '—'
+        tramo_cnt[t] = tramo_cnt.get(t, 0) + 1
+        tramo_gmv[t] = tramo_gmv.get(t, 0) + float(r.get('SHP_ORDER_COST_USD') or 0)
+    tramos = sorted(
+        [{'label': k, 'count': v, 'gmv': round(tramo_gmv[k], 2)} for k, v in tramo_cnt.items()],
+        key=lambda x: -x['count']
+    )
+
+    top_pkgs = [
+        {
+            'shp_id': r['SHP_SHIPMENT_ID'],
+            'tramo': r.get('SHP_TRAMO') or '—',
+            'acao': extract_acao(r.get('ACTION_DETAIL') or '') or '—',
+            'risk': norm_risk(r.get('RISK_CLASIFICATION') or '') or '—',
+            'dias': int(r.get('DAYS_HANDLING_SVC') or 0),
+            'usd': float(r.get('SHP_ORDER_COST_USD') or 0),
+        }
+        for r in rows[:50]
+    ]
+
+    return {
+        'total':    total,
+        'gmv_total': round(gmv_tot, 2),
+        'criticos': criticos,
+        'bpp_ct':   bpp_ct,
+        'aging':    aging,
+        'acao':     acao,
+        'risk':     risk,
+        'tramos':   tramos,
+        'top_pkgs': top_pkgs,
     }
 
 def processar_places_ranking(rows, dit_data=None):
@@ -2367,6 +2459,10 @@ def gerar_html(d):
     <i data-lucide="truck" width="14" height="14" class="ci"></i>
     ON WAY <span class="sb-badge">{d["w_total"]}</span>
   </div>
+  <div class="sb-item" data-tab="at_station" onclick="showTab('at_station',this)">
+    <i data-lucide="warehouse" width="14" height="14" class="ci"></i>
+    AT STATION <span class="sb-badge">{d["at_station"]["total"]}</span>
+  </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Places</div>
   <div class="sb-item" data-tab="places" onclick="showTab('places',this)">
@@ -2597,6 +2693,157 @@ def gerar_html(d):
     </table>
     </div>
   </div>
+</div>
+
+<!-- ===================== ABA AT STATION ===================== -->
+<div id="tab-at_station" class="content">
+  <div class="cards">
+    <div class="card">
+      <div class="card-header"><i data-lucide="warehouse" class="card-icon" width="14" height="14"></i><span class="card-label">Total At Station</span></div>
+      <div class="card-value">{d["at_station"]["total"]}</div>
+      <div class="card-delta">todos os tramos · SSP30</div>
+    </div>
+    <div class="card card-alert" style="border-color:#022c22;background:#060f0d">
+      <div class="card-header"><i data-lucide="dollar-sign" class="card-icon" width="14" height="14" style="color:#064e3b"></i><span class="card-label">GMV Total</span></div>
+      <div class="card-value val-ok">${d["at_station"]["gmv_total"]:,.0f}</div>
+      <div class="card-delta">USD</div>
+    </div>
+    <div class="card card-alert">
+      <div class="card-header"><i data-lucide="clock" class="card-icon" width="14" height="14" style="color:#7f1d1d"></i><span class="card-label">Críticos &gt;10 dias</span></div>
+      <div class="card-value val-alert">{d["at_station"]["criticos"]}</div>
+      <div class="card-delta">{"%.0f%%" % (d["at_station"]["criticos"]/d["at_station"]["total"]*100) if d["at_station"]["total"] else "0%"} do total</div>
+    </div>
+    <div class="card" style="border-color:rgba(251,191,36,.2);background:#0d0c00">
+      <div class="card-header"><i data-lucide="shield-alert" class="card-icon" width="14" height="14" style="color:#fbbf24"></i><span class="card-label">Flag BPP</span></div>
+      <div class="card-value" style="color:#fbbf24">{d["at_station"]["bpp_ct"]}</div>
+      <div class="card-delta">{"%.0f%%" % (d["at_station"]["bpp_ct"]/d["at_station"]["total"]*100) if d["at_station"]["total"] else "0%"} com BPP</div>
+    </div>
+  </div>
+
+  <div class="grid2 mb16">
+
+    <!-- Aging buckets -->
+    <div class="tbl-wrap" style="margin-bottom:0">
+      <div class="tbl-title">Aging — Dias Estacado</div>
+      <div class="tbl-scroll">
+      <table id="tbl_as_aging">
+        <thead><tr><th>Bucket</th><th>Qtd</th><th>%</th><th>GMV USD</th></tr></thead>
+        <tbody>
+          {"".join(
+            f'<tr style="{"background:rgba(239,68,68,.08)" if i["label"] in ("11-30d","31d+") else ""}">'
+            f'<td><b>{i["label"]}</b></td>'
+            f'<td>{i["count"]}</td>'
+            f'<td style="color:#9ca3af">{("%.1f%%" % (i["count"]/d["at_station"]["total"]*100)) if d["at_station"]["total"] else "—"}</td>'
+            f'<td>${i["gmv"]:,.0f}</td></tr>'
+            for i in d["at_station"]["aging"]
+          )}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- Tramo breakdown -->
+    <div class="tbl-wrap" style="margin-bottom:0">
+      <div class="tbl-title">Distribuição por Tramo</div>
+      <div class="tbl-scroll">
+      <table id="tbl_as_tramo">
+        <thead><tr><th>Tramo</th><th>Qtd</th><th>%</th><th>GMV USD</th></tr></thead>
+        <tbody>
+          {"".join(
+            f'<tr><td><b>{i["label"]}</b></td>'
+            f'<td>{i["count"]}</td>'
+            f'<td style="color:#9ca3af">{("%.1f%%" % (i["count"]/d["at_station"]["total"]*100)) if d["at_station"]["total"] else "—"}</td>'
+            f'<td>${i["gmv"]:,.0f}</td></tr>'
+            for i in d["at_station"]["tramos"]
+          )}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="grid2 mb16">
+
+    <!-- Ação LP -->
+    <div class="tbl-wrap" style="margin-bottom:0">
+      <div class="tbl-title">Ação LP</div>
+      <div class="tbl-scroll">
+      <table id="tbl_as_acao">
+        <thead><tr><th>Ação</th><th>Qtd</th><th>%</th><th>GMV USD</th></tr></thead>
+        <tbody>
+          {"".join(
+            f'<tr><td>{i["label"]}</td>'
+            f'<td>{i["count"]}</td>'
+            f'<td style="color:#9ca3af">{("%.1f%%" % (i["count"]/d["at_station"]["total"]*100)) if d["at_station"]["total"] else "—"}</td>'
+            f'<td>${i["gmv"]:,.0f}</td></tr>'
+            for i in d["at_station"]["acao"]
+          )}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- Risk Classification -->
+    <div class="tbl-wrap" style="margin-bottom:0">
+      <div class="tbl-title">Classificação de Risco (BPP)</div>
+      <div class="tbl-scroll">
+      <table id="tbl_as_risk">
+        <thead><tr><th>Risco</th><th>Qtd</th><th>%</th><th>GMV USD</th></tr></thead>
+        <tbody>
+          {"".join(
+            f'<tr><td>{i["label"]}</td>'
+            f'<td>{i["count"]}</td>'
+            f'<td style="color:#9ca3af">{("%.1f%%" % (i["count"]/d["at_station"]["total"]*100)) if d["at_station"]["total"] else "—"}</td>'
+            f'<td>${i["gmv"]:,.0f}</td></tr>'
+            for i in d["at_station"]["risk"]
+          )}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Top pacotes por GMV -->
+  <div class="tbl-wrap">
+    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Top 50 Pacotes — At Station (por GMV)</span>
+      <input type="text" id="as-search" placeholder="Buscar SHP ID..." oninput="asFilter()"
+        style="background:#1f2937;border:1px solid #374151;border-radius:6px;color:#f9fafb;
+               font-size:11px;padding:4px 10px;width:160px;outline:none">
+    </div>
+    <div class="tbl-scroll">
+    <table id="tbl_as_pkgs">
+      <thead><tr>
+        <th>SHP ID</th><th>Tramo</th><th>Ação LP</th><th>Risco</th>
+        <th class="sortable" onclick="sortTable('tbl_as_pkgs',4)">Dias</th>
+        <th class="sortable" onclick="sortTable('tbl_as_pkgs',5)">GMV USD</th>
+      </tr></thead>
+      <tbody id="as-tbody">
+        {"".join(
+          f'<tr>'
+          f'<td><a href="https://www.mercadolivre.com.br/envios/pacote/{p["shp_id"]}" target="_blank" style="color:#60a5fa;text-decoration:none">{p["shp_id"]}</a></td>'
+          f'<td><span style="background:#1f2937;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">{p["tramo"]}</span></td>'
+          f'<td style="font-size:11px">{p["acao"]}</td>'
+          f'<td style="font-size:11px">{p["risk"]}</td>'
+          f'<td style="{"color:#ef4444;font-weight:700" if p["dias"]>10 else "color:#9ca3af"}">{p["dias"]}</td>'
+          f'<td style="font-weight:600">${p["usd"]:,.0f}</td>'
+          f'</tr>'
+          for p in d["at_station"]["top_pkgs"]
+        )}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  <script>
+    function asFilter() {{
+      const q = document.getElementById('as-search').value.toLowerCase();
+      document.querySelectorAll('#as-tbody tr').forEach(r => {{
+        r.style.display = r.cells[0].textContent.toLowerCase().includes(q) ? '' : 'none';
+      }});
+    }}
+  </script>
 </div>
 
 <!-- ===================== ABA 4: TOP GMV ===================== -->
@@ -3803,6 +4050,13 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"  [AVISO] Places BQ falhou: {e}")
         places_rows = []
+    print("Lendo At Station (BigQuery)...")
+    try:
+        at_station_rows = carregar_at_station(creds)
+        print(f"  At Station: {len(at_station_rows)} pacotes (todos os tramos SSP30)")
+    except Exception as e:
+        print(f"  [AVISO] At Station BQ falhou: {e}")
+        at_station_rows = []
     print("Lendo DIT Blind Spot (BigQuery)...")
     try:
         dit_data = carregar_dit(creds)
@@ -3890,6 +4144,7 @@ if __name__ == '__main__':
     print("Processando dados...")
     dados = processar(rt, wy, hi, descricoes=descricoes, cftv_map=cftv_map, entregues=entregues)
     dados['places']      = processar_places(places_rows, dit_data)
+    dados['at_station']  = processar_at_station(at_station_rows)
     dados['r_devolvidos'] = n_devolvidos_rt
     dados['briefing']    = processar_briefing(bq_briefing, wy)
     dados['snapshots']   = _processar_snapshots(snaps)

@@ -29,6 +29,16 @@ jobs:
           mkdir -p ~/.config/gcloud
           echo '${{ secrets.GOOGLE_CREDENTIALS }}' > ~/.config/gcloud/application_default_credentials.json
 
+      - name: Restaurar cache BQ
+        uses: actions/cache@v4
+        with:
+          path: |
+            _bq_cache/
+            bq_investigacao_cache.json
+          key: bq-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            bq-cache-${{ runner.os }}-
+
       - name: Gerar dashboard de fraude
         run: python analise_fraude.py
 

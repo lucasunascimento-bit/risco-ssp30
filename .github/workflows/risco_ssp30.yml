@@ -29,6 +29,14 @@ jobs:
           mkdir -p ~/.config/gcloud
           echo '${{ secrets.GOOGLE_CREDENTIALS }}' > ~/.config/gcloud/application_default_credentials.json
 
+      - name: Restaurar cache BQ
+        uses: actions/cache@v4
+        with:
+          path: _bq_cache/
+          key: bq-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            bq-cache-${{ runner.os }}-
+
       - name: Rodar script de atualização
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

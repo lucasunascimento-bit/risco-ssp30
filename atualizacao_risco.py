@@ -421,6 +421,7 @@ def atualizar_aba(sheet, df, nome_aba, linha_fn, idx_gmv, bq_client, col_acao_lp
                 updates_conclusao += [
                     {'range': f'AC{linha}',            'values': [[status_caso_novo]]},
                     {'range': f'{col_acao_lp}{linha}', 'values': [[acao_lp_novo]]},
+                    {'range': f'AD{linha}',            'values': [['Recuperado' if foi_entregue else 'Perdido']]},
                 ]
 
             if linha - 1 < len(todos_dados):

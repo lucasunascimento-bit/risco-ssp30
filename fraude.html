@@ -24836,7 +24836,22 @@ function copiarRelatorio(modo) {
 function _setEl(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
 
 // ── SAÍDAS MÚLTIPLAS ─────────────────────────────────────────
+function _showBqBanner(containerId, show) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  let b = c.querySelector('.bq-sem-dados');
+  if (!b) {
+    b = document.createElement('div');
+    b.className = 'bq-sem-dados';
+    b.style.cssText = 'background:#1e293b;border:1px solid #f87171;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#fca5a5;font-size:13px;display:flex;align-items:center;gap:10px;';
+    b.innerHTML = '<span style="font-size:18px">⚠️</span><span>Sem dados do BigQuery — cota esgotada na última execução. Os dados serão atualizados na próxima rodada agendada.</span>';
+    c.insertBefore(b, c.firstChild);
+  }
+  b.style.display = show ? 'flex' : 'none';
+}
+
 function initSaidas() {
+  _showBqBanner('tab-saidas', SAIDAS_DATA.length === 0);
   const sel = document.getElementById('sm-filtro-mes');
   if (sel && sel.options.length <= 1) {
     const meses = [...new Set(SAIDAS_DATA.map(r => r.data_ini.slice(0,7)))].sort();
@@ -24947,6 +24962,7 @@ function filtrarDevolucoes() {
 
 // ── SELLERS ENE ──────────────────────────────────────────────
 function initSellersENE() {
+  _showBqBanner('tab-sellers_ene', SELLERS_ENE_DATA.length === 0);
   const badge = document.getElementById('tab-count-sellers-ene');
   if (badge) badge.textContent = SELLERS_ENE_DATA.length;
   filtrarSellersENE();
@@ -25032,9 +25048,9 @@ function initDamagedENE() {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([, v]) => v);
 
-  // KPI cards
+  // KPI cards — badge shows total, not filtered
   const badge = document.getElementById('tab-count-damaged-ene');
-  if (badge) badge.textContent = casosFiltrados.length;
+  if (badge) badge.textContent = (DAMAGED_ENE_DATA.casos || []).length;
   _setEl('dene-total', casosFiltrados.length.toLocaleString('pt-BR'));
   _setEl('dene-bpp', 'US$ ' + totalBpp.toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2}));
   _setEl('dene-sellers', sellers.length);
