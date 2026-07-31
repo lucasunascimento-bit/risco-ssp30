@@ -199,7 +199,6 @@ def verificar_entrega(bq_client, ids):
            COALESCE(SHP_LG_SUB_STATUS, '') AS SHP_LG_SUB_STATUS
     FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENTS`
     WHERE SHP_SHIPMENT_ID IN ({ids_sql})
-      AND _PARTITIONDATE >= DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)
     """
     try:
         df = bq_client.query(query).to_dataframe()

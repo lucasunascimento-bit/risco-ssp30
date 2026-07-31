@@ -38,6 +38,7 @@ jobs:
             bq-cache-${{ runner.os }}-
 
       - name: Rodar script de atualização
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PYTHONUTF8: "1"
