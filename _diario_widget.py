@@ -86,7 +86,6 @@ def diario_panel_html():
 def diario_js():
     # Raw string — backslashes are literal (JS template literals preserved as-is)
     return r"""
-const _OW_SRV = 'http://localhost:5000';
 let _dbTodayStr = '', _dbData = null, _dbAcabouAbrir = false;
 
 function _dbSlug(s) { return (s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
@@ -141,10 +140,9 @@ async function carregarDiario() {
   const lbl=document.getElementById('db-date-lbl');
   if(lbl) lbl.textContent=`${dias[now.getDay()]}, ${now.getDate()}/${(now.getMonth()+1).toString().padStart(2,'0')}`;
   try {
-    const r=await fetch(_OW_SRV+'/diario',{signal:AbortSignal.timeout(4000)});
-    if(!r.ok){_dbSetStatus('offline');return;}
-    _dbData=await r.json(); _dbRender(_dbData); _dbSetStatus('ativo');
-  } catch(e){_dbSetStatus('offline');}
+    _dbData = await api('diario');
+    if(_dbData) _dbRender(_dbData);
+  } catch(e){}
 }
 function dbTogglePanel() {
   const panel=document.getElementById('db-panel');
@@ -178,13 +176,13 @@ async function dbToggle(atividade,hi,hf,tipo){
     if(ptxt) ptxt.textContent=`${done}/${tot} feitas`;
     if(pbar) pbar.style.width=tot?`${Math.round(done/tot*100)}%`:'0%';
   }
-  try{await fetch(_OW_SRV+'/diario/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,feito:agora}),signal:AbortSignal.timeout(4000)});}catch(e){}
+  try{await api('diario_toggle',{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,feito:agora},'POST');}catch(e){}
 }
 const _dbObsTmr={};
 function dbSalvarObs(atividade,hi,hf,tipo,obs){
   clearTimeout(_dbObsTmr[atividade]);
   _dbObsTmr[atividade]=setTimeout(async()=>{
-    try{await fetch(_OW_SRV+'/diario/obs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,obs}),signal:AbortSignal.timeout(4000)});}catch(e){}
+    try{await api('diario_obs',{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,obs},'POST');}catch(e){}
   },800);
 }
 function dbAbrirModal(){const bg=document.getElementById('db-modal-bg');if(bg){bg.style.display='flex';document.getElementById('db-m-atv').focus();}}
@@ -196,8 +194,8 @@ async function dbSalvarExtra(){
   m.style.borderColor='';
   const hi=document.getElementById('db-m-ini').value, hf=document.getElementById('db-m-fim').value, obs=document.getElementById('db-m-obs').value;
   try{
-    const r=await fetch(_OW_SRV+'/diario/extra',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,obs}),signal:AbortSignal.timeout(4000)});
-    if(r.ok){
+    const r=await api('diario_extra',{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,obs},'POST');
+    if(r&&r.ok){
       dbFecharModal();
       ['db-m-atv','db-m-ini','db-m-fim','db-m-obs'].forEach(id=>{document.getElementById(id).value='';});
       if(_dbData){_dbData.extras=_dbData.extras||[];_dbData.extras.push({hora_ini:hi,hora_fim:hf,atividade,tipo:'Extra',feito:false,obs,extra:true});document.getElementById('db-extras').innerHTML=_dbData.extras.map(i=>_dbItemHtml(i,true)).join('');}
@@ -207,7 +205,7 @@ async function dbSalvarExtra(){
 async function dbDeletarExtra(atividade){
   if(!confirm(`Remover "${atividade}"?`)) return;
   try{
-    await fetch(_OW_SRV+'/diario/delete_extra',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:_dbTodayStr,atividade}),signal:AbortSignal.timeout(4000)});
+    await api('diario_delete_extra',{data:_dbTodayStr,atividade},'POST');
     if(_dbData&&_dbData.extras){_dbData.extras=_dbData.extras.filter(i=>i.atividade!==atividade);document.getElementById('db-extras').innerHTML=_dbData.extras.map(i=>_dbItemHtml(i,true)).join('');}
   }catch(e){}
 }

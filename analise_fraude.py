@@ -2052,7 +2052,7 @@ def rows_dc_nex(dc_nex_data):
     tipo_bg   = {'NEX': 'rgba(245,158,11,.12)', 'DC': 'rgba(96,165,250,.12)', 'Transportadora XPT': 'rgba(167,139,250,.12)'}
     facilities = dc_nex_data.get('facilities', [])
     if not facilities:
-        return '<tr><td colspan="5" style="text-align:center;color:#4b5563;padding:32px">Nenhum pacote encontrado</td></tr>'
+        return '<tr><td colspan="6" style="text-align:center;color:#4b5563;padding:32px">Nenhum pacote encontrado</td></tr>'
     out = ''
     for i, f in enumerate(facilities):
         row_id  = f'dcnex_{i}'
@@ -2068,6 +2068,8 @@ def rows_dc_nex(dc_nex_data):
         for p in f['pacotes']:
             cls_cor = '#ef4444' if 'FRAUD' in p['classificacao'] else '#94a3b8'
             drv_txt = p.get('driver_lm', '') or '—'
+                cobrar_txt  = p.get('cobrar_otr', '') or '—'
+            cobrar_cor  = '#10b981' if cobrar_txt == 'Cobrado' else '#f59e0b' if cobrar_txt == 'Aguardando Retorno' else '#ef4444' if cobrar_txt == 'Sem Retorno' else '#4b5563'
             sub += f'''<tr style="background:#060c1a">
                 <td style="padding:6px 10px 6px 32px;font-family:monospace;font-size:12px">
                   <a href="{MELI_URL}/{p['shp_id']}" target="_blank" style="color:#60a5fa;text-decoration:none">{p['shp_id']}</a>
@@ -2076,7 +2078,18 @@ def rows_dc_nex(dc_nex_data):
                 <td style="padding:6px 10px;font-size:11px;color:{cls_cor}">{p['classificacao']}</td>
                 <td style="padding:6px 10px;font-size:11px;color:#6b7280">{p['data_dc_nex']}</td>
                 <td style="padding:6px 10px;font-size:11px;font-family:monospace;color:#c084fc">{drv_txt}</td>
+                <td style="padding:6px 10px;font-size:11px;color:{cobrar_cor}">{cobrar_txt}</td>
             </tr>'''
+        cob  = f.get('cobrados', 0)
+        agu  = f.get('aguardando', 0)
+        sem  = f.get('sem_retorno', 0)
+        s_st = f.get('sem_status', 0)
+        cobrar_html = (
+            (f'<span style="background:#065f46;color:#6ee7b7;padding:1px 6px;border-radius:8px;font-size:9px;margin-right:2px">✓{cob}</span>' if cob else '') +
+            (f'<span style="background:#78350f;color:#fcd34d;padding:1px 6px;border-radius:8px;font-size:9px;margin-right:2px">⏳{agu}</span>' if agu else '') +
+            (f'<span style="background:#7f1d1d;color:#fca5a5;padding:1px 6px;border-radius:8px;font-size:9px;margin-right:2px">✗{sem}</span>' if sem else '') +
+            (f'<span style="background:#1e293b;color:#4b5563;padding:1px 6px;border-radius:8px;font-size:9px">–{s_st}</span>' if s_st else '')
+        ) or '<span style="color:#4b5563;font-size:10px">—</span>'
         seta = f'<span id="arrow_{row_id}" style="font-size:10px;color:#4b5563;margin-left:6px">▶ {n} pacotes</span>'
         drv_info = f'<span style="font-size:10px;color:#9ca3af;margin-left:6px">{n_drv} driver(s)</span>'
         out += f'''<tr onclick="toggleDriver('{row_id}')" style="cursor:pointer;border-top:1px solid #1a2035;background:{tp_bg}">
@@ -2090,6 +2103,7 @@ def rows_dc_nex(dc_nex_data):
               <span style="background:{v_cor};color:#fff;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700">{verd}</span>
               {drv_info}
             </td>
+            <td style="padding:10px 12px;white-space:nowrap">{cobrar_html}</td>
         </tr>
         <tbody id="{row_id}" style="display:none">{sub}</tbody>'''
     return out
@@ -2229,6 +2243,7 @@ def gerar_html(d):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fraude SSP30 — Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+<script src="/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -2339,7 +2354,7 @@ def gerar_html(d):
     <a href="./fraude.html" class="mod-btn m-fraude">
       <i data-lucide="shield-alert" width="12" height="12"></i> Fraude
     </a>
-    <a href="http://localhost:5000/" class="mod-btn">
+    <a href="./index.html" class="mod-btn">
       <i data-lucide="truck" width="12" height="12"></i> Risco
     </a>
     <a href="./isca.html" class="mod-btn">
@@ -2348,14 +2363,10 @@ def gerar_html(d):
     <a href="./cftv.html" class="mod-btn">
       <i data-lucide="camera" width="12" height="12"></i> CFTV
     </a>
-    <a href="http://localhost:5000/sinistros.html" class="mod-btn m-sinistros">
+    <a href="./sinistros.html" class="mod-btn m-sinistros">
       <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
     </a>
     {diario_nav_btn()}
-    <div id="srv-status" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;border:1px solid #1f2937;background:#080d19;font-size:11px;font-weight:600;color:#6b7280;cursor:default" title="Status do servidor local">
-      <span id="srv-dot" style="width:7px;height:7px;border-radius:50%;background:#374151;flex-shrink:0;transition:background .3s"></span>
-      <span id="srv-label">Servidor</span>
-    </div>
   </div>
 </div>
 {diario_panel_html()}
@@ -3633,33 +3644,15 @@ function irPara(tab) {{
   if (el) showTab(tab, el);
 }}
 
-// === STATUS DO SERVIDOR ===
-function checkSrv() {{
-  fetch('http://localhost:5000/ping', {{signal: AbortSignal.timeout(2000)}})
-    .then(r => r.json()).then(r => setSrv(r.ok === true))
-    .catch(() => setSrv(false));
-}}
-function setSrv(online) {{
-  const dot = document.getElementById('srv-dot');
-  const lbl = document.getElementById('srv-label');
-  const box = document.getElementById('srv-status');
-  if (!dot) return;
-  dot.style.background = online ? '#4ade80' : '#374151';
-  if (lbl) lbl.textContent = online ? 'Online' : 'Servidor';
-  if (box) box.style.borderColor = online ? '#166534' : '#1f2937';
-}}
-checkSrv();
-setInterval(checkSrv, 30000);
 
 // === RELATÓRIO SEMANAL ===
 const WP_BASE = {j(_wp_base)};
 const EM_BASE = {j(_em_base)};
 var _wyCount = null, _rtCount = null;
 function carregarTratados() {{
-  const base = 'http://localhost:5000';
   Promise.allSettled([
-    fetch(base + '/ow_values?tab=wy').then(r => r.json()),
-    fetch(base + '/ow_values?tab=rt').then(r => r.json())
+    api('ow_values', {{tab:'wy'}}),
+    api('ow_values', {{tab:'rt'}})
   ]).then(results => {{
     const wyRes = results[0];
     const rtRes = results[1];
@@ -5160,6 +5153,7 @@ lucide.createIcons();
         <th style="text-align:right">GMV Total</th>
         <th style="text-align:center">Pacotes</th>
         <th style="text-align:center">Veredicto</th>
+        <th style="text-align:center">Cobrar OTR</th>
       </tr></thead>
       <tbody>{rows_dc_nex(d["dc_nex"])}</tbody>
     </table></div>
@@ -5663,6 +5657,7 @@ def gerar_sinistros_html(dados):
 <link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -5712,7 +5707,7 @@ def gerar_sinistros_html(dados):
     <a href="./fraude.html" class="mod-btn m-fraude">
       <i data-lucide="shield-alert" width="12" height="12"></i> Fraude
     </a>
-    <a href="http://localhost:5000/" class="mod-btn">
+    <a href="./index.html" class="mod-btn">
       <i data-lucide="truck" width="12" height="12"></i> Risco
     </a>
     <a href="./isca.html" class="mod-btn">
@@ -5721,7 +5716,7 @@ def gerar_sinistros_html(dados):
     <a href="./cftv.html" class="mod-btn">
       <i data-lucide="camera" width="12" height="12"></i> CFTV
     </a>
-    <a href="http://localhost:5000/sinistros.html" class="mod-btn m-sinistros">
+    <a href="./sinistros.html" class="mod-btn m-sinistros">
       <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
     </a>
     {diario_nav_btn()}
@@ -6176,16 +6171,12 @@ async function salvarSinistro() {{
     relato:       document.getElementById('sf-relato').value.trim(),
   }};
   try {{
-    const r = await fetch('http://localhost:5000/sinistros/add', {{
-      method:'POST', headers:{{'Content-Type':'application/json'}},
-      body: JSON.stringify(payload)
-    }});
-    const res = await r.json();
+    const res = await api('sinistros_add', payload, 'POST');
     if (res.ok) {{
       msg.style.color = '#4ade80';
       msg.textContent = '✓ Salvo na planilha! Atualizando lista...';
       // Adiciona o novo caso ao array em memória e re-renderiza a tabela
-      const bppNum = parseFloat((payload.valor||'0').replace(/[$\s,]/g,'').replace(',','.')) || 0;
+      const bppNum = parseFloat((payload.valor||'0').replace(/[$\\s,]/g,'').replace(',','.')) || 0;
       const novoCaso = {{
         data:          payload.data,
         horario:       payload.horario,
@@ -6198,7 +6189,7 @@ async function salvarSinistro() {{
         bpp:           bppNum,
         recup_carga:   payload.recup_carga,
         recup_shp:     payload.qtd_rec,
-        recup_bpp:     parseFloat((payload.recup_bpp||'0').replace(/[$\s,]/g,'')) || 0,
+        recup_bpp:     parseFloat((payload.recup_bpp||'0').replace(/[$\\s,]/g,'')) || 0,
         cep:           payload.cep,
         rua:           payload.local,
         bairro:        payload.bairro,
@@ -6299,78 +6290,6 @@ function initMapa() {{
   }}
 }}
 
-/* ── Modal servidor offline (sinistros) ── */
-(function() {{
-  document.head.insertAdjacentHTML('beforeend',
-    '<style>@keyframes sin-spin{{from{{transform:rotate(0deg)}}to{{transform:rotate(360deg)}}}}</style>');
-  const _SRV = 'http://localhost:5000';
-  const _CMD = 'cd C:\\\\Users\\\\lucasn\\\\risco_ssp30 && python on_way_server.py';
-  let _pollId = null;
-
-  function showModal() {{
-    if (document.getElementById('sin-srv-modal')) return;
-    const m = document.createElement('div');
-    m.id = 'sin-srv-modal';
-    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center';
-    m.innerHTML = `
-      <div style="background:#0d1321;border:1px solid rgba(249,115,22,.35);border-radius:14px;padding:32px 36px;max-width:460px;width:90%;position:relative">
-        <button onclick="document.getElementById('sin-srv-modal').remove()"
-          style="position:absolute;top:12px;right:14px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;line-height:1">✕</button>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
-          <span style="font-size:30px">🔌</span>
-          <div>
-            <div style="font-size:15px;font-weight:700;color:#f9fafb">Servidor offline</div>
-            <div style="font-size:12px;color:#9ca3af;margin-top:3px">Inicie o servidor para registrar sinistros</div>
-          </div>
-        </div>
-        <div style="background:#080d19;border:1px solid #1f2937;border-radius:8px;padding:11px 14px;font-family:monospace;font-size:11.5px;color:#e2e8f0;margin-bottom:8px;word-break:break-all">${{_CMD}}</div>
-        <button id="sin-copy-btn" onclick="_sinCopyCmd()"
-          style="width:100%;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);color:#f97316;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:18px;transition:all .2s">
-          📋 Copiar comando
-        </button>
-        <div style="display:flex;align-items:center;gap:8px;color:#6b7280;font-size:12px">
-          <span style="display:inline-block;animation:sin-spin 1s linear infinite;font-size:16px">⟳</span>
-          Aguardando servidor... (fecha sozinho quando ativo)
-        </div>
-      </div>`;
-    document.body.appendChild(m);
-    _pollId = setInterval(async () => {{
-      try {{
-        const r = await fetch(_SRV + '/ping', {{signal: AbortSignal.timeout(1000)}});
-        if (r.ok) {{
-          const mm = document.getElementById('sin-srv-modal');
-          if (mm) mm.remove();
-          clearInterval(_pollId); _pollId = null;
-        }}
-      }} catch(e) {{}}
-    }}, 2000);
-  }}
-
-  window._sinCopyCmd = function() {{
-    if (!navigator.clipboard) return;
-    navigator.clipboard.writeText(_CMD).then(() => {{
-      const btn = document.getElementById('sin-copy-btn');
-      if (!btn) return;
-      btn.textContent = '✓ Copiado!';
-      btn.style.background = 'rgba(16,185,129,.12)';
-      btn.style.borderColor = 'rgba(16,185,129,.3)';
-      btn.style.color = '#10b981';
-      setTimeout(() => {{
-        btn.textContent = '📋 Copiar comando';
-        btn.style.background = 'rgba(249,115,22,.1)';
-        btn.style.borderColor = 'rgba(249,115,22,.3)';
-        btn.style.color = '#f97316';
-      }}, 2000);
-    }});
-  }};
-
-  // Check imediato ao carregar a página
-  document.addEventListener('DOMContentLoaded', () => {{
-    fetch(_SRV + '/ping', {{signal: AbortSignal.timeout(1500)}})
-      .then(r => {{ if (!r.ok) showModal(); }})
-      .catch(() => showModal());
-  }});
-}})();
 
 lucide.createIcons();
 initSinChart();

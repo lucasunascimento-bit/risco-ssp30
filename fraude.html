@@ -24863,6 +24863,14 @@ function initSaidas() {
 }
 initSaidas();
 
+function exportCSVSaidas() {
+  const rows = [['SHP ID','Tentativas','Data Ini','Data Fim','Transportadora','Motorista','Rota','Status','Sub-Status','Insucesso','Tipo','Risco']];
+  SAIDAS_DATA.forEach(r => rows.push([r.id,r.tentativas,r.data_ini,r.data_fim,r.transportadora,r.motorista,r.rota,r.status,r.sub_status,r.insucesso?'Sim':'Não',r.tipo,r.risco]));
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
+  a.download = 'saidas_multiplas_ssp30.csv'; a.click();
+}
+
 function filtrarSaidas() {
   const risco  = (document.getElementById('sm-filtro-risco')||{}).value || '';
   const busca  = ((document.getElementById('sm-busca')||{}).value || '').toLowerCase();
@@ -24908,6 +24916,14 @@ function initDevolucoes() {
   filtrarDevolucoes();
 }
 initDevolucoes();
+
+function exportCSVDevolucoes() {
+  const rows = [['Data','SHP ID','Facility','Node','Flujo','Tipo Rota','Tracking','Causa','Causa L2','Classificação','Class LP','Status BKO','Sub BKO','Seller ID','Seller','Flag RTS','Flag Devo']];
+  DEVOLUCOES_DATA.forEach(r => rows.push([r.data,r.id,r.facility,r.node,r.flujo,r.tipo_rota,r.tracking,r.causa,r.causa_l2,r.class,r.class_lp,r.status_bko,r.sub_bko,r.seller_id,r.seller,r.flag_rts,r.flag_devo]));
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
+  a.download = 'devolucoes_ssp30.csv'; a.click();
+}
 
 function filtrarDevolucoes() {
   const flujo  = (document.getElementById('dv-filtro-flujo')||{}).value || '';
@@ -29227,6 +29243,7 @@ document.addEventListener('DOMContentLoaded',function(){
         <select id="sm-filtro-mes" onchange="filtrarSaidas()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px">
           <option value="">Todos os meses</option>
         </select>
+        <button onclick="exportCSVSaidas()" style="background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer">⬇ Exportar CSV</button>
       </div>
     </div>
 
@@ -29298,6 +29315,7 @@ document.addEventListener('DOMContentLoaded',function(){
         </select>
         <input type="text" id="dv-busca" oninput="filtrarDevolucoes()" placeholder="Buscar seller / ID / causa…"
           style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px;width:220px">
+        <button onclick="exportCSVDevolucoes()" style="background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer">⬇ Exportar CSV</button>
       </div>
     </div>
 

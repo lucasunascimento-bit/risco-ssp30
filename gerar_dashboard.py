@@ -316,6 +316,14 @@ def processar(rt, wy, hi, descricoes=None, cftv_map=None, entregues=None):
             'entregue':      shp_id_wy in entregues,
         })
     w_rows.sort(key=lambda x: -x['gmv'])
+    _car_cnt = {}
+    for _r in w_rows:
+        _c = (_r.get('carrier') or '').strip()
+        if _c and _c.lower() not in ('none', 'nan', ''):
+            if _c not in _car_cnt: _car_cnt[_c] = {'n': 0, 'gmv': 0.0}
+            _car_cnt[_c]['n']   += 1
+            _car_cnt[_c]['gmv'] += _r['gmv']
+    carrier_ranking_wy = sorted(_car_cnt.items(), key=lambda x: -x[1]['n'])[:8]
 
     # ---- Dias médio na carteira (pacotes ativos) ----
     dias_validos = [r['dias_carteira'] for r in r_rows + w_rows if r['dias_carteira'] >= 0]
@@ -486,6 +494,7 @@ def processar(rt, wy, hi, descricoes=None, cftv_map=None, entregues=None):
         # ON WAY
         'w_total': w_total, 'w_gmv': w_gmv, 'w_sit': w_sit,
         'w_cftv':  w_cftv,  'w_novos': w_novos, 'w_rows': w_rows,
+        'carrier_ranking_wy': carrier_ranking_wy,
         'w_entregues': sum(1 for r in w_rows if r['entregue']),
         # Geral
         'gmv_total':  r_gmv + w_gmv,
@@ -662,6 +671,28 @@ def rt_cobrar_select(r):
             f'<select class="ow-edit ow-real-sel" data-shp="{r["id"]}" data-tab="rt" data-col="33" '
             f'onchange="owSalvarSelect(this)" title="Salva automaticamente">{opts}</select>'
             f'</div></div>')
+
+def carrier_ranking_html(ranking):
+    if not ranking: return ''
+    max_n = max(s['n'] for _, s in ranking)
+    rows  = ''
+    for carrier, s in ranking:
+        pct = int(s['n'] / max_n * 100) if max_n else 0
+        rows += (
+            f'<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #0f172a">'
+            f'<div style="width:130px;font-size:11px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{carrier}">{carrier}</div>'
+            f'<div style="flex:1;background:#0f172a;border-radius:3px;height:8px">'
+            f'<div style="width:{pct}%;background:#f97316;height:8px;border-radius:3px"></div></div>'
+            f'<div style="width:28px;text-align:right;font-size:11px;font-weight:700;color:#fb923c">{s["n"]}</div>'
+            f'<div style="width:70px;text-align:right;font-size:10px;color:#64748b">${s["gmv"]:,.0f}</div>'
+            f'</div>'
+        )
+    return (
+        f'<div style="background:#0d1526;border-radius:8px;padding:14px 16px;margin-bottom:14px">'
+        f'<div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:10px;letter-spacing:.5px">TRANSPORTADORA OFENSORA — ON WAY</div>'
+        f'{rows}'
+        f'</div>'
+    )
 
 def rows_table_wy(rows):
     import json as _json
@@ -1833,15 +1864,9 @@ function pdToggle(cb) {
   const lbl = cb.dataset.label || cb.dataset.id;
   const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   if (done) {
-    fetch(OW_SERVER + '/diario/extra', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({data: PD_TODAY, atividade: lbl, hora_ini: agora, hora_fim: agora, obs:''})
-    }).catch(()=>{});
+    api('diario_extra', {data: PD_TODAY, atividade: lbl, hora_ini: agora, hora_fim: agora, obs:''}, 'POST').catch(()=>{});
   } else {
-    fetch(OW_SERVER + '/diario/delete_extra', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({data: PD_TODAY, atividade: lbl})
-    }).catch(()=>{});
+    api('diario_delete_extra', {data: PD_TODAY, atividade: lbl}, 'POST').catch(()=>{});
   }
 }
 function pdProg() {
@@ -2182,6 +2207,7 @@ def gerar_html(d):
 <title>Risco SSP30 — Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔔</text></svg>">
 <link rel="manifest" href="/manifest.json">
+<script src="/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -2393,7 +2419,7 @@ def gerar_html(d):
       <a href="./fraude.html" class="mod-btn">
         <i data-lucide="shield-alert" width="12" height="12"></i> Fraude
       </a>
-      <a href="http://localhost:5000/" class="mod-btn m-risco">
+      <a href="./index.html" class="mod-btn m-risco">
         <i data-lucide="truck" width="12" height="12"></i> Risco
       </a>
       <a href="./isca.html" class="mod-btn">
@@ -2402,17 +2428,13 @@ def gerar_html(d):
       <a href="./cftv.html" class="mod-btn">
         <i data-lucide="camera" width="12" height="12"></i> CFTV
       </a>
-      <a href="http://localhost:5000/sinistros.html" class="mod-btn m-sinistros">
+      <a href="./sinistros.html" class="mod-btn m-sinistros">
         <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
       </a>
       <button id="db-nav-btn" onclick="dbTogglePanel()" class="mod-btn m-diario" style="cursor:pointer;position:relative">
         <i data-lucide="book-open" width="12" height="12"></i> Diário
         <span id="db-nav-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#10B981;color:#fff;font-size:8px;padding:1px 4px;border-radius:10px;font-weight:700"></span>
       </button>
-      <div id="srv-status" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;border:1px solid #1f2937;background:#080d19;font-size:11px;font-weight:600;color:#6b7280;cursor:default" title="Status do servidor local">
-        <span id="srv-dot" style="width:7px;height:7px;border-radius:50%;background:#374151;flex-shrink:0;transition:background .3s"></span>
-        <span id="srv-label">Servidor</span>
-      </div>
     </div>
   </div>
 </div>
@@ -2637,7 +2659,6 @@ def gerar_html(d):
   </div>
   <div class="tbl-wrap">
     <div class="tbl-title">📦 Pacotes ON ROUTE — ordenados por GMV
-      <span id="rt-server-status" style="float:right;font-size:10px;font-weight:400;color:#6b7280">verificando servidor...</span>
     </div>
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
     {filtros_html("route", sits_rt)}
@@ -2672,9 +2693,9 @@ def gerar_html(d):
     <div class="card blue"><div class="label">&lt; 11 dias OW</div><div class="value">{d["w_sit"].get("< 11 dias OW",0)}</div></div>
     <div class="card orange"><div class="label">CFTV Solicitado</div><div class="value">{d["w_cftv"]}</div></div>
   </div>
+  {carrier_ranking_html(d["carrier_ranking_wy"])}
   <div class="tbl-wrap">
     <div class="tbl-title">🚛 Pacotes ON WAY — ordenados por GMV
-      <span id="ow-server-status" style="float:right;font-size:10px;font-weight:400;color:#6b7280">verificando servidor...</span>
     </div>
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["w_entregues"]) + ' pacote(s) detectado(s) como ENTREGUE no sistema</strong> — verifique e mova para Histórico como recupero.</div>' if d["w_entregues"] else ''}
     {filtros_html("way", sits_wy)}
@@ -3100,7 +3121,6 @@ function showTab(name, el) {{
   history.replaceState(null, '', '#' + name);
   if (name === 'places') initPlCharts();
   if (name === 'way' || name === 'route') carregarValoresOW();
-  if (['route','way','at_station'].includes(name)) _owCheckAndShowModal();
 }}
 
 // Abre aba pelo hash da URL (ex: #criticos)
@@ -3152,12 +3172,10 @@ function copiarReportPlaces() {{
 // Carrega valores atuais da planilha e preenche campos editáveis da aba ON WAY
 async function carregarValoresOW() {{
   try {{
-    const [rWy, rRt] = await Promise.all([
-      fetch(OW_SERVER + '/ow_values?tab=wy'),
-      fetch(OW_SERVER + '/ow_values?tab=rt'),
+    const [valsWy, valsRt] = await Promise.all([
+      api('ow_values', {{tab:'wy'}}),
+      api('ow_values', {{tab:'rt'}}),
     ]);
-    const valsWy = rWy.ok ? await rWy.json() : {{}};
-    const valsRt = rRt.ok ? await rRt.json() : {{}};
 
     // ON WAY — cols 23(acao) 24(link) 29(status) 30(final)
     document.querySelectorAll('#tbl_way .ow-edit').forEach(el => {{
@@ -3617,132 +3635,14 @@ function initPlCharts() {{
 // Gráficos Places já inicializados dentro de showTab
 
 // ---- On Way: salvar campos editáveis ----
-const OW_SERVER = 'http://localhost:5000';
-
-function _owSetStatus(estado) {{
-  const ids = ['ow-server-status', 'rt-server-status'];
-  ids.forEach(id => {{
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (estado === 'ativo') {{
-      el.style.color = '#10B981';
-      el.innerHTML = '🟢 servidor ativo&nbsp;&nbsp;<button onclick="owReiniciarServidor()" title="Reiniciar servidor" style="background:none;border:1px solid #374151;border-radius:4px;color:#9CA3AF;font-size:11px;padding:1px 6px;cursor:pointer;vertical-align:middle">↺ reiniciar</button>';
-    }} else if (estado === 'reiniciando') {{
-      el.style.color = '#FBBF24';
-      el.textContent = '🟡 reiniciando...';
-    }} else {{
-      el.style.color = '#f87171';
-      el.innerHTML = '🔴 servidor offline — <a href="javascript:void(0)" onclick="owInstrucoesServidor()" style="color:#f87171">como ativar?</a>';
-    }}
-  }});
-}}
-
-(function verificarServidor() {{
-  fetch(OW_SERVER + '/ping', {{method:'GET', mode:'cors', signal: AbortSignal.timeout(2000)}})
-    .then(r => r.ok ? _owSetStatus('ativo') : _owSetStatus('offline'))
-    .catch(() => _owSetStatus('offline'));
-}})();
-
-async function owReiniciarServidor() {{
-  _owSetStatus('reiniciando');
-  try {{ await fetch(OW_SERVER + '/restart', {{method:'POST', signal: AbortSignal.timeout(2000)}}); }} catch(e) {{}}
-  for (let i = 0; i < 20; i++) {{
-    await new Promise(r => setTimeout(r, 800));
-    try {{
-      const r = await fetch(OW_SERVER + '/ping', {{signal: AbortSignal.timeout(1000)}});
-      if (r.ok) {{ _owSetStatus('ativo'); return; }}
-    }} catch(e) {{}}
-  }}
-  _owSetStatus('offline');
-}}
-
-function owInstrucoesServidor() {{
-  _owShowModal();
-}}
-
-/* ── Modal "Servidor offline" ── */
-let _owModalPollId = null;
-const _OW_CMD = 'cd C:\\\\Users\\\\lucasn\\\\risco_ssp30 && python on_way_server.py';
-
-function _owCheckAndShowModal() {{
-  fetch(OW_SERVER + '/ping', {{signal: AbortSignal.timeout(1500)}})
-    .then(r => {{ if (!r.ok) _owShowModal(); }})
-    .catch(() => _owShowModal());
-}}
-
-function _owShowModal() {{
-  if (document.getElementById('srv-modal')) return;
-  const m = document.createElement('div');
-  m.id = 'srv-modal';
-  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center';
-  m.innerHTML = `
-    <div style="background:#0d1321;border:1px solid rgba(239,68,68,.35);border-radius:14px;padding:32px 36px;max-width:460px;width:90%;position:relative">
-      <button onclick="document.getElementById('srv-modal').remove()"
-        style="position:absolute;top:12px;right:14px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;line-height:1">✕</button>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
-        <span style="font-size:30px">🔌</span>
-        <div>
-          <div style="font-size:15px;font-weight:700;color:#f9fafb">Servidor offline</div>
-          <div style="font-size:12px;color:#9ca3af;margin-top:3px">Inicie o servidor local para usar esta aba</div>
-        </div>
-      </div>
-      <div style="background:#080d19;border:1px solid #1f2937;border-radius:8px;padding:11px 14px;font-family:monospace;font-size:11.5px;color:#e2e8f0;margin-bottom:8px;word-break:break-all">${{_OW_CMD}}</div>
-      <button id="srv-copy-btn" onclick="_owCopyCmd()"
-        style="width:100%;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);color:#f97316;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:18px;transition:all .2s">
-        📋 Copiar comando
-      </button>
-      <div style="display:flex;align-items:center;gap:8px;color:#6b7280;font-size:12px">
-        <span style="display:inline-block;animation:spin 1s linear infinite;font-size:16px">⟳</span>
-        Aguardando servidor... (fecha sozinho quando ativo)
-      </div>
-    </div>`;
-  document.body.appendChild(m);
-  _owModalPollId = setInterval(async () => {{
-    try {{
-      const r = await fetch(OW_SERVER + '/ping', {{signal: AbortSignal.timeout(1000)}});
-      if (r.ok) {{ _owDismissModal(); _owSetStatus('ativo'); carregarValoresOW(); }}
-    }} catch(e) {{}}
-  }}, 2000);
-}}
-
-function _owDismissModal() {{
-  const m = document.getElementById('srv-modal');
-  if (m) m.remove();
-  if (_owModalPollId) {{ clearInterval(_owModalPollId); _owModalPollId = null; }}
-}}
-
-function _owCopyCmd() {{
-  if (!navigator.clipboard) return;
-  navigator.clipboard.writeText(_OW_CMD).then(() => {{
-    const btn = document.getElementById('srv-copy-btn');
-    if (!btn) return;
-    btn.textContent = '✓ Copiado!';
-    btn.style.background = 'rgba(16,185,129,.12)';
-    btn.style.borderColor = 'rgba(16,185,129,.3)';
-    btn.style.color = '#10b981';
-    setTimeout(() => {{
-      btn.textContent = '📋 Copiar comando';
-      btn.style.background = 'rgba(249,115,22,.1)';
-      btn.style.borderColor = 'rgba(249,115,22,.3)';
-      btn.style.color = '#f97316';
-    }}, 2000);
-  }});
-}}
 const _owTimers = {{}};
 
 async function owPost(shp_id, tab, col, value) {{
-  let resp;
   try {{
-    resp = await fetch(OW_SERVER + '/update', {{
-      method: 'POST',
-      headers: {{'Content-Type': 'application/json'}},
-      body: JSON.stringify({{shp_id, tab, col, value}})
-    }});
+    await api('update', {{shp_id, tab, col, value}}, 'POST');
   }} catch(e) {{
     throw new Error('OFFLINE');
   }}
-  if (resp.status === 404) throw new Error('NOT_FOUND');
-  if (!resp.ok) throw new Error('HTTP ' + resp.status);
 }}
 
 function owVerificarArquivar(shp_id, tab) {{
@@ -3751,11 +3651,7 @@ function owVerificarArquivar(shp_id, tab) {{
   if (!statusSel || !finalSel) return;
   if (!statusSel.value.toLowerCase().includes('conclu') || !finalSel.value.trim()) return;
   const hoje = new Date().toLocaleDateString('pt-BR');
-  fetch(OW_SERVER + '/mover_historico', {{
-    method: 'POST',
-    headers: {{'Content-Type': 'application/json'}},
-    body: JSON.stringify({{shp_id, tab: tab || 'wy', hoje}})
-  }}).then(r => r.json()).then(data => {{
+  api('mover_historico', {{shp_id, tab: tab || 'wy', hoje}}, 'POST').then(data => {{
     if (data.ok) {{
       const tr = statusSel.closest('tr');
       if (tr) {{
@@ -3960,12 +3856,9 @@ async function carregarDiario() {{
   const lbl   = document.getElementById('db-date-lbl');
   if (lbl) lbl.textContent = `${{dias[now.getDay()]}}, ${{now.getDate()}}/${{(now.getMonth()+1).toString().padStart(2,'0')}}`;
   try {{
-    const r = await fetch(OW_SERVER + '/diario', {{signal: AbortSignal.timeout(4000)}});
-    if (!r.ok) {{ _dbSetStatus('offline'); return; }}
-    _dbData = await r.json();
-    _dbRender(_dbData);
-    _dbSetStatus('ativo');
-  }} catch(e) {{ _dbSetStatus('offline'); }}
+    _dbData = await api('diario');
+    if (_dbData) _dbRender(_dbData);
+  }} catch(e) {{}}
 }}
 
 let _dbAcabouAbrir = false;
@@ -4012,11 +3905,7 @@ async function dbToggle(atividade, hi, hf, tipo) {{
     document.getElementById('db-progress-bar').style.width = tot ? `${{Math.round(done/tot*100)}}%` : '0%';
   }}
   try {{
-    await fetch(OW_SERVER + '/diario/toggle', {{
-      method:'POST', headers:{{'Content-Type':'application/json'}},
-      body: JSON.stringify({{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,feito:agora}}),
-      signal: AbortSignal.timeout(4000),
-    }});
+    await api('diario_toggle', {{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,feito:agora}}, 'POST');
   }} catch(e) {{}}
 }}
 
@@ -4025,11 +3914,7 @@ function dbSalvarObs(atividade, hi, hf, tipo, obs) {{
   clearTimeout(_dbObsTmr[atividade]);
   _dbObsTmr[atividade] = setTimeout(async () => {{
     try {{
-      await fetch(OW_SERVER + '/diario/obs', {{
-        method:'POST', headers:{{'Content-Type':'application/json'}},
-        body: JSON.stringify({{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,obs}}),
-        signal: AbortSignal.timeout(4000),
-      }});
+      await api('diario_obs', {{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,tipo,obs}}, 'POST');
     }} catch(e) {{}}
   }}, 800);
 }}
@@ -4052,12 +3937,8 @@ async function dbSalvarExtra() {{
   const hf  = document.getElementById('db-m-fim').value;
   const obs = document.getElementById('db-m-obs').value;
   try {{
-    const r = await fetch(OW_SERVER + '/diario/extra', {{
-      method:'POST', headers:{{'Content-Type':'application/json'}},
-      body: JSON.stringify({{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,obs}}),
-      signal: AbortSignal.timeout(4000),
-    }});
-    if (r.ok) {{
+    const r = await api('diario_extra', {{data:_dbTodayStr,atividade,hora_ini:hi,hora_fim:hf,obs}}, 'POST');
+    if (r && r.ok) {{
       dbFecharModal();
       ['db-m-atv','db-m-ini','db-m-fim','db-m-obs'].forEach(id => {{ document.getElementById(id).value = ''; }});
       if (_dbData) {{
@@ -4072,11 +3953,7 @@ async function dbSalvarExtra() {{
 async function dbDeletarExtra(atividade) {{
   if (!confirm(`Remover "${{atividade}}"?`)) return;
   try {{
-    await fetch(OW_SERVER + '/diario/delete_extra', {{
-      method:'POST', headers:{{'Content-Type':'application/json'}},
-      body: JSON.stringify({{data:_dbTodayStr,atividade}}),
-      signal: AbortSignal.timeout(4000),
-    }});
+    await api('diario_delete_extra', {{data:_dbTodayStr,atividade}}, 'POST');
     if (_dbData && _dbData.extras) {{
       _dbData.extras = _dbData.extras.filter(i => i.atividade !== atividade);
       document.getElementById('db-extras').innerHTML = _dbData.extras.map(i => _dbItemHtml(i,true)).join('');
@@ -4088,23 +3965,6 @@ async function dbDeletarExtra(atividade) {{
 lucide.createIcons();
 {_SB_DRAG_JS}
 
-// === STATUS DO SERVIDOR ===
-function checkSrv() {{
-  fetch('http://localhost:5000/ping', {{signal: AbortSignal.timeout(2000)}})
-    .then(r => r.json()).then(r => setSrv(r.ok === true))
-    .catch(() => setSrv(false));
-}}
-function setSrv(online) {{
-  const dot = document.getElementById('srv-dot');
-  const lbl = document.getElementById('srv-label');
-  const box = document.getElementById('srv-status');
-  if (!dot) return;
-  dot.style.background = online ? '#4ade80' : '#374151';
-  if (lbl) lbl.textContent = online ? 'Online' : 'Servidor';
-  if (box) box.style.borderColor = online ? '#166634' : '#1f2937';
-}}
-checkSrv();
-setInterval(checkSrv, 30000);
 </script>
 </main>
 </div>
