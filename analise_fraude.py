@@ -2339,7 +2339,7 @@ def gerar_html(d):
     <a href="./fraude.html" class="mod-btn m-fraude">
       <i data-lucide="shield-alert" width="12" height="12"></i> Fraude
     </a>
-    <a href="./index.html" class="mod-btn">
+    <a href="http://localhost:5000/" class="mod-btn">
       <i data-lucide="truck" width="12" height="12"></i> Risco
     </a>
     <a href="./isca.html" class="mod-btn">
@@ -2348,7 +2348,7 @@ def gerar_html(d):
     <a href="./cftv.html" class="mod-btn">
       <i data-lucide="camera" width="12" height="12"></i> CFTV
     </a>
-    <a href="./sinistros.html" class="mod-btn m-sinistros">
+    <a href="http://localhost:5000/sinistros.html" class="mod-btn m-sinistros">
       <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
     </a>
     {diario_nav_btn()}
@@ -5709,7 +5709,7 @@ def gerar_sinistros_html(dados):
     <a href="./fraude.html" class="mod-btn m-fraude">
       <i data-lucide="shield-alert" width="12" height="12"></i> Fraude
     </a>
-    <a href="./index.html" class="mod-btn">
+    <a href="http://localhost:5000/" class="mod-btn">
       <i data-lucide="truck" width="12" height="12"></i> Risco
     </a>
     <a href="./isca.html" class="mod-btn">
@@ -5718,7 +5718,7 @@ def gerar_sinistros_html(dados):
     <a href="./cftv.html" class="mod-btn">
       <i data-lucide="camera" width="12" height="12"></i> CFTV
     </a>
-    <a href="./sinistros.html" class="mod-btn m-sinistros">
+    <a href="http://localhost:5000/sinistros.html" class="mod-btn m-sinistros">
       <i data-lucide="alert-triangle" width="12" height="12"></i> Sinistros
     </a>
     {diario_nav_btn()}
