@@ -2068,7 +2068,7 @@ def rows_dc_nex(dc_nex_data):
         for p in f['pacotes']:
             cls_cor = '#ef4444' if 'FRAUD' in p['classificacao'] else '#94a3b8'
             drv_txt = p.get('driver_lm', '') or '—'
-                cobrar_txt  = p.get('cobrar_otr', '') or '—'
+            cobrar_txt  = p.get('cobrar_otr', '') or '—'
             cobrar_cor  = '#10b981' if cobrar_txt == 'Cobrado' else '#f59e0b' if cobrar_txt == 'Aguardando Retorno' else '#ef4444' if cobrar_txt == 'Sem Retorno' else '#4b5563'
             sub += f'''<tr style="background:#060c1a">
                 <td style="padding:6px 10px 6px 32px;font-family:monospace;font-size:12px">
@@ -2243,7 +2243,7 @@ def gerar_html(d):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fraude SSP30 — Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
-<script src="/config.js"></script>
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -3697,8 +3697,23 @@ function copiarRelatorio(modo) {{
 // ── INVESTIGAÇÃO LP — helper global ──────────────────────────
 function _setEl(id, v) {{ const e = document.getElementById(id); if (e) e.textContent = v; }}
 
+function _showBqBanner(containerId, show) {{
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  let b = c.querySelector('.bq-sem-dados');
+  if (!b) {{
+    b = document.createElement('div');
+    b.className = 'bq-sem-dados';
+    b.style.cssText = 'background:#1e293b;border:1px solid #f87171;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#fca5a5;font-size:13px;display:flex;align-items:center;gap:10px;';
+    b.innerHTML = '<span style="font-size:18px">⚠️</span><span>Sem dados do BigQuery — cota esgotada na última execução. Os dados serão atualizados na próxima rodada agendada.</span>';
+    c.insertBefore(b, c.firstChild);
+  }}
+  b.style.display = show ? 'flex' : 'none';
+}}
+
 // ── SAÍDAS MÚLTIPLAS ─────────────────────────────────────────
 function initSaidas() {{
+  _showBqBanner('tab-saidas', SAIDAS_DATA.length === 0);
   const sel = document.getElementById('sm-filtro-mes');
   if (sel && sel.options.length <= 1) {{
     const meses = [...new Set(SAIDAS_DATA.map(r => r.data_ini.slice(0,7)))].sort();
@@ -3739,6 +3754,14 @@ function filtrarSaidas() {{
   _setEl('sm-max', dados.length ? Math.max(...dados.map(r=>r.tentativas)) : 0);
   const emEl = document.getElementById('sm-empty');
   if (emEl) emEl.style.display = dados.length ? 'none' : 'block';
+}}
+
+function exportCSVSaidas() {{
+  const rows = [['SHP ID','Tentativas','Data Ini','Data Fim','Transportadora','Motorista','Rota','Status','Sub-Status','Insucesso','Tipo','Risco']];
+  SAIDAS_DATA.forEach(r => rows.push([r.id,r.tentativas,r.data_ini,r.data_fim,r.transportadora,r.motorista,r.rota,r.status,r.sub_status,r.insucesso?'Sim':'Não',r.tipo,r.risco]));
+  const csv = rows.map(r => r.map(v => `"${{String(v).replace(/"/g,'""')}}"`).join(',')).join('\\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,\\uFEFF' + encodeURIComponent(csv);
+  a.download = 'saidas_multiplas_ssp30.csv'; a.click();
 }}
 
 // ── DEVOLUÇÕES ────────────────────────────────────────────────
@@ -3807,8 +3830,17 @@ function filtrarDevolucoes() {{
   if (emEl) emEl.style.display = dados.length ? 'none' : 'block';
 }}
 
+function exportCSVDevolucoes() {{
+  const rows = [['Data','SHP ID','Facility','Node','Flujo','Tipo Rota','Tracking','Causa','Causa L2','Classificação','Class LP','Status BKO','Sub BKO','Seller ID','Seller','Flag RTS','Flag Devo']];
+  DEVOLUCOES_DATA.forEach(r => rows.push([r.data,r.id,r.facility,r.node,r.flujo,r.tipo_rota,r.tracking,r.causa,r.causa_l2,r.class,r.class_lp,r.status_bko,r.sub_bko,r.seller_id,r.seller,r.flag_rts,r.flag_devo]));
+  const csv = rows.map(r => r.map(v => `"${{String(v).replace(/"/g,'""')}}"`).join(',')).join('\\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,\\uFEFF' + encodeURIComponent(csv);
+  a.download = 'devolucoes_ssp30.csv'; a.click();
+}}
+
 // ── SELLERS ENE ──────────────────────────────────────────────
 function initSellersENE() {{
+  _showBqBanner('tab-sellers_ene', SELLERS_ENE_DATA.length === 0);
   const badge = document.getElementById('tab-count-sellers-ene');
   if (badge) badge.textContent = SELLERS_ENE_DATA.length;
   filtrarSellersENE();
@@ -5226,6 +5258,7 @@ lucide.createIcons();
         <select id="sm-filtro-mes" onchange="filtrarSaidas()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px">
           <option value="">Todos os meses</option>
         </select>
+        <button onclick="exportCSVSaidas()" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">⬇ CSV</button>
       </div>
     </div>
 
@@ -5297,6 +5330,7 @@ lucide.createIcons();
         </select>
         <input type="text" id="dv-busca" oninput="filtrarDevolucoes()" placeholder="Buscar seller / ID / causa…"
           style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px;width:220px">
+        <button onclick="exportCSVDevolucoes()" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">⬇ CSV</button>
       </div>
     </div>
 
@@ -5657,7 +5691,7 @@ def gerar_sinistros_html(dados):
 <link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script src="/config.js"></script>
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>

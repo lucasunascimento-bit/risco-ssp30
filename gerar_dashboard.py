@@ -2207,7 +2207,7 @@ def gerar_html(d):
 <title>Risco SSP30 — Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔔</text></svg>">
 <link rel="manifest" href="/manifest.json">
-<script src="/config.js"></script>
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -2658,7 +2658,9 @@ def gerar_html(d):
     <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">{d["r_novos"]}</div></div>
   </div>
   <div class="tbl-wrap">
-    <div class="tbl-title">📦 Pacotes ON ROUTE — ordenados por GMV
+    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📦 Pacotes ON ROUTE — ordenados por GMV</span>
+      <button onclick="exportCSV('route','on_route_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
     {filtros_html("route", sits_rt)}
@@ -2695,7 +2697,9 @@ def gerar_html(d):
   </div>
   {carrier_ranking_html(d["carrier_ranking_wy"])}
   <div class="tbl-wrap">
-    <div class="tbl-title">🚛 Pacotes ON WAY — ordenados por GMV
+    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>🚛 Pacotes ON WAY — ordenados por GMV</span>
+      <button onclick="exportCSV('way','on_way_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["w_entregues"]) + ' pacote(s) detectado(s) como ENTREGUE no sistema</strong> — verifique e mova para Histórico como recupero.</div>' if d["w_entregues"] else ''}
     {filtros_html("way", sits_wy)}
