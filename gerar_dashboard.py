@@ -2195,6 +2195,7 @@ def gerar_html(d):
   .header-right{{display:flex;align-items:center;gap:10px}}
   .status-dot{{width:7px;height:7px;border-radius:50%;background:#FFE600;animation:pulse 2.5s infinite}}
   @keyframes pulse{{0%,100%{{opacity:1;box-shadow:0 0 0 0 rgba(255,230,0,.4)}}50%{{opacity:.6;box-shadow:0 0 0 5px rgba(255,230,0,0)}}}}
+  @keyframes spin{{from{{transform:rotate(0deg)}}to{{transform:rotate(360deg)}}}}
   .countdown-txt{{font-size:11px;color:#4b5563}}
   /* SIDEBAR */
   .app-body{{display:flex;flex:1;overflow:hidden}}
@@ -3095,6 +3096,7 @@ function showTab(name, el) {{
   history.replaceState(null, '', '#' + name);
   if (name === 'places') initPlCharts();
   if (name === 'way' || name === 'route') carregarValoresOW();
+  if (['route','way','at_station'].includes(name)) _owCheckAndShowModal();
 }}
 
 // Abre aba pelo hash da URL (ex: #criticos)
@@ -3651,7 +3653,76 @@ async function owReiniciarServidor() {{
 }}
 
 function owInstrucoesServidor() {{
-  alert('Para ativar o servidor:\\n\\n1. Abra o PowerShell\\n2. Execute:\\n   cd C:\\\\Users\\\\lucasn\\\\risco_ssp30\\n   python on_way_server.py\\n3. Recarregue a página');
+  _owShowModal();
+}}
+
+/* ── Modal "Servidor offline" ── */
+let _owModalPollId = null;
+const _OW_CMD = 'cd C:\\\\Users\\\\lucasn\\\\risco_ssp30 && python on_way_server.py';
+
+function _owCheckAndShowModal() {{
+  fetch(OW_SERVER + '/ping', {{signal: AbortSignal.timeout(1500)}})
+    .then(r => {{ if (!r.ok) _owShowModal(); }})
+    .catch(() => _owShowModal());
+}}
+
+function _owShowModal() {{
+  if (document.getElementById('srv-modal')) return;
+  const m = document.createElement('div');
+  m.id = 'srv-modal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#0d1321;border:1px solid rgba(239,68,68,.35);border-radius:14px;padding:32px 36px;max-width:460px;width:90%;position:relative">
+      <button onclick="document.getElementById('srv-modal').remove()"
+        style="position:absolute;top:12px;right:14px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;line-height:1">✕</button>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+        <span style="font-size:30px">🔌</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#f9fafb">Servidor offline</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:3px">Inicie o servidor local para usar esta aba</div>
+        </div>
+      </div>
+      <div style="background:#080d19;border:1px solid #1f2937;border-radius:8px;padding:11px 14px;font-family:monospace;font-size:11.5px;color:#e2e8f0;margin-bottom:8px;word-break:break-all">${{_OW_CMD}}</div>
+      <button id="srv-copy-btn" onclick="_owCopyCmd()"
+        style="width:100%;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);color:#f97316;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:18px;transition:all .2s">
+        📋 Copiar comando
+      </button>
+      <div style="display:flex;align-items:center;gap:8px;color:#6b7280;font-size:12px">
+        <span style="display:inline-block;animation:spin 1s linear infinite;font-size:16px">⟳</span>
+        Aguardando servidor... (fecha sozinho quando ativo)
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  _owModalPollId = setInterval(async () => {{
+    try {{
+      const r = await fetch(OW_SERVER + '/ping', {{signal: AbortSignal.timeout(1000)}});
+      if (r.ok) {{ _owDismissModal(); _owSetStatus('ativo'); carregarValoresOW(); }}
+    }} catch(e) {{}}
+  }}, 2000);
+}}
+
+function _owDismissModal() {{
+  const m = document.getElementById('srv-modal');
+  if (m) m.remove();
+  if (_owModalPollId) {{ clearInterval(_owModalPollId); _owModalPollId = null; }}
+}}
+
+function _owCopyCmd() {{
+  if (!navigator.clipboard) return;
+  navigator.clipboard.writeText(_OW_CMD).then(() => {{
+    const btn = document.getElementById('srv-copy-btn');
+    if (!btn) return;
+    btn.textContent = '✓ Copiado!';
+    btn.style.background = 'rgba(16,185,129,.12)';
+    btn.style.borderColor = 'rgba(16,185,129,.3)';
+    btn.style.color = '#10b981';
+    setTimeout(() => {{
+      btn.textContent = '📋 Copiar comando';
+      btn.style.background = 'rgba(249,115,22,.1)';
+      btn.style.borderColor = 'rgba(249,115,22,.3)';
+      btn.style.color = '#f97316';
+    }}, 2000);
+  }});
 }}
 const _owTimers = {{}};
 

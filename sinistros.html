@@ -715,6 +715,78 @@ function initMapa() {
   }
 }
 
+/* ── Modal servidor offline (sinistros) ── */
+(function() {
+  document.head.insertAdjacentHTML('beforeend',
+    '<style>@keyframes sin-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>');
+  const _SRV = 'http://localhost:5000';
+  const _CMD = 'cd C:\\Users\\lucasn\\risco_ssp30 && python on_way_server.py';
+  let _pollId = null;
+
+  function showModal() {
+    if (document.getElementById('sin-srv-modal')) return;
+    const m = document.createElement('div');
+    m.id = 'sin-srv-modal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center';
+    m.innerHTML = `
+      <div style="background:#0d1321;border:1px solid rgba(249,115,22,.35);border-radius:14px;padding:32px 36px;max-width:460px;width:90%;position:relative">
+        <button onclick="document.getElementById('sin-srv-modal').remove()"
+          style="position:absolute;top:12px;right:14px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;line-height:1">✕</button>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+          <span style="font-size:30px">🔌</span>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#f9fafb">Servidor offline</div>
+            <div style="font-size:12px;color:#9ca3af;margin-top:3px">Inicie o servidor para registrar sinistros</div>
+          </div>
+        </div>
+        <div style="background:#080d19;border:1px solid #1f2937;border-radius:8px;padding:11px 14px;font-family:monospace;font-size:11.5px;color:#e2e8f0;margin-bottom:8px;word-break:break-all">${_CMD}</div>
+        <button id="sin-copy-btn" onclick="_sinCopyCmd()"
+          style="width:100%;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);color:#f97316;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:18px;transition:all .2s">
+          📋 Copiar comando
+        </button>
+        <div style="display:flex;align-items:center;gap:8px;color:#6b7280;font-size:12px">
+          <span style="display:inline-block;animation:sin-spin 1s linear infinite;font-size:16px">⟳</span>
+          Aguardando servidor... (fecha sozinho quando ativo)
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    _pollId = setInterval(async () => {
+      try {
+        const r = await fetch(_SRV + '/ping', {signal: AbortSignal.timeout(1000)});
+        if (r.ok) {
+          const mm = document.getElementById('sin-srv-modal');
+          if (mm) mm.remove();
+          clearInterval(_pollId); _pollId = null;
+        }
+      } catch(e) {}
+    }, 2000);
+  }
+
+  window._sinCopyCmd = function() {
+    if (!navigator.clipboard) return;
+    navigator.clipboard.writeText(_CMD).then(() => {
+      const btn = document.getElementById('sin-copy-btn');
+      if (!btn) return;
+      btn.textContent = '✓ Copiado!';
+      btn.style.background = 'rgba(16,185,129,.12)';
+      btn.style.borderColor = 'rgba(16,185,129,.3)';
+      btn.style.color = '#10b981';
+      setTimeout(() => {
+        btn.textContent = '📋 Copiar comando';
+        btn.style.background = 'rgba(249,115,22,.1)';
+        btn.style.borderColor = 'rgba(249,115,22,.3)';
+        btn.style.color = '#f97316';
+      }, 2000);
+    });
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    fetch(_SRV + '/ping', {signal: AbortSignal.timeout(1500)})
+      .then(r => { if (!r.ok) showModal(); })
+      .catch(() => showModal());
+  });
+})();
+
 lucide.createIcons();
 initSinChart();
 
