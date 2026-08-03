@@ -49,7 +49,7 @@ GMV_MINIMO_OW_USD         = 500   # mínimo para pacotes < 11 dias OW (Procurar 
 
 WEBHOOK_GCHAT        = os.environ.get('GCHAT_WEBHOOK', '')
 
-PLANILHA_CONTROLE_ID = '1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc'
+PLANILHA_CONTROLE_ID = '1rFcUXxl53WVQf_ASRx3mhlEvFoJevcaiwjMZY1vso5Y'
 PLANILHA_CFTV_ID     = '18isURInofILBi-RS9YrCQyYcnb6JeU_stNqnspxiqLM'
 
 ABA_ON_ROUTE = 'Tratativas Risco On Route (HV) - Lucas'
