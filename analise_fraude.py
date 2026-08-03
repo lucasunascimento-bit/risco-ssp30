@@ -1138,7 +1138,7 @@ def carregar_cobrar_otr(gs):
     """Lê coluna 'Cobrar OTR' (col 33 = r[32]) da aba ON ROUTE.
     Retorna dict {shp_id: cobrar_otr_status}."""
     try:
-        PLANILHA_RISCO_ID = '1rFcUXxl53WVQf_ASRx3mhlEvFoJevcaiwjMZY1vso5Y'
+        PLANILHA_RISCO_ID = '1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc'
         ABA = 'Tratativas Risco On Route (HV) - Lucas'
         ws = gs.open_by_key(PLANILHA_RISCO_ID).worksheet(ABA)
         rows = ws.get_all_values()

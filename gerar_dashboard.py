@@ -14,7 +14,7 @@ from _shared import _SB_DRAG_JS, _FINAL_MAP as _FINAL_HIST_MAP
 # ============================================================
 # CONFIGURAÇÃO
 # ============================================================
-PLANILHA_CONTROLE_ID = '1rFcUXxl53WVQf_ASRx3mhlEvFoJevcaiwjMZY1vso5Y'
+PLANILHA_CONTROLE_ID = '1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc'
 ABA_ON_ROUTE  = 'Tratativas Risco On Route (HV) - Lucas'
 ABA_ON_WAY    = 'Tratativas Risco On Way (HV) - Lucas'
 ABA_HISTORICO = 'Histórico'
