@@ -2250,6 +2250,7 @@ def gerar_html(d):
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator-tables/6.3.1/css/tabulator_midnight.min.css">
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}}
@@ -2335,6 +2336,7 @@ def gerar_html(d):
   {diario_css()}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator-tables/6.3.1/js/tabulator.min.js"></script>
 </head>
 <body>
 
@@ -2550,10 +2552,7 @@ def gerar_html(d):
 <div id="tab-dxp" class="content">
   <div class="tbl-wrap">
     <div class="tbl-title">Driver × Place — Combinações com 2+ Fraudes em Comum <span style="font-weight:400;font-size:11px;color:#6b7280">· filtro mostra linhas ativas no período; valores são totais anuais</span></div>
-    <div class="tbl-scroll"><table id="tbl_dxp">
-      <thead><tr><th>Driver ID</th><th>Place</th><th>Total</th><th>Fraudes</th><th>Damaged</th><th>BPP Total</th></tr></thead>
-      <tbody>{rows_dxp(d["dxp"], d["shp_por_driver"], d["shp_dxp"])}</tbody>
-    </table></div>
+    <div id="tabulator-dxp"></div>
   </div>
 </div>
 
@@ -2575,13 +2574,7 @@ def gerar_html(d):
 
   <div class="tbl-wrap">
     <div class="tbl-title">Ranking completo — Places Ofensores <span style="font-weight:400;font-size:11px;color:#6b7280">· filtro mostra places ativos no período; valores são totais anuais</span></div>
-    <div class="tbl-scroll"><table id="tbl_places">
-      <thead><tr>
-        <th>Place</th><th>Total</th><th>BPP</th>
-        <th>Lost Route</th><th>Lost Way</th><th>Lost Station</th><th>Lost ENE</th><th>Fraud Confirm.</th>
-      </tr></thead>
-      <tbody>{rows_places(d["places"], d["shp_por_place"])}</tbody>
-    </table></div>
+    <div id="tabulator-places"></div>
   </div>
 </div>
 
@@ -2609,78 +2602,33 @@ def gerar_html(d):
 </div>
 
 <script>
-// Filtro da aba Bloqueios — usa período global _periodDe/_periodAte
+// Filtro da aba Bloqueios — usa período global _periodDe/_periodAte + Tabulator
+var _tblBloqueios = null;
 function filtrarBloqueios() {{
+  if (!_tblBloqueios) return;
   const status = document.getElementById('bl_status')?.value || '';
   const transp = document.getElementById('bl_transp')?.value || '';
   const search = (document.getElementById('bl_search')?.value || '').toLowerCase();
-  document.querySelectorAll('.bl-row').forEach(tr => {{
-    const d   = tr.dataset.data   || '';
-    const ym  = d.substring(0,7);
-    const st  = tr.dataset.status || '';
-    const tp  = tr.dataset.transp || '';
-    const src = tr.dataset.search || '';
-    const ok  = (!_periodDe || ym >= _periodDe)
-             && (!_periodAte || ym <= _periodAte)
-             && (!status || st === status)
-             && (!transp || tp === transp)
-             && (!search || src.includes(search));
-    tr.style.display = ok ? '' : 'none';
-    const nx = tr.nextElementSibling;
-    if (nx && nx.classList.contains('bl-hist-row') && !ok) nx.style.display = 'none';
+  _tblBloqueios.setFilter(r => {{
+    const ym = (r.data || '').substring(0, 7);
+    const periodOk = (!_periodDe || ym >= _periodDe) && (!_periodAte || ym <= _periodAte);
+    const src = ((r.driver_id || '') + ' ' + (r.nome || '')).toLowerCase();
+    return periodOk
+      && (!status || r.status === status)
+      && (!transp || r.mlp === transp)
+      && (!search || src.includes(search));
   }});
   updateBloqueiosCards();
 }}
 
-// Exportar linhas visíveis como CSV
+// Exportar linhas visíveis como CSV via Tabulator
 function exportBlCSV() {{
-  const cols = ['Driver ID','Nome','Transportadora','Placa','SHP','USD$','Status','Motivo','Data','Semana'];
-  const rows = [cols.join(',')];
-  document.querySelectorAll('.bl-row').forEach(tr => {{
-    if (tr.style.display === 'none') return;
-    const tds = [...tr.querySelectorAll('td')];
-    const vals = tds.map(td => '"' + td.textContent.trim().replace(/"/g,'""') + '"');
-    rows.push(vals.join(','));
-  }});
-  const blob = new Blob([rows.join('\\n')], {{type:'text/csv;charset=utf-8;'}});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'block_list_ssp30.csv';
-  a.click();
+  if (_tblBloqueios) {{
+    _tblBloqueios.download('csv', 'block_list_ssp30.csv');
+  }}
 }}
 
-// Ordenação das colunas
-let _blSortCol = null, _blSortDir = 1;
-function sortBl(col) {{
-  if (_blSortCol === col) _blSortDir *= -1; else {{ _blSortCol = col; _blSortDir = 1; }}
-  ['did','usd','status','data'].forEach(c => {{
-    const el = document.getElementById('bl-sort-' + c);
-    if (el) el.textContent = c === col ? (_blSortDir === 1 ? ' ↑' : ' ↓') : '';
-  }});
-  const tbody = document.getElementById('bl-tbody');
-  if (!tbody) return;
-  const all = [...tbody.children];
-  const units = [];
-  let i = 0;
-  while (i < all.length) {{
-    const main = all[i];
-    const nx   = all[i+1];
-    if (nx && nx.classList.contains('bl-hist-row')) {{ units.push([main, nx]); i += 2; }}
-    else {{ units.push([main]); i++; }}
-  }}
-  const getVal = (tr) => {{
-    if (col === 'usd')    return parseFloat(tr.dataset.usd || '0');
-    if (col === 'status') return tr.dataset.status || '';
-    if (col === 'data')   return tr.dataset.data   || '';
-    if (col === 'did')    return (tr.dataset.search || '').split(' ')[0];
-    return '';
-  }};
-  units.sort((a,b) => {{
-    const va = getVal(a[0]), vb = getVal(b[0]);
-    return (va < vb ? -1 : va > vb ? 1 : 0) * _blSortDir;
-  }});
-  units.forEach(u => u.forEach(tr => tbody.appendChild(tr)));
-}}
+// sortBl() removido — Tabulator gerencia ordenação nativamente
 
 // Badge "atualizado há X min"
 function _updBadge() {{
@@ -2703,21 +2651,22 @@ function toggleBl(id) {{
 }}
 
 function updateBloqueiosCards() {{
+  if (!_tblBloqueios) return;
   const set = (id, v) => {{ const e = document.getElementById(id); if(e) e.textContent = v; }};
   const counts = {{}};
   const byTransp = {{}};
-  let total = 0, allTotal = 0, gmv = 0;
-  document.querySelectorAll('.bl-row').forEach(tr => {{
-    allTotal++;
-    if (tr.style.display !== 'none') {{
-      total++;
-      const st  = tr.dataset.status || '';
-      const tp  = tr.dataset.transp || '';
-      const usd = parseFloat(tr.dataset.usd || '0') || 0;
-      counts[st]  = (counts[st]  || 0) + 1;
-      byTransp[tp] = (byTransp[tp] || 0) + 1;
-      if (st === 'Bloqueado') gmv += usd;
-    }}
+  let gmv = 0;
+  const allRows = _tblBloqueios.getData();
+  const visRows = _tblBloqueios.getData('active');
+  const allTotal = allRows.length;
+  const total = visRows.length;
+  visRows.forEach(r => {{
+    const st  = r.status || '';
+    const tp  = r.mlp    || '';
+    const usd = parseFloat(r.usd || '0') || 0;
+    counts[st]   = (counts[st]   || 0) + 1;
+    byTransp[tp] = (byTransp[tp] || 0) + 1;
+    if (st === 'Bloqueado') gmv += usd;
   }});
   set('bl-cv-total', total);
   const noteEl = document.getElementById('bl-period-note');
@@ -2813,6 +2762,9 @@ const FRAUD_ENE_DATA   = {j(d['fraud_ene'])};
 const CRZ_DRIVERS_DATA = {j(d['crz'].get('driver_crz', [])[:50])};
 const CRZ_BUYERS_DATA  = {j(d['crz'].get('buyers', [])[:50])};
 const CRZ_SELLERS_DATA = {j(d['crz'].get('sellers', [])[:50])};
+const DXP_DATA    = {j([{{**r, 'months': r.get('months', [])}} for r in d.get('dxp', [])])};
+const PLACES_DATA = {j(d.get('places', []))};
+const BL_DATA     = {j([{{k: v for k, v in r.items() if k != 'historico'}} for r in d['bl']['rows']])};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','damaged_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
@@ -3062,8 +3014,8 @@ function applyPeriodoToTab(name) {{
   }};
   if      (name === 'geral')      {{ filterByMonths('tbl_cruzados'); updateCountCards(); }}
   else if (name === 'acumulo')    {{ /* período gerenciado por switchAcblPeriod */ }}
-  else if (name === 'dxp')        {{ filterByMonths('tbl_dxp'); }}
-  else if (name === 'places')     {{ filterByMonths('tbl_places'); }}
+  else if (name === 'dxp')        {{ _filterTblByPeriod(_tblDxp); }}
+  else if (name === 'places')     {{ _filterTblByPeriod(_tblPlaces); }}
   else if (name === 'damaged')    {{ _applyDamagedFilters(); }}
   else if (name === 'bloqueios')  {{ filtrarBloqueios(); }}
   else if (name === 'tendencia')  {{ renderTendencia(); }}
@@ -3216,14 +3168,13 @@ function _updateAllTabCounts() {{
     return n;
   }};
   // tab-count-acumulo é estático (gerado no Python), não precisa de updateCountCards
-  _set('tab-count-dxp',     countMonths('tbl_dxp'));
-  _set('tab-count-places',  countMonths('tbl_places'));
+  _set('tab-count-dxp',     _countDataMonths(DXP_DATA));
+  _set('tab-count-places',  _countDataMonths(PLACES_DATA));
   _set('tab-count-damaged', countMonths('tbl_damaged'));
-  let blCount = 0;
-  document.querySelectorAll('.bl-row').forEach(tr => {{
-    const ym = (tr.dataset.data||'').substring(0,7);
-    if ((!_periodDe||ym>=_periodDe)&&(!_periodAte||ym<=_periodAte)) blCount++;
-  }});
+  const blCount = BL_DATA.filter(r => {{
+    const ym = (r.data||'').substring(0,7);
+    return (!_periodDe||ym>=_periodDe) && (!_periodAte||ym<=_periodAte);
+  }}).length;
   _set('tab-count-bloqueios', blCount);
 }}
 
@@ -3258,13 +3209,13 @@ function updateCountCards() {{
     return n;
   }};
 
-  // Places
-  const placesN = _cntMths('tbl_places');
+  // Places — usa DXP_DATA/PLACES_DATA (Tabulator, não DOM)
+  const placesN = _countDataMonths(PLACES_DATA);
   set('cv-places', placesN);
   set('tab-count-places', placesN);
 
   // DxP
-  set('tab-count-dxp', _cntMths('tbl_dxp'));
+  set('tab-count-dxp', _countDataMonths(DXP_DATA));
 
   // Damaged
   set('tab-count-damaged', _cntMths('tbl_damaged'));
@@ -3839,10 +3790,33 @@ function exportCSVDevolucoes() {{
 }}
 
 // ── SELLERS ENE ──────────────────────────────────────────────
+var _tblENE = null;
 function initSellersENE() {{
   _showBqBanner('tab-sellers_ene', SELLERS_ENE_DATA.length === 0);
   const badge = document.getElementById('tab-count-sellers-ene');
   if (badge) badge.textContent = SELLERS_ENE_DATA.length;
+  if (!_tblENE) {{
+    _tblENE = new Tabulator('#tabulator-ene', {{
+      data: SELLERS_ENE_DATA,
+      layout: 'fitDataStretch',
+      pagination: 'local',
+      paginationSize: 30,
+      movableColumns: true,
+      initialSort: [{{ column: 'qtd', dir: 'desc' }}],
+      columns: [
+        {{ title: '#', formatter: 'rownum', hozAlign: 'center', width: 50, headerSort: false }},
+        {{ title: 'Seller', field: 'seller_nome', headerFilter: 'input',
+           formatter: r => `<span style="color:#38bdf8;font-weight:600">${{r.getValue()||r.getRow().getData().seller_id}}</span> <span style="color:#475569;font-size:10px;font-family:monospace">#${{r.getRow().getData().seller_id}}</span>` }},
+        {{ title: 'Qtd ENE', field: 'qtd', sorter: 'number', hozAlign: 'center' }},
+        {{ title: 'Cashout USD', field: 'cashout', sorter: 'number', hozAlign: 'right',
+           formatter: 'money', formatterParams: {{ symbol: 'US$ ', precision: 2, thousand: '.', decimal: ',' }} }},
+        {{ title: 'Principais Causas', field: 'causas', tooltip: true, widthGrow: 2 }},
+        {{ title: '1ª Ocorrência', field: 'primeira' }},
+        {{ title: 'Última', field: 'ultima' }},
+        {{ title: 'Meses', field: 'meses', tooltip: true }},
+      ],
+    }});
+  }}
   filtrarSellersENE();
 }}
 initSellersENE();
@@ -3870,24 +3844,7 @@ function filtrarSellersENE() {{
   _setEl('ene-total-cashout', 'US$ ' + dados.reduce((s,r)=>s+r.cashout,0).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}));
   _setEl('ene-total-ene',    dados.reduce((s,r)=>s+r.qtd,0));
   _setEl('ene-total-com-cashout', dados.filter(r=>r.cashout>0).length);
-  const tb = document.getElementById('ene-tbody');
-  if (!tb) return;
-  tb.innerHTML = dados.slice(0,200).map((r,i) => `
-    <tr style="border-bottom:1px solid #1e293b;${{i<3?'background:#1a0a0a':''}}" title="SHPs: ${{r.shp_ids}}">
-      <td style="padding:7px 10px;text-align:center;color:#64748b;font-size:11px">${{i+1}}</td>
-      <td style="padding:7px 10px;color:#38bdf8;font-family:monospace">
-        <span style="color:#38bdf8;font-weight:600">${{r.seller_nome||r.seller_id}}</span>
-        <span style="color:#475569;font-size:10px;margin-left:4px;font-family:monospace" title="Copiar ID" style="cursor:pointer" onclick="navigator.clipboard.writeText('${{r.seller_id}}')">#${{r.seller_id}}</span>
-      </td>
-      <td style="padding:7px 10px;text-align:center;font-weight:700;color:${{r.qtd>=10?'#f87171':r.qtd>=5?'#fb923c':'#fbbf24'}}">${{r.qtd}}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:600;color:#86efac">US$ ${{r.cashout.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</td>
-      <td style="padding:7px 10px;color:#94a3b8;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${{r.causas}}">${{r.causas||'—'}}</td>
-      <td style="padding:7px 10px;color:#94a3b8;font-size:11px">${{r.primeira||'—'}}</td>
-      <td style="padding:7px 10px;color:#94a3b8;font-size:11px">${{r.ultima||'—'}}</td>
-      <td style="padding:7px 10px;color:#64748b;font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${{r.meses||'—'}}</td>
-    </tr>`).join('');
-  const emEl = document.getElementById('ene-empty');
-  if (emEl) emEl.style.display = dados.length ? 'none' : 'block';
+  if (_tblENE) _tblENE.setData(dados);
 }}
 
 // ── DAMAGED ENE ──────────────────────────────────────────────
@@ -4784,6 +4741,114 @@ function renderOfensores() {{
   }}).join('');
 }}
 
+// ── TABULATOR helpers ─────────────────────────────────────────
+// Conta registros em data[] que tenham pelo menos um mês no período atual
+function _countDataMonths(data) {{
+  if (!_periodDe && !_periodAte) return data.length;
+  return data.filter(r => {{
+    const months = r.months || [];
+    return months.some(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
+  }}).length;
+}}
+// Aplica filtro de período em uma instância Tabulator (campo months: string[])
+var _tblDxp = null, _tblPlaces = null;
+function _filterTblByPeriod(tbl) {{
+  if (!tbl) return;
+  if (!_periodDe && !_periodAte) {{
+    tbl.clearFilter();
+  }} else {{
+    tbl.setFilter(r => {{
+      const months = r.months || [];
+      return months.some(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
+    }});
+  }}
+}}
+
+// ── DXP TABLE ─────────────────────────────────────────────────
+(function() {{
+  const el = document.getElementById('tabulator-dxp');
+  if (!el) return;
+  _tblDxp = new Tabulator('#tabulator-dxp', {{
+    data: DXP_DATA,
+    layout: 'fitDataStretch',
+    pagination: 'local',
+    paginationSize: 30,
+    movableColumns: true,
+    initialSort: [{{ column: 'bpp', dir: 'desc' }}],
+    columns: [
+      {{ title: 'Driver ID', field: 'driver', headerFilter: 'input' }},
+      {{ title: 'Place',     field: 'place',  headerFilter: 'input' }},
+      {{ title: 'Total',   field: 'total',   sorter: 'number', hozAlign: 'center' }},
+      {{ title: 'Fraudes', field: 'fraudes', sorter: 'number', hozAlign: 'center' }},
+      {{ title: 'Damaged', field: 'damaged', sorter: 'number', hozAlign: 'center' }},
+      {{ title: 'BPP Total', field: 'bpp', sorter: 'number', hozAlign: 'right',
+         formatter: 'money', formatterParams: {{ symbol: '$', precision: 2, thousand: ',', decimal: '.' }} }},
+    ],
+  }});
+}})();
+
+// ── PLACES TABLE ──────────────────────────────────────────────
+(function() {{
+  const el = document.getElementById('tabulator-places');
+  if (!el) return;
+  _tblPlaces = new Tabulator('#tabulator-places', {{
+    data: PLACES_DATA,
+    layout: 'fitDataStretch',
+    pagination: 'local',
+    paginationSize: 30,
+    movableColumns: true,
+    initialSort: [{{ column: 'total', dir: 'desc' }}],
+    columns: [
+      {{ title: 'Place',        field: 'nome',    headerFilter: 'input', widthGrow: 2 }},
+      {{ title: 'Total',        field: 'total',   sorter: 'number', hozAlign: 'center' }},
+      {{ title: 'BPP',          field: 'bpp',     sorter: 'number', hozAlign: 'right',
+         formatter: 'money', formatterParams: {{ symbol: '$', precision: 2, thousand: ',', decimal: '.' }} }},
+      {{ title: 'Lost Route',   field: 'route',   sorter: 'number', hozAlign: 'center' }},
+      {{ title: 'Lost Way',     field: 'way',     sorter: 'number', hozAlign: 'center' }},
+      {{ title: 'Lost Station', field: 'station', sorter: 'number', hozAlign: 'center' }},
+      {{ title: 'Lost ENE',     field: 'ene',     sorter: 'number', hozAlign: 'center' }},
+      {{ title: 'Fraud Confirm.', field: 'fraud', sorter: 'number', hozAlign: 'center' }},
+    ],
+  }});
+}})();
+
+// ── BLOQUEIOS TABLE ───────────────────────────────────────────
+(function() {{
+  const el = document.getElementById('tabulator-bloqueios');
+  if (!el || !BL_DATA.length) return;
+  _tblBloqueios = new Tabulator('#tabulator-bloqueios', {{
+    data: BL_DATA,
+    layout: 'fitDataStretch',
+    pagination: 'local',
+    paginationSize: 30,
+    movableColumns: true,
+    initialSort: [{{ column: 'data', dir: 'desc' }}],
+    columns: [
+      {{ title: 'Driver ID',      field: 'driver_id', headerFilter: 'input' }},
+      {{ title: 'Nome',           field: 'nome',      headerFilter: 'input' }},
+      {{ title: 'Transportadora', field: 'mlp',       headerFilter: 'select',
+         headerFilterParams: {{ values: true }} }},
+      {{ title: 'Placa',  field: 'placa' }},
+      {{ title: 'SHP',    field: 'shp', tooltip: true }},
+      {{ title: 'USD$',   field: 'usd', sorter: 'number', hozAlign: 'right',
+         formatter: 'money', formatterParams: {{ symbol: '$', precision: 2, thousand: ',', decimal: '.' }} }},
+      {{ title: 'Status', field: 'status', headerFilter: 'select',
+         headerFilterParams: {{ values: ['','Bloqueado','Solicitado','Monitorado'] }},
+         formatter: r => {{
+           const v = r.getValue();
+           const colors = {{Bloqueado:'#10b981',Solicitado:'#3b82f6',Monitorado:'#f59e0b'}};
+           return `<span style="color:${{colors[v]||'#94a3b8'}};font-weight:600">${{v||'—'}}</span>`;
+         }} }},
+      {{ title: 'Motivo', field: 'motivo', tooltip: true }},
+      {{ title: 'Data',   field: 'data',   sorter: 'date' }},
+      {{ title: 'Semana', field: 'semana' }},
+    ],
+    rowClick: function(e, row) {{ updateBloqueiosCards(); }},
+  }});
+  // Aplica filtro inicial (estado do período pode já estar setado)
+  filtrarBloqueios();
+}})();
+
 lucide.createIcons();
 {_SB_DRAG_JS}
 
@@ -5004,18 +5069,7 @@ lucide.createIcons();
       <button onclick="document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';document.getElementById('bl_search').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
       <button onclick="exportBlCSV()" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer;margin-left:auto">⬇ Exportar CSV</button>
     </div>
-    <div class="tbl-scroll"><table id="bl-table">
-      <thead><tr>
-        <th onclick="sortBl('did')" style="cursor:pointer">Driver ID <span id="bl-sort-did"></span></th>
-        <th>Nome</th><th>Transportadora</th><th>Placa</th><th>SHP</th>
-        <th onclick="sortBl('usd')" style="cursor:pointer">USD$ <span id="bl-sort-usd"></span></th>
-        <th onclick="sortBl('status')" style="cursor:pointer">Status <span id="bl-sort-status"></span></th>
-        <th>Motivo</th>
-        <th onclick="sortBl('data')" style="cursor:pointer">Data <span id="bl-sort-data"></span></th>
-        <th>Semana</th>
-      </tr></thead>
-      <tbody id="bl-tbody">{rows_block_list(d["bl"]["rows"])}</tbody>
-    </table></div>
+    <div id="tabulator-bloqueios"></div>
   </div>
 </div>
 
@@ -5444,24 +5498,7 @@ lucide.createIcons();
     </div>
 
     <!-- TABELA -->
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead>
-          <tr>
-            <th style="text-align:center;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155;width:40px">#</th>
-            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Seller</th>
-            <th style="text-align:center;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Qtd ENE</th>
-            <th style="text-align:right;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Cashout USD</th>
-            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Principais Causas</th>
-            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">1ª Ocorrência</th>
-            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Última</th>
-            <th style="text-align:left;padding:8px 10px;background:#1e293b;color:#94a3b8;font-weight:600;border-bottom:1px solid #334155">Meses</th>
-          </tr>
-        </thead>
-        <tbody id="ene-tbody"></tbody>
-      </table>
-    </div>
-    <div id="ene-empty" style="display:none;text-align:center;padding:40px;color:#94a3b8;font-size:13px">Nenhum resultado encontrado</div>
+    <div id="tabulator-ene"></div>
   </div>
 </div>
 

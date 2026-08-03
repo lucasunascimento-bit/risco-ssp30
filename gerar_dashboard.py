@@ -2233,6 +2233,69 @@ def gerar_html(d):
         'status': r.get('status',''), 'final': r.get('final','')
     } for r in d.get('hist_todos', [])], ensure_ascii=False)
 
+    # --- JSON para Tabulator: Críticos ---
+    d['tab_criticos_json'] = json.dumps([{
+        'id':            r.get('id',''),
+        'sit':           r.get('sit',''),
+        'origem':        r.get('origem',''),
+        'gmv':           round(r.get('gmv',0), 2),
+        'dias_carteira': r.get('dias_carteira',-1),
+        'status':        r.get('status',''),
+        'resp':          r.get('resp',''),
+        'motivos':       ', '.join(r.get('motivos',[])),
+    } for r in d.get('criticos',[])], ensure_ascii=False)
+
+    # --- JSON para Tabulator: Top GMV ---
+    d['tab_gmv_json'] = json.dumps([{
+        'rank':          i + 1,
+        'origem':        r.get('origem',''),
+        'id':            r.get('id',''),
+        'sit':           r.get('sit',''),
+        'gmv':           round(r.get('gmv',0), 2),
+        'resp':          r.get('resp',''),
+        'status':        r.get('status',''),
+        'dias_carteira': r.get('dias_carteira',-1),
+    } for i, r in enumerate(d.get('top15',[]))], ensure_ascii=False)
+
+    # --- JSON para Tabulator: Places ranking ---
+    d['tab_places_rank_json'] = json.dumps([{
+        'rank':      i + 1,
+        'place_id':  p.get('place_id',''),
+        'tramo':     p.get('tramo','') if p.get('tramo','') == 'NEX' else 'XPT/DC',
+        'qtd':       p.get('qtd',0),
+        'gmv':       round(p.get('gmv',0), 2),
+        'gmv_pkg':   round(p.get('gmv_pkg',0), 2),
+        'max_dias':  p.get('max_dias',0),
+        'avg_dias':  float(p.get('avg_dias',0)),
+        'dit_blind': p.get('dit_blind',0),
+        'pkgs_ids':  ', '.join(pk.get('id','') for pk in p.get('pkgs',[])),
+    } for i, p in enumerate(d.get('places',{}).get('ranking',[]))], ensure_ascii=False)
+
+    # --- JSON para Tabulator: Places pacotes individuais ---
+    d['tab_places_json'] = json.dumps([{
+        'shp_id':   str(r.get('SHP_SHIPMENT_ID') or ''),
+        'tramo':    str(r.get('SHP_TRAMO') or '') if str(r.get('SHP_TRAMO') or '') == 'NEX' else 'XPT/DC',
+        'place_id': str(r.get('SHP_DESTINATION_ID') or '—'),
+        'acao':     extract_acao(r.get('ACTION_DETAIL') or ''),
+        'risk':     norm_risk(r.get('RISK_CLASIFICATION') or ''),
+        'dias':     int(r.get('DAYS_HANDLING_SVC') or 0),
+        'gmv':      round(float(r.get('SHP_ORDER_COST_USD') or 0), 2),
+        'retorno':  str(r.get('RETORNO_ATIVO') or '—'),
+        'carrier':  'BPP' if r.get('FLAG_BPP') else (str(r.get('CARRIER') or '') or '—'),
+        'rota_id':  str(r.get('ROTA_ID') or ''),
+        'chk_dt':   str(r.get('SHP_LG_SHIPMENT_CHK_DT') or '—'),
+    } for r in d.get('places',{}).get('rows',[])], ensure_ascii=False)
+
+    # --- JSON para Tabulator: AT STATION top packages ---
+    d['tab_as_pkgs_json'] = json.dumps([{
+        'shp_id': str(p.get('shp_id','')),
+        'tramo':  p.get('tramo',''),
+        'acao':   p.get('acao',''),
+        'risk':   p.get('risk',''),
+        'dias':   p.get('dias',0),
+        'usd':    round(p.get('usd',0), 2),
+    } for p in d.get('at_station',{}).get('top_pkgs',[])], ensure_ascii=False)
+
     hist_table = (
         "<div class='tbl-scroll'><table id='tbl_hist'><thead><tr>"
         "<th>Data</th><th>Origem</th><th>SHP ID</th><th>Situation</th>"
@@ -2678,25 +2741,43 @@ def gerar_html(d):
 <!-- ===================== ABA 2: CRÍTICOS ===================== -->
 <div id="tab-criticos" class="content">
   {'<div style="background:#7f1d1d;border:1px solid #EF4444;border-radius:12px;padding:20px;margin-bottom:24px;display:flex;align-items:center;gap:16px"><span style="font-size:32px">🚨</span><div><div style="font-size:16px;font-weight:800;color:#FCA5A5">'+str(len(d["criticos"]))+' pacotes precisam de atenção urgente</div><div style="color:#FCA5A5;opacity:0.8;font-size:13px;margin-top:4px">Critérios: Possivel Lost / +11d OW + GMV alto + muitos dias na carteira (2 ou mais fatores)</div></div></div>' if d['criticos'] else '<div style="text-align:center;padding:48px;color:#64748b"><div style="font-size:48px">✅</div><div style="font-size:18px;margin-top:12px">Nenhum pacote crítico no momento!</div></div>'}
-  {''.join([f"""
-  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
-    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <a href="https://envios.adminml.com/logistics/package-management/package/{r["id"]}" target="_blank"
-           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">{r["id"]}</a>
-        {pill(r["sit"])}
-        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">{r["origem"]}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <span style="font-size:20px;font-weight:800;color:#10B981">${r["gmv"]:,.2f}</span>
-        {dias_badge(r["dias_carteira"])} na carteira
-        {pill_status(r["status"])}
-      </div>
-    </div>
-    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
-      {''.join(f'<span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">{m}</span>' for m in r["motivos"])}
-    </div>
-  </div>""" for r in d["criticos"]])}
+  <div class="tbl-wrap">
+    <div id="tabulator-criticos"></div>
+    <script>
+    (function(){{
+      var dataCrit = {d['tab_criticos_json']};
+      new Tabulator("#tabulator-criticos", {{
+        data: dataCrit,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        paginationSizeSelector: [10, 30, 50],
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          row.getElement().style.borderLeft = "3px solid #e05252";
+        }},
+        columns: [
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
+            var v = cell.getValue();
+            return '<a href="https://envios.adminml.com/logistics/package-management/package/'+v+'" target="_blank" style="font-family:monospace;font-size:12px;color:#60a5fa;text-decoration:none;font-weight:700">'+v+'</a>';
+          }}}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"Origem", field:"origem", headerFilter:"select", headerFilterParams:{{values:true}}, width:110}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:120}},
+          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
+            var v = cell.getValue();
+            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+            return v >= 0 ? v+'d' : '—';
+          }}}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+          {{title:"Motivos", field:"motivos", headerFilter:"input", width:360}},
+        ],
+      }});
+    }})();
+    </script>
+  </div>
 </div>
 
 <!-- ===================== ABA: ON ROUTE ===================== -->
@@ -2939,43 +3020,44 @@ def gerar_html(d):
 
   <!-- Top pacotes por GMV -->
   <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Top 50 Pacotes — At Station (por GMV)</span>
-      <input type="text" id="as-search" placeholder="Buscar SHP ID..." oninput="asFilter()"
-        style="background:#1f2937;border:1px solid #374151;border-radius:6px;color:#f9fafb;
-               font-size:11px;padding:4px 10px;width:160px;outline:none">
-    </div>
-    <div class="tbl-scroll">
-    <table id="tbl_as_pkgs">
-      <thead><tr>
-        <th>SHP ID</th><th>Tramo</th><th>Ação LP</th><th>Risco</th>
-        <th class="sortable" onclick="sortTable('tbl_as_pkgs',4)">Dias</th>
-        <th class="sortable" onclick="sortTable('tbl_as_pkgs',5)">GMV USD</th>
-      </tr></thead>
-      <tbody id="as-tbody">
-        {"".join(
-          f'<tr>'
-          f'<td><a href="https://www.mercadolivre.com.br/envios/pacote/{p["shp_id"]}" target="_blank" style="color:#60a5fa;text-decoration:none">{p["shp_id"]}</a></td>'
-          f'<td><span style="background:#1f2937;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">{p["tramo"]}</span></td>'
-          f'<td style="font-size:11px">{p["acao"]}</td>'
-          f'<td style="font-size:11px">{p["risk"]}</td>'
-          f'<td style="{"color:#ef4444;font-weight:700" if p["dias"]>10 else "color:#9ca3af"}">{p["dias"]}</td>'
-          f'<td style="font-weight:600">${p["usd"]:,.0f}</td>'
-          f'</tr>'
-          for p in d["at_station"]["top_pkgs"]
-        )}
-      </tbody>
-    </table>
-    </div>
-  </div>
-  <script>
-    function asFilter() {{
-      const q = document.getElementById('as-search').value.toLowerCase();
-      document.querySelectorAll('#as-tbody tr').forEach(r => {{
-        r.style.display = r.cells[0].textContent.toLowerCase().includes(q) ? '' : 'none';
+    <div class="tbl-title">Top 50 Pacotes — At Station (por GMV)</div>
+    <div id="tabulator-as-pkgs"></div>
+    <script>
+    (function(){{
+      var dataAS = {d['tab_as_pkgs_json']};
+      new Tabulator("#tabulator-as-pkgs", {{
+        data: dataAS,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 50,
+        paginationSizeSelector: [20, 50, 100],
+        movableColumns: true,
+        initialSort: [{{column:"usd", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          if(data.dias > 10) row.getElement().style.borderLeft = "3px solid #ef4444";
+        }},
+        columns: [
+          {{title:"SHP ID", field:"shp_id", headerFilter:"input", width:140,
+            formatter:function(cell){{
+              var v = cell.getValue();
+              return '<a href="https://www.mercadolivre.com.br/envios/pacote/'+v+'" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace">'+v+'</a>';
+            }}}},
+          {{title:"Tramo", field:"tramo", headerFilter:"select", headerFilterParams:{{values:true}}, width:90}},
+          {{title:"Ação LP", field:"acao", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"Risco", field:"risk", headerFilter:"select", headerFilterParams:{{values:true}}, width:100}},
+          {{title:"Dias", field:"dias", sorter:"number", width:80, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(v > 10) return '<span style="color:#ef4444;font-weight:700">'+v+'d</span>';
+              return '<span style="color:#9ca3af">'+v+'d</span>';
+            }}}},
+          {{title:"GMV (USD)", field:"usd", sorter:"number", formatter:"money", formatterParams:{{precision:0, symbol:"$"}}, width:120}},
+        ],
       }});
-    }}
-  </script>
+    }})();
+    </script>
+  </div>
 </div>
 
 <!-- ===================== ABA 4: TOP GMV ===================== -->
@@ -2984,17 +3066,39 @@ def gerar_html(d):
   <div class="tbl-wrap">
     <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Ranking completo</span>
-      <button onclick="exportCSV('gmv', 'top_gmv_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
+      <button onclick="window._tabGMV && window._tabGMV.download('csv', 'top_gmv_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>
-    <div class="tbl-scroll">
-    <table id="tbl_gmv">
-      <thead><tr>
-        <th>#</th><th>Origem</th><th>SHP ID</th><th>Situation</th>
-        <th>GMV USD</th><th>Responsável</th><th>Status</th><th>Dias Cart.</th>
-      </tr></thead>
-      <tbody>{rows_table_top(d["top15"])}</tbody>
-    </table>
-    </div>
+    <div id="tabulator-gmv"></div>
+    <script>
+    (function(){{
+      var dataGMV = {d['tab_gmv_json']};
+      window._tabGMV = new Tabulator("#tabulator-gmv", {{
+        data: dataGMV,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        paginationSizeSelector: [15, 30, 50],
+        movableColumns: true,
+        columns: [
+          {{title:"#", field:"rank", width:50, hozAlign:"center", sorter:"number",
+            formatter:function(cell){{ return '<span style="font-weight:700;color:#FFE600">'+cell.getValue()+'</span>'; }}}},
+          {{title:"Origem", field:"origem", headerFilter:"select", headerFilterParams:{{values:true}}, width:110}},
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
+            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
+          }}}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:120}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
+            var v = cell.getValue();
+            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+            return v >= 0 ? v+'d' : '—';
+          }}}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
@@ -3156,56 +3260,117 @@ def gerar_html(d):
         📋 Copiar Relatório
       </button>
     </div>
-    <div class="tbl-scroll">
-    <table id="tbl_places_rank" style="min-width:750px">
-      <thead><tr>
-        <th style="width:40px">#</th>
-        <th>Place ID</th><th>Tramo</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',3)">SHP</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',4)">GMV Total</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',5)">GMV/pkg</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',6)">Max Dias</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',7)">Avg Dias</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',8)" title="Pacotes em DIT delay não classificados como missing">DIT s/ flag ⓘ</th>
-        <th>Alerta</th><th style="width:24px"></th>
-      </tr></thead>
-      <tbody>{rows_ranking_places(d["places"]["ranking"])}</tbody>
-    </table>
-    </div>
+    <div id="tabulator-places-rank"></div>
+    <script>
+    (function(){{
+      var dataPlRank = {d['tab_places_rank_json']};
+      new Tabulator("#tabulator-places-rank", {{
+        data: dataPlRank,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          if(data.gmv_pkg >= 300) row.getElement().style.background = '#1a0808';
+          else if(data.max_dias >= 20) row.getElement().style.background = '#160f04';
+        }},
+        columns: [
+          {{title:"#", field:"rank", width:50, hozAlign:"center", sorter:"number",
+            formatter:function(cell){{ return '<span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#'+cell.getValue()+'</span>'; }}}},
+          {{title:"Place ID", field:"place_id", headerFilter:"input", width:140,
+            formatter:function(cell){{ return '<span style="color:#a78bfa;font-family:monospace;font-size:12px;font-weight:600">'+cell.getValue()+'</span>'; }}}},
+          {{title:"Tramo", field:"tramo", headerFilter:"select", headerFilterParams:{{values:true}}, width:90}},
+          {{title:"SHP", field:"qtd", sorter:"number", width:70, hozAlign:"center"}},
+          {{title:"GMV Total", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:120}},
+          {{title:"GMV/pkg", field:"gmv_pkg", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:110,
+            formatter:function(cell){{
+              var v = cell.getValue();
+              var cl = v >= 300 ? '#f87171' : (v >= 100 ? '#fbbf24' : '#9ca3af');
+              return '<span style="color:'+cl+';font-weight:700">$'+v.toFixed(2)+'</span>';
+            }}}},
+          {{title:"Max Dias", field:"max_dias", sorter:"number", width:90, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+              return v+'d';
+            }}}},
+          {{title:"Avg Dias", field:"avg_dias", sorter:"number", width:90, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v.toFixed(1)+'d</span>';
+              return v.toFixed(1)+'d';
+            }}}},
+          {{title:"DIT s/ flag", field:"dit_blind", sorter:"number", width:100, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(!v) return '<span style="color:#1f2937">—</span>';
+              var cl = v >= 200 ? '#f87171' : (v >= 50 ? '#fbbf24' : '#9ca3af');
+              return '<span style="color:'+cl+';font-weight:700">'+v+'</span>';
+            }}}},
+          {{title:"SHP IDs", field:"pkgs_ids", headerFilter:"input", width:200,
+            formatter:function(cell){{ return '<span style="font-size:10px;color:#6b7280">'+cell.getValue()+'</span>'; }}}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 
   <div class="tbl-wrap">
-    <div class="tbl-title">📍 Pacotes nos Places (NEX + DC) — SSP30 · ordenados por GMV</div>
-    <div class="filter-bar">
-      <input type="text" id="busca_places" placeholder="🔍 Buscar por SHP ID..." oninput="filtrarPlaces()" class="filter-input" style="max-width:260px">
-      <select id="tramo_places" onchange="filtrarPlaces()" class="filter-select">
-        <option value="">NEX + DC</option>
-        <option value="nex">NEX</option>
-        <option value="dc">DC</option>
-      </select>
-      <select id="acao_places" onchange="filtrarPlaces()" class="filter-select">
-        <option value="">Todas as Ações</option>
-        {''.join(f'<option value="{a.lower()}">{a}</option>' for a in d["places"]["acao_cnt"].keys())}
-      </select>
-      <select id="risk_places" onchange="filtrarPlaces()" class="filter-select">
-        <option value="">Todos os Riscos</option>
-        <option value="cr">Crítico</option>
-        <option value="alt">Alto</option>
-        <option value="mod">Moderado</option>
-      </select>
-      <button onclick="exportCSV('places', 'places_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
+    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📍 Pacotes nos Places (NEX + DC) — SSP30 · ordenados por GMV</span>
+      <button onclick="window._tabPlaces && window._tabPlaces.download('csv', 'places_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>
-    <div class="tbl-scroll">
-    <table id="tbl_places">
-      <thead><tr>
-        <th>SHP ID</th><th>Tramo</th><th>Place ID</th><th>Ação</th><th>Risco</th>
-        <th class="sortable" onclick="sortTable('tbl_places',5)">Dias S/ Mov</th>
-        <th class="sortable" onclick="sortTable('tbl_places',6)">GMV USD</th>
-        <th>Retorno Ativo</th><th>Transportadora</th><th>Rota</th><th>Último Status</th>
-      </tr></thead>
-      <tbody>{rows_table_places(d["places"]["rows"])}</tbody>
-    </table>
-    </div>
+    <div id="tabulator-places"></div>
+    <script>
+    (function(){{
+      var dataPl = {d['tab_places_json']};
+      window._tabPlaces = new Tabulator("#tabulator-places", {{
+        data: dataPl,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 50,
+        paginationSizeSelector: [20, 50, 100, 200],
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          var rk = (data.risk || '').toLowerCase();
+          if(rk.indexOf('cr') >= 0) row.getElement().style.background = '#1a0808';
+          else if(rk.indexOf('alt') >= 0) row.getElement().style.background = '#160f04';
+        }},
+        columns: [
+          {{title:"SHP ID", field:"shp_id", headerFilter:"input", width:130,
+            formatter:function(cell){{
+              return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
+            }}}},
+          {{title:"Tramo", field:"tramo", headerFilter:"select", headerFilterParams:{{values:true}}, width:90}},
+          {{title:"Place ID", field:"place_id", headerFilter:"input", width:130,
+            formatter:function(cell){{ return '<span style="color:#a78bfa;font-size:11px;font-family:monospace">'+cell.getValue()+'</span>'; }}}},
+          {{title:"Ação", field:"acao", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"Risco", field:"risk", headerFilter:"select", headerFilterParams:{{values:true}}, width:100}},
+          {{title:"Dias S/ Mov", field:"dias", sorter:"number", width:100, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+              return v >= 0 ? v+'d' : '—';
+            }}}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:120}},
+          {{title:"Retorno Ativo", field:"retorno", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Transportadora", field:"carrier", headerFilter:"input", width:130}},
+          {{title:"Rota ID", field:"rota_id", headerFilter:"input", width:110,
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(!v || v === 'None' || v === '') return '—';
+              return '<a href="https://envios.adminml.com/logistics/monitoring-distribution/detail/'+v+'?site=MLB" target="_blank" style="color:#4ade80;text-decoration:none;font-family:monospace;font-size:11px">'+v+'</a>';
+            }}}},
+          {{title:"Último Status", field:"chk_dt", width:130,
+            formatter:function(cell){{ return '<span style="font-size:10px;color:#64748b">'+cell.getValue()+'</span>'; }}}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
