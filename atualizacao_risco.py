@@ -922,6 +922,9 @@ if __name__ == '__main__':
     planilha_controle = gs_client.open_by_key(PLANILHA_CONTROLE_ID)
     planilha_cftv     = gs_client.open_by_key(PLANILHA_CFTV_ID)
 
+    abas_disponiveis = [w.title for w in planilha_controle.worksheets()]
+    print(f"Abas disponíveis na planilha: {abas_disponiveis}")
+
     print("\n--- ON ROUTE ---")
     df_route    = buscar_bigquery(bq_client, QUERY_ON_ROUTE, 'ON ROUTE')
     aba_route   = planilha_controle.worksheet(ABA_ON_ROUTE)

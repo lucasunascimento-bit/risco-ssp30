@@ -165,7 +165,12 @@ def carregar():
     pl = gc.open_by_key(PLANILHA_CONTROLE_ID)
 
     def ler(nome):
-        rows = pl.worksheet(nome).get_all_values()
+        try:
+            ws = pl.worksheet(nome)
+        except Exception:
+            abas = [w.title for w in pl.worksheets()]
+            raise Exception(f"Aba '{nome}' não encontrada. Abas disponíveis: {abas}")
+        rows = ws.get_all_values()
         if len(rows) <= 1:
             return [], []
         # preserva número da linha na planilha (1=header, 2=primeira linha de dados)
