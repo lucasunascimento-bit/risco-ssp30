@@ -4259,6 +4259,56 @@ lucide.createIcons();
 </html>'''
 
 # ============================================================
+# ABAS ESPELHO PARA GRID SDK (tabs sem parênteses no nome)
+# ============================================================
+def escrever_abas_grid(creds, rt, wy, at_station_rows):
+    """Escreve grid_rota, grid_ow e grid_station no Controle para que o Grid SDK possa ler."""
+    print("Escrevendo abas Grid (grid_rota / grid_ow / grid_station)...")
+    try:
+        gc = gspread.authorize(creds)
+        pl = gc.open_by_key(PLANILHA_CONTROLE_ID)
+
+        N = 36  # colunas A..AJ
+        HEADER = [''] * N
+        HEADER[0]  = 'Responsavel'; HEADER[1]  = 'Situacao';    HEADER[2]  = 'SHP_ID'
+        HEADER[12] = 'Dias_OW';     HEADER[13] = 'Carrier';     HEADER[21] = 'GMV_OW'
+        HEADER[22] = 'GMV_USD';     HEADER[23] = 'Acao_LP';     HEADER[24] = 'CFTV'
+        HEADER[28] = 'Status';      HEADER[29] = 'Finalizacao'; HEADER[31] = 'Entrada'
+        HEADER[32] = 'Cobrar_OTR'
+
+        def _ensure(name):
+            try:
+                ws = pl.worksheet(name); ws.clear(); return ws
+            except gspread.exceptions.WorksheetNotFound:
+                return pl.add_worksheet(title=name, rows=5000, cols=N)
+
+        def _write(ws, rows):
+            pad = lambda r: (list(r) + [''] * N)[:N]
+            data = [HEADER] + [pad(r) for r in rows]
+            ws.update('A1', data, value_input_option='RAW')
+            print(f"  {ws.title}: {len(rows)} linhas")
+
+        _write(_ensure('grid_rota'), rt)
+        _write(_ensure('grid_ow'),   wy)
+
+        as_rows = []
+        for r in at_station_rows:
+            row = [''] * N
+            row[2]  = str(r.get('SHP_SHIPMENT_ID') or '')
+            row[1]  = str(r.get('RISK_CLASIFICATION') or '')
+            row[22] = str(r.get('SHP_ORDER_COST_USD') or 0)
+            row[23] = str(r.get('ACTION_DETAIL') or '')
+            row[24] = 'SIM' if r.get('FLAG_BPP') else ''
+            row[28] = str(r.get('SHP_TRAMO') or '')
+            dias    = r.get('DAYS_HANDLING_SVC')
+            row[31] = (str(dias) + 'd') if dias else ''
+            as_rows.append(row)
+        _write(_ensure('grid_station'), as_rows)
+
+    except Exception as e:
+        print(f"  [AVISO] Falha ao escrever abas Grid: {e}")
+
+# ============================================================
 # MAIN
 # ============================================================
 if __name__ == '__main__':
@@ -4365,6 +4415,7 @@ if __name__ == '__main__':
                 break
     else:
         print("  [AVISO] Briefing BQ falhou após 3 tentativas — continuando sem dados.")
+    escrever_abas_grid(creds, rt, wy, at_station_rows)
     print("Processando dados...")
     dados = processar(rt, wy, hi, descricoes=descricoes, cftv_map=cftv_map, entregues=entregues)
     dados['places']      = processar_places(places_rows, dit_data)

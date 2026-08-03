@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LP SSP30</title>
+<script src="/d/_assets/grid-sdk.js"></script>
+<style>
+/* ── Reset & vars ─────────────────────────────────────────── */
+:root {
+  --bg:       #080d15;
+  --sidebar:  #0c1220;
+  --surface:  #101826;
+  --card:     #111d2e;
+  --border:   #192336;
+  --border2:  #1e2d45;
+  --text:     #e2e8f0;
+  --muted:    #4a5d78;
+  --muted2:   #7a92ad;
+  --green:    #22c55e;
+  --amber:    #f59e0b;
+  --red:      #ef4444;
+  --blue:     #3b82f6;
+  --cyan:     #38bdf8;
+  --sidebar-w: 196px;
+  --topbar-h:  52px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* ── Topbar ───────────────────────────────────────────────── */
+#topbar{
+  height:var(--topbar-h);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;
+  background:var(--sidebar);
+  border-bottom:1px solid var(--border);
+}
+#tb-left{display:flex;flex-direction:column;gap:1px}
+#tb-title{font-size:15px;font-weight:700;color:#f1f5f9;letter-spacing:-.2px}
+#tb-sub{font-size:10.5px;color:var(--muted2)}
+#tb-right{display:flex;align-items:center;gap:10px}
+#upd-dot{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted2)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* module tabs */
+#mod-tabs{display:flex;gap:4px}
+.mtab{
+  padding:5px 11px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--muted2);
+  font-size:12px;font-weight:500;cursor:pointer;transition:all .13s;
+}
+.mtab:hover{color:var(--text);border-color:var(--muted2)}
+.mtab.m-risco.active    {background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.45);color:#4ade80}
+.mtab.m-fraude.active   {background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#fbbf24}
+.mtab.m-isca.active     {background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.4);color:#60a5fa}
+.mtab.m-cftv.active     {background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.4);color:#c084fc}
+.mtab.m-sinistros.active{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#f87171}
+.mtab.m-diario.active   {background:rgba(56,189,248,.12);border-color:rgba(56,189,248,.4);color:#7dd3fc}
+
+/* ── Main layout ──────────────────────────────────────────── */
+#layout{display:flex;flex:1;min-height:0}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+#sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--sidebar);
+  border-right:1px solid var(--border);
+  overflow-y:auto;padding:8px 0;
+}
+.nav-section{margin:4px 0 2px}
+.nav-label{
+  padding:5px 14px 3px;font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--muted)
+}
+.nav-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 14px;cursor:pointer;color:var(--muted2);
+  font-size:12.5px;transition:all .1s;
+  border-left:2px solid transparent;
+}
+.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text)}
+.nav-item.active{color:var(--text);background:rgba(255,255,255,.05);border-left-color:var(--green)}
+.ni-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{
+  flex-shrink:0;font-size:10px;font-weight:700;
+  padding:1px 7px;border-radius:999px;
+  background:rgba(245,158,11,.18);color:var(--amber);
+  min-width:24px;text-align:center;
+}
+.badge.red   {background:rgba(239,68,68,.18);color:var(--red)}
+.badge.green {background:rgba(34,197,94,.15);color:var(--green)}
+.badge.muted {background:rgba(100,116,139,.15);color:var(--muted2)}
+
+/* ── Content ──────────────────────────────────────────────── */
+#content{flex:1;overflow-y:auto;padding:20px 24px;min-width:0}
+.view{display:none}.view.active{display:block}
+
+/* ── View head ────────────────────────────────────────────── */
+.view-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.view-title{font-size:16px;font-weight:600;color:#f1f5f9}
+.view-sub{font-size:11px;color:var(--muted2);margin-top:1px}
+.btn-row-r{margin-left:auto;display:flex;gap:7px;align-items:center}
+.btn{
+  padding:5px 12px;border-radius:5px;
+  border:1px solid var(--border2);background:transparent;
+  color:var(--muted2);font-size:12px;cursor:pointer;transition:all .12s;
+}
+.btn:hover{border-color:var(--green);color:var(--green)}
+.btn.amber:hover{border-color:var(--amber);color:var(--amber)}
+.btn-export{background:var(--amber);border-color:var(--amber);color:#000;font-weight:600}
+.btn-export:hover{background:#d97706;border-color:#d97706;color:#000}
+
+/* ── Cards ────────────────────────────────────────────────── */
+.cards{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.card{background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:12px 16px;min-width:115px}
+.card-label{font-size:10.5px;color:var(--muted2);letter-spacing:.01em}
+.card-value{font-size:24px;font-weight:700;margin-top:4px;color:#f1f5f9}
+.card-value.green{color:var(--green)}.card-value.amber{color:var(--amber)}
+.card-value.red{color:var(--red)}.card-value.blue{color:#60a5fa}
+.card-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ── Filter bar ───────────────────────────────────────────── */
+.filter-bar{
+  display:flex;gap:8px;align-items:center;
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:8px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap;
+}
+.filter-input,.filter-select{
+  background:var(--surface);border:1px solid var(--border2);
+  color:var(--text);padding:6px 10px;border-radius:5px;font-size:12px;
+}
+.filter-input:focus,.filter-select:focus{outline:none;border-color:var(--green)}
+.filter-input::placeholder{color:var(--muted)}
+.filter-select option{background:#1a2740;color:var(--text)}
+.tbl-count{font-size:11px;color:var(--muted2);margin-left:auto}
+
+/* ── Table ────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border2);margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{position:sticky;top:0;z-index:1}
+th{
+  background:#0f1d30;padding:8px 10px;text-align:left;
+  font-weight:600;color:var(--muted2);border-bottom:1px solid var(--border2);
+  white-space:nowrap;cursor:pointer;user-select:none;font-size:11.5px;
+}
+th:hover{color:var(--text)}
+th.sa::after{content:' ↑';color:var(--green)}th.sd::after{content:' ↓';color:var(--green)}
+td{
+  padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.035);
+  vertical-align:middle;max-width:190px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.025)}
+tr.crit td{border-left:3px solid var(--red)}
+tr.warn td{border-left:3px solid var(--amber)}
+td.shp{font-family:monospace;font-size:11px;color:var(--cyan)}
+
+/* ── Pills ────────────────────────────────────────────────── */
+.pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
+.pill-ok   {background:rgba(34,197,94,.14);color:#4ade80}
+.pill-crit {background:rgba(239,68,68,.14);color:#f87171}
+.pill-warn {background:rgba(245,158,11,.14);color:#fbbf24}
+.pill-info {background:rgba(59,130,246,.14);color:#60a5fa}
+.pill-muted{background:rgba(100,116,139,.12);color:#94a3b8}
+
+/* ── Briefing ─────────────────────────────────────────────── */
+.briefing-section{margin-bottom:16px}
+.brief-header{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:8px 8px 0 0;border-bottom:0;
+  font-weight:600;font-size:13px;color:#f1f5f9;
+}
+.brief-header .cpill{
+  background:rgba(245,158,11,.18);color:var(--amber);
+  font-size:10px;font-weight:700;padding:2px 9px;border-radius:999px;
+}
+.brief-header .cpill.red{background:rgba(239,68,68,.18);color:var(--red)}
+.brief-header .cpill.green{background:rgba(34,197,94,.15);color:var(--green)}
+.brief-items{
+  background:var(--card);border:1px solid var(--border2);
+  border-top:1px solid var(--border);border-radius:0 0 8px 8px;
+}
+.brief-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;border-bottom:1px solid var(--border);
+  transition:background .1s;
+}
+.brief-item:last-child{border-bottom:none}
+.brief-item:hover{background:rgba(255,255,255,.025)}
+.bi-chk{width:14px;height:14px;border-radius:3px;border:1px solid var(--border2);flex-shrink:0}
+.bi-shp{font-family:monospace;font-size:11px;color:var(--cyan);flex-shrink:0}
+.bi-sep{color:var(--muted);margin:0 1px}
+.bi-gmv{font-weight:600;color:#f1f5f9;flex-shrink:0}
+.bi-day{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(245,158,11,.18);color:var(--amber);flex-shrink:0}
+.bi-detail{font-size:11px;color:var(--muted2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bi-ver{flex-shrink:0;font-size:11px;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:3px;transition:color .1s}
+.bi-ver:hover{color:var(--cyan)}
+.brief-empty{background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:18px 14px;color:var(--muted2);font-size:12px}
+
+/* ── Loading / misc ───────────────────────────────────────── */
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:48px;color:var(--muted2)}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--muted2);padding:48px}
+.err{color:var(--red);padding:24px;text-align:center;font-size:12px}
+.placeholder{background:var(--card);border:1px dashed var(--border2);border-radius:10px;padding:48px;text-align:center;color:var(--muted2);margin-top:8px}
+.placeholder h3{font-size:14px;color:var(--text);margin-bottom:8px}
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ═══════ TOPBAR ═══════════════════════════════════════════ -->
+<div id="topbar">
+  <div id="tb-left">
+    <div id="tb-title">LP SSP30</div>
+    <div id="tb-sub">Planilha de Controle · Loss Prevention</div>
+  </div>
+  <div id="tb-right">
+    <div id="upd-dot"><span class="live-dot"></span><span id="upd-txt">Aguardando dados…</span></div>
+    <div id="mod-tabs">
+      <button class="mtab m-risco active"  onclick="switchModule('risco',this)">Risco</button>
+      <button class="mtab m-fraude"        onclick="switchModule('fraude',this)">Fraude</button>
+      <button class="mtab m-isca"          onclick="switchModule('isca',this)">Isca</button>
+      <button class="mtab m-cftv"          onclick="switchModule('cftv',this)">CFTV</button>
+      <button class="mtab m-sinistros"     onclick="switchModule('sinistros',this)">Sinistros</button>
+      <button class="mtab m-diario"        onclick="switchModule('diario',this)">Diário</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ LAYOUT ═══════════════════════════════════════════ -->
+<div id="layout">
+
+<!-- ── Sidebar ───────────────────────────────────────────── -->
+<aside id="sidebar">
+
+  <!-- RISCO nav -->
+  <div id="snav-risco">
+    <div class="nav-section">
+      <div class="nav-item active" onclick="showView('briefing',this)">
+        <span class="ni-label">Briefing</span>
+        <span class="badge red" id="badge-briefing">…</span>
+      </div>
+      <div class="nav-item" onclick="showView('visao',this)">
+        <span class="ni-label">Visão Geral</span>
+      </div>
+      <div class="nav-item" onclick="showView('criticos',this)">
+        <span class="ni-label">Críticos</span>
+        <span class="badge red" id="badge-criticos">…</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Monitoramento</div>
+      <div class="nav-item" onclick="showView('on-route',this)">
+        <span class="ni-label">ON ROUTE</span>
+        <span class="badge" id="badge-on-route">…</span>
+      </div>
+      <div class="nav-item" onclick="showView('on-way',this)">
+        <span class="ni-label">ON WAY</span>
+        <span class="badge" id="badge-on-way">…</span>
+      </div>
+      <div class="nav-item" onclick="showView('at-station',this)">
+        <span class="ni-label">AT STATION</span>
+        <span class="badge" id="badge-at-station">…</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Análise</div>
+      <div class="nav-item" onclick="showView('top-gmv',this)">
+        <span class="ni-label">Top GMV</span>
+        <span class="badge" id="badge-top-gmv">…</span>
+      </div>
+      <div class="nav-item" onclick="showView('historico',this)">
+        <span class="ni-label">Histórico</span>
+        <span class="badge" id="badge-historico">…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FRAUDE nav -->
+  <div id="snav-fraude" style="display:none">
+    <div class="nav-section">
+      <div class="nav-label">Análise Fraude</div>
+      <div class="nav-item active" onclick="showView('top-drivers',this)">
+        <span class="ni-label">Top Drivers</span>
+        <span class="badge red" id="badge-top-drivers">…</span>
+      </div>
+      <div class="nav-item" onclick="showView('bloqueios',this)">
+        <span class="ni-label">Bloqueios</span>
+        <span class="badge red" id="badge-bloqueios">…</span>
+      </div>
+      <div class="nav-item" onclick="showView('sellers-ene',this)">
+        <span class="ni-label">Sellers ENE</span>
+        <span class="badge red" id="badge-sellers-ene">…</span>
+      </div>
+      <div class="nav-item" onclick="showView('sinistros',this)">
+        <span class="ni-label">Sinistros</span>
+        <span class="badge red" id="badge-sinistros">…</span>
+      </div>
+      <div class="nav-item" onclick="showView('dxp',this)">
+        <span class="ni-label">Driver × Place</span>
+        <span class="badge muted">BQ</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SINISTROS tab nav -->
+  <div id="snav-sinistros" style="display:none">
+    <div class="nav-section">
+      <div class="nav-item active" onclick="showView('sinistros',this)">
+        <span class="ni-label">Eventos SVC</span>
+        <span class="badge red" id="badge-sin2">…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- other tabs placeholder nav -->
+  <div id="snav-placeholder" style="display:none">
+    <div class="nav-section">
+      <div class="nav-item active"><span class="ni-label" style="color:var(--muted2)">Em breve</span></div>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ── Content ───────────────────────────────────────────── -->
+<main id="content">
+
+  <!-- BRIEFING ─────────────── -->
+  <div class="view active" id="view-briefing">
+    <div class="view-head">
+      <div><div class="view-title">Briefing</div><div class="view-sub">Itens que precisam de ação</div></div>
+      <div class="btn-row-r"><button class="btn" onclick="reloadRisco()">↻ Atualizar</button></div>
+    </div>
+    <div id="briefing-body"><div class="loading"><div class="spinner"></div>Carregando dados…</div></div>
+  </div>
+
+  <!-- VISÃO GERAL ─────────── -->
+  <div class="view" id="view-visao">
+    <div class="view-head">
+      <div><div class="view-title">Visão Geral</div><div class="view-sub">Resumo consolidado do risco ativo</div></div>
+      <div class="btn-row-r"><button class="btn" onclick="reloadRisco()">↻ Atualizar</button></div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-label">ON ROUTE</div><div class="card-value" id="vg-rt">…</div></div>
+      <div class="card"><div class="card-label">ON WAY</div><div class="card-value" id="vg-wy">…</div></div>
+      <div class="card"><div class="card-label">AT STATION</div><div class="card-value" id="vg-as">…</div></div>
+      <div class="card"><div class="card-label">GMV Total</div><div class="card-value amber" id="vg-gmv">…</div></div>
+      <div class="card"><div class="card-label">Sem Ação LP</div><div class="card-value red" id="vg-sem">…</div></div>
+      <div class="card"><div class="card-label">Com CFTV</div><div class="card-value green" id="vg-cftv">…</div></div>
+    </div>
+  </div>
+
+  <!-- CRÍTICOS ─────────────── -->
+  <div class="view" id="view-criticos">
+    <div class="view-head">
+      <div><div class="view-title">Críticos</div><div class="view-sub">GMV ≥ $1.000 sem ação LP</div></div>
+      <div class="btn-row-r"><button class="btn" onclick="reloadRisco()">↻ Atualizar</button></div>
+    </div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar..." oninput="filterTable('criticos',this.value)" style="width:200px">
+      <span class="tbl-count" id="count-criticos"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-criticos" class="loading"><div class="spinner"></div>Aguardando dados…</div></div>
+  </div>
+
+  <!-- ON ROUTE ─────────────── -->
+  <div class="view" id="view-on-route">
+    <div class="view-head">
+      <div><div class="view-title">ON ROUTE</div><div class="view-sub">Pacotes em rota · ao vivo da planilha</div></div>
+      <div class="btn-row-r">
+        <button class="btn" onclick="reloadRisco()">↻ Atualizar</button>
+        <button class="btn amber" onclick="openSheet('controle')">Editar ↗</button>
+        <button class="btn btn-export" onclick="exportCSV('on-route')">↓ Exportar</button>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-label">Total</div><div class="card-value" id="cv-rt-total">…</div></div>
+      <div class="card"><div class="card-label">GMV USD</div><div class="card-value amber" id="cv-rt-gmv">…</div></div>
+      <div class="card"><div class="card-label">Alto GMV ≥$1k</div><div class="card-value red" id="cv-rt-crit">…</div></div>
+      <div class="card"><div class="card-label">Sem Ação LP</div><div class="card-value red" id="cv-rt-sem">…</div></div>
+      <div class="card"><div class="card-label">Com CFTV</div><div class="card-value green" id="cv-rt-cftv">…</div></div>
+    </div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar SHP, status, responsável..." oninput="filterTable('on-route',this.value)" style="width:240px">
+      <select class="filter-select" onchange="filterByStatus('on-route',this.value)" id="sel-rt-status"><option value="">Todas situações</option></select>
+      <span class="tbl-count" id="count-on-route"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-on-route" class="loading"><div class="spinner"></div>Carregando da planilha…</div></div>
+  </div>
+
+  <!-- ON WAY ───────────────── -->
+  <div class="view" id="view-on-way">
+    <div class="view-head">
+      <div><div class="view-title">ON WAY</div><div class="view-sub">Pacotes em trânsito · ao vivo da planilha</div></div>
+      <div class="btn-row-r">
+        <button class="btn" onclick="reloadRisco()">↻ Atualizar</button>
+        <button class="btn amber" onclick="openSheet('controle')">Editar ↗</button>
+        <button class="btn btn-export" onclick="exportCSV('on-way')">↓ Exportar</button>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-label">Total</div><div class="card-value" id="cv-wy-total">…</div></div>
+      <div class="card"><div class="card-label">GMV USD</div><div class="card-value amber" id="cv-wy-gmv">…</div></div>
+      <div class="card"><div class="card-label">Sem Ação LP</div><div class="card-value red" id="cv-wy-sem">…</div></div>
+      <div class="card"><div class="card-label">Com CFTV</div><div class="card-value green" id="cv-wy-cftv">…</div></div>
+    </div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar SHP, carrier, responsável..." oninput="filterTable('on-way',this.value)" style="width:240px">
+      <select class="filter-select" onchange="filterByStatus('on-way',this.value)" id="sel-wy-status"><option value="">Todas situações</option></select>
+      <span class="tbl-count" id="count-on-way"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-on-way" class="loading"><div class="spinner"></div>Carregando da planilha…</div></div>
+  </div>
+
+  <!-- AT STATION ───────────── -->
+  <div class="view" id="view-at-station">
+    <div class="view-head">
+      <div><div class="view-title">AT STATION</div><div class="view-sub">Pacotes na estação · ao vivo da planilha</div></div>
+      <div class="btn-row-r">
+        <button class="btn" onclick="reloadRisco()">↻ Atualizar</button>
+        <button class="btn amber" onclick="openSheet('controle')">Editar ↗</button>
+        <button class="btn btn-export" onclick="exportCSV('at-station')">↓ Exportar</button>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-label">Total</div><div class="card-value" id="cv-as-total">…</div></div>
+      <div class="card"><div class="card-label">GMV USD</div><div class="card-value amber" id="cv-as-gmv">…</div></div>
+      <div class="card"><div class="card-label">Sem Ação LP</div><div class="card-value red" id="cv-as-sem">…</div></div>
+    </div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar..." oninput="filterTable('at-station',this.value)" style="width:200px">
+      <span class="tbl-count" id="count-at-station"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-at-station" class="loading"><div class="spinner"></div>Carregando da planilha…</div></div>
+  </div>
+
+  <!-- TOP GMV ─────────────── -->
+  <div class="view" id="view-top-gmv">
+    <div class="view-head">
+      <div><div class="view-title">Top GMV</div><div class="view-sub">Maiores valores em aberto por GMV USD</div></div>
+      <div class="btn-row-r"><button class="btn" onclick="renderTopGMV()">↻ Atualizar</button></div>
+    </div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar..." oninput="filterTable('top-gmv',this.value)" style="width:200px">
+      <span class="tbl-count" id="count-top-gmv"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-top-gmv" class="loading"><div class="spinner"></div>Aguardando dados…</div></div>
+  </div>
+
+  <!-- HISTÓRICO ─────────────── -->
+  <div class="view" id="view-historico">
+    <div class="view-head">
+      <div><div class="view-title">Histórico</div><div class="view-sub">Pacotes finalizados</div></div>
+      <div class="btn-row-r">
+        <button class="btn" onclick="loadHistorico()">↻ Atualizar</button>
+        <button class="btn btn-export" onclick="exportCSV('historico')">↓ Exportar</button>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-label">Registros</div><div class="card-value" id="cv-hi-total">…</div></div>
+      <div class="card"><div class="card-label">GMV Total</div><div class="card-value amber" id="cv-hi-gmv">…</div></div>
+    </div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar..." oninput="filterTable('historico',this.value)" style="width:200px">
+      <span class="tbl-count" id="count-historico"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-historico" class="loading"><div class="spinner"></div>Carregando da planilha…</div></div>
+  </div>
+
+  <!-- TOP DRIVERS ─────────── -->
+  <div class="view" id="view-top-drivers">
+    <div class="view-head">
+      <div><div class="view-title">Top Drivers Ofensores</div><div class="view-sub">Atualizado diariamente pelo BigQuery</div></div>
+      <div class="btn-row-r">
+        <button class="btn" onclick="loadFraude('top-drivers')">↻ Atualizar</button>
+        <button class="btn amber" onclick="openSheet('fraude')">Ver planilha ↗</button>
+      </div>
+    </div>
+    <div class="cards"><div class="card"><div class="card-label">Drivers</div><div class="card-value red" id="cv-dr-total">…</div></div></div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar..." oninput="filterTable('top-drivers',this.value)" style="width:200px">
+      <span class="tbl-count" id="count-top-drivers"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-top-drivers" class="loading"><div class="spinner"></div>Carregando da planilha…</div></div>
+  </div>
+
+  <!-- BLOQUEIOS ───────────── -->
+  <div class="view" id="view-bloqueios">
+    <div class="view-head">
+      <div><div class="view-title">Bloqueios</div><div class="view-sub">Drivers bloqueados</div></div>
+      <div class="btn-row-r">
+        <button class="btn" onclick="loadFraude('bloqueios')">↻ Atualizar</button>
+        <button class="btn amber" onclick="openSheet('bloqueios')">Editar ↗</button>
+      </div>
+    </div>
+    <div class="cards"><div class="card"><div class="card-label">Bloqueios</div><div class="card-value red" id="cv-bl-total">…</div></div></div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar..." oninput="filterTable('bloqueios',this.value)" style="width:200px">
+      <span class="tbl-count" id="count-bloqueios"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-bloqueios" class="loading"><div class="spinner"></div>Carregando da planilha…</div></div>
+  </div>
+
+  <!-- SELLERS ENE ─────────── -->
+  <div class="view" id="view-sellers-ene">
+    <div class="view-head">
+      <div><div class="view-title">Sellers ENE</div><div class="view-sub">Entregas não efetuadas · atualizado pelo BQ</div></div>
+      <div class="btn-row-r">
+        <button class="btn" onclick="loadFraude('sellers-ene')">↻ Atualizar</button>
+        <button class="btn amber" onclick="openSheet('fraude')">Ver planilha ↗</button>
+      </div>
+    </div>
+    <div class="cards"><div class="card"><div class="card-label">Sellers ENE</div><div class="card-value red" id="cv-ene-total">…</div></div></div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar..." oninput="filterTable('sellers-ene',this.value)" style="width:200px">
+      <span class="tbl-count" id="count-sellers-ene"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-sellers-ene" class="loading"><div class="spinner"></div>Carregando da planilha…</div></div>
+  </div>
+
+  <!-- SINISTROS ───────────── -->
+  <div class="view" id="view-sinistros">
+    <div class="view-head">
+      <div><div class="view-title">Sinistros</div><div class="view-sub">Eventos SVC registrados</div></div>
+      <div class="btn-row-r">
+        <button class="btn" onclick="loadSinistros()">↻ Atualizar</button>
+        <button class="btn amber" onclick="openSheet('sinistro')">Ver planilha ↗</button>
+      </div>
+    </div>
+    <div class="cards"><div class="card"><div class="card-label">Sinistros</div><div class="card-value red" id="cv-sin-total">…</div></div></div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" placeholder="Filtrar..." oninput="filterTable('sinistros',this.value)" style="width:200px">
+      <span class="tbl-count" id="count-sinistros"></span>
+    </div>
+    <div class="tbl-wrap"><div id="tbl-sinistros" class="loading"><div class="spinner"></div>Carregando da planilha…</div></div>
+  </div>
+
+  <!-- DXP ─────────────────── -->
+  <div class="view" id="view-dxp">
+    <div class="view-head"><div><div class="view-title">Driver × Place</div><div class="view-sub">Análise de combinações driver + agência</div></div></div>
+    <div class="placeholder"><h3>🔄 Dados via BigQuery</h3><p>Disponível em breve após integração com a planilha.</p></div>
+  </div>
+
+  <!-- ISCA ────────────────── -->
+  <div class="view" id="view-isca">
+    <div class="view-head"><div><div class="view-title">Isca</div></div></div>
+    <div class="placeholder"><h3>🎣 Automação de Iscas</h3><p>Integração com Google Sheets e BQ em desenvolvimento.</p></div>
+  </div>
+
+  <!-- CFTV ────────────────── -->
+  <div class="view" id="view-cftv">
+    <div class="view-head"><div><div class="view-title">CFTV</div></div></div>
+    <div class="placeholder"><h3>📹 CFTV</h3><p>Seção em desenvolvimento.</p></div>
+  </div>
+
+  <!-- DIÁRIO ──────────────── -->
+  <div class="view" id="view-diario">
+    <div class="view-head"><div><div class="view-title">Diário</div><div class="view-sub">Relatório diário de atividades</div></div></div>
+    <div class="placeholder"><h3>📅 Relatório Diário</h3><p>Em desenvolvimento.</p></div>
+  </div>
+
+</main>
+</div><!-- /layout -->
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────
+const DOC_ID       = "01KZ4M2Y6HY2H3NKQKB523SS1W";
+const CONTROLE_ID  = "1rFcUXxl53WVQf_ASRx3mhlEvFoJevcaiwjMZY1vso5Y";
+const BLOQUEIOS_ID = "1521Ek2wn8qYLj7g6dh0aBBMmpVYHjCp2hftGKNG9bO0";
+const SINISTRO_ID  = "12-JUN1u4UfXBv0Mkeq9D3lsosG3e6OjbysMt4h7cpII";
+const FRAUDE_ID    = "1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc";
+const SHEETS = { controle:CONTROLE_ID, bloqueios:BLOQUEIOS_ID, sinistro:SINISTRO_ID, fraude:FRAUDE_ID };
+
+// Column maps [label, sheet_index]
+const C_RT = [['SHP ID',2],['Situação',1],['GMV USD',22],['Ação LP',23],['Status',28],['Finalização',29],['CFTV',24],['Cobrar OTR',32],['Entrada',31],['Responsável',0]];
+const C_OW = [['SHP ID',2],['Situação',1],['GMV USD',21],['Carrier',13],['Dias OW',12],['Ação LP',22],['Status',28],['Finalização',29],['CFTV',24],['Entrada',31],['Responsável',0]];
+const C_AS = [['SHP ID',2],['Situação',1],['GMV USD',22],['Ação LP',23],['Status',28],['Finalização',29],['CFTV',24],['Entrada',31],['Responsável',0]];
+const C_HI = [['Data',0],['Origem',1],['SHP ID',2],['Situação',3],['GMV USD',4],['Responsável',5],['Status',6],['Finalização',7],['Mês Ref',8]];
+
+Grid.configure({ docId: DOC_ID });
+
+// ─── STATE ───────────────────────────────────────────────────
+let _raw  = {};  // raw sheet values per section name
+let _tbl  = {};  // { name: { headers, rows } }
+let _sort = {};
+let _curMod  = 'risco';
+
+// ─── MODULE SWITCH ───────────────────────────────────────────
+const MOD_SIDENAV = { risco:'snav-risco', fraude:'snav-fraude', isca:'snav-placeholder', cftv:'snav-placeholder', sinistros:'snav-sinistros', diario:'snav-placeholder' };
+const MOD_FIRSTVIEW = { risco:'briefing', fraude:'top-drivers', isca:'isca', cftv:'cftv', sinistros:'sinistros', diario:'diario' };
+
+function switchModule(mod, el) {
+  _curMod = mod;
+  document.querySelectorAll('.mtab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+
+  document.querySelectorAll('#sidebar > div').forEach(d => d.style.display = 'none');
+  const sn = document.getElementById(MOD_SIDENAV[mod] || 'snav-placeholder');
+  if (sn) { sn.style.display = ''; sn.querySelectorAll('.nav-item').forEach((ni,i) => ni.classList.toggle('active', i===0)); }
+
+  showViewDirect(MOD_FIRSTVIEW[mod] || mod);
+  if (mod === 'fraude')    { loadAllFraude(); }
+  if (mod === 'sinistros') { loadSinistros(); }
+}
+
+// ─── VIEW SWITCH ─────────────────────────────────────────────
+function showView(name, el) {
+  const curSnav = document.getElementById(MOD_SIDENAV[_curMod]);
+  if (curSnav) curSnav.querySelectorAll('.nav-item').forEach(ni => ni.classList.remove('active'));
+  if (el) el.classList.add('active');
+  showViewDirect(name);
+  if (name === 'top-gmv')  { renderTopGMV(); }
+  if (name === 'historico' && !_tbl['historico']) { loadHistorico(); }
+}
+
+function showViewDirect(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const v = document.getElementById('view-' + name);
+  if (v) v.classList.add('active');
+}
+
+// ─── LOAD RISCO ──────────────────────────────────────────────
+function reloadRisco() {
+  ['on-route','on-way','at-station'].forEach(n => {
+    _raw[n] = null; _tbl[n] = null;
+    const el = document.getElementById('tbl-' + n);
+    if (el) el.innerHTML = '<div class="loading"><div class="spinner"></div>Carregando…</div>';
+  });
+  document.getElementById('briefing-body').innerHTML = '<div class="loading"><div class="spinner"></div>Carregando dados…</div>';
+  Promise.all([
+    Grid.sheets.get(CONTROLE_ID,"grid_rota!A1:AJ5000"),
+    Grid.sheets.get(CONTROLE_ID,"grid_ow!A1:AJ5000"),
+    Grid.sheets.get(CONTROLE_ID,"grid_station!A1:AJ5000"),
+  ]).then(function([dRT,dOW,dAS]) {
+    _raw['on-route']   = dRT.values || [];
+    _raw['on-way']     = dOW.values || [];
+    _raw['at-station'] = dAS.values || [];
+    onRiscoLoaded();
+  }).catch(function(e) {
+    console.error(e);
+    document.getElementById('briefing-body').innerHTML = '<div class="err">⚠ Erro ao carregar planilha: ' + escH((e&&(e.detail||e.message))||String(e)) + '</div>';
+  });
+}
+
+function onRiscoLoaded() {
+  const now = new Date();
+  document.getElementById('upd-txt').textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR');
+  document.getElementById('tb-sub').textContent = 'Planilha de Controle · Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
+
+  const rtRows = rawRows(_raw['on-route']);
+  const owRows = rawRows(_raw['on-way']);
+  const asRows = rawRows(_raw['at-station']);
+
+  buildTbl('on-route',   C_RT, rtRows);
+  buildTbl('on-way',     C_OW, owRows);
+  buildTbl('at-station', C_AS, asRows);
+
+  // badges
+  setBadge('badge-on-route',   rtRows.length);
+  setBadge('badge-on-way',     owRows.length);
+  setBadge('badge-at-station', asRows.length);
+
+  // ON ROUTE cards
+  set('cv-rt-total', rtRows.length);
+  set('cv-rt-gmv',   fmtUSD(sumGMV(rtRows,22)));
+  set('cv-rt-crit',  rtRows.filter(r=>numVal(r,22)>=1000).length);
+  set('cv-rt-sem',   rtRows.filter(r=>!(r[23]||'').trim()).length);
+  set('cv-rt-cftv',  rtRows.filter(r=>(r[24]||'').toLowerCase().includes('sim')).length);
+
+  // ON WAY cards
+  set('cv-wy-total', owRows.length);
+  set('cv-wy-gmv',   fmtUSD(sumGMV(owRows,21)));
+  set('cv-wy-sem',   owRows.filter(r=>!(r[22]||'').trim()).length);
+  set('cv-wy-cftv',  owRows.filter(r=>(r[24]||'').toLowerCase().includes('sim')).length);
+
+  // AT STATION cards
+  set('cv-as-total', asRows.length);
+  set('cv-as-gmv',   fmtUSD(sumGMV(asRows,22)));
+  set('cv-as-sem',   asRows.filter(r=>!(r[23]||'').trim()).length);
+
+  // Visão geral
+  const totGMV = sumGMV(rtRows,22)+sumGMV(owRows,21)+sumGMV(asRows,22);
+  const semAcao = rtRows.filter(r=>!(r[23]||'').trim()).length + owRows.filter(r=>!(r[22]||'').trim()).length + asRows.filter(r=>!(r[23]||'').trim()).length;
+  const comCFTV = rtRows.filter(r=>(r[24]||'').toLowerCase().includes('sim')).length + owRows.filter(r=>(r[24]||'').toLowerCase().includes('sim')).length;
+  set('vg-rt',rtRows.length); set('vg-wy',owRows.length); set('vg-as',asRows.length);
+  set('vg-gmv',fmtUSD(totGMV)); set('vg-sem',semAcao); set('vg-cftv',comCFTV);
+
+  // Críticos
+  const allCrit = [
+    ...rtRows.filter(r=>numVal(r,22)>=1000).map(r=>({r,gmv:numVal(r,22),acao:r[23],origem:'ON ROUTE'})),
+    ...owRows.filter(r=>numVal(r,21)>=1000).map(r=>({r,gmv:numVal(r,21),acao:r[22],origem:'ON WAY'})),
+    ...asRows.filter(r=>numVal(r,22)>=1000).map(r=>({r,gmv:numVal(r,22),acao:r[23],origem:'AT STATION'})),
+  ].sort((a,b)=>b.gmv-a.gmv);
+  const critHeaders=['Origem','SHP ID','Situação','GMV USD','Ação LP','Status','Responsável'];
+  const critRows=allCrit.map(({r,gmv,acao,origem})=>[origem,r[2]||'',r[1]||'',gmv.toFixed(2),acao||'',r[28]||'',r[0]||'']);
+  _tbl['criticos']={headers:critHeaders,rows:critRows};
+  renderHTML('criticos',critHeaders,critRows);
+  setBadge('badge-criticos', allCrit.length, 'red');
+  setBadge('badge-top-gmv', allCrit.length);
+
+  // Briefing
+  buildBriefing(rtRows, owRows, asRows, semAcao);
+  setBadge('badge-briefing', semAcao, semAcao > 0 ? 'red' : 'green');
+
+  // Situação dropdowns
+  populateStatusSelect('sel-rt-status', rtRows, 1);
+  populateStatusSelect('sel-wy-status', owRows, 1);
+}
+
+// ─── BRIEFING ────────────────────────────────────────────────
+function buildBriefing(rtRows, owRows, asRows, total) {
+  const container = document.getElementById('briefing-body');
+
+  const owSem = owRows.filter(r=>!(r[22]||'').trim());
+  const rtSem = rtRows.filter(r=>!(r[23]||'').trim());
+  const crit  = [...rtRows,...owRows,...asRows].filter(r=>{
+    const g=numVal(r,22)||numVal(r,21);
+    return g>=1000 && !((r[23]||r[22]||'').trim());
+  });
+
+  if (!owSem.length && !rtSem.length && !crit.length) {
+    container.innerHTML = '<div class="brief-empty">✅ Nenhum item pendente — tudo em dia!</div>';
+    return;
+  }
+
+  let html = '';
+  html += mkBriefSection('ON WAY sem ação LP', owSem,
+    owSem.map(r=>mkBriefItem(r[2],r[21],diasStr(r[31]),r[13]||r[1]||'')));
+  html += mkBriefSection('ON ROUTE sem ação LP', rtSem,
+    rtSem.map(r=>mkBriefItem(r[2],r[22],diasStr(r[31]),r[1]||'')));
+  html += mkBriefSection('Alto GMV (≥$1k) sem ação', crit,
+    crit.map(r=>mkBriefItem(r[2],(numVal(r,22)||numVal(r,21)),diasStr(r[31]),r[1]||'')));
+  container.innerHTML = html;
+}
+
+function mkBriefSection(title, items, itemsHtml) {
+  const n = items.length;
+  const pillCls = n >= 5 ? 'red' : n > 0 ? '' : 'green';
+  const pillTxt = n > 0 ? `${n} pendente${n!==1?'s':''}` : 'ok';
+  const bodyHtml = n === 0
+    ? '<div class="brief-item" style="color:var(--muted2)">Nenhum item pendente</div>'
+    : itemsHtml.join('');
+  return `<div class="briefing-section">
+    <div class="brief-header">${escH(title)}<span class="cpill ${pillCls}">${pillTxt}</span></div>
+    <div class="brief-items">${bodyHtml}</div>
+  </div>`;
+}
+
+function mkBriefItem(shp, gmv, dias, detail) {
+  const g = typeof gmv==='number'?gmv:(parseFloat((gmv||'').replace(',','.'))||0);
+  return `<div class="brief-item">
+    <div class="bi-chk"></div>
+    <span class="bi-shp">${escH(shp||'—')}</span>
+    <span class="bi-sep">—</span>
+    <span class="bi-gmv">$${g.toFixed(0)}</span>
+    ${dias?`<span class="bi-day">${escH(dias)}</span>`:''}
+    <span class="bi-detail">${escH(detail)}</span>
+    <span class="bi-ver">Ver →</span>
+  </div>`;
+}
+
+function diasStr(val) {
+  if (!val) return '';
+  const p = val.split('/');
+  if (p.length!==3) return '';
+  const d = new Date(p[2], p[1]-1, p[0]);
+  if (isNaN(d)) return '';
+  return Math.floor((new Date()-d)/86400000)+'d';
+}
+
+// ─── HISTÓRICO ───────────────────────────────────────────────
+function loadHistorico() {
+  const el=document.getElementById('tbl-historico');
+  if(el) el.innerHTML='<div class="loading"><div class="spinner"></div>Carregando…</div>';
+  Grid.sheets.get(CONTROLE_ID,'Histórico!A1:I5000')
+    .then(d=>{
+      const rows=rawRows(d.values||[]);
+      buildTbl('historico',C_HI,rows);
+      set('cv-hi-total',rows.length);
+      set('cv-hi-gmv',fmtUSD(sumGMV(rows,4)));
+      setBadge('badge-historico',rows.length);
+    })
+    .catch(e=>showErr('tbl-historico',e));
+}
+
+// ─── FRAUDE ──────────────────────────────────────────────────
+const FCFG = {
+  'top-drivers':{ sid:'fraude',   tab:'Top ofensores',    tbl:'tbl-top-drivers', cv:'cv-dr-total',  badge:'badge-top-drivers' },
+  'bloqueios':  { sid:'bloqueios',tab:'Drivers Bloqueados',tbl:'tbl-bloqueios',   cv:'cv-bl-total',  badge:'badge-bloqueios' },
+  'sellers-ene':{ sid:'fraude',   tab:'QUERY ID',          tbl:'tbl-sellers-ene', cv:'cv-ene-total', badge:'badge-sellers-ene' },
+};
+
+function loadAllFraude() { Object.keys(FCFG).forEach(loadFraude); }
+
+function loadFraude(name) {
+  const c=FCFG[name]; if(!c) return;
+  const el=document.getElementById(c.tbl);
+  if(el) el.innerHTML='<div class="loading"><div class="spinner"></div>Carregando…</div>';
+  Grid.sheets.get(SHEETS[c.sid], c.tab+'!A1:AZ2000')
+    .then(d=>{
+      const vals=d.values||[];
+      const rows=rawRows(vals);
+      const hdr=vals[0]||[];
+      const dr=rows.map(r=>hdr.map((_,i)=>r[i]||''));
+      _tbl[name]={headers:hdr,rows:dr};
+      renderHTML(name,hdr,dr);
+      set(c.cv, rows.length);
+      setBadge(c.badge, rows.length, 'red');
+    })
+    .catch(e=>showErr(c.tbl,e));
+}
+
+// ─── SINISTROS ───────────────────────────────────────────────
+function loadSinistros() {
+  const el=document.getElementById('tbl-sinistros');
+  if(el) el.innerHTML='<div class="loading"><div class="spinner"></div>Carregando…</div>';
+  Grid.sheets.get(SINISTRO_ID,'Eventos SVC!A1:AZ2000')
+    .then(d=>{
+      const vals=d.values||[];
+      const rows=rawRows(vals);
+      const hdr=vals[0]||[];
+      const dr=rows.map(r=>hdr.map((_,i)=>r[i]||''));
+      _tbl['sinistros']={headers:hdr,rows:dr};
+      renderHTML('sinistros',hdr,dr);
+      set('cv-sin-total',rows.length);
+      setBadge('badge-sinistros',rows.length,'red');
+      setBadge('badge-sin2',rows.length,'red');
+    })
+    .catch(e=>showErr('tbl-sinistros',e));
+}
+
+// ─── TOP GMV ─────────────────────────────────────────────────
+function renderTopGMV() {
+  const rt=rawRows(_raw['on-route']||[]);
+  const ow=rawRows(_raw['on-way']||[]);
+  const as=rawRows(_raw['at-station']||[]);
+  const all=[
+    ...rt.map(r=>({shp:r[2],sit:r[1],gmv:numVal(r,22),acao:r[23],resp:r[0],origem:'ON ROUTE'})),
+    ...ow.map(r=>({shp:r[2],sit:r[1],gmv:numVal(r,21),acao:r[22],resp:r[0],origem:'ON WAY'})),
+    ...as.map(r=>({shp:r[2],sit:r[1],gmv:numVal(r,22),acao:r[23],resp:r[0],origem:'AT STATION'})),
+  ].sort((a,b)=>b.gmv-a.gmv).slice(0,50);
+  const headers=['Origem','SHP ID','Situação','GMV USD','Ação LP','Responsável'];
+  const rows=all.map(r=>[r.origem,r.shp||'',r.sit||'',r.gmv.toFixed(2),r.acao||'',r.resp||'']);
+  _tbl['top-gmv']={headers,rows};
+  renderHTML('top-gmv',headers,rows);
+  setBadge('badge-top-gmv',all.length);
+}
+
+// ─── TABLE BUILD ─────────────────────────────────────────────
+function buildTbl(name, colDef, rawRows2) {
+  const headers=colDef.map(c=>c[0]);
+  const rows=rawRows2.map(r=>colDef.map(([,i])=>r[i]||''));
+  _tbl[name]={headers,rows};
+  renderHTML(name,headers,rows);
+}
+
+function renderHTML(name, headers, rows) {
+  const el=document.getElementById('tbl-'+name);
+  const cntEl=document.getElementById('count-'+name);
+  if(!el) return;
+  const gmvIdx=headers.findIndex(h=>h.toLowerCase().includes('gmv'));
+  let html=`<table id="inner-${name}"><thead><tr>`;
+  headers.forEach((h,i)=>{
+    html+=`<th onclick="sortTable('${name}',${i})" data-i="${i}">${escH(h)}</th>`;
+  });
+  html+='</tr></thead><tbody>';
+  rows.forEach(row=>{
+    const gmv=gmvIdx>=0?(parseFloat((row[gmvIdx]||'').replace(',','.'))||0):0;
+    const cls=gmv>=1000?' class="crit"':gmv>=500?' class="warn"':'';
+    html+=`<tr${cls}>`;
+    row.forEach((cell,ci)=>{
+      const isShp=/^\d{10,}$/.test((cell||'').trim());
+      html+=`<td${isShp?' class="shp"':''} title="${escH(cell)}">${renderCell(cell,headers[ci])}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  el.innerHTML=html;
+  if(cntEl) cntEl.textContent=rows.length+' registros';
+  restoreSort(name);
+}
+
+function renderCell(val, hdr) {
+  if(val===null||val===undefined||val==='') return '<span style="color:var(--muted)">—</span>';
+  const v=String(val).trim(); if(!v) return '<span style="color:var(--muted)">—</span>';
+  const up=v.toUpperCase();
+  if(['RECUPERADO','ENTREGUE','OK','CONCLUÍDO','CONCLUIDO'].includes(up)) return `<span class="pill pill-ok">${escH(v)}</span>`;
+  if(['FRAUDE','PERDIDA','CRÍTICO','CRITICO','BLOQUEADO'].includes(up))   return `<span class="pill pill-crit">${escH(v)}</span>`;
+  if(['PENDENTE','EM ANÁLISE','EM ANALISE','ACIONAR','AGUARDANDO'].some(s=>up.includes(s))) return `<span class="pill pill-warn">${escH(v)}</span>`;
+  if(['SIM','YES'].includes(up)) return `<span class="pill pill-ok">${escH(v)}</span>`;
+  if(['NÃO','NAO','NO'].includes(up)) return `<span class="pill pill-muted">${escH(v)}</span>`;
+  if((hdr||'').toLowerCase().includes('gmv')){
+    const n=parseFloat(v.replace(',','.'));
+    if(!isNaN(n)){
+      const col=n>=1000?'var(--red)':n>=500?'var(--amber)':'var(--muted2)';
+      return `<span style="color:${col};font-weight:600">$${n.toFixed(2)}</span>`;
+    }
+  }
+  return escH(v);
+}
+
+// ─── FILTER ──────────────────────────────────────────────────
+function filterTable(name, q) {
+  const d=_tbl[name]; if(!d) return;
+  const rows=q?d.rows.filter(r=>r.some(c=>c.toLowerCase().includes(q.toLowerCase()))):d.rows;
+  renderHTML(name,d.headers,rows);
+}
+function filterByStatus(name, val) {
+  const d=_tbl[name]; if(!d) return;
+  const si=d.headers.findIndex(h=>h==='Situação');
+  const rows=val?d.rows.filter(r=>r[si]===val):d.rows;
+  renderHTML(name,d.headers,rows);
+}
+function populateStatusSelect(selId, rows, ci) {
+  const sel=document.getElementById(selId); if(!sel) return;
+  const vals=[...new Set(rows.map(r=>(r[ci]||'').trim()).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Todas situações</option>'+vals.map(v=>`<option value="${escH(v)}">${escH(v)}</option>`).join('');
+}
+
+// ─── SORT ────────────────────────────────────────────────────
+function sortTable(name, ci) {
+  const d=_tbl[name]; if(!d) return;
+  const prev=_sort[name];
+  const dir=(prev&&prev.col===ci&&prev.dir==='asc')?'desc':'asc';
+  _sort[name]={col:ci,dir};
+  d.rows.sort((a,b)=>{
+    const va=a[ci]||'',vb=b[ci]||'';
+    const na=parseFloat(va.replace(',','.')),nb=parseFloat(vb.replace(',','.'));
+    const cmp=(!isNaN(na)&&!isNaN(nb))?(na-nb):va.localeCompare(vb,'pt-BR');
+    return dir==='asc'?cmp:-cmp;
+  });
+  renderHTML(name,d.headers,d.rows);
+}
+function restoreSort(name) {
+  const st=_sort[name]; if(!st) return;
+  const th=document.querySelector(`#inner-${name} th[data-i="${st.col}"]`);
+  if(th) th.classList.add(st.dir==='asc'?'sa':'sd');
+}
+
+// ─── EXPORT ──────────────────────────────────────────────────
+function exportCSV(name) {
+  const d=_tbl[name]; if(!d) return;
+  const lines=[d.headers.join(','),...d.rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(','))];
+  const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='lp_ssp30_'+name+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────
+function openSheet(sid) { window.open('https://docs.google.com/spreadsheets/d/'+SHEETS[sid]+'/edit','_blank'); }
+function rawRows(vals) { if(!vals||vals.length<2) return []; return vals.slice(1).filter(r=>r.some(c=>(c||'').trim())); }
+function numVal(row,idx) { return parseFloat((row[idx]||'').replace(',','.'))||0; }
+function sumGMV(rows,idx) { return rows.reduce((s,r)=>s+numVal(r,idx),0); }
+function fmtUSD(n) { return '$'+n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+function set(id,val) { const e=document.getElementById(id); if(e) e.textContent=val; }
+function setBadge(id,n,cls) { const e=document.getElementById(id); if(!e) return; e.textContent=n; e.className='badge'+(cls?' '+cls:''); }
+function showErr(id,err) { const el=document.getElementById(id); if(!el) return; el.innerHTML='<div class="err">⚠ '+escH((err&&(err.detail||err.message))||'Erro ao carregar')+'</div>'; }
+function escH(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── INIT ────────────────────────────────────────────────────
+(function() {
+  setInterval(reloadRisco, 3*60*1000);  // auto-refresh 3min
+  reloadRisco();
+})();
+</script>
+</body>
+</html>
