@@ -2119,6 +2119,49 @@ def _briefing_html(b, on_route=None, on_way=None):
         f'</div>'
     )
 
+def _tab_json(rows_rt, rows_wy):
+    """Serializa r_rows e w_rows para JSON usado pelo Tabulator."""
+    import json as _json
+
+    def _rt(r):
+        return {
+            'id': r.get('id',''),
+            'sit': r.get('sit',''),
+            'gmv': round(r.get('gmv',0), 2),
+            'resp': r.get('resp',''),
+            'status': r.get('status',''),
+            'acao_lp': r.get('acao_lp',''),
+            'finalizacao': r.get('finalizacao',''),
+            'cftv': r.get('cftv',''),
+            'cobrar_otr': r.get('cobrar_otr',''),
+            'entrada': r.get('entrada',''),
+            'dias_carteira': r.get('dias_carteira',-1),
+            'entregue': r.get('entregue', False),
+        }
+
+    def _wy(r):
+        return {
+            'id': r.get('id',''),
+            'sit': r.get('sit',''),
+            'gmv': round(r.get('gmv',0), 2),
+            'carrier': r.get('carrier',''),
+            'dias_ow': r.get('dias_ow',''),
+            'resp': r.get('resp',''),
+            'status': r.get('status',''),
+            'acao_lp': r.get('acao_lp',''),
+            'finalizacao': r.get('finalizacao',''),
+            'cftv': r.get('cftv',''),
+            'entrada': r.get('entrada',''),
+            'dias_carteira': r.get('dias_carteira',-1),
+            'entregue': r.get('entregue', False),
+        }
+
+    return (
+        _json.dumps([_rt(r) for r in rows_rt], ensure_ascii=False),
+        _json.dumps([_wy(r) for r in rows_wy], ensure_ascii=False)
+    )
+
+
 def gerar_html(d):
     j = lambda x: json.dumps(x, ensure_ascii=False)
     if 'snapshots' not in d:
@@ -2183,6 +2226,13 @@ def gerar_html(d):
     sits_rt = list(d['r_sit'].keys())
     sits_wy = list(d['w_sit'].keys())
 
+    d['tab_rt_json'], d['tab_wy_json'] = _tab_json(d['r_rows'], d['w_rows'])
+    d['tab_hist_json'] = json.dumps([{
+        'data': r.get('data',''), 'origem': r.get('origem',''), 'id': r.get('id',''),
+        'sit': r.get('sit',''), 'gmv': r.get('gmv',''), 'resp': r.get('resp',''),
+        'status': r.get('status',''), 'final': r.get('final','')
+    } for r in d.get('hist_todos', [])], ensure_ascii=False)
+
     hist_table = (
         "<div class='tbl-scroll'><table id='tbl_hist'><thead><tr>"
         "<th>Data</th><th>Origem</th><th>SHP ID</th><th>Situation</th>"
@@ -2213,6 +2263,8 @@ def gerar_html(d):
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator-tables/6.3.1/css/tabulator_midnight.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator-tables/6.3.1/js/tabulator.min.js"></script>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}}
@@ -2658,30 +2710,55 @@ def gerar_html(d):
     <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">{d["r_novos"]}</div></div>
   </div>
   <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>📦 Pacotes ON ROUTE — ordenados por GMV</span>
-      <button onclick="exportCSV('route','on_route_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
-    </div>
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
-    {filtros_html("route", sits_rt)}
-    <div class="tbl-scroll">
-    <table id="tbl_route">
-      <thead><tr>
-        <th class="sortable" onclick="sortTable('tbl_route',0)">SHP ID</th>
-        <th class="sortable" onclick="sortTable('tbl_route',1)">Situation</th>
-        <th class="sortable" onclick="sortTable('tbl_route',2)">GMV USD</th>
-        <th class="sortable" onclick="sortTable('tbl_route',3)">Responsável</th>
-        <th>CFTV / Inv.</th>
-        <th>Status Caso</th>
-        <th class="sortable" onclick="sortTable('tbl_route',6)">Dias Cart.</th>
-        <th class="sortable" onclick="sortTable('tbl_route',7)">Entrada</th>
-        <th><i data-lucide="pencil" width="12" height="12"></i> Ação LP</th>
-        <th>Finalização</th>
-        <th style="min-width:150px">🏢 Cobrar OTR</th>
-      </tr></thead>
-      <tbody>{rows_table_rt(d["r_rows"])}</tbody>
-    </table>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:13px;color:#8899aa">{d["r_total"]} casos · USD {d["r_gmv"]:,.2f}</span>
+      <a href="https://docs.google.com/spreadsheets/d/1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc/edit"
+         target="_blank"
+         style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
+        ✏ Editar na planilha
+      </a>
     </div>
+    <div id="tabulator-route"></div>
+    <script>
+    (function(){{
+      var dataRT = {d['tab_rt_json']};
+      new Tabulator("#tabulator-route", {{
+        data: dataRT,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        paginationSizeSelector: [20, 30, 50, 100],
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          if(data.entregue) row.getElement().style.opacity = "0.5";
+          if(data.sit && (data.sit.indexOf("Lost") >= 0 || data.sit.indexOf("11 dias") >= 0))
+            row.getElement().style.borderLeft = "3px solid #e05252";
+        }},
+        columns: [
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
+            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
+          }}}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:110}},
+          {{title:"Ação LP", field:"acao_lp", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Finalização", field:"finalizacao", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
+            var v = cell.getValue();
+            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+            return v+'d';
+          }}}},
+          {{title:"CFTV", field:"cftv", width:80}},
+          {{title:"Cobrar OTR", field:"cobrar_otr", width:100}},
+          {{title:"Entrada", field:"entrada", width:100}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
@@ -2697,31 +2774,56 @@ def gerar_html(d):
   </div>
   {carrier_ranking_html(d["carrier_ranking_wy"])}
   <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>🚛 Pacotes ON WAY — ordenados por GMV</span>
-      <button onclick="exportCSV('way','on_way_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
-    </div>
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["w_entregues"]) + ' pacote(s) detectado(s) como ENTREGUE no sistema</strong> — verifique e mova para Histórico como recupero.</div>' if d["w_entregues"] else ''}
-    {filtros_html("way", sits_wy)}
-    <div class="tbl-scroll">
-    <table id="tbl_way">
-      <thead><tr>
-        <th class="sortable" onclick="sortTable('tbl_way',0)">SHP ID</th>
-        <th class="sortable" onclick="sortTable('tbl_way',1)">Situation</th>
-        <th class="sortable" onclick="sortTable('tbl_way',2)">GMV USD</th>
-        <th class="sortable" onclick="sortTable('tbl_way',3)">Dias OW</th>
-        <th class="sortable" onclick="sortTable('tbl_way',4)">Transportadora</th>
-        <th>CFTV / Inv.</th>
-        <th class="sortable" onclick="sortTable('tbl_way',6)">Status Caso</th>
-        <th class="sortable" onclick="sortTable('tbl_way',7)">Dias Cart.</th>
-        <th class="sortable" onclick="sortTable('tbl_way',8)">Entrada</th>
-        <th style="min-width:200px">✏️ Ação LP</th>
-        <th style="min-width:130px">🔗 Link Email</th>
-        <th style="min-width:110px">Finalização</th>
-      </tr></thead>
-      <tbody>{rows_table_wy(d["w_rows"])}</tbody>
-    </table>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:13px;color:#8899aa">{d["w_total"]} casos · USD {d["w_gmv"]:,.2f}</span>
+      <a href="https://docs.google.com/spreadsheets/d/1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc/edit"
+         target="_blank"
+         style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
+        ✏ Editar na planilha
+      </a>
     </div>
+    <div id="tabulator-way"></div>
+    <script>
+    (function(){{
+      var dataWY = {d['tab_wy_json']};
+      new Tabulator("#tabulator-way", {{
+        data: dataWY,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        paginationSizeSelector: [20, 30, 50, 100],
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          if(data.entregue) row.getElement().style.opacity = "0.5";
+          if(data.sit && (data.sit.indexOf("Lost") >= 0 || data.sit.indexOf("11 dias") >= 0))
+            row.getElement().style.borderLeft = "3px solid #e05252";
+        }},
+        columns: [
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
+            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
+          }}}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:110}},
+          {{title:"Transportadora", field:"carrier", headerFilter:"input", width:140}},
+          {{title:"Dias OW", field:"dias_ow", width:90}},
+          {{title:"Ação LP", field:"acao_lp", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Finalização", field:"finalizacao", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
+            var v = cell.getValue();
+            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+            return v+'d';
+          }}}},
+          {{title:"CFTV", field:"cftv", width:80}},
+          {{title:"Entrada", field:"entrada", width:100}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
@@ -2941,19 +3043,30 @@ def gerar_html(d):
   </div>
 
   <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <span>Pacotes arquivados</span>
-      <button onclick="exportCSV('hist', 'historico_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
-    </div>
-    <div class="tbl-scroll">
-    <table id="tbl_hist">
-      <thead><tr>
-        <th>Data</th><th>Origem</th><th>SHP ID</th><th>Situation</th>
-        <th>GMV USD</th><th>Responsável</th><th>Status</th><th>Finalização</th>
-      </tr></thead>
-      <tbody>{rows_table_hist(d["hist_todos"])}</tbody>
-    </table>
-    </div>
+    <div id="tabulator-hist"></div>
+    <script>
+    (function(){{
+      var dataHist = {d['tab_hist_json']};
+      new Tabulator("#tabulator-hist", {{
+        data: dataHist,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 50,
+        paginationSizeSelector: [20, 50, 100, 200],
+        initialSort: [{{column:"data", dir:"desc"}}],
+        columns: [
+          {{title:"Data", field:"data", width:100}},
+          {{title:"Origem", field:"origem", headerFilter:"select", headerFilterParams:{{values:true}}, width:100}},
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"GMV", field:"gmv", width:100}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Finalização", field:"final", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
