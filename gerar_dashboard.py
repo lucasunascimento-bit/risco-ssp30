@@ -3709,7 +3709,7 @@ function owSalvarSelect(el) {{
       if (err.message === 'NOT_FOUND') {{
         alert('SHP ' + shp_id + ' não esta na planilha ativa. Recarregue o dashboard (F5) para sincronizar.');
       }} else {{
-        alert('Servidor off-line. Abra on_way_server.py e tente novamente.');
+        alert('Erro ao salvar. Verifique sua conexão e tente novamente.');
         el.value = prev;
         owUpdateFake(el);
       }}
