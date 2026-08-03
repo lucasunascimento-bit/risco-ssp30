@@ -2762,9 +2762,9 @@ const FRAUD_ENE_DATA   = {j(d['fraud_ene'])};
 const CRZ_DRIVERS_DATA = {j(d['crz'].get('driver_crz', [])[:50])};
 const CRZ_BUYERS_DATA  = {j(d['crz'].get('buyers', [])[:50])};
 const CRZ_SELLERS_DATA = {j(d['crz'].get('sellers', [])[:50])};
-const DXP_DATA    = {j([{{**r, 'months': r.get('months', [])}} for r in d.get('dxp', [])])};
+const DXP_DATA    = {j([{**r, 'months': r.get('months', [])} for r in d.get('dxp', [])])};
 const PLACES_DATA = {j(d.get('places', []))};
-const BL_DATA     = {j([{{k: v for k, v in r.items() if k != 'historico'}} for r in d['bl']['rows']])};
+const BL_DATA     = {j([{k: v for k, v in r.items() if k != 'historico'} for r in d['bl']['rows']])};
 
 const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','damaged_ene','ofensores','bloqueios','cruzamento','relatorio'];
 function showTab(name, el) {{
