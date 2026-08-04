@@ -11,26 +11,18 @@
   @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(255,230,0,.4)}50%{opacity:.6;box-shadow:0 0 0 5px rgba(255,230,0,0)}}
   @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
-  /* ── HEADER ── */
-  #topbar{background:#080d19;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1f2937;flex-shrink:0}
-  #tb-left{display:flex;align-items:center;gap:10px}
-  .header-accent{width:3px;height:28px;background:#FFE600;border-radius:2px;flex-shrink:0}
-  #tb-title{font-size:16px;font-weight:700;color:#ffffff;letter-spacing:-0.3px}
-  #tb-sub{font-size:11px;color:#374151;margin-top:2px}
-  #tb-right{display:flex;align-items:center;gap:10px}
-  #upd-dot{display:flex;align-items:center;gap:6px;font-size:11px;color:#4b5563}
-  .live-dot{width:7px;height:7px;border-radius:50%;background:#FFE600;animation:pulse 2.5s infinite}
-
-  /* module tabs */
-  #mod-tabs{display:flex;gap:4px}
-  .mtab{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1f2937;transition:all .2s;color:#9ca3af;background:#0d1321}
-  .mtab:hover{background:#1f2937;color:#e2e8f0;border-color:#374151}
-  .mtab.m-risco.active   {color:#FFE600;background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.2)}
-  .mtab.m-fraude.active  {color:#ef4444;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}
-  .mtab.m-isca.active    {color:#4ade80;background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2)}
-  .mtab.m-cftv.active    {color:#60a5fa;background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2)}
-  .mtab.m-sinistros.active{color:#f97316;background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.2)}
-  .mtab.m-diario.active  {color:#a78bfa;background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.2)}
+  /* ── MODULE SELECTOR (sidebar top) ── */
+  #mod-selector{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;padding:8px;border-bottom:1px solid #111827;flex-shrink:0}
+  .ms-btn{padding:5px 4px;border-radius:5px;border:1px solid #1f2937;color:#6b7280;background:transparent;font-size:10px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;white-space:nowrap}
+  .ms-btn:hover{background:#0d1321;color:#e2e8f0}
+  .ms-btn.m-risco.active   {color:#FFE600;background:rgba(255,230,0,.1);border-color:rgba(255,230,0,.25)}
+  .ms-btn.m-fraude.active  {color:#f87171;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25)}
+  .ms-btn.m-isca.active    {color:#4ade80;background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.25)}
+  .ms-btn.m-cftv.active    {color:#60a5fa;background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.25)}
+  .ms-btn.m-sinistros.active{color:#f97316;background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.25)}
+  .ms-btn.m-diario.active  {color:#a78bfa;background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.25)}
+  #upd-bar{display:flex;align-items:center;gap:6px;padding:6px 12px;border-bottom:1px solid #111827;font-size:10px;color:#374151;flex-shrink:0}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:#FFE600;flex-shrink:0;animation:pulse 2.5s infinite}
 
   /* ── LAYOUT ── */
   #layout{display:flex;flex:1;overflow:hidden}
@@ -65,6 +57,12 @@
   .btn.amber:hover{background:rgba(245,158,11,.15)}
   .btn-export{background:#1f2937;color:#FFE600;border-color:rgba(255,230,0,.3);font-weight:600}
   .btn-export:hover{background:rgba(255,230,0,.12)}
+
+  /* ── CHARTS ── */
+  .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .chart-box{background:#0d1321;border:1px solid #111827;border-radius:8px;padding:16px 18px}
+  .chart-box-full{background:#0d1321;border:1px solid #111827;border-radius:8px;padding:16px 18px;margin-bottom:16px}
+  .chart-title{font-size:10px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
 
   /* ── CARDS ── */
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
@@ -144,33 +142,22 @@
 </head>
 <body>
 
-<!-- ═══════ TOPBAR ═══════════════════════════════════════════ -->
-<div id="topbar">
-  <div id="tb-left">
-    <div class="header-accent"></div>
-    <div>
-      <div id="tb-title">LP SSP30</div>
-      <div id="tb-sub">Planilha de Controle · Loss Prevention</div>
-    </div>
-  </div>
-  <div id="tb-right">
-    <div id="upd-dot"><span class="live-dot"></span><span id="upd-txt">Aguardando dados…</span></div>
-    <div id="mod-tabs">
-      <button class="mtab m-risco active"  onclick="switchModule('risco',this)">Risco</button>
-      <button class="mtab m-fraude"        onclick="switchModule('fraude',this)">Fraude</button>
-      <button class="mtab m-isca"          onclick="switchModule('isca',this)">Isca</button>
-      <button class="mtab m-cftv"          onclick="switchModule('cftv',this)">CFTV</button>
-      <button class="mtab m-sinistros"     onclick="switchModule('sinistros',this)">Sinistros</button>
-      <button class="mtab m-diario"        onclick="switchModule('diario',this)">Diário</button>
-    </div>
-  </div>
-</div>
-
 <!-- ═══════ LAYOUT ═══════════════════════════════════════════ -->
 <div id="layout">
 
 <!-- ── Sidebar ───────────────────────────────────────────── -->
 <aside id="sidebar">
+
+  <!-- Module selector -->
+  <div id="mod-selector">
+    <button class="ms-btn m-risco active"    onclick="switchModule('risco',this)">Risco</button>
+    <button class="ms-btn m-fraude"          onclick="switchModule('fraude',this)">Fraude</button>
+    <button class="ms-btn m-isca"            onclick="switchModule('isca',this)">Isca</button>
+    <button class="ms-btn m-cftv"            onclick="switchModule('cftv',this)">CFTV</button>
+    <button class="ms-btn m-sinistros"       onclick="switchModule('sinistros',this)">Sinistros</button>
+    <button class="ms-btn m-diario"          onclick="switchModule('diario',this)">Diário</button>
+  </div>
+  <div id="upd-bar"><span class="live-dot"></span><span id="upd-txt">Aguardando dados…</span></div>
 
   <!-- RISCO nav -->
   <div id="snav-risco">
@@ -286,6 +273,26 @@
       <div class="card"><div class="card-label">GMV Total</div><div class="card-value amber" id="vg-gmv">…</div></div>
       <div class="card"><div class="card-label">Sem Ação LP</div><div class="card-value red" id="vg-sem">…</div></div>
       <div class="card"><div class="card-label">Com CFTV</div><div class="card-value green" id="vg-cftv">…</div></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box">
+        <div class="chart-title">ON ROUTE — Situação</div>
+        <div id="chart-sit-rt"><div class="loading"><div class="spinner"></div>Aguardando dados…</div></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">ON WAY — Situação</div>
+        <div id="chart-sit-wy"><div class="loading"><div class="spinner"></div>Aguardando dados…</div></div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box">
+        <div class="chart-title">GMV em Risco por Origem (USD)</div>
+        <div id="chart-gmv-src"><div class="loading"><div class="spinner"></div>Aguardando dados…</div></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Status dos Casos</div>
+        <div id="chart-status"><div class="loading"><div class="spinner"></div>Aguardando dados…</div></div>
+      </div>
     </div>
   </div>
 
@@ -530,7 +537,7 @@ const MOD_FIRSTVIEW = { risco:'briefing', fraude:'top-drivers', isca:'isca', cft
 
 function switchModule(mod, el) {
   _curMod = mod;
-  document.querySelectorAll('.mtab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
 
   document.querySelectorAll('#sidebar > div').forEach(d => d.style.display = 'none');
@@ -583,8 +590,7 @@ function reloadRisco() {
 
 function onRiscoLoaded() {
   const now = new Date();
-  document.getElementById('upd-txt').textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR');
-  document.getElementById('tb-sub').textContent = 'Planilha de Controle · Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
+  document.getElementById('upd-txt').textContent = 'Atualizado: ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
 
   const rtRows = rawRows(_raw['on-route']);
   const owRows = rawRows(_raw['on-way']);
@@ -644,6 +650,9 @@ function onRiscoLoaded() {
   // Situação dropdowns
   populateStatusSelect('sel-rt-status', rtRows, 1);
   populateStatusSelect('sel-wy-status', owRows, 1);
+
+  // Charts
+  renderVisaoCharts(rtRows, owRows, asRows);
 }
 
 // ─── BRIEFING ────────────────────────────────────────────────
@@ -897,6 +906,64 @@ function set(id,val) { const e=document.getElementById(id); if(e) e.textContent=
 function setBadge(id,n,cls) { const e=document.getElementById(id); if(!e) return; e.textContent=n; e.className='badge'+(cls?' '+cls:''); }
 function showErr(id,err) { const el=document.getElementById(id); if(!el) return; el.innerHTML='<div class="err">⚠ '+escH((err&&(err.detail||err.message))||'Erro ao carregar')+'</div>'; }
 function escH(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── SVG CHARTS ──────────────────────────────────────────────
+function countBy(rows, ci) {
+  const m = {};
+  rows.forEach(r => { const k = (r[ci]||'Sem info').trim() || 'Sem info'; m[k] = (m[k]||0) + 1; });
+  return m;
+}
+
+function svgHBar(labels, values, colors, opts) {
+  opts = opts || {};
+  const bH  = opts.bH  || 20;
+  const gap = opts.gap || 7;
+  const lW  = opts.lW  || 120;
+  const COLS = colors || ['#FFE600','#4ade80','#60a5fa','#f87171','#fbbf24','#34d399','#a78bfa','#f97316','#38bdf8'];
+  const max = Math.max(...values.map(v => +v || 0), 1);
+  const totalH = labels.length * (bH + gap) - gap;
+  let s = `<svg width="100%" viewBox="0 0 400 ${totalH}" style="display:block;overflow:visible">`;
+  labels.forEach((lbl, i) => {
+    const y   = i * (bH + gap);
+    const val = +values[i] || 0;
+    const bW  = Math.max(Math.round((val / max) * (400 - lW - 50)), val > 0 ? 4 : 0);
+    const col = COLS[i % COLS.length];
+    s += `<text x="${lW-6}" y="${y+bH/2+4}" text-anchor="end" fill="#6b7280" font-size="11" font-family="system-ui,sans-serif">${escH(String(lbl).substring(0,22))}</text>`;
+    if (val > 0) s += `<rect x="${lW}" y="${y}" width="${bW}" height="${bH}" rx="3" fill="${col}" opacity="0.85"/>`;
+    s += `<text x="${lW+bW+6}" y="${y+bH/2+4}" fill="#9ca3af" font-size="11" font-family="system-ui,sans-serif">${val}</text>`;
+  });
+  s += '</svg>';
+  return s;
+}
+
+function renderVisaoCharts(rtRows, owRows, asRows) {
+  const empty = '<div class="empty">Sem dados</div>';
+
+  // ON ROUTE — por Situação
+  const rtSit = Object.entries(countBy(rtRows, 1)).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const e1 = document.getElementById('chart-sit-rt');
+  if (e1) e1.innerHTML = rtSit.length ? svgHBar(rtSit.map(e=>e[0]), rtSit.map(e=>e[1]), null, {lW:130}) : empty;
+
+  // ON WAY — por Situação
+  const wySit = Object.entries(countBy(owRows, 1)).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const e2 = document.getElementById('chart-sit-wy');
+  if (e2) e2.innerHTML = wySit.length ? svgHBar(wySit.map(e=>e[0]), wySit.map(e=>e[1]), ['#60a5fa','#4ade80','#FFE600','#f87171','#fbbf24','#34d399','#a78bfa','#f97316'], {lW:130}) : empty;
+
+  // GMV por Origem
+  const gmvRT = sumGMV(rtRows, 22), gmvOW = sumGMV(owRows, 21), gmvAS = sumGMV(asRows, 22);
+  const e3 = document.getElementById('chart-gmv-src');
+  if (e3) e3.innerHTML = svgHBar(
+    ['ON ROUTE','ON WAY','AT STATION'],
+    [Math.round(gmvRT), Math.round(gmvOW), Math.round(gmvAS)],
+    ['#FFE600','#60a5fa','#4ade80'],
+    {bH:26, gap:12, lW:90}
+  );
+
+  // Status dos Casos (col 28 em RT + OW)
+  const stSit = Object.entries(countBy([...rtRows,...owRows], 28)).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const e4 = document.getElementById('chart-status');
+  if (e4) e4.innerHTML = stSit.length ? svgHBar(stSit.map(e=>e[0]), stSit.map(e=>e[1]), ['#4ade80','#60a5fa','#fbbf24','#f87171','#a78bfa','#FFE600','#34d399'], {lW:110}) : empty;
+}
 
 // ─── INIT ────────────────────────────────────────────────────
 (function() {
