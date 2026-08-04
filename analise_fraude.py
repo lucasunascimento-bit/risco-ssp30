@@ -18,6 +18,8 @@ OUTPUT            = os.path.join(os.path.dirname(__file__), 'fraude.html')
 SINISTROS_OUTPUT  = os.path.join(os.path.dirname(__file__), 'sinistros.html')
 BLOCK_LIST_ID  = '1521Ek2wn8qYLj7g6dh0aBBMmpVYHjCp2hftGKNG9bO0'
 ABA_BLOQUEIOS  = 'Drivers Bloqueados'
+ABA_DADOS_FRAUDE = 'dados_fraude'
+DADOS_FRAUDE_GID = '1425727484'  # sheetId da aba dados_fraude
 CFTV_SHEET_ID  = '18isURInofILBi-RS9YrCQyYcnb6JeU_stNqnspxiqLM'
 CFTV_ABA          = 'Respostas ao formulário 2'
 SINISTRO_SHEET_ID = '12-JUN1u4UfXBv0Mkeq9D3lsosG3e6OjbysMt4h7cpII'
@@ -34,9 +36,11 @@ SELECT
     ROUND(SUM(BPP_CASHOUT_USD), 2)                                           AS TOTAL_BPP,
     COUNTIF(Classification_LM IN (
         'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-        'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'))                     AS TOTAL_FRAUDE,
+        'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
+        'STOLEN ON ROUTE','PNR C'))                                          AS TOTAL_FRAUDE,
     COUNTIF(Classification_LM LIKE 'DAMAGED%')                              AS TOTAL_DAMAGED,
-    COUNTIF(Classification_LM LIKE 'FRAUD%')                                AS FRAUD_CONFIRMADO
+    COUNTIF(Classification_LM LIKE 'FRAUD%'
+        OR Classification_LM = 'STOLEN ON ROUTE')                           AS FRAUD_CONFIRMADO
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
   AND date_bpp >= '{ANO_INICIO}'
@@ -83,7 +87,8 @@ SELECT
     p.SHP_AGENCY_ID,
     p.SHP_AGEN_DESC                                                              AS PLACE_NOME,
     COUNT(DISTINCT fd.SHP_SHIPMENT_ID)                                           AS INCIDENTES_EM_COMUM,
-    COUNTIF(fd.Classification_LM LIKE 'LOST%' OR fd.Classification_LM LIKE 'FRAUD%') AS FRAUDES,
+    COUNTIF(fd.Classification_LM LIKE 'LOST%' OR fd.Classification_LM LIKE 'FRAUD%'
+        OR fd.Classification_LM = 'STOLEN ON ROUTE' OR fd.Classification_LM = 'PNR C') AS FRAUDES,
     COUNTIF(fd.Classification_LM LIKE 'DAMAGED%')                               AS DAMAGED,
     ROUND(SUM(fd.BPP_CASHOUT_USD), 2)                                            AS TOTAL_BPP
 FROM fraud_driver fd
@@ -108,7 +113,8 @@ WITH fraudes AS (
       AND date_bpp <= CURRENT_DATE()
       AND Classification_LM IN (
           'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-          'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE')
+          'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
+          'STOLEN ON ROUTE','PNR C')
 )
 SELECT
     p.SHP_AGENCY_ID,
@@ -119,7 +125,9 @@ SELECT
     COUNTIF(f.Classification_LM = 'LOST ON WAY')                AS LOST_ON_WAY,
     COUNTIF(f.Classification_LM = 'LOST AT STATION')            AS LOST_AT_STATION,
     COUNTIF(f.Classification_LM = 'LOST ENE')                   AS LOST_ENE,
-    COUNTIF(f.Classification_LM LIKE 'FRAUD%')                  AS FRAUD_CONFIRMADO
+    COUNTIF(f.Classification_LM LIKE 'FRAUD%'
+        OR f.Classification_LM = 'STOLEN ON ROUTE')             AS FRAUD_CONFIRMADO,
+    COUNTIF(f.Classification_LM = 'PNR C')                      AS PNR_C
 FROM fraudes f
 INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` p
     ON CAST(p.SHP_SHIPMENT_ID AS STRING) = f.SHP_SHIPMENT_ID
@@ -262,7 +270,8 @@ WHERE f.SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
   AND f.date_bpp <= CURRENT_DATE()
   AND f.Classification_LM IN (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE')
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
+      'STOLEN ON ROUTE','PNR C')
 ORDER BY p.SHP_AGEN_DESC, f.BPP_CASHOUT_USD DESC
 """
 
@@ -279,7 +288,8 @@ WITH fraudes AS (
     AND date_bpp <= CURRENT_DATE()
     AND Classification_LM IN (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
+      'STOLEN ON ROUTE','PNR C'
     )
 )
 SELECT
@@ -308,7 +318,8 @@ WITH fraudes AS (
     AND date_bpp <= CURRENT_DATE()
     AND Classification_LM IN (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE'
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
+      'STOLEN ON ROUTE','PNR C'
     )
 )
 SELECT f.MES,
@@ -356,7 +367,8 @@ WITH lost_sssp30 AS (
     AND date_bpp <= CURRENT_DATE()
     AND Classification_LM IN (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE')
+      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
+      'STOLEN ON ROUTE')
 ),
 dc_nex AS (
   SELECT
@@ -481,9 +493,9 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
         dst  = str(d.get('status','') or '').strip().lower()
         if not did or dst in STATUS_NAO_BLOQ: continue
         shps_all = shp_por_driver.get(did, [])
-        # Apenas FRAUD e LOST ON ROUTE nos últimos 90 dias
+        # FRAUD, LOST ON ROUTE, STOLEN ON ROUTE e PNR C monitorados
         # DAMAGED, LOST AT STATION e LOST ON WAY excluídos
-        _CLASSES_VALIDAS = ('FRAUD', 'LOST ON ROUTE')
+        _CLASSES_VALIDAS = ('FRAUD', 'LOST ON ROUTE', 'STOLEN ON ROUTE', 'PNR C')
         def _in_window(s):
             try:
                 return _dta.strptime(s.get('data',''), '%d/%m/%Y') >= cutoff
@@ -494,17 +506,24 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
                 and _in_window(s)
                 and any(k in str(s.get('class','')) for k in _CLASSES_VALIDAS)]
         if not shps: continue
+        classes = [str(s.get('class','')) for s in shps]
+        has_stolen = any('STOLEN ON ROUTE' == c for c in classes)
         meses = set()
         for s in shps:
             try:
                 dr = _dta.strptime(s.get('data',''), '%d/%m/%Y')
                 meses.add(f'{dr.month:02d}/{dr.year}')
             except Exception: pass
-        if len(meses) < min_meses: continue
-        classes = [str(s.get('class','')) for s in shps]
-        has_fraud = any('FRAUD' in c for c in classes)
-        has_lost  = any('LOST'  in c for c in classes)
-        tipo = 'lost_fraude' if (has_fraud and has_lost) else ('fraude_pura' if has_fraud else 'outro')
+        # STOLEN ON ROUTE (roubo de carga) bypassa requisito de acúmulo mensal
+        if not has_stolen and len(meses) < min_meses: continue
+        has_fraud  = any('FRAUD' in c or 'STOLEN' in c for c in classes)
+        has_lost   = any('LOST ON ROUTE' == c for c in classes)
+        has_pnr    = any('PNR C' == c for c in classes)
+        if has_fraud and has_lost:    tipo = 'lost_fraude'
+        elif has_fraud:               tipo = 'fraude_pura'
+        elif has_pnr and has_lost:    tipo = 'pnr_lor'
+        elif has_pnr:                 tipo = 'pnr'
+        else:                         tipo = 'outro'
         total_bpp = round(sum(float(s.get('bpp',0) or 0) for s in shps), 2)
         max_bpp   = round(max((float(s.get('bpp',0) or 0) for s in shps), default=0), 2)
         residual  = round(total_bpp - max_bpp, 2)
@@ -529,8 +548,20 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
 def rows_acumulo_bloqueio(candidatos, pid=''):
     if not candidatos:
         return '<div style="padding:32px;text-align:center;color:#6b7280">Nenhum driver com acúmulo BPP neste período encontrado.</div>'
-    TIPO_LBL = {'fraude_pura':'Fraude','lost_fraude':'Lost + Fraude','outro':'Outro'}
-    TIPO_COR  = {'fraude_pura':'#A32D2D;background:#FCEBEB','lost_fraude':'#0C447C;background:#E6F1FB','outro':'#5F5E5A;background:#F1EFE8'}
+    TIPO_LBL = {
+        'fraude_pura': 'Roubo/Fraude',
+        'lost_fraude': 'Lost + Fraude',
+        'pnr':         'PNR C',
+        'pnr_lor':     'PNR + LoR',
+        'outro':       'Outro',
+    }
+    TIPO_COR = {
+        'fraude_pura': '#A32D2D;background:#FCEBEB',
+        'lost_fraude': '#0C447C;background:#E6F1FB',
+        'pnr':         '#92400E;background:#FFFBEB',
+        'pnr_lor':     '#5B21B6;background:#F5F3FF',
+        'outro':       '#5F5E5A;background:#F1EFE8',
+    }
     html = ''
     _pfx = f'p{pid}_' if pid else ''
     for i, c in enumerate(candidatos):
@@ -538,8 +569,10 @@ def rows_acumulo_bloqueio(candidatos, pid=''):
         tipo_lbl = TIPO_LBL.get(c['tipo'], c['tipo'])
         tipo_cor  = TIPO_COR.get(c['tipo'], '#5F5E5A;background:#F1EFE8')
         if c['apto']:
-            if c['tipo'] == 'fraude_pura':
+            if c['tipo'] in ('fraude_pura', 'lost_fraude', 'pnr_lor'):
                 apto_html = '<span style="background:#EAF3DE;color:#27500A;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✓ Acionar time de fraude</span>'
+            elif c['tipo'] == 'pnr':
+                apto_html = '<span style="background:#FFFBEB;color:#92400E;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✓ Ação PNR — alinhar ops</span>'
             else:
                 apto_html = '<span style="background:#EAF3DE;color:#27500A;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✓ Apto para bloqueio</span>'
         else:
@@ -551,7 +584,9 @@ def rows_acumulo_bloqueio(candidatos, pid=''):
             is_max = abs(bpp_v - c['max_bpp']) < 0.01
             max_tag = ' <span style="background:#FAEEDA;color:#633806;font-size:9px;padding:1px 5px;border-radius:4px">maior</span>' if is_max else ''
             cls = str(s.get('class',''))
-            cls_cor = '#A32D2D' if 'FRAUD' in cls else ('#633806' if 'LOST' in cls else '#374151')
+            cls_cor = ('#A32D2D' if ('FRAUD' in cls or 'STOLEN' in cls) else
+                       '#B45309' if 'PNR C' in cls else
+                       '#633806' if 'LOST' in cls else '#374151')
             sem = str(s.get('semana',''))
             # Converter SEMANA '2026-W15' -> 'S15'
             if '-W' in sem:
@@ -565,10 +600,21 @@ def rows_acumulo_bloqueio(candidatos, pid=''):
                          f'<td style="font-size:11px">{shp_link}</td>'
                          f'<td style="font-size:11px;text-align:right;font-weight:500">'
                          f'${bpp_v:,.2f}{max_tag}</td></tr>')
-        residual_txt = (f'<b>BPP sem maior: ${c["residual"]:,.2f}</b>'
-                        + (' ≥ $300 ✓' if c["residual"]>=300 else ' &lt; $300 ✗')
-                        if c['tipo']=='lost_fraude' else
-                        'Fraude pura → acionar time de fraude para validação')
+        _tipo = c['tipo']
+        if _tipo == 'lost_fraude':
+            residual_txt = (f'<b>BPP sem maior: ${c["residual"]:,.2f}</b>'
+                            + (' ≥ $300 ✓' if c["residual"] >= 300 else ' &lt; $300 ✗'))
+        elif _tipo in ('fraude_pura',):
+            residual_txt = 'Roubo/Fraude confirmada → acionar time de fraude para validação'
+        elif _tipo == 'pnr':
+            residual_txt = f'PNR C — {c["n_pkgs"]} pacotes não recebidos · alinhar com operações'
+        elif _tipo == 'pnr_lor':
+            residual_txt = (f'PNR C + Lost On Route — {c["n_pkgs"]} pacotes · '
+                            f'<b>BPP sem maior: ${c["residual"]:,.2f}</b>'
+                            + (' ≥ $300 ✓' if c["residual"] >= 300 else ' &lt; $300 ✗'))
+        else:
+            residual_txt = (f'<b>BPP sem maior: ${c["residual"]:,.2f}</b>'
+                            + (' ≥ $300 ✓' if c["residual"] >= 300 else ' &lt; $300 ✗'))
         html += f'''<div style="border:0.5px solid #1a2035;border-radius:10px;margin-bottom:10px;overflow:hidden">
   <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#0d1526;border-bottom:0.5px solid #1a2035;cursor:pointer" onclick="var el=document.getElementById('{tid}');el.style.display=el.style.display==='none'?'block':'none'">
     <div style="flex:1">
@@ -619,24 +665,94 @@ def rows_acumulo_bloqueio(candidatos, pid=''):
 
 def carregar_block_list(gs):
     print("  Lendo Block List...")
+    # tentativa via gspread
     try:
         pl    = gs.open_by_key(BLOCK_LIST_ID)
         dados = pl.worksheet(ABA_BLOQUEIOS).get_all_values()
-        if len(dados) <= 1:
-            return []
-        header = dados[0]
-        rows   = []
-        for r in dados[1:]:
-            if not any(r): continue
-            row = dict(zip(header, r))
-            ano = row.get('Ano','').strip()
-            if ano == '2026' or not ano:
-                rows.append(row)
-        print(f"  {len(rows)} registros na Block List")
-        return rows
+        if len(dados) > 1:
+            header = dados[0]
+            rows   = []
+            for r in dados[1:]:
+                if not any(r): continue
+                row = dict(zip(header, r))
+                ano = row.get('Ano','').strip()
+                if ano == '2026' or not ano:
+                    rows.append(row)
+            print(f"  {len(rows)} registros na Block List")
+            return rows
     except Exception as e:
         print(f"  Aviso Block List: {e}")
+
+    # fallback: cache JSON salvo via MCP (todos os registros = Bloqueados)
+    _cache = os.path.join(os.path.dirname(__file__), '_bl_cache.json')
+    if not os.path.exists(_cache):
         return []
+    try:
+        import json as _json
+        with open(_cache, 'r', encoding='utf-8') as _f:
+            raw = _json.load(_f)
+        rows = []
+        for r in raw:
+            ano = r.get('Ano','').strip()
+            if ano == '2026' or not ano:
+                rows.append({
+                    'Driver ID':       r.get('Driver ID','').strip(),
+                    'Nome':            r.get('Nome','').strip(),
+                    'MLP':             r.get('MLP','').strip(),
+                    'Placa':           r.get('Placa','').strip(),
+                    'SHP':             r.get('SHP','').strip(),
+                    'USD$':            r.get('USD$','0'),
+                    'Semana':          r.get('Semana','').strip(),
+                    'Data Solicitação': r.get('Data Solicitação', ''),
+                    'Status':          r.get('Status', 'Bloqueado'),  # aba = Drivers Bloqueados
+                    'Motivo':          r.get('Motivo','').strip(),
+                    'Ano':             ano,
+                })
+        print(f"  {len(rows)} registros via cache local (_bl_cache.json)")
+        return rows
+    except Exception as e:
+        print(f"  Erro cache BL: {e}")
+        return []
+
+def sincronizar_dados_fraude(gs, acumulo_por_periodo):
+    """Escreve dados de acúmulo na aba dados_fraude da block list para o site ler."""
+    try:
+        wb = gs.open_by_key(BLOCK_LIST_ID)
+        try:
+            ws = wb.worksheet(ABA_DADOS_FRAUDE)
+        except gspread.exceptions.WorksheetNotFound:
+            ws = wb.add_worksheet(ABA_DADOS_FRAUDE, rows=500, cols=18)
+        now = datetime.now().strftime('%d/%m/%Y %H:%M')
+        rows = [['_atualizado_em', now] + [''] * 14]
+        rows.append(['periodo_dias','id','nome','transportadora','n_meses','meses',
+                     'n_pkgs','total_bpp','max_bpp','residual','tipo','apto',
+                     'motivo','placa','data_solicitacao','status_bl'])
+        for period, drivers in acumulo_por_periodo.items():
+            for d in drivers:
+                rows.append([
+                    str(period),
+                    d.get('id',''),
+                    d.get('nome',''),
+                    d.get('transportadora',''),
+                    str(d.get('n_meses','')),
+                    ';'.join(d.get('meses',[])),
+                    str(d.get('n_pkgs','')),
+                    str(round(d.get('total_bpp',0),2)),
+                    str(round(d.get('max_bpp',0),2)),
+                    str(round(d.get('residual',0),2)),
+                    d.get('tipo',''),
+                    str(d.get('apto',False)),
+                    d.get('motivo',''),
+                    d.get('placa',''),
+                    d.get('data_solicitacao',''),
+                    d.get('status_bl',''),
+                ])
+        ws.clear()
+        ws.update('A1', rows)
+        print(f"  dados_fraude sincronizado: {len(rows)-2} linhas · {now}")
+    except Exception as e:
+        print(f"  Aviso sync dados_fraude: {e}")
+
 
 def _sin_row_html(c):
     rec_ok    = (c.get('recup_carga') or '').strip().lower() in ('sim', 'yes', 's')
@@ -1843,6 +1959,159 @@ def status_bl_badge(s):
     bg, fg = cores.get(s, ('#1f2937','#9ca3af'))
     return f'<span style="background:{bg};color:{fg};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{s}</span>'
 
+def _render_bloqueados_bl(bloqueados_bl):
+    rows = ''
+    for r in bloqueados_bl:
+        did   = r.get('driver_id','—')
+        nome  = (r.get('nome') or '—')[:28]
+        mlp   = r.get('mlp','—')[:20]
+        placa = r.get('placa','—')
+        data  = r.get('data','—')
+        link  = f'https://envios.adminml.com/logistics/drivers-management/drivers/{did}'
+        rows += (
+            f'<tr style="background:#0a1a0a;border-bottom:1px solid #1f2937">'
+            f'<td style="padding:7px 8px;font-family:monospace;font-size:12px">'
+            f'  <a href="{link}" target="_blank" style="color:#93c5fd;text-decoration:none">{did}</a>'
+            f'</td>'
+            f'<td style="padding:7px 8px;font-size:12px;color:#d1d5db">{nome}</td>'
+            f'<td style="padding:7px 8px;font-size:11px;color:#9ca3af">{mlp}</td>'
+            f'<td style="padding:7px 8px;font-size:11px;color:#9ca3af">{placa}</td>'
+            f'<td style="padding:7px 8px;font-size:11px;color:#6b7280">{data}</td>'
+            f'<td style="padding:7px 8px"><span style="background:#064e3b;color:#4ade80;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">✓ Bloqueado</span></td>'
+            f'</tr>'
+        )
+    thead = '''<thead><tr>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;border-bottom:1px solid #374151">Driver ID</th>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;border-bottom:1px solid #374151">Nome</th>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;border-bottom:1px solid #374151">Transportadora</th>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;border-bottom:1px solid #374151">Placa</th>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;border-bottom:1px solid #374151">Data Bloqueio</th>
+      <th style="text-align:center;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;border-bottom:1px solid #374151">Status</th>
+    </tr></thead>'''
+    return (
+        f'<div><div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;'
+        f'letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;gap:6px">'
+        f'<i data-lucide="shield-check" width="12" height="12"></i> '
+        f'AÇÕES LP REALIZADAS — JÁ BLOQUEADOS ({len(bloqueados_bl)})</div>'
+        f'<div class="tbl-scroll"><table style="width:100%;font-size:12px;border-collapse:collapse">'
+        f'{thead}<tbody>{rows}</tbody></table></div></div>'
+    )
+
+def render_passiv_bloqueio(candidatos, bloqueados_bl=None):
+    """Renderiza a seção 'Passíveis de Bloqueio' para a aba bloqueios."""
+    bloqueados_bl = bloqueados_bl or []
+    if not candidatos and not bloqueados_bl:
+        return ''
+    TIPO_LABEL = {
+        'fraude_pura': 'Fraude Pura', 'lost_fraude': 'Lost+Fraude',
+        'pnr_lor': 'PNR+LOR', 'pnr': 'PNR',
+    }
+    BLOQ = {'bloqueado','blocked'}
+    para_bloquear = [c for c in candidatos if c['tipo'] in ('fraude_pura','lost_fraude')]
+    acao_pnr      = [c for c in candidatos if c['tipo'] in ('pnr_lor','pnr')]
+    n_bloqueados  = len(bloqueados_bl)
+    n_pb  = len(para_bloquear)
+    n_pnr = len(acao_pnr)
+
+    def _acao_badge(c):
+        s = (c.get('status_bl') or '').strip()
+        sl = s.lower()
+        if sl in BLOQ:
+            return '<span style="background:#064e3b;color:#4ade80;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">✓ Bloqueado</span>'
+        if sl == 'solicitado':
+            return '<span style="background:#1e3a5f;color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">↻ Solicitado</span>'
+        if sl == 'monitorado':
+            return '<span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⊙ Monitorado</span>'
+        return '<span style="background:#1c1008;color:#fb923c;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⚠ Pendente</span>'
+
+    def _urgente_badge(c):
+        s = (c.get('status_bl') or '').strip().lower()
+        if s in BLOQ: return ''
+        if c.get('residual', 0) >= 1000:
+            return '<span style="background:#450a0a;color:#f87171;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-right:4px">URGENTE</span>'
+        return ''
+
+    def _rows(lista):
+        out = ''
+        for c in lista:
+            did   = c['id']
+            nome  = c.get('nome') or '—'
+            transp= c.get('transportadora') or '—'
+            placa = c.get('placa') or '—'
+            tipo  = TIPO_LABEL.get(c['tipo'], c['tipo'])
+            pkgs  = c.get('n_pkgs', 0)
+            bpp   = c.get('total_bpp', 0)
+            res   = c.get('residual', 0)
+            dias  = c.get('n_meses', 0)
+            link  = f'https://envios.adminml.com/logistics/drivers-management/drivers/{did}'
+            s_bl  = (c.get('status_bl') or '').strip().lower()
+            row_bg= 'background:#0a1a0a;' if s_bl in BLOQ else ''
+            out  += (
+                f'<tr style="{row_bg}border-bottom:1px solid #1f2937">'
+                f'<td style="padding:7px 8px;font-family:monospace;font-size:12px">'
+                f'  {_urgente_badge(c)}<a href="{link}" target="_blank" style="color:#93c5fd;text-decoration:none">{did}</a>'
+                f'</td>'
+                f'<td style="padding:7px 8px;font-size:12px;color:#d1d5db">{nome[:28]}</td>'
+                f'<td style="padding:7px 8px;font-size:11px;color:#9ca3af">{transp[:20]}</td>'
+                f'<td style="padding:7px 8px;font-size:11px;color:#9ca3af">{placa}</td>'
+                f'<td style="padding:7px 8px;font-size:11px;color:#c4b5fd">{tipo}</td>'
+                f'<td style="padding:7px 8px;font-size:12px;text-align:right">{pkgs}</td>'
+                f'<td style="padding:7px 8px;font-size:12px;text-align:right;color:#f87171">${bpp:,.2f}</td>'
+                f'<td style="padding:7px 8px;font-size:12px;text-align:right;color:#fb923c">${res:,.2f}</td>'
+                f'<td style="padding:7px 8px;font-size:11px;color:#9ca3af;text-align:center">{dias}m</td>'
+                f'<td style="padding:7px 8px">{_acao_badge(c)}</td>'
+                f'</tr>'
+            )
+        return out
+
+    THEAD = '''<thead><tr>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Driver ID</th>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Nome</th>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Transportadora</th>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Placa</th>
+      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Tipo</th>
+      <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Pkgs</th>
+      <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">BPP Total</th>
+      <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Residual</th>
+      <th style="text-align:center;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Meses</th>
+      <th style="text-align:center;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Status</th>
+    </tr></thead>'''
+
+    pb_rows  = _rows(para_bloquear)
+    pnr_rows = _rows(acao_pnr)
+
+    return f'''
+<div class="box" style="margin-bottom:18px">
+  <div class="box-title" style="margin-bottom:14px">
+    <i data-lucide="shield-alert" width="12" height="12" class="ci" style="margin-right:6px;color:#ef4444"></i>
+    PASSÍVEIS DE BLOQUEIO — {len(candidatos)} candidatos identificados
+  </div>
+
+  <div style="display:flex;gap:12px;margin-bottom:18px">
+    <div style="flex:1;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:8px;padding:12px 16px">
+      <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Para Bloquear</div>
+      <div style="font-size:26px;font-weight:700;color:#ef4444">{n_pb}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">pendentes de solicitação</div>
+    </div>
+    <div style="flex:1;background:#1a100a;border:1px solid #92400e;border-radius:8px;padding:12px 16px">
+      <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Ação PNR</div>
+      <div style="font-size:26px;font-weight:700;color:#f59e0b">{n_pnr}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">PNR + LOR pendentes</div>
+    </div>
+    <div style="flex:1;background:#0a1a0a;border:1px solid #166534;border-radius:8px;padding:12px 16px">
+      <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Já Bloqueados</div>
+      <div style="font-size:26px;font-weight:700;color:#4ade80">{n_bloqueados}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">ações LP realizadas ✓</div>
+    </div>
+  </div>
+
+  {'<div style="margin-bottom:18px"><div style="font-size:11px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;gap:6px"><i data-lucide="shield-x" width="12" height="12"></i> PARA BLOQUEAR ('+str(len(para_bloquear))+')</div><div class="tbl-scroll"><table style="width:100%;font-size:12px;border-collapse:collapse">'+THEAD+'<tbody>'+pb_rows+'</tbody></table></div></div>' if para_bloquear else ''}
+
+  {'<div style="margin-bottom:18px"><div style="font-size:11px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;gap:6px"><i data-lucide="alert-circle" width="12" height="12"></i> AÇÃO PNR ('+str(len(acao_pnr))+')</div><div class="tbl-scroll"><table style="width:100%;font-size:12px;border-collapse:collapse">'+THEAD+'<tbody>'+pnr_rows+'</tbody></table></div></div>' if acao_pnr else ''}
+
+  {_render_bloqueados_bl(bloqueados_bl) if bloqueados_bl else ''}
+</div>'''
+
 def rows_block_list(rows):
     from datetime import datetime as _dtbl
     def _iso(d):
@@ -2255,10 +2524,14 @@ def gerar_html(d):
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}}
   .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #7f1d1d;flex-shrink:0}}
-  .header-brand{{display:flex;align-items:center;gap:10px}}
+  .header-brand{{display:flex;align-items:center;gap:12px}}
   .header-accent{{width:3px;height:28px;background:#ef4444;border-radius:2px}}
-  .header-title{{font-size:16px;font-weight:700;color:#ffffff}}
-  .header-sub{{font-size:11px;color:#374151;margin-top:2px}}
+  .lp-badge{{width:36px;height:36px;background:#FFE600;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#080d19;flex-shrink:0;letter-spacing:-.5px}}
+  .header-title{{font-size:16px;font-weight:700;color:#ffffff;letter-spacing:-.3px}}
+  .header-sub{{font-size:11px;color:#6b7280;margin-top:2px}}
+  .ver-badge{{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);border-radius:4px;font-size:9px;font-weight:700;padding:2px 6px;letter-spacing:.5px;vertical-align:middle}}
+  .hdr-stat{{background:#111827;border:1px solid #1f2937;border-radius:6px;padding:4px 10px;font-size:10px;color:#6b7280;white-space:nowrap}}
+  .hdr-stat b{{font-weight:700;color:#e2e8f0}}
   .app-body{{display:flex;flex:1;overflow:hidden}}
   .sidebar{{width:220px;flex-shrink:0;background:#060a14;border-right:1px solid #111827;overflow-y:auto;padding:6px 0;display:flex;flex-direction:column}}
   .sb-divider{{height:1px;background:#111827;margin:6px 0;flex-shrink:0}}
@@ -2291,7 +2564,12 @@ def gerar_html(d):
   .cv.red{{color:#ef4444}}
   .cv.amber{{color:#f59e0b}}
   .cv.green{{color:#10b981}}
-  .cd{{font-size:11px;color:#374151;margin-top:auto;padding-top:6px}}
+  .cd{{font-size:11px;color:#6b7280;margin-top:auto;padding-top:6px}}
+  .card.yellow{{border-color:#78350f;background:#1a1005}}.card.yellow .cv{{color:#fbbf24}}
+  .card.green{{border-color:#022c22;background:#060f0d}}.card.green .cv{{color:#10b981}}
+  .card.red{{border-color:#450a0a;background:#0f0606}}.card.red .cv{{color:#f87171}}
+  .card.orange{{border-color:#7c2d12;background:#150a04}}.card.orange .cv{{color:#fb923c}}
+  .card.blue{{border-color:#1e3a5f;background:#060c18}}.card.blue .cv{{color:#60a5fa}}
   .cards-grid{{display:grid;gap:14px;margin-bottom:18px}}
   .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}}
   @media(max-width:900px){{.grid2{{grid-template-columns:1fr}}}}
@@ -2342,11 +2620,19 @@ def gerar_html(d):
 
 <div class="header">
   <div class="header-brand">
-    <div class="header-accent"></div>
+    <div class="lp-badge">LP</div>
     <div>
-      <div class="header-title">Análise de Fraude — SSP30</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="header-title">Análise de Fraude — SSP30</div>
+        <span class="ver-badge">v2.8</span>
+      </div>
       <div class="header-sub">Base {d["ano"]} · <span id="upd-badge">Gerado em {d["gerado"]}</span><span id="upd-ts" data-ts="{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}" style="display:none"></span></div>
     </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="hdr-stat"><b>{d['total_fraudes'] + d['total_damaged']}</b> eventos</span>
+    <span class="hdr-stat">BPP <b>${d['total_bpp']:,.0f}</b></span>
+    <span class="hdr-stat">Drivers <b>{len(d['drivers'])}</b></span>
   </div>
   <a href="https://github.com/lucasunascimento-bit/risco-ssp30/actions/workflows/update-dashboard.yml"
      target="_blank" title="Atualizar dados"
@@ -2524,6 +2810,8 @@ def gerar_html(d):
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
     <span style="font-size:11px;color:#9ca3af;font-weight:500">Janela:</span>
     {''.join(f'<button class="acbl-prd-btn{" acbl-prd-active" if p=="90" else ""}" onclick="switchAcblPeriod({p},this)">{p} dias</button>' for p in ["30","60","90","180"])}
+    <button id="acbl-sheets-btn" onclick="carregarDaPlanilha()" title="Recarregar da planilha Google Sheets (requer login Google)" style="font-size:10px;padding:3px 11px;border-radius:6px;border:1px solid #1e3a5f;background:#0d1526;color:#60a5fa;cursor:pointer;margin-left:8px">↻ Planilha</button>
+    <span id="acbl-sheets-badge"></span>
   </div>
   <div id="acbl-subtitle" style="font-size:12px;color:#6b7280;margin-bottom:18px">
     Drivers com BPP em 3+ meses distintos · Apenas status ativo · Últimos 90 dias
@@ -2750,10 +3038,110 @@ function toggleDriver(id) {{
 const ACUMULO_DATA = {j(d.get("acumulo_bloqueio", []))};
 const ACUMULO_POR_PERIODO = {j({str(k): [{k2: v2 for k2, v2 in c.items() if k2 != 'shps'} for c in v] for k, v in d.get("acumulo_por_periodo", {}).items()})};
 
+// ── Sheets live sync ─────────────────────────────────────────────────────────
+const SHEETS_CSV_URL = 'https://docs.google.com/spreadsheets/d/{BLOCK_LIST_ID}/export?format=csv&gid={DADOS_FRAUDE_GID}';
+function _parseCSVRow(line) {{
+    const r=[]; let cur='', inQ=false;
+    for(let i=0;i<line.length;i++){{
+        const c=line[i];
+        if(c==='"'){{ if(inQ&&line[i+1]==='"'){{cur+='"';i++;}}else{{inQ=!inQ;}} }}
+        else if(c===','&&!inQ){{r.push(cur.trim());cur='';}}
+        else cur+=c;
+    }}
+    r.push(cur.trim());
+    return r;
+}}
+function _acblCardHTML(c) {{
+    const TLBL={{'fraude_pura':'Roubo/Fraude','lost_fraude':'Lost+Fraude','pnr':'PNR C','pnr_lor':'PNR+LoR','outro':'Outro'}};
+    const TCOR={{'fraude_pura':'color:#A32D2D;background:#FCEBEB','lost_fraude':'color:#0C447C;background:#E6F1FB','pnr':'color:#92400E;background:#FFFBEB','pnr_lor':'color:#5B21B6;background:#F5F3FF','outro':'color:#5F5E5A;background:#F1EFE8'}};
+    const tl=TLBL[c.tipo]||c.tipo, ts=TCOR[c.tipo]||'color:#5F5E5A;background:#F1EFE8';
+    let ah;
+    if(c.apto){{
+        if(['fraude_pura','lost_fraude','pnr_lor'].includes(c.tipo)) ah='<span style="background:#EAF3DE;color:#27500A;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✓ Acionar fraude</span>';
+        else if(c.tipo==='pnr') ah='<span style="background:#FFFBEB;color:#92400E;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✓ Ação PNR</span>';
+        else ah='<span style="background:#EAF3DE;color:#27500A;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✓ Apto bloqueio</span>';
+    }} else ah='<span style="background:#F1EFE8;color:#5F5E5A;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">✗ '+c.motivo+'</span>';
+    const blc=c.status_bl?'#10b981':'#6b7280';
+    const bpp=parseFloat(c.total_bpp).toLocaleString('pt-BR',{{maximumFractionDigits:0}});
+    return `<div style="border:0.5px solid #1a2035;border-radius:10px;margin-bottom:10px;overflow:hidden">
+  <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#0d1526;border-bottom:0.5px solid #1a2035">
+    <div style="flex:1">
+      <a href="https://envios.adminml.com/logistics/provider-management/drivers-block/list?searchType=id&searchValue=${{c.id}}" target="_blank" style="font-size:15px;font-weight:700;color:#60a5fa;font-family:monospace;text-decoration:none">${{c.id}}</a>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">${{c.nome||c.transportadora||'—'}}</div>
+    </div>
+    <span style="${{ts}};font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">${{tl}}</span>
+    ${{ah}}
+    <span style="font-size:9px;color:#4ade80;margin-left:4px">◉ live</span>
+  </div>
+  <div style="display:flex">
+    <div style="flex:1;padding:8px 14px;border-right:0.5px solid #1a2035"><div style="font-size:18px;font-weight:600;color:#f9fafb">${{c.n_meses}}</div><div style="font-size:10px;color:#6b7280">meses</div></div>
+    <div style="flex:1;padding:8px 14px;border-right:0.5px solid #1a2035"><div style="font-size:18px;font-weight:600;color:#f9fafb">${{c.n_pkgs}}</div><div style="font-size:10px;color:#6b7280">pacotes</div></div>
+    <div style="flex:1;padding:8px 14px;border-right:0.5px solid #1a2035"><div style="font-size:18px;font-weight:600;color:#E24B4A">$${{bpp}}</div><div style="font-size:10px;color:#6b7280">BPP total</div></div>
+    <div style="flex:1;padding:8px 14px"><div style="font-size:13px;font-weight:600;color:${{blc}}">${{c.status_bl||'—'}}</div><div style="font-size:10px;color:#6b7280">status BL</div></div>
+  </div>
+</div>`;
+}}
+async function carregarDaPlanilha() {{
+    const btn=document.getElementById('acbl-sheets-btn');
+    const badge=document.getElementById('acbl-sheets-badge');
+    if(btn){{btn.disabled=true;btn.textContent='↻ Carregando...';}}
+    try {{
+        const resp=await fetch(SHEETS_CSV_URL,{{credentials:'include',cache:'no-store'}});
+        if(!resp.ok) throw new Error('HTTP '+resp.status);
+        const csv=await resp.text();
+        const lines=csv.split('\n').filter(l=>l.trim());
+        if(lines.length<2) throw new Error('vazia');
+        let hi=lines.findIndex(l=>l.replace(/"/g,'').startsWith('periodo_dias'));
+        if(hi<0) throw new Error('sem header');
+        let atualizado='';
+        if(hi>0){{const r=_parseCSVRow(lines[0]);if(r[0].replace(/"/g,'')==='_atualizado_em')atualizado=r[1].replace(/"/g,'')||'';}}
+        const headers=_parseCSVRow(lines[hi]);
+        const np={{'30':[],'60':[],'90':[],'180':[]}};
+        for(let i=hi+1;i<lines.length;i++){{
+            const v=_parseCSVRow(lines[i]);
+            if(!v[0]||v[0].replace(/"/g,'').startsWith('_')) continue;
+            const row={{}};
+            headers.forEach((h,j)=>row[h.replace(/"/g,'')]=v[j]?v[j].replace(/"/g,''):'');
+            const p=row.periodo_dias;
+            if(!np[p]) continue;
+            np[p].push({{id:row.id,nome:row.nome,transportadora:row.transportadora,
+                n_meses:parseInt(row.n_meses)||0,meses:row.meses?row.meses.split(';'):[],
+                n_pkgs:parseInt(row.n_pkgs)||0,total_bpp:parseFloat(row.total_bpp)||0,
+                max_bpp:parseFloat(row.max_bpp)||0,residual:parseFloat(row.residual)||0,
+                tipo:row.tipo,apto:row.apto==='True',motivo:row.motivo,placa:row.placa,
+                data_solicitacao:row.data_solicitacao,status_bl:row.status_bl}});
+        }}
+        Object.assign(ACUMULO_POR_PERIODO,np);
+        ['30','60','90','180'].forEach(p=>{{
+            const el=document.getElementById('acbl-content-'+p);
+            if(!el) return;
+            el.innerHTML=np[p].length?np[p].map(c=>_acblCardHTML(c)).join('')
+                :'<div style="padding:32px;text-align:center;color:#6b7280">Nenhum driver neste período.</div>';
+        }});
+        switchAcblPeriod(90,document.querySelector('.acbl-prd-btn.acbl-prd-active'));
+        if(badge){{
+            badge.textContent=atualizado?'BQ: '+atualizado:'Planilha OK';
+            badge.style.cssText='font-size:10px;padding:2px 9px;border-radius:10px;background:#052e16;color:#4ade80;font-weight:500';
+        }}
+    }} catch(e) {{
+        if(badge){{
+            badge.textContent='Sheets offline (faça login Google)';
+            badge.style.cssText='font-size:10px;padding:2px 9px;border-radius:10px;background:#1c0a0a;color:#f87171;font-weight:500';
+        }}
+    }} finally {{
+        if(btn){{btn.disabled=false;btn.textContent='↻ Planilha';}}
+    }}
+}}
+
 const SAIDAS_DATA = {j(d.get("saidas", []))};
 const DEVOLUCOES_DATA = {j(d.get("devolucoes", []))};
 const SELLERS_ENE_DATA = {j(d.get("sellers_ene", []))};
 const ENE_SERVICE_DATA = {j(d.get("ene_service", []))};
+const BQ_STATUS = {{
+  usando_cache: {'true' if d.get('_usando_cache') else 'false'},
+  sem_dados:    {'true' if d.get('_sem_dados_bq') else 'false'},
+  cache_age_h:  {d.get('_cache_age_h', 0)},
+}};
 const DAMAGED_MONTHLY = {j({str(dmg['id']): dmg.get('monthly', {}) for dmg in d['damaged']})};
 const DRIVER_TRANSP   = {j(d.get('driver_transp', {}))};
 const CRITICOS_COUNT  = {d.get('criticos', 0)};
@@ -3655,11 +4043,24 @@ function _showBqBanner(containerId, show) {{
   if (!b) {{
     b = document.createElement('div');
     b.className = 'bq-sem-dados';
-    b.style.cssText = 'background:#1e293b;border:1px solid #f87171;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#fca5a5;font-size:13px;display:flex;align-items:center;gap:10px;';
-    b.innerHTML = '<span style="font-size:18px">⚠️</span><span>Sem dados do BigQuery — cota esgotada na última execução. Os dados serão atualizados na próxima rodada agendada.</span>';
     c.insertBefore(b, c.firstChild);
   }}
-  b.style.display = show ? 'flex' : 'none';
+  if (!show) {{ b.style.display = 'none'; return; }}
+  const isSemDados = BQ_STATUS.sem_dados;
+  const isCache    = BQ_STATUS.usando_cache;
+  const ageH       = BQ_STATUS.cache_age_h;
+  if (isSemDados) {{
+    b.style.cssText = 'background:#160a0a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#fca5a5;font-size:13px;display:flex;align-items:center;gap:10px;';
+    b.innerHTML = '<span style="font-size:18px;flex-shrink:0">🚫</span><span><b>Sem dados disponíveis</b> — BQ sem cota e sem cache local. Acione o GitHub Actions ou aguarde a próxima janela de cota.</span>';
+  }} else if (isCache) {{
+    const ageStr = ageH < 24 ? ageH.toFixed(1) + 'h' : (ageH/24).toFixed(1) + 'd';
+    b.style.cssText = 'background:#1e293b;border:1px solid #f59e0b;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#fcd34d;font-size:13px;display:flex;align-items:center;gap:10px;';
+    b.innerHTML = `<span style="font-size:18px;flex-shrink:0">⚠️</span><span><b>Dados do cache</b> (há ${{ageStr}}) — BQ com cota esgotada na última execução. Os dados abaixo são da última busca bem-sucedida.</span>`;
+  }} else {{
+    b.style.cssText = 'background:#1e293b;border:1px solid #f87171;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#fca5a5;font-size:13px;display:flex;align-items:center;gap:10px;';
+    b.innerHTML = '<span style="font-size:18px;flex-shrink:0">⚠️</span><span>Sem dados do BigQuery — cota esgotada na última execução. Os dados serão atualizados na próxima rodada agendada.</span>';
+  }}
+  b.style.display = 'flex';
 }}
 
 // ── SAÍDAS MÚLTIPLAS ─────────────────────────────────────────
@@ -5003,6 +5404,8 @@ lucide.createIcons();
 <!-- ABA BLOQUEIOS -->
 <div id="tab-bloqueios" class="content">
 
+  {render_passiv_bloqueio(d.get('passiv_bloqueio', []), [r for r in d['bl'].get('rows',[]) if (r.get('status') or '').strip().lower() in ('bloqueado','blocked')])}
+
   {f'''<div style="background:#0f0606;border:1px solid #7f1d1d;border-radius:8px;padding:14px 18px;margin-bottom:20px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <i data-lucide="alert-triangle" width="16" height="16" style="color:#ef4444;flex-shrink:0"></i>
@@ -5737,8 +6140,10 @@ def gerar_sinistros_html(dados):
   .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #7f1d1d;position:sticky;top:0;z-index:100}}
   .header-brand{{display:flex;align-items:center;gap:12px}}
   .header-accent{{width:3px;height:32px;background:#f97316;border-radius:2px}}
-  .header-title{{font-size:15px;font-weight:700;color:#fff}}
+  .lp-badge{{width:36px;height:36px;background:#FFE600;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#080d19;flex-shrink:0;letter-spacing:-.5px}}
+  .header-title{{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.3px}}
   .header-sub{{font-size:11px;color:#6b7280;margin-top:2px}}
+  .ver-badge{{background:rgba(249,115,22,.15);color:#fb923c;border:1px solid rgba(249,115,22,.3);border-radius:4px;font-size:9px;font-weight:700;padding:2px 6px;letter-spacing:.5px;vertical-align:middle}}
   .mod-nav{{display:flex;gap:4px;align-items:center}}
   .mod-btn{{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1f2937;text-decoration:none;transition:all .2s;color:#9ca3af;background:#0d1321;display:flex;align-items:center;gap:6px}}
   .mod-btn:hover{{background:#1f2937;color:#e2e8f0;border-color:#374151}}
@@ -5768,9 +6173,12 @@ def gerar_sinistros_html(dados):
 
 <div class="header">
   <div class="header-brand">
-    <div class="header-accent"></div>
+    <div class="lp-badge">LP</div>
     <div>
-      <div class="header-title">Sinistros / Eventos SVC — SSP30</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="header-title">Sinistros / Eventos SVC — SSP30</div>
+        <span class="ver-badge">v2.8</span>
+      </div>
       <div class="header-sub">Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>
     </div>
   </div>
@@ -6437,10 +6845,25 @@ if __name__ == '__main__':
             _c['placa']           = _placa_map.get(_c['id']) or _bl.get('placa', '')
             _c['data_solicitacao']= _bl.get('data', '')
             _c['status_bl']       = _bl.get('status', '')
-        return [c for c in lista if c.get('status_bl', '').strip().lower() not in _JA_BLOQUEADOS]
+        return lista  # retorna tudo enriquecido; filtragem feita abaixo
     dados['acumulo_bloqueio'] = _enrich_acbl(dados.get('acumulo_bloqueio', []))
     for _pk in list(dados.get('acumulo_por_periodo', {}).keys()):
         dados['acumulo_por_periodo'][_pk] = _enrich_acbl(dados['acumulo_por_periodo'][_pk])
+    # passiv_bloqueio: todos apto=True (inclusive já bloqueados) — melhor período por driver
+    _seen_pv = {}
+    for _dias in ['30', '60', '90', '180']:
+        for _c in dados.get('acumulo_por_periodo', {}).get(_dias, []):
+            if _c.get('apto') and _c['id'] not in _seen_pv:
+                _seen_pv[_c['id']] = _c
+    dados['passiv_bloqueio'] = sorted(
+        _seen_pv.values(),
+        key=lambda x: (0 if x['tipo'] in ('fraude_pura','lost_fraude') else 1, -x.get('total_bpp', 0))
+    )
+    # filtra bloqueados dos acumulo views (mantém comportamento original)
+    dados['acumulo_bloqueio'] = [c for c in dados['acumulo_bloqueio'] if c.get('status_bl','').strip().lower() not in _JA_BLOQUEADOS]
+    for _pk in list(dados.get('acumulo_por_periodo', {}).keys()):
+        dados['acumulo_por_periodo'][_pk] = [c for c in dados['acumulo_por_periodo'][_pk] if c.get('status_bl','').strip().lower() not in _JA_BLOQUEADOS]
+    sincronizar_dados_fraude(gs, dados.get('acumulo_por_periodo', {}))
     dados['crz']       = processar_cruzamento(df_cruzamento)
     dados['crz_mes']   = processar_cruzamento_mes(df_cruzamento_mes)
     dados['dc_nex']    = processar_dc_nex(df_dc_nex, cobrar_otr_map)
@@ -6524,24 +6947,32 @@ if __name__ == '__main__':
 
     # --- Investigação LP: cache + 3 queries BQ em paralelo ---
     import json as _json_bq, time as _tbq
-    _BQ_CACHE_PATH = os.path.join(os.path.dirname(__file__), 'bq_investigacao_cache.json')
-    _BQ_CACHE_MAX  = 12 * 3600  # 12 horas
+    _BQ_CACHE_PATH  = os.path.join(os.path.dirname(__file__), 'bq_investigacao_cache.json')
+    _BQ_CACHE_FRESH = 12 * 3600  # considera "fresco" por 12h (não re-busca)
+    _BQ_CACHE_STALE = 30 * 24 * 3600  # mantém dados por até 30 dias como fallback
 
     def _bq_cache_load():
         if not os.path.exists(_BQ_CACHE_PATH): return None
-        if _tbq.time() - os.path.getmtime(_BQ_CACHE_PATH) > _BQ_CACHE_MAX: return None
+        age = _tbq.time() - os.path.getmtime(_BQ_CACHE_PATH)
+        if age > _BQ_CACHE_STALE: return None  # só descarta após 30 dias
         try:
-            with open(_BQ_CACHE_PATH, encoding='utf-8') as _f: return _json_bq.load(_f)
+            with open(_BQ_CACHE_PATH, encoding='utf-8') as _f:
+                data = _json_bq.load(_f)
+                data['_cache_age_h'] = round(age / 3600, 1)
+                data['_cache_fresh'] = age <= _BQ_CACHE_FRESH
+                return data
         except: return None
 
     _bq_cache = _bq_cache_load()
-    if _bq_cache:
-        print(f"  Cache BQ válido (< 4h) — carregando do disco...")
-        dados['saidas']      = _bq_cache.get('saidas', [])
-        dados['devolucoes']  = _bq_cache.get('devolucoes', [])
-        dados['sellers_ene'] = _bq_cache.get('sellers_ene', [])
-        dados['ene_service'] = _bq_cache.get('ene_service', [])
-        dados['damaged_ene'] = _bq_cache.get('damaged_ene', {})
+    if _bq_cache and _bq_cache.get('_cache_fresh'):
+        print(f"  Cache BQ válido ({_bq_cache.get('_cache_age_h',0)}h) — carregando do disco...")
+        dados['saidas']          = _bq_cache.get('saidas', [])
+        dados['devolucoes']      = _bq_cache.get('devolucoes', [])
+        dados['sellers_ene']     = _bq_cache.get('sellers_ene', [])
+        dados['ene_service']     = _bq_cache.get('ene_service', [])
+        dados['damaged_ene']     = _bq_cache.get('damaged_ene', {})
+        dados['_cache_age_h']    = _bq_cache.get('_cache_age_h', 0)
+        dados['_usando_cache']   = True
         print(f"  Cache: {len(dados['saidas'])} saídas | {len(dados['devolucoes'])} devoluções | {len(dados['sellers_ene'])} sellers ENE | {len(dados['ene_service'])} ENE svc | {dados['damaged_ene'].get('total',0)} damaged ENE")
     else:
         print("  Buscando BQ: 4 queries disparadas em paralelo...")
@@ -6818,17 +7249,38 @@ if __name__ == '__main__':
         print("\nAtualizando planilha ENE SSP30...")
         atualizar_planilha_ene(gs, dados['damaged_ene'], dados['fraud_ene'])
 
-        # ── Salva cache para próximos builds (válido 4h) ─────────
-        try:
-            with open(_BQ_CACHE_PATH, 'w', encoding='utf-8') as _cf:
-                _json_bq.dump({
-                    'saidas': dados['saidas'], 'devolucoes': dados['devolucoes'],
-                    'sellers_ene': dados['sellers_ene'], 'ene_service': dados['ene_service'],
-                    'damaged_ene': dados['damaged_ene'], 'fraud_ene': dados['fraud_ene'],
-                }, _cf, ensure_ascii=False, default=str)
-            print("  Cache BQ salvo (válido por 4h).")
-        except Exception as _ec:
-            print(f"  Aviso cache: {_ec}")
+        # ── Salva cache apenas se temos dados reais (evita sobrescrever com vazio) ─
+        _tem_dados = (len(dados.get('sellers_ene', [])) > 0
+                      or len(dados.get('saidas', [])) > 0
+                      or len(dados.get('devolucoes', [])) > 0)
+        if _tem_dados:
+            try:
+                with open(_BQ_CACHE_PATH, 'w', encoding='utf-8') as _cf:
+                    _json_bq.dump({
+                        'saidas': dados['saidas'], 'devolucoes': dados['devolucoes'],
+                        'sellers_ene': dados['sellers_ene'], 'ene_service': dados['ene_service'],
+                        'damaged_ene': dados['damaged_ene'], 'fraud_ene': dados['fraud_ene'],
+                    }, _cf, ensure_ascii=False, default=str)
+                print(f"  Cache BQ salvo ({len(dados['sellers_ene'])} sellers ENE, {len(dados['saidas'])} saídas).")
+            except Exception as _ec:
+                print(f"  Aviso cache: {_ec}")
+        else:
+            # BQ falhou — tenta carregar cache antigo como fallback (mesmo que expirado)
+            print("  BQ retornou vazio — tentando fallback do cache antigo...")
+            _old = _bq_cache  # pode ser None ou cache expirado mas dentro de 30 dias
+            if _old and not _old.get('_cache_fresh'):
+                dados['saidas']        = _old.get('saidas', [])
+                dados['devolucoes']    = _old.get('devolucoes', [])
+                dados['sellers_ene']   = _old.get('sellers_ene', [])
+                dados['ene_service']   = _old.get('ene_service', [])
+                dados['damaged_ene']   = _old.get('damaged_ene', {})
+                dados['fraud_ene']     = _old.get('fraud_ene', [])
+                dados['_cache_age_h']  = _old.get('_cache_age_h', 0)
+                dados['_usando_cache'] = True
+                print(f"  Fallback: {len(dados['sellers_ene'])} sellers ENE carregados do cache ({dados['_cache_age_h']}h atrás).")
+            else:
+                dados['_sem_dados_bq'] = True
+                print("  Sem dados e sem cache válido — seções ficarão vazias.")
 
         dados.setdefault('saidas', [])
         dados.setdefault('devolucoes', [])

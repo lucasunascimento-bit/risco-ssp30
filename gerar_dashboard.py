@@ -2338,10 +2338,14 @@ def gerar_html(d):
   body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}}
   /* HEADER */
   .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1f2937;flex-shrink:0}}
-  .header-brand{{display:flex;align-items:center;gap:10px}}
+  .header-brand{{display:flex;align-items:center;gap:12px}}
   .header-accent{{width:3px;height:28px;background:#FFE600;border-radius:2px}}
-  .header-title{{font-size:16px;font-weight:700;color:#ffffff;letter-spacing:-0.3px}}
-  .header-sub{{font-size:11px;color:#374151;margin-top:2px}}
+  .lp-badge{{width:36px;height:36px;background:#FFE600;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#080d19;flex-shrink:0;letter-spacing:-.5px}}
+  .header-title{{font-size:16px;font-weight:700;color:#ffffff;letter-spacing:-.3px}}
+  .header-sub{{font-size:11px;color:#6b7280;margin-top:2px}}
+  .ver-badge{{background:rgba(255,230,0,.12);color:#FFE600;border:1px solid rgba(255,230,0,.3);border-radius:4px;font-size:9px;font-weight:700;padding:2px 6px;letter-spacing:.5px;vertical-align:middle}}
+  .hdr-stat{{background:#111827;border:1px solid #1f2937;border-radius:6px;padding:4px 10px;font-size:10px;color:#6b7280;white-space:nowrap}}
+  .hdr-stat b{{font-weight:700;color:#e2e8f0}}
   .header-right{{display:flex;align-items:center;gap:10px}}
   .status-dot{{width:7px;height:7px;border-radius:50%;background:#FFE600;animation:pulse 2.5s infinite}}
   @keyframes pulse{{0%,100%{{opacity:1;box-shadow:0 0 0 0 rgba(255,230,0,.4)}}50%{{opacity:.6;box-shadow:0 0 0 5px rgba(255,230,0,0)}}}}
@@ -2526,9 +2530,12 @@ def gerar_html(d):
 <!-- HEADER -->
 <div class="header">
   <div class="header-brand">
-    <div class="header-accent"></div>
+    <div class="lp-badge">LP</div>
     <div>
-      <div class="header-title">Risco SSP30</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="header-title">Risco SSP30</div>
+        <span class="ver-badge">v2.8</span>
+      </div>
       <div class="header-sub">Planilha de Controle · Gerado em {d["gerado"]}</div>
     </div>
   </div>
