@@ -62,6 +62,7 @@ SELECT
   COALESCE(SHP_DESTINATION_ID_LM, '')                                   AS SHP_DESTINATION_ID
 FROM `meli-bi-data.WHOWNER.LK_SHP_MISSING_MANAGEMENT_PACKAGES`
 WHERE SHP_LG_FACILITY_ID = 'SSP30'
+  AND SHP_TRAMO = 'AT STATION'
 ORDER BY SHP_ORDER_COST_USD DESC
 """
 DIT_QUERY = """
@@ -2213,11 +2214,6 @@ def gerar_html(d):
     sit_wy_labels = j(list(d['w_sit'].keys()))
     sit_wy_values = j(list(d['w_sit'].values()))
 
-    top_labels = j([r['id'][:12]+'…' if len(r['id'])>12 else r['id'] for r in d['top15']])
-    top_values = j([r['gmv'] for r in d['top15']])
-    top_colors = j(['#EF4444' if 'Lost' in r['sit'] else '#F97316' if 'Procurar' in r['sit']
-                    else '#FBBF24' if '>=' in r['sit'] else '#60A5FA' for r in d['top15']])
-
     st_labels = j(list(d['status_cnt'].keys()))
     st_values = j(list(d['status_cnt'].values()))
 
@@ -2249,18 +2245,6 @@ def gerar_html(d):
         'resp':          r.get('resp',''),
         'motivos':       ', '.join(r.get('motivos',[])),
     } for r in d.get('criticos',[])], ensure_ascii=False)
-
-    # --- JSON para Tabulator: Top GMV ---
-    d['tab_gmv_json'] = json.dumps([{
-        'rank':          i + 1,
-        'origem':        r.get('origem',''),
-        'id':            r.get('id',''),
-        'sit':           r.get('sit',''),
-        'gmv':           round(r.get('gmv',0), 2),
-        'resp':          r.get('resp',''),
-        'status':        r.get('status',''),
-        'dias_carteira': r.get('dias_carteira',-1),
-    } for i, r in enumerate(d.get('top15',[]))], ensure_ascii=False)
 
     # --- JSON para Tabulator: Places ranking ---
     d['tab_places_rank_json'] = json.dumps([{
@@ -2625,10 +2609,6 @@ def gerar_html(d):
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Análise</div>
-  <div class="sb-item" data-tab="gmv" onclick="showTab('gmv',this)">
-    <i data-lucide="dollar-sign" width="14" height="14" class="ci"></i> Top GMV
-    <span class="sb-badge">{len(d["top15"])}</span>
-  </div>
   <div class="sb-item" data-tab="hist" onclick="showTab('hist',this)">
     <i data-lucide="clock" width="14" height="14" class="ci"></i> Histórico
     <span class="sb-badge">{len(d["hist_todos"])}</span>
@@ -2806,7 +2786,7 @@ def gerar_html(d):
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <span style="font-size:13px;color:#8899aa">{d["r_total"]} casos · USD {d["r_gmv"]:,.2f}</span>
-      <a href="https://docs.google.com/spreadsheets/d/1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc/edit"
+      <a href="https://docs.google.com/spreadsheets/d/{PLANILHA_CONTROLE_ID}/edit"
          target="_blank"
          style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
         ✏ Editar na planilha
@@ -2870,7 +2850,7 @@ def gerar_html(d):
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["w_entregues"]) + ' pacote(s) detectado(s) como ENTREGUE no sistema</strong> — verifique e mova para Histórico como recupero.</div>' if d["w_entregues"] else ''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <span style="font-size:13px;color:#8899aa">{d["w_total"]} casos · USD {d["w_gmv"]:,.2f}</span>
-      <a href="https://docs.google.com/spreadsheets/d/1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc/edit"
+      <a href="https://docs.google.com/spreadsheets/d/{PLANILHA_CONTROLE_ID}/edit"
          target="_blank"
          style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
         ✏ Editar na planilha
@@ -3065,48 +3045,6 @@ def gerar_html(d):
               return '<span style="color:#9ca3af">'+v+'d</span>';
             }}}},
           {{title:"GMV (USD)", field:"usd", sorter:"number", formatter:"money", formatterParams:{{precision:0, symbol:"$"}}, width:120}},
-        ],
-      }});
-    }})();
-    </script>
-  </div>
-</div>
-
-<!-- ===================== ABA 4: TOP GMV ===================== -->
-<div id="tab-gmv" class="content">
-  <div class="box" style="margin-bottom:24px"><h3>💰 Top 15 por GMV (ON ROUTE + ON WAY)</h3><canvas id="cTop" height="350"></canvas></div>
-  <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Ranking completo</span>
-      <button onclick="window._tabGMV && window._tabGMV.download('csv', 'top_gmv_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
-    </div>
-    <div id="tabulator-gmv"></div>
-    <script>
-    (function(){{
-      var dataGMV = {d['tab_gmv_json']};
-      window._tabGMV = new Tabulator("#tabulator-gmv", {{
-        data: dataGMV,
-        layout: "fitDataStretch",
-        pagination: "local",
-        paginationSize: 30,
-        paginationSizeSelector: [15, 30, 50],
-        movableColumns: true,
-        columns: [
-          {{title:"#", field:"rank", width:50, hozAlign:"center", sorter:"number",
-            formatter:function(cell){{ return '<span style="font-weight:700;color:#FFE600">'+cell.getValue()+'</span>'; }}}},
-          {{title:"Origem", field:"origem", headerFilter:"select", headerFilterParams:{{values:true}}, width:110}},
-          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
-            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
-          }}}},
-          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
-          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:120}},
-          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
-          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
-          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
-            var v = cell.getValue();
-            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
-            return v >= 0 ? v+'d' : '—';
-          }}}},
         ],
       }});
     }})();
@@ -3868,17 +3806,6 @@ new Chart(document.getElementById('cHeatmap'), {{
   }}
 }})();
 
-// Top GMV horizontal
-new Chart(document.getElementById('cTop'), {{
-  type: 'bar',
-  data: {{ labels:{top_labels}, datasets:[{{ data:{top_values}, backgroundColor:{top_colors}, borderRadius:4 }}] }},
-  options: {{
-    indexAxis:'y', responsive:true,
-    plugins:{{ legend:{{ display:false }}, tooltip:{{ callbacks:{{ label: ctx=>' $'+ctx.raw.toLocaleString('pt-BR',{{minimumFractionDigits:2}}) }} }} }},
-    scales:{{ x:{{ ticks:{{ color:'#8a8a8a', callback: v=>'$'+v.toLocaleString('pt-BR') }}, grid:{{ color:'#334155' }} }},
-              y:{{ ticks:{{ color:'#94a3b8', font:{{ size:11 }} }}, grid:{{ display:false }} }} }}
-  }}
-}});
 // ---- Places: filtro ----
 function filtrarPlaces() {{
   const busca = (document.getElementById('busca_places')?.value || '').toLowerCase();

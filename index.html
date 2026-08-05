@@ -309,10 +309,6 @@
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Análise</div>
-  <div class="sb-item" data-tab="gmv" onclick="showTab('gmv',this)">
-    <i data-lucide="dollar-sign" width="14" height="14" class="ci"></i> Top GMV
-    <span class="sb-badge">15</span>
-  </div>
   <div class="sb-item" data-tab="hist" onclick="showTab('hist',this)">
     <i data-lucide="clock" width="14" height="14" class="ci"></i> Histórico
     <span class="sb-badge">2106</span>
@@ -737,7 +733,7 @@ document.addEventListener('DOMContentLoaded', function() { renderBrfWeek('W32/20
     
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <span style="font-size:13px;color:#8899aa">30 casos · USD 23,315.81</span>
-      <a href="https://docs.google.com/spreadsheets/d/1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc/edit"
+      <a href="https://docs.google.com/spreadsheets/d/1rFcUXxl53WVQf_ASRx3mhlEvFoJevcaiwjMZY1vso5Y/edit"
          target="_blank"
          style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
         ✏ Editar na planilha
@@ -801,7 +797,7 @@ document.addEventListener('DOMContentLoaded', function() { renderBrfWeek('W32/20
     
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <span style="font-size:13px;color:#8899aa">70 casos · USD 43,415.69</span>
-      <a href="https://docs.google.com/spreadsheets/d/1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc/edit"
+      <a href="https://docs.google.com/spreadsheets/d/1rFcUXxl53WVQf_ASRx3mhlEvFoJevcaiwjMZY1vso5Y/edit"
          target="_blank"
          style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
         ✏ Editar na planilha
@@ -971,48 +967,6 @@ document.addEventListener('DOMContentLoaded', function() { renderBrfWeek('W32/20
               return '<span style="color:#9ca3af">'+v+'d</span>';
             }},
           {title:"GMV (USD)", field:"usd", sorter:"number", formatter:"money", formatterParams:{precision:0, symbol:"$"}, width:120},
-        ],
-      });
-    })();
-    </script>
-  </div>
-</div>
-
-<!-- ===================== ABA 4: TOP GMV ===================== -->
-<div id="tab-gmv" class="content">
-  <div class="box" style="margin-bottom:24px"><h3>💰 Top 15 por GMV (ON ROUTE + ON WAY)</h3><canvas id="cTop" height="350"></canvas></div>
-  <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Ranking completo</span>
-      <button onclick="window._tabGMV && window._tabGMV.download('csv', 'top_gmv_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
-    </div>
-    <div id="tabulator-gmv"></div>
-    <script>
-    (function(){
-      var dataGMV = [{"rank": 1, "origem": "ON ROUTE", "id": "47069669118", "sit": "Procurar Pacote", "gmv": 2542.67, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 6}, {"rank": 2, "origem": "ON WAY", "id": "47650108812", "sit": "< 11 dias OW", "gmv": 2306.9, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 0}, {"rank": 3, "origem": "ON WAY", "id": "47670803955", "sit": "< 11 dias OW", "gmv": 2166.51, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 0}, {"rank": 4, "origem": "ON ROUTE", "id": "47530714922", "sit": "Procurar Pacote", "gmv": 2078.55, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 6}, {"rank": 5, "origem": "ON ROUTE", "id": "47443949948", "sit": "Possivel Lost", "gmv": 1705.0, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 6}, {"rank": 6, "origem": "ON ROUTE", "id": "47508547158", "sit": "Procurar Pacote", "gmv": 1687.85, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 6}, {"rank": 7, "origem": "ON WAY", "id": "47682337192", "sit": "< 11 dias OW", "gmv": 1534.2, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 0}, {"rank": 8, "origem": "ON ROUTE", "id": "47601855205", "sit": "Procurar Pacote", "gmv": 1378.5, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 3}, {"rank": 9, "origem": "ON WAY", "id": "47651836994", "sit": "< 11 dias OW", "gmv": 1368.92, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 0}, {"rank": 10, "origem": "ON ROUTE", "id": "47238868500", "sit": "Procurar Pacote", "gmv": 1292.63, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 6}, {"rank": 11, "origem": "ON ROUTE", "id": "47639372789", "sit": "Procurar Pacote", "gmv": 1190.82, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 3}, {"rank": 12, "origem": "ON ROUTE", "id": "47590358905", "sit": "Procurar Pacote", "gmv": 1125.44, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 6}, {"rank": 13, "origem": "ON ROUTE", "id": "47239930133", "sit": "Procurar Pacote", "gmv": 995.04, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 6}, {"rank": 14, "origem": "ON WAY", "id": "47684630667", "sit": "< 11 dias OW", "gmv": 924.61, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 0}, {"rank": 15, "origem": "ON WAY", "id": "47677141708", "sit": "< 11 dias OW", "gmv": 891.23, "resp": "Lucas Nascimento", "status": "", "dias_carteira": 0}];
-      window._tabGMV = new Tabulator("#tabulator-gmv", {
-        data: dataGMV,
-        layout: "fitDataStretch",
-        pagination: "local",
-        paginationSize: 30,
-        paginationSizeSelector: [15, 30, 50],
-        movableColumns: true,
-        columns: [
-          {title:"#", field:"rank", width:50, hozAlign:"center", sorter:"number",
-            formatter:function(cell){ return '<span style="font-weight:700;color:#FFE600">'+cell.getValue()+'</span>'; }},
-          {title:"Origem", field:"origem", headerFilter:"select", headerFilterParams:{values:true}, width:110},
-          {title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){
-            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
-          }},
-          {title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{values:true}, width:160},
-          {title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{precision:2, symbol:"$"}, width:120},
-          {title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{values:true}, width:150},
-          {title:"Status", field:"status", headerFilter:"select", headerFilterParams:{values:true}, width:140},
-          {title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){
-            var v = cell.getValue();
-            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
-            return v >= 0 ? v+'d' : '—';
-          }},
         ],
       });
     })();
@@ -1774,17 +1728,6 @@ new Chart(document.getElementById('cHeatmap'), {
   }
 })();
 
-// Top GMV horizontal
-new Chart(document.getElementById('cTop'), {
-  type: 'bar',
-  data: { labels:["47069669118", "47650108812", "47670803955", "47530714922", "47443949948", "47508547158", "47682337192", "47601855205", "47651836994", "47238868500", "47639372789", "47590358905", "47239930133", "47684630667", "47677141708"], datasets:[{ data:[2542.67, 2306.9, 2166.51, 2078.55, 1705.0, 1687.85, 1534.2, 1378.5, 1368.92, 1292.63, 1190.82, 1125.44, 995.04, 924.61, 891.23], backgroundColor:["#F97316", "#60A5FA", "#60A5FA", "#F97316", "#EF4444", "#F97316", "#60A5FA", "#F97316", "#60A5FA", "#F97316", "#F97316", "#F97316", "#F97316", "#60A5FA", "#60A5FA"], borderRadius:4 }] },
-  options: {
-    indexAxis:'y', responsive:true,
-    plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx=>' $'+ctx.raw.toLocaleString('pt-BR',{minimumFractionDigits:2}) } } },
-    scales:{ x:{ ticks:{ color:'#8a8a8a', callback: v=>'$'+v.toLocaleString('pt-BR') }, grid:{ color:'#334155' } },
-              y:{ ticks:{ color:'#94a3b8', font:{ size:11 } }, grid:{ display:false } } }
-  }
-});
 // ---- Places: filtro ----
 function filtrarPlaces() {
   const busca = (document.getElementById('busca_places')?.value || '').toLowerCase();
