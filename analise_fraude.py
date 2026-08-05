@@ -5261,10 +5261,11 @@ function renderOfensores() {{
 
 // ── TABULATOR helpers ─────────────────────────────────────────
 // Conta registros em data[] que tenham pelo menos um mês no período atual
+function _toMonthsArr(v) {{ return Array.isArray(v) ? v : (v ? String(v).split(' ') : []); }}
 function _countDataMonths(data) {{
   if (!_periodDe && !_periodAte) return data.length;
   return data.filter(r => {{
-    const months = r.months || [];
+    const months = _toMonthsArr(r.months);
     return months.some(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
   }}).length;
 }}
@@ -5276,7 +5277,7 @@ function _filterTblByPeriod(tbl) {{
     tbl.clearFilter();
   }} else {{
     tbl.setFilter(r => {{
-      const months = r.months || [];
+      const months = _toMonthsArr(r.months);
       return months.some(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
     }});
   }}
