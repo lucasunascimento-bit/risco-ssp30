@@ -531,8 +531,10 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
         apto, motivo = True, ''
         if n_pkgs <= 5:
             apto, motivo = False, f'Apenas {n_pkgs} pacotes (mínimo 6)'
-        elif residual <= 300:
-            apto, motivo = False, f'Residual ${residual:.0f} abaixo de $300'
+        elif total_bpp <= 300:
+            apto, motivo = False, f'Total ${total_bpp:.0f} abaixo de $300'
+        elif residual <= 200:
+            apto, motivo = False, f'Residual ${residual:.0f} abaixo de $200'
         nome = str(d.get('nome','') or d.get('transportadora','') or '').strip()
         transp = str(d.get('transportadora','') or '').strip()
         result.append({
@@ -603,7 +605,7 @@ def rows_acumulo_bloqueio(candidatos, pid=''):
         _tipo = c['tipo']
         if _tipo == 'lost_fraude':
             residual_txt = (f'<b>BPP sem maior: ${c["residual"]:,.2f}</b>'
-                            + (' ≥ $300 ✓' if c["residual"] >= 300 else ' &lt; $300 ✗'))
+                            + (' ≥ $200 ✓' if c["residual"] >= 200 else ' &lt; $200 ✗'))
         elif _tipo in ('fraude_pura',):
             residual_txt = 'Roubo/Fraude confirmada → acionar time de fraude para validação'
         elif _tipo == 'pnr':
@@ -611,10 +613,10 @@ def rows_acumulo_bloqueio(candidatos, pid=''):
         elif _tipo == 'pnr_lor':
             residual_txt = (f'PNR C + Lost On Route — {c["n_pkgs"]} pacotes · '
                             f'<b>BPP sem maior: ${c["residual"]:,.2f}</b>'
-                            + (' ≥ $300 ✓' if c["residual"] >= 300 else ' &lt; $300 ✗'))
+                            + (' ≥ $200 ✓' if c["residual"] >= 200 else ' &lt; $200 ✗'))
         else:
             residual_txt = (f'<b>BPP sem maior: ${c["residual"]:,.2f}</b>'
-                            + (' ≥ $300 ✓' if c["residual"] >= 300 else ' &lt; $300 ✗'))
+                            + (' ≥ $200 ✓' if c["residual"] >= 200 else ' &lt; $200 ✗'))
         html += f'''<div style="border:0.5px solid #1a2035;border-radius:10px;margin-bottom:10px;overflow:hidden">
   <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#0d1526;border-bottom:0.5px solid #1a2035;cursor:pointer" onclick="var el=document.getElementById('{tid}');el.style.display=el.style.display==='none'?'block':'none'">
     <div style="flex:1">
@@ -1014,12 +1016,68 @@ def sincronizar_status_block_list(gs, bq, bl_rows):
         print(f"  Aviso ao atualizar planilha: {e}")
 
 
+def adicionar_aptos_block_list(gs, passiv_bloqueio, bl_rows):
+    """Adiciona à planilha drivers LOR+FRAUD aptos que ainda não estão como Solicitado/Bloqueado."""
+    from datetime import datetime as _dta2
+    TIPOS_BLOQUEAR = {'fraude_pura', 'lost_fraude'}
+    JA_REGISTRADOS = {'solicitado', 'bloqueado', 'blocked', 'monitorado', 'sendo monitorado'}
+    ids_na_bl = {
+        str(r.get('Driver ID', '')).strip(): str(r.get('Status', '')).strip().lower()
+        for r in bl_rows if r.get('Driver ID')
+    }
+    novos = [
+        c for c in passiv_bloqueio
+        if c.get('tipo') in TIPOS_BLOQUEAR
+        and c.get('apto')
+        and ids_na_bl.get(str(c['id']), '').lower() not in JA_REGISTRADOS
+    ]
+    if not novos:
+        print("  Auto BL: nenhum driver novo para adicionar.")
+        return
+    print(f"  Auto BL: adicionando {len(novos)} driver(s) como Solicitado...")
+    try:
+        import gspread as _gs2
+        wb  = gs.open_by_key(BLOCK_LIST_ID)
+        ws  = wb.worksheet(ABA_BLOQUEIOS)
+        all_vals = ws.get_all_values()
+        header = all_vals[0] if all_vals else []
+        hoje = _dta2.now().strftime('%d/%m/%Y')
+        sem  = _dta2.now().strftime('%W').lstrip('0') or '0'
+        ano  = _dta2.now().strftime('%Y')
+        def _col(name): return header.index(name) if name in header else -1
+        for c in novos:
+            motivo = 'LOR e FRAUD' if c['tipo'] == 'lost_fraude' else 'Roubo/Fraude'
+            descr  = (f'Driver possui LOR + FRAUDE acima de $300. '
+                      f'Residual após maior: ${c.get("residual",0):,.2f}. '
+                      f'{c.get("n_pkgs",0)} pacotes.')
+            row_data = {
+                'CAD': 'SSP30', 'Ano': ano, 'Semana': sem,
+                'MLP': c.get('transportadora','').upper(),
+                'Driver ID': str(c['id']), 'Nome': '',
+                'CPF': '', 'Placa': c.get('placa',''),
+                'SHP': str(c.get('n_pkgs','')),
+                'USD$': f'${c.get("total_bpp",0):,.2f}',
+                'Motivo': motivo, 'Descrição': descr,
+                'Data Solicitação': hoje, 'Solicitante': 'Lucas Nascimento',
+                'Status': 'Solicitado',
+            }
+            if header:
+                new_row = [row_data.get(h, '') for h in header]
+            else:
+                new_row = list(row_data.values())
+            ws.append_row(new_row, value_input_option='USER_ENTERED')
+            print(f"    + Driver {c['id']} ({motivo}) adicionado — Sem {sem}")
+    except Exception as e:
+        print(f"  Aviso Auto BL: {e}")
+
+
 def processar_block_list(rows):
     if not rows:
         return {
             'total':0,'bloqueados':0,'solicitados':0,
             'monitorados':0,'recusados':0,'gmv_protegido':0.0,
-            'por_transp':{},'rows':[],'por_status':{}
+            'por_transp':{},'rows':[],'por_status':{},
+            'por_semana':{},'esta_semana':0,
         }
     def flt(v):
         try: return float(str(v).replace('$','').replace(',','.').strip() or 0)
@@ -1079,12 +1137,27 @@ def processar_block_list(rows):
         main['n_solicitacoes'] = len(entries_s)
         final_rows.append(main)
     final_rows.sort(key=lambda x: (_PRIO.get(x['status'],9), -x['usd']))
+    # Bloqueios por semana (apenas status Bloqueado)
+    from datetime import datetime as _dt3
+    import re as _re
+    _sem_atual = _dt3.now().strftime('%W').lstrip('0') or '0'
+    por_semana = {}
+    esta_semana = 0
+    for r in rows_out:
+        if r['status'] != 'Bloqueado': continue
+        sem = str(r.get('semana') or '').strip()
+        sem_num = _re.sub(r'[^0-9]', '', sem)
+        if sem_num:
+            por_semana[sem_num] = por_semana.get(sem_num, 0) + 1
+            if sem_num == _sem_atual:
+                esta_semana += 1
     return {
         'total': total, 'bloqueados': bloqueados,
         'solicitados': solicitados, 'monitorados': monitorados,
         'recusados': recusados, 'gmv_protegido': gmv_protegido,
         'por_transp': por_transp, 'por_status': por_status,
         'rows': final_rows,
+        'por_semana': por_semana, 'esta_semana': esta_semana,
     }
 
 def processar_cruzamento(df):
@@ -3369,6 +3442,25 @@ function initBlCharts() {{
                     y:{{ ticks:{{color:'#8a8a8a'}}, grid:{{color:'#334155'}} }} }}
         }}
       }});
+      const _semData = {j(dict(sorted(d["bl"]["por_semana"].items(), key=lambda x: int(x[0]) if x[0].isdigit() else 99)))};
+      const _semLabels = Object.keys(_semData).map(s => 'Sem ' + s);
+      const _semVals   = Object.values(_semData);
+      new Chart(document.getElementById('cBlSemana'), {{
+        type: 'bar',
+        data: {{
+          labels: _semLabels,
+          datasets: [{{ label: 'Bloqueados', data: _semVals,
+            backgroundColor: 'rgba(167,139,250,0.75)', borderRadius: 4 }}]
+        }},
+        options: {{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{{ legend:{{display:false}} }},
+          scales:{{
+            x:{{ ticks:{{color:'#8a8a8a',font:{{size:10}}}}, grid:{{color:'#1e293b'}} }},
+            y:{{ ticks:{{color:'#8a8a8a',stepSize:1}}, grid:{{color:'#334155'}} }}
+          }}
+        }}
+      }});
     }} catch(e) {{
       console.error('[initBlCharts] Erro ao criar gráficos:', e);
       _blDone = false;
@@ -5445,6 +5537,10 @@ lucide.createIcons();
       <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">GMV Protegido</span></div>
       <div class="cv val-ok" id="bl-cv-gmv">${d["bl"]["gmv_protegido"]:,.2f}</div><div class="cd">Bloqueados confirmados</div>
     </div>
+    <div class="card">
+      <div class="card-header"><i data-lucide="calendar-check" class="ci" width="14" height="14" style="color:#a78bfa"></i><span class="cl">Esta Semana</span></div>
+      <div class="cv" style="color:#a78bfa">{d["bl"]["esta_semana"]}</div><div class="cd">Bloqueios semana {datetime.now().strftime("%W").lstrip("0") or "0"}</div>
+    </div>
   </div>
 
   {'<div style="background:#1c1008;border:1px solid #92400e;border-radius:8px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px"><span style="font-size:18px">📋</span><div><div style="font-size:12px;font-weight:600;color:#fbbf24">Block List vazia</div><div style="font-size:11px;color:#9ca3af;margin-top:4px">Nenhum driver adicionado ainda. Preencha a aba <em>Drivers Bloqueados</em> na planilha e reprocesse o dashboard.</div></div></div>' if not d["bl"]["rows"] else ''}
@@ -5454,6 +5550,7 @@ lucide.createIcons();
     <div class="box"><div class="bt">Por Status</div><div style="position:relative;height:220px"><canvas id="cBlStatus"></canvas></div></div>
     <div class="box"><div class="bt">Por Transportadora</div><div style="position:relative;height:220px"><canvas id="cBlTransp"></canvas></div></div>
   </div>
+  <div class="box mb16"><div class="bt">Bloqueios por Semana (2026)</div><div style="position:relative;height:200px"><canvas id="cBlSemana"></canvas></div></div>
 
   <div class="tbl-wrap">
     <div class="tbl-title">Lista Completa — Block List 2026</div>
@@ -6859,6 +6956,7 @@ if __name__ == '__main__':
         _seen_pv.values(),
         key=lambda x: (0 if x['tipo'] in ('fraude_pura','lost_fraude') else 1, -x.get('total_bpp', 0))
     )
+    adicionar_aptos_block_list(gs, dados['passiv_bloqueio'], bl_rows)
     # filtra bloqueados dos acumulo views (mantém comportamento original)
     dados['acumulo_bloqueio'] = [c for c in dados['acumulo_bloqueio'] if c.get('status_bl','').strip().lower() not in _JA_BLOQUEADOS]
     for _pk in list(dados.get('acumulo_por_periodo', {}).keys()):
