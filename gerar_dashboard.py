@@ -165,7 +165,12 @@ def carregar():
     pl = gc.open_by_key(PLANILHA_CONTROLE_ID)
 
     def ler(nome):
-        rows = pl.worksheet(nome).get_all_values()
+        try:
+            ws = pl.worksheet(nome)
+        except Exception:
+            abas = [w.title for w in pl.worksheets()]
+            raise Exception(f"Aba '{nome}' não encontrada. Abas disponíveis: {abas}")
+        rows = ws.get_all_values()
         if len(rows) <= 1:
             return [], []
         # preserva número da linha na planilha (1=header, 2=primeira linha de dados)
@@ -2119,6 +2124,49 @@ def _briefing_html(b, on_route=None, on_way=None):
         f'</div>'
     )
 
+def _tab_json(rows_rt, rows_wy):
+    """Serializa r_rows e w_rows para JSON usado pelo Tabulator."""
+    import json as _json
+
+    def _rt(r):
+        return {
+            'id': r.get('id',''),
+            'sit': r.get('sit',''),
+            'gmv': round(r.get('gmv',0), 2),
+            'resp': r.get('resp',''),
+            'status': r.get('status',''),
+            'acao_lp': r.get('acao_lp',''),
+            'finalizacao': r.get('finalizacao',''),
+            'cftv': r.get('cftv',''),
+            'cobrar_otr': r.get('cobrar_otr',''),
+            'entrada': r.get('entrada',''),
+            'dias_carteira': r.get('dias_carteira',-1),
+            'entregue': r.get('entregue', False),
+        }
+
+    def _wy(r):
+        return {
+            'id': r.get('id',''),
+            'sit': r.get('sit',''),
+            'gmv': round(r.get('gmv',0), 2),
+            'carrier': r.get('carrier',''),
+            'dias_ow': r.get('dias_ow',''),
+            'resp': r.get('resp',''),
+            'status': r.get('status',''),
+            'acao_lp': r.get('acao_lp',''),
+            'finalizacao': r.get('finalizacao',''),
+            'cftv': r.get('cftv',''),
+            'entrada': r.get('entrada',''),
+            'dias_carteira': r.get('dias_carteira',-1),
+            'entregue': r.get('entregue', False),
+        }
+
+    return (
+        _json.dumps([_rt(r) for r in rows_rt], ensure_ascii=False),
+        _json.dumps([_wy(r) for r in rows_wy], ensure_ascii=False)
+    )
+
+
 def gerar_html(d):
     j = lambda x: json.dumps(x, ensure_ascii=False)
     if 'snapshots' not in d:
@@ -2183,6 +2231,76 @@ def gerar_html(d):
     sits_rt = list(d['r_sit'].keys())
     sits_wy = list(d['w_sit'].keys())
 
+    d['tab_rt_json'], d['tab_wy_json'] = _tab_json(d['r_rows'], d['w_rows'])
+    d['tab_hist_json'] = json.dumps([{
+        'data': r.get('data',''), 'origem': r.get('origem',''), 'id': r.get('id',''),
+        'sit': r.get('sit',''), 'gmv': r.get('gmv',''), 'resp': r.get('resp',''),
+        'status': r.get('status',''), 'final': r.get('final','')
+    } for r in d.get('hist_todos', [])], ensure_ascii=False)
+
+    # --- JSON para Tabulator: Críticos ---
+    d['tab_criticos_json'] = json.dumps([{
+        'id':            r.get('id',''),
+        'sit':           r.get('sit',''),
+        'origem':        r.get('origem',''),
+        'gmv':           round(r.get('gmv',0), 2),
+        'dias_carteira': r.get('dias_carteira',-1),
+        'status':        r.get('status',''),
+        'resp':          r.get('resp',''),
+        'motivos':       ', '.join(r.get('motivos',[])),
+    } for r in d.get('criticos',[])], ensure_ascii=False)
+
+    # --- JSON para Tabulator: Top GMV ---
+    d['tab_gmv_json'] = json.dumps([{
+        'rank':          i + 1,
+        'origem':        r.get('origem',''),
+        'id':            r.get('id',''),
+        'sit':           r.get('sit',''),
+        'gmv':           round(r.get('gmv',0), 2),
+        'resp':          r.get('resp',''),
+        'status':        r.get('status',''),
+        'dias_carteira': r.get('dias_carteira',-1),
+    } for i, r in enumerate(d.get('top15',[]))], ensure_ascii=False)
+
+    # --- JSON para Tabulator: Places ranking ---
+    d['tab_places_rank_json'] = json.dumps([{
+        'rank':      i + 1,
+        'place_id':  p.get('place_id',''),
+        'tramo':     p.get('tramo','') if p.get('tramo','') == 'NEX' else 'XPT/DC',
+        'qtd':       p.get('qtd',0),
+        'gmv':       round(p.get('gmv',0), 2),
+        'gmv_pkg':   round(p.get('gmv_pkg',0), 2),
+        'max_dias':  p.get('max_dias',0),
+        'avg_dias':  float(p.get('avg_dias',0)),
+        'dit_blind': p.get('dit_blind',0),
+        'pkgs_ids':  ', '.join(pk.get('id','') for pk in p.get('pkgs',[])),
+    } for i, p in enumerate(d.get('places',{}).get('ranking',[]))], ensure_ascii=False)
+
+    # --- JSON para Tabulator: Places pacotes individuais ---
+    d['tab_places_json'] = json.dumps([{
+        'shp_id':   str(r.get('SHP_SHIPMENT_ID') or ''),
+        'tramo':    str(r.get('SHP_TRAMO') or '') if str(r.get('SHP_TRAMO') or '') == 'NEX' else 'XPT/DC',
+        'place_id': str(r.get('SHP_DESTINATION_ID') or '—'),
+        'acao':     extract_acao(r.get('ACTION_DETAIL') or ''),
+        'risk':     norm_risk(r.get('RISK_CLASIFICATION') or ''),
+        'dias':     int(r.get('DAYS_HANDLING_SVC') or 0),
+        'gmv':      round(float(r.get('SHP_ORDER_COST_USD') or 0), 2),
+        'retorno':  str(r.get('RETORNO_ATIVO') or '—'),
+        'carrier':  'BPP' if r.get('FLAG_BPP') else (str(r.get('CARRIER') or '') or '—'),
+        'rota_id':  str(r.get('ROTA_ID') or ''),
+        'chk_dt':   str(r.get('SHP_LG_SHIPMENT_CHK_DT') or '—'),
+    } for r in d.get('places',{}).get('rows',[])], ensure_ascii=False)
+
+    # --- JSON para Tabulator: AT STATION top packages ---
+    d['tab_as_pkgs_json'] = json.dumps([{
+        'shp_id': str(p.get('shp_id','')),
+        'tramo':  p.get('tramo',''),
+        'acao':   p.get('acao',''),
+        'risk':   p.get('risk',''),
+        'dias':   p.get('dias',0),
+        'usd':    round(p.get('usd',0), 2),
+    } for p in d.get('at_station',{}).get('top_pkgs',[])], ensure_ascii=False)
+
     hist_table = (
         "<div class='tbl-scroll'><table id='tbl_hist'><thead><tr>"
         "<th>Data</th><th>Origem</th><th>SHP ID</th><th>Situation</th>"
@@ -2213,15 +2331,21 @@ def gerar_html(d):
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator-tables/6.3.1/css/tabulator_midnight.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator-tables/6.3.1/js/tabulator.min.js"></script>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}}
   /* HEADER */
   .header{{background:#080d19;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1f2937;flex-shrink:0}}
-  .header-brand{{display:flex;align-items:center;gap:10px}}
+  .header-brand{{display:flex;align-items:center;gap:12px}}
   .header-accent{{width:3px;height:28px;background:#FFE600;border-radius:2px}}
-  .header-title{{font-size:16px;font-weight:700;color:#ffffff;letter-spacing:-0.3px}}
-  .header-sub{{font-size:11px;color:#374151;margin-top:2px}}
+  .lp-badge{{width:36px;height:36px;background:#FFE600;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#080d19;flex-shrink:0;letter-spacing:-.5px}}
+  .header-title{{font-size:16px;font-weight:700;color:#ffffff;letter-spacing:-.3px}}
+  .header-sub{{font-size:11px;color:#6b7280;margin-top:2px}}
+  .ver-badge{{background:rgba(255,230,0,.12);color:#FFE600;border:1px solid rgba(255,230,0,.3);border-radius:4px;font-size:9px;font-weight:700;padding:2px 6px;letter-spacing:.5px;vertical-align:middle}}
+  .hdr-stat{{background:#111827;border:1px solid #1f2937;border-radius:6px;padding:4px 10px;font-size:10px;color:#6b7280;white-space:nowrap}}
+  .hdr-stat b{{font-weight:700;color:#e2e8f0}}
   .header-right{{display:flex;align-items:center;gap:10px}}
   .status-dot{{width:7px;height:7px;border-radius:50%;background:#FFE600;animation:pulse 2.5s infinite}}
   @keyframes pulse{{0%,100%{{opacity:1;box-shadow:0 0 0 0 rgba(255,230,0,.4)}}50%{{opacity:.6;box-shadow:0 0 0 5px rgba(255,230,0,0)}}}}
@@ -2406,9 +2530,12 @@ def gerar_html(d):
 <!-- HEADER -->
 <div class="header">
   <div class="header-brand">
-    <div class="header-accent"></div>
+    <div class="lp-badge">LP</div>
     <div>
-      <div class="header-title">Risco SSP30</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="header-title">Risco SSP30</div>
+        <span class="ver-badge">v2.8</span>
+      </div>
       <div class="header-sub">Planilha de Controle · Gerado em {d["gerado"]}</div>
     </div>
   </div>
@@ -2626,25 +2753,43 @@ def gerar_html(d):
 <!-- ===================== ABA 2: CRÍTICOS ===================== -->
 <div id="tab-criticos" class="content">
   {'<div style="background:#7f1d1d;border:1px solid #EF4444;border-radius:12px;padding:20px;margin-bottom:24px;display:flex;align-items:center;gap:16px"><span style="font-size:32px">🚨</span><div><div style="font-size:16px;font-weight:800;color:#FCA5A5">'+str(len(d["criticos"]))+' pacotes precisam de atenção urgente</div><div style="color:#FCA5A5;opacity:0.8;font-size:13px;margin-top:4px">Critérios: Possivel Lost / +11d OW + GMV alto + muitos dias na carteira (2 ou mais fatores)</div></div></div>' if d['criticos'] else '<div style="text-align:center;padding:48px;color:#64748b"><div style="font-size:48px">✅</div><div style="font-size:18px;margin-top:12px">Nenhum pacote crítico no momento!</div></div>'}
-  {''.join([f"""
-  <div style="background:#1e293b;border-radius:12px;margin-bottom:16px;border-left:4px solid #EF4444;overflow:hidden">
-    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <a href="https://envios.adminml.com/logistics/package-management/package/{r["id"]}" target="_blank"
-           style="font-family:monospace;font-size:15px;font-weight:800;color:#60A5FA;text-decoration:none">{r["id"]}</a>
-        {pill(r["sit"])}
-        <span style="background:#1D4ED8;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">{r["origem"]}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <span style="font-size:20px;font-weight:800;color:#10B981">${r["gmv"]:,.2f}</span>
-        {dias_badge(r["dias_carteira"])} na carteira
-        {pill_status(r["status"])}
-      </div>
-    </div>
-    <div style="padding:8px 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
-      {''.join(f'<span style="background:#7f1d1d;color:#FCA5A5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">{m}</span>' for m in r["motivos"])}
-    </div>
-  </div>""" for r in d["criticos"]])}
+  <div class="tbl-wrap">
+    <div id="tabulator-criticos"></div>
+    <script>
+    (function(){{
+      var dataCrit = {d['tab_criticos_json']};
+      new Tabulator("#tabulator-criticos", {{
+        data: dataCrit,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        paginationSizeSelector: [10, 30, 50],
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          row.getElement().style.borderLeft = "3px solid #e05252";
+        }},
+        columns: [
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
+            var v = cell.getValue();
+            return '<a href="https://envios.adminml.com/logistics/package-management/package/'+v+'" target="_blank" style="font-family:monospace;font-size:12px;color:#60a5fa;text-decoration:none;font-weight:700">'+v+'</a>';
+          }}}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"Origem", field:"origem", headerFilter:"select", headerFilterParams:{{values:true}}, width:110}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:120}},
+          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
+            var v = cell.getValue();
+            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+            return v >= 0 ? v+'d' : '—';
+          }}}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+          {{title:"Motivos", field:"motivos", headerFilter:"input", width:360}},
+        ],
+      }});
+    }})();
+    </script>
+  </div>
 </div>
 
 <!-- ===================== ABA: ON ROUTE ===================== -->
@@ -2658,30 +2803,55 @@ def gerar_html(d):
     <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">{d["r_novos"]}</div></div>
   </div>
   <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>📦 Pacotes ON ROUTE — ordenados por GMV</span>
-      <button onclick="exportCSV('route','on_route_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
-    </div>
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
-    {filtros_html("route", sits_rt)}
-    <div class="tbl-scroll">
-    <table id="tbl_route">
-      <thead><tr>
-        <th class="sortable" onclick="sortTable('tbl_route',0)">SHP ID</th>
-        <th class="sortable" onclick="sortTable('tbl_route',1)">Situation</th>
-        <th class="sortable" onclick="sortTable('tbl_route',2)">GMV USD</th>
-        <th class="sortable" onclick="sortTable('tbl_route',3)">Responsável</th>
-        <th>CFTV / Inv.</th>
-        <th>Status Caso</th>
-        <th class="sortable" onclick="sortTable('tbl_route',6)">Dias Cart.</th>
-        <th class="sortable" onclick="sortTable('tbl_route',7)">Entrada</th>
-        <th><i data-lucide="pencil" width="12" height="12"></i> Ação LP</th>
-        <th>Finalização</th>
-        <th style="min-width:150px">🏢 Cobrar OTR</th>
-      </tr></thead>
-      <tbody>{rows_table_rt(d["r_rows"])}</tbody>
-    </table>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:13px;color:#8899aa">{d["r_total"]} casos · USD {d["r_gmv"]:,.2f}</span>
+      <a href="https://docs.google.com/spreadsheets/d/1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc/edit"
+         target="_blank"
+         style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
+        ✏ Editar na planilha
+      </a>
     </div>
+    <div id="tabulator-route"></div>
+    <script>
+    (function(){{
+      var dataRT = {d['tab_rt_json']};
+      new Tabulator("#tabulator-route", {{
+        data: dataRT,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        paginationSizeSelector: [20, 30, 50, 100],
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          if(data.entregue) row.getElement().style.opacity = "0.5";
+          if(data.sit && (data.sit.indexOf("Lost") >= 0 || data.sit.indexOf("11 dias") >= 0))
+            row.getElement().style.borderLeft = "3px solid #e05252";
+        }},
+        columns: [
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
+            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
+          }}}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:110}},
+          {{title:"Ação LP", field:"acao_lp", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Finalização", field:"finalizacao", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
+            var v = cell.getValue();
+            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+            return v+'d';
+          }}}},
+          {{title:"CFTV", field:"cftv", width:80}},
+          {{title:"Cobrar OTR", field:"cobrar_otr", width:100}},
+          {{title:"Entrada", field:"entrada", width:100}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
@@ -2697,31 +2867,56 @@ def gerar_html(d):
   </div>
   {carrier_ranking_html(d["carrier_ranking_wy"])}
   <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>🚛 Pacotes ON WAY — ordenados por GMV</span>
-      <button onclick="exportCSV('way','on_way_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
-    </div>
     {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["w_entregues"]) + ' pacote(s) detectado(s) como ENTREGUE no sistema</strong> — verifique e mova para Histórico como recupero.</div>' if d["w_entregues"] else ''}
-    {filtros_html("way", sits_wy)}
-    <div class="tbl-scroll">
-    <table id="tbl_way">
-      <thead><tr>
-        <th class="sortable" onclick="sortTable('tbl_way',0)">SHP ID</th>
-        <th class="sortable" onclick="sortTable('tbl_way',1)">Situation</th>
-        <th class="sortable" onclick="sortTable('tbl_way',2)">GMV USD</th>
-        <th class="sortable" onclick="sortTable('tbl_way',3)">Dias OW</th>
-        <th class="sortable" onclick="sortTable('tbl_way',4)">Transportadora</th>
-        <th>CFTV / Inv.</th>
-        <th class="sortable" onclick="sortTable('tbl_way',6)">Status Caso</th>
-        <th class="sortable" onclick="sortTable('tbl_way',7)">Dias Cart.</th>
-        <th class="sortable" onclick="sortTable('tbl_way',8)">Entrada</th>
-        <th style="min-width:200px">✏️ Ação LP</th>
-        <th style="min-width:130px">🔗 Link Email</th>
-        <th style="min-width:110px">Finalização</th>
-      </tr></thead>
-      <tbody>{rows_table_wy(d["w_rows"])}</tbody>
-    </table>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:13px;color:#8899aa">{d["w_total"]} casos · USD {d["w_gmv"]:,.2f}</span>
+      <a href="https://docs.google.com/spreadsheets/d/1dd0EC0uRKYQWJJkzIL_rjodN6eI4l6sGJ7DkVnYggXc/edit"
+         target="_blank"
+         style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
+        ✏ Editar na planilha
+      </a>
     </div>
+    <div id="tabulator-way"></div>
+    <script>
+    (function(){{
+      var dataWY = {d['tab_wy_json']};
+      new Tabulator("#tabulator-way", {{
+        data: dataWY,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        paginationSizeSelector: [20, 30, 50, 100],
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          if(data.entregue) row.getElement().style.opacity = "0.5";
+          if(data.sit && (data.sit.indexOf("Lost") >= 0 || data.sit.indexOf("11 dias") >= 0))
+            row.getElement().style.borderLeft = "3px solid #e05252";
+        }},
+        columns: [
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
+            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
+          }}}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:110}},
+          {{title:"Transportadora", field:"carrier", headerFilter:"input", width:140}},
+          {{title:"Dias OW", field:"dias_ow", width:90}},
+          {{title:"Ação LP", field:"acao_lp", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Finalização", field:"finalizacao", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
+            var v = cell.getValue();
+            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+            return v+'d';
+          }}}},
+          {{title:"CFTV", field:"cftv", width:80}},
+          {{title:"Entrada", field:"entrada", width:100}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
@@ -2837,43 +3032,44 @@ def gerar_html(d):
 
   <!-- Top pacotes por GMV -->
   <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Top 50 Pacotes — At Station (por GMV)</span>
-      <input type="text" id="as-search" placeholder="Buscar SHP ID..." oninput="asFilter()"
-        style="background:#1f2937;border:1px solid #374151;border-radius:6px;color:#f9fafb;
-               font-size:11px;padding:4px 10px;width:160px;outline:none">
-    </div>
-    <div class="tbl-scroll">
-    <table id="tbl_as_pkgs">
-      <thead><tr>
-        <th>SHP ID</th><th>Tramo</th><th>Ação LP</th><th>Risco</th>
-        <th class="sortable" onclick="sortTable('tbl_as_pkgs',4)">Dias</th>
-        <th class="sortable" onclick="sortTable('tbl_as_pkgs',5)">GMV USD</th>
-      </tr></thead>
-      <tbody id="as-tbody">
-        {"".join(
-          f'<tr>'
-          f'<td><a href="https://www.mercadolivre.com.br/envios/pacote/{p["shp_id"]}" target="_blank" style="color:#60a5fa;text-decoration:none">{p["shp_id"]}</a></td>'
-          f'<td><span style="background:#1f2937;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">{p["tramo"]}</span></td>'
-          f'<td style="font-size:11px">{p["acao"]}</td>'
-          f'<td style="font-size:11px">{p["risk"]}</td>'
-          f'<td style="{"color:#ef4444;font-weight:700" if p["dias"]>10 else "color:#9ca3af"}">{p["dias"]}</td>'
-          f'<td style="font-weight:600">${p["usd"]:,.0f}</td>'
-          f'</tr>'
-          for p in d["at_station"]["top_pkgs"]
-        )}
-      </tbody>
-    </table>
-    </div>
-  </div>
-  <script>
-    function asFilter() {{
-      const q = document.getElementById('as-search').value.toLowerCase();
-      document.querySelectorAll('#as-tbody tr').forEach(r => {{
-        r.style.display = r.cells[0].textContent.toLowerCase().includes(q) ? '' : 'none';
+    <div class="tbl-title">Top 50 Pacotes — At Station (por GMV)</div>
+    <div id="tabulator-as-pkgs"></div>
+    <script>
+    (function(){{
+      var dataAS = {d['tab_as_pkgs_json']};
+      new Tabulator("#tabulator-as-pkgs", {{
+        data: dataAS,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 50,
+        paginationSizeSelector: [20, 50, 100],
+        movableColumns: true,
+        initialSort: [{{column:"usd", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          if(data.dias > 10) row.getElement().style.borderLeft = "3px solid #ef4444";
+        }},
+        columns: [
+          {{title:"SHP ID", field:"shp_id", headerFilter:"input", width:140,
+            formatter:function(cell){{
+              var v = cell.getValue();
+              return '<a href="https://www.mercadolivre.com.br/envios/pacote/'+v+'" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace">'+v+'</a>';
+            }}}},
+          {{title:"Tramo", field:"tramo", headerFilter:"select", headerFilterParams:{{values:true}}, width:90}},
+          {{title:"Ação LP", field:"acao", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"Risco", field:"risk", headerFilter:"select", headerFilterParams:{{values:true}}, width:100}},
+          {{title:"Dias", field:"dias", sorter:"number", width:80, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(v > 10) return '<span style="color:#ef4444;font-weight:700">'+v+'d</span>';
+              return '<span style="color:#9ca3af">'+v+'d</span>';
+            }}}},
+          {{title:"GMV (USD)", field:"usd", sorter:"number", formatter:"money", formatterParams:{{precision:0, symbol:"$"}}, width:120}},
+        ],
       }});
-    }}
-  </script>
+    }})();
+    </script>
+  </div>
 </div>
 
 <!-- ===================== ABA 4: TOP GMV ===================== -->
@@ -2882,17 +3078,39 @@ def gerar_html(d):
   <div class="tbl-wrap">
     <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Ranking completo</span>
-      <button onclick="exportCSV('gmv', 'top_gmv_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
+      <button onclick="window._tabGMV && window._tabGMV.download('csv', 'top_gmv_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>
-    <div class="tbl-scroll">
-    <table id="tbl_gmv">
-      <thead><tr>
-        <th>#</th><th>Origem</th><th>SHP ID</th><th>Situation</th>
-        <th>GMV USD</th><th>Responsável</th><th>Status</th><th>Dias Cart.</th>
-      </tr></thead>
-      <tbody>{rows_table_top(d["top15"])}</tbody>
-    </table>
-    </div>
+    <div id="tabulator-gmv"></div>
+    <script>
+    (function(){{
+      var dataGMV = {d['tab_gmv_json']};
+      window._tabGMV = new Tabulator("#tabulator-gmv", {{
+        data: dataGMV,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        paginationSizeSelector: [15, 30, 50],
+        movableColumns: true,
+        columns: [
+          {{title:"#", field:"rank", width:50, hozAlign:"center", sorter:"number",
+            formatter:function(cell){{ return '<span style="font-weight:700;color:#FFE600">'+cell.getValue()+'</span>'; }}}},
+          {{title:"Origem", field:"origem", headerFilter:"select", headerFilterParams:{{values:true}}, width:110}},
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
+            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
+          }}}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:120}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
+            var v = cell.getValue();
+            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+            return v >= 0 ? v+'d' : '—';
+          }}}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
@@ -2941,19 +3159,30 @@ def gerar_html(d):
   </div>
 
   <div class="tbl-wrap">
-    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <span>Pacotes arquivados</span>
-      <button onclick="exportCSV('hist', 'historico_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
-    </div>
-    <div class="tbl-scroll">
-    <table id="tbl_hist">
-      <thead><tr>
-        <th>Data</th><th>Origem</th><th>SHP ID</th><th>Situation</th>
-        <th>GMV USD</th><th>Responsável</th><th>Status</th><th>Finalização</th>
-      </tr></thead>
-      <tbody>{rows_table_hist(d["hist_todos"])}</tbody>
-    </table>
-    </div>
+    <div id="tabulator-hist"></div>
+    <script>
+    (function(){{
+      var dataHist = {d['tab_hist_json']};
+      new Tabulator("#tabulator-hist", {{
+        data: dataHist,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 50,
+        paginationSizeSelector: [20, 50, 100, 200],
+        initialSort: [{{column:"data", dir:"desc"}}],
+        columns: [
+          {{title:"Data", field:"data", width:100}},
+          {{title:"Origem", field:"origem", headerFilter:"select", headerFilterParams:{{values:true}}, width:100}},
+          {{title:"SHP ID", field:"id", headerFilter:"input", width:130}},
+          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"GMV", field:"gmv", width:100}},
+          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
+          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
+          {{title:"Finalização", field:"final", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
@@ -3043,56 +3272,117 @@ def gerar_html(d):
         📋 Copiar Relatório
       </button>
     </div>
-    <div class="tbl-scroll">
-    <table id="tbl_places_rank" style="min-width:750px">
-      <thead><tr>
-        <th style="width:40px">#</th>
-        <th>Place ID</th><th>Tramo</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',3)">SHP</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',4)">GMV Total</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',5)">GMV/pkg</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',6)">Max Dias</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',7)">Avg Dias</th>
-        <th class="sortable" onclick="sortTable('tbl_places_rank',8)" title="Pacotes em DIT delay não classificados como missing">DIT s/ flag ⓘ</th>
-        <th>Alerta</th><th style="width:24px"></th>
-      </tr></thead>
-      <tbody>{rows_ranking_places(d["places"]["ranking"])}</tbody>
-    </table>
-    </div>
+    <div id="tabulator-places-rank"></div>
+    <script>
+    (function(){{
+      var dataPlRank = {d['tab_places_rank_json']};
+      new Tabulator("#tabulator-places-rank", {{
+        data: dataPlRank,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 30,
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          if(data.gmv_pkg >= 300) row.getElement().style.background = '#1a0808';
+          else if(data.max_dias >= 20) row.getElement().style.background = '#160f04';
+        }},
+        columns: [
+          {{title:"#", field:"rank", width:50, hozAlign:"center", sorter:"number",
+            formatter:function(cell){{ return '<span style="background:#1f2937;color:#9ca3af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">#'+cell.getValue()+'</span>'; }}}},
+          {{title:"Place ID", field:"place_id", headerFilter:"input", width:140,
+            formatter:function(cell){{ return '<span style="color:#a78bfa;font-family:monospace;font-size:12px;font-weight:600">'+cell.getValue()+'</span>'; }}}},
+          {{title:"Tramo", field:"tramo", headerFilter:"select", headerFilterParams:{{values:true}}, width:90}},
+          {{title:"SHP", field:"qtd", sorter:"number", width:70, hozAlign:"center"}},
+          {{title:"GMV Total", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:120}},
+          {{title:"GMV/pkg", field:"gmv_pkg", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:110,
+            formatter:function(cell){{
+              var v = cell.getValue();
+              var cl = v >= 300 ? '#f87171' : (v >= 100 ? '#fbbf24' : '#9ca3af');
+              return '<span style="color:'+cl+';font-weight:700">$'+v.toFixed(2)+'</span>';
+            }}}},
+          {{title:"Max Dias", field:"max_dias", sorter:"number", width:90, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+              return v+'d';
+            }}}},
+          {{title:"Avg Dias", field:"avg_dias", sorter:"number", width:90, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v.toFixed(1)+'d</span>';
+              return v.toFixed(1)+'d';
+            }}}},
+          {{title:"DIT s/ flag", field:"dit_blind", sorter:"number", width:100, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(!v) return '<span style="color:#1f2937">—</span>';
+              var cl = v >= 200 ? '#f87171' : (v >= 50 ? '#fbbf24' : '#9ca3af');
+              return '<span style="color:'+cl+';font-weight:700">'+v+'</span>';
+            }}}},
+          {{title:"SHP IDs", field:"pkgs_ids", headerFilter:"input", width:200,
+            formatter:function(cell){{ return '<span style="font-size:10px;color:#6b7280">'+cell.getValue()+'</span>'; }}}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 
   <div class="tbl-wrap">
-    <div class="tbl-title">📍 Pacotes nos Places (NEX + DC) — SSP30 · ordenados por GMV</div>
-    <div class="filter-bar">
-      <input type="text" id="busca_places" placeholder="🔍 Buscar por SHP ID..." oninput="filtrarPlaces()" class="filter-input" style="max-width:260px">
-      <select id="tramo_places" onchange="filtrarPlaces()" class="filter-select">
-        <option value="">NEX + DC</option>
-        <option value="nex">NEX</option>
-        <option value="dc">DC</option>
-      </select>
-      <select id="acao_places" onchange="filtrarPlaces()" class="filter-select">
-        <option value="">Todas as Ações</option>
-        {''.join(f'<option value="{a.lower()}">{a}</option>' for a in d["places"]["acao_cnt"].keys())}
-      </select>
-      <select id="risk_places" onchange="filtrarPlaces()" class="filter-select">
-        <option value="">Todos os Riscos</option>
-        <option value="cr">Crítico</option>
-        <option value="alt">Alto</option>
-        <option value="mod">Moderado</option>
-      </select>
-      <button onclick="exportCSV('places', 'places_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
+    <div class="tbl-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📍 Pacotes nos Places (NEX + DC) — SSP30 · ordenados por GMV</span>
+      <button onclick="window._tabPlaces && window._tabPlaces.download('csv', 'places_ssp30.csv')" class="btn-export">⬇ Exportar CSV</button>
     </div>
-    <div class="tbl-scroll">
-    <table id="tbl_places">
-      <thead><tr>
-        <th>SHP ID</th><th>Tramo</th><th>Place ID</th><th>Ação</th><th>Risco</th>
-        <th class="sortable" onclick="sortTable('tbl_places',5)">Dias S/ Mov</th>
-        <th class="sortable" onclick="sortTable('tbl_places',6)">GMV USD</th>
-        <th>Retorno Ativo</th><th>Transportadora</th><th>Rota</th><th>Último Status</th>
-      </tr></thead>
-      <tbody>{rows_table_places(d["places"]["rows"])}</tbody>
-    </table>
-    </div>
+    <div id="tabulator-places"></div>
+    <script>
+    (function(){{
+      var dataPl = {d['tab_places_json']};
+      window._tabPlaces = new Tabulator("#tabulator-places", {{
+        data: dataPl,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 50,
+        paginationSizeSelector: [20, 50, 100, 200],
+        movableColumns: true,
+        initialSort: [{{column:"gmv", dir:"desc"}}],
+        rowFormatter: function(row){{
+          var data = row.getData();
+          var rk = (data.risk || '').toLowerCase();
+          if(rk.indexOf('cr') >= 0) row.getElement().style.background = '#1a0808';
+          else if(rk.indexOf('alt') >= 0) row.getElement().style.background = '#160f04';
+        }},
+        columns: [
+          {{title:"SHP ID", field:"shp_id", headerFilter:"input", width:130,
+            formatter:function(cell){{
+              return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
+            }}}},
+          {{title:"Tramo", field:"tramo", headerFilter:"select", headerFilterParams:{{values:true}}, width:90}},
+          {{title:"Place ID", field:"place_id", headerFilter:"input", width:130,
+            formatter:function(cell){{ return '<span style="color:#a78bfa;font-size:11px;font-family:monospace">'+cell.getValue()+'</span>'; }}}},
+          {{title:"Ação", field:"acao", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
+          {{title:"Risco", field:"risk", headerFilter:"select", headerFilterParams:{{values:true}}, width:100}},
+          {{title:"Dias S/ Mov", field:"dias", sorter:"number", width:100, hozAlign:"center",
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
+              return v >= 0 ? v+'d' : '—';
+            }}}},
+          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:120}},
+          {{title:"Retorno Ativo", field:"retorno", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
+          {{title:"Transportadora", field:"carrier", headerFilter:"input", width:130}},
+          {{title:"Rota ID", field:"rota_id", headerFilter:"input", width:110,
+            formatter:function(cell){{
+              var v = cell.getValue();
+              if(!v || v === 'None' || v === '') return '—';
+              return '<a href="https://envios.adminml.com/logistics/monitoring-distribution/detail/'+v+'?site=MLB" target="_blank" style="color:#4ade80;text-decoration:none;font-family:monospace;font-size:11px">'+v+'</a>';
+            }}}},
+          {{title:"Último Status", field:"chk_dt", width:130,
+            formatter:function(cell){{ return '<span style="font-size:10px;color:#64748b">'+cell.getValue()+'</span>'; }}}},
+        ],
+      }});
+    }})();
+    </script>
   </div>
 </div>
 
@@ -3976,6 +4266,56 @@ lucide.createIcons();
 </html>'''
 
 # ============================================================
+# ABAS ESPELHO PARA GRID SDK (tabs sem parênteses no nome)
+# ============================================================
+def escrever_abas_grid(creds, rt, wy, at_station_rows):
+    """Escreve grid_rota, grid_ow e grid_station no Controle para que o Grid SDK possa ler."""
+    print("Escrevendo abas Grid (grid_rota / grid_ow / grid_station)...")
+    try:
+        gc = gspread.authorize(creds)
+        pl = gc.open_by_key(PLANILHA_CONTROLE_ID)
+
+        N = 36  # colunas A..AJ
+        HEADER = [''] * N
+        HEADER[0]  = 'Responsavel'; HEADER[1]  = 'Situacao';    HEADER[2]  = 'SHP_ID'
+        HEADER[12] = 'Dias_OW';     HEADER[13] = 'Carrier';     HEADER[21] = 'GMV_OW'
+        HEADER[22] = 'GMV_USD';     HEADER[23] = 'Acao_LP';     HEADER[24] = 'CFTV'
+        HEADER[28] = 'Status';      HEADER[29] = 'Finalizacao'; HEADER[31] = 'Entrada'
+        HEADER[32] = 'Cobrar_OTR'
+
+        def _ensure(name):
+            try:
+                ws = pl.worksheet(name); ws.clear(); return ws
+            except gspread.exceptions.WorksheetNotFound:
+                return pl.add_worksheet(title=name, rows=5000, cols=N)
+
+        def _write(ws, rows):
+            pad = lambda r: (list(r) + [''] * N)[:N]
+            data = [HEADER] + [pad(r) for r in rows]
+            ws.update('A1', data, value_input_option='RAW')
+            print(f"  {ws.title}: {len(rows)} linhas")
+
+        _write(_ensure('grid_rota'), rt)
+        _write(_ensure('grid_ow'),   wy)
+
+        as_rows = []
+        for r in at_station_rows:
+            row = [''] * N
+            row[2]  = str(r.get('SHP_SHIPMENT_ID') or '')
+            row[1]  = str(r.get('RISK_CLASIFICATION') or '')
+            row[22] = str(r.get('SHP_ORDER_COST_USD') or 0)
+            row[23] = str(r.get('ACTION_DETAIL') or '')
+            row[24] = 'SIM' if r.get('FLAG_BPP') else ''
+            row[28] = str(r.get('SHP_TRAMO') or '')
+            dias    = r.get('DAYS_HANDLING_SVC')
+            row[31] = (str(dias) + 'd') if dias else ''
+            as_rows.append(row)
+        _write(_ensure('grid_station'), as_rows)
+
+    except Exception as e:
+        print(f"  [AVISO] Falha ao escrever abas Grid: {e}")
+
+# ============================================================
 # MAIN
 # ============================================================
 if __name__ == '__main__':
@@ -4082,6 +4422,7 @@ if __name__ == '__main__':
                 break
     else:
         print("  [AVISO] Briefing BQ falhou após 3 tentativas — continuando sem dados.")
+    escrever_abas_grid(creds, rt, wy, at_station_rows)
     print("Processando dados...")
     dados = processar(rt, wy, hi, descricoes=descricoes, cftv_map=cftv_map, entregues=entregues)
     dados['places']      = processar_places(places_rows, dit_data)
