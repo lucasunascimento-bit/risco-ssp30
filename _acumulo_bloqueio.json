@@ -43,6 +43,46 @@
       "status_bl": ""
     },
     {
+      "id": "4889124",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 1,
+      "meses": [
+        "08/2026"
+      ],
+      "n_pkgs": 65,
+      "total_bpp": 1657.12,
+      "max_bpp": 175.91,
+      "residual": 1481.21,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "UBS8J41",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4432981",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 1,
+      "meses": [
+        "07/2026"
+      ],
+      "n_pkgs": 58,
+      "total_bpp": 1054.82,
+      "max_bpp": 73.94,
+      "residual": 980.88,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "UAZ7F62",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
       "id": "1303319",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -61,6 +101,69 @@
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "4428742",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 16,
+      "total_bpp": 516.74,
+      "max_bpp": 296.74,
+      "residual": 220.0,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $220 abaixo de $300",
+      "placa": "DCG4490",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "292999",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 8,
+      "total_bpp": 359.54,
+      "max_bpp": 179.08,
+      "residual": 180.46,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $180 abaixo de $300",
+      "placa": "DCG0346",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "331128",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 10,
+      "total_bpp": 145.04,
+      "max_bpp": 42.12,
+      "residual": 102.92,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $103 abaixo de $300",
+      "placa": "DCG0518",
+      "data_solicitacao": "",
+      "status_bl": "Monitorado"
     },
     {
       "id": "3003725",
@@ -85,6 +188,71 @@
     }
   ],
   "60": [
+    {
+      "id": "4428742",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 36,
+      "total_bpp": 1081.84,
+      "max_bpp": 296.74,
+      "residual": 785.1,
+      "tipo": "pnr_lor",
+      "apto": true,
+      "motivo": "",
+      "placa": "DCG4490",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "292999",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 14,
+      "total_bpp": 480.19,
+      "max_bpp": 179.08,
+      "residual": 301.11,
+      "tipo": "pnr_lor",
+      "apto": true,
+      "motivo": "",
+      "placa": "DCG0346",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4674841",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 131,
+      "total_bpp": 5161.26,
+      "max_bpp": 336.27,
+      "residual": 4824.99,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "TZP4A03",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
     {
       "id": "4770240",
       "nome": "Agencias Kangu",
@@ -128,6 +296,66 @@
       "status_bl": ""
     },
     {
+      "id": "4755613",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 1,
+      "meses": [
+        "06/2026"
+      ],
+      "n_pkgs": 73,
+      "total_bpp": 2073.3,
+      "max_bpp": 283.42,
+      "residual": 1789.88,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4889124",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 1,
+      "meses": [
+        "08/2026"
+      ],
+      "n_pkgs": 65,
+      "total_bpp": 1657.12,
+      "max_bpp": 175.91,
+      "residual": 1481.21,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "UBS8J41",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4432981",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 1,
+      "meses": [
+        "07/2026"
+      ],
+      "n_pkgs": 58,
+      "total_bpp": 1054.82,
+      "max_bpp": 73.94,
+      "residual": 980.88,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "UAZ7F62",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
       "id": "1303319",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -146,6 +374,28 @@
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "331128",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 22,
+      "total_bpp": 254.51,
+      "max_bpp": 42.12,
+      "residual": 212.39,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $212 abaixo de $300",
+      "placa": "DCG0518",
+      "data_solicitacao": "",
+      "status_bl": "Monitorado"
     },
     {
       "id": "3003725",
@@ -231,6 +481,27 @@
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "3884662",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 6,
+      "total_bpp": 98.84,
+      "max_bpp": 39.89,
+      "residual": 58.95,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $59 abaixo de $300",
+      "placa": "TBK4I35",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "860778",
@@ -380,6 +651,27 @@
       "status_bl": ""
     },
     {
+      "id": "2237627",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 43.59,
+      "max_bpp": 27.69,
+      "residual": 15.9,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "TZV6I10",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Monitorado"
+    },
+    {
       "id": "2139088",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -403,6 +695,115 @@
   ],
   "90": [
     {
+      "id": "4428742",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 60,
+      "total_bpp": 1585.23,
+      "max_bpp": 296.74,
+      "residual": 1288.49,
+      "tipo": "pnr_lor",
+      "apto": true,
+      "motivo": "",
+      "placa": "DCG4490",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "292999",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 35,
+      "total_bpp": 961.93,
+      "max_bpp": 179.08,
+      "residual": 782.85,
+      "tipo": "pnr_lor",
+      "apto": true,
+      "motivo": "",
+      "placa": "DCG0346",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4674841",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 131,
+      "total_bpp": 5161.26,
+      "max_bpp": 336.27,
+      "residual": 4824.99,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "TZP4A03",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "3626546",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "05/2026",
+        "06/2026"
+      ],
+      "n_pkgs": 56,
+      "total_bpp": 1202.41,
+      "max_bpp": 209.03,
+      "residual": 993.38,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4432981",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "05/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 60,
+      "total_bpp": 1094.53,
+      "max_bpp": 73.94,
+      "residual": 1020.59,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "UAZ7F62",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
       "id": "1303319",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -412,16 +813,56 @@
         "05/2026",
         "07/2026"
       ],
-      "n_pkgs": 22,
-      "total_bpp": 966.44,
+      "n_pkgs": 21,
+      "total_bpp": 946.8,
       "max_bpp": 365.36,
-      "residual": 601.08,
+      "residual": 581.44,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "4755613",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 1,
+      "meses": [
+        "06/2026"
+      ],
+      "n_pkgs": 73,
+      "total_bpp": 2073.3,
+      "max_bpp": 283.42,
+      "residual": 1789.88,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4889124",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 1,
+      "meses": [
+        "08/2026"
+      ],
+      "n_pkgs": 65,
+      "total_bpp": 1657.12,
+      "max_bpp": 175.91,
+      "residual": 1481.21,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "UBS8J41",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "4184605",
@@ -442,6 +883,29 @@
       "placa": "SDD-RUS8E81",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "331128",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 25,
+      "total_bpp": 324.66,
+      "max_bpp": 60.58,
+      "residual": 264.08,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $264 abaixo de $300",
+      "placa": "DCG0518",
+      "data_solicitacao": "",
+      "status_bl": "Monitorado"
     },
     {
       "id": "3003725",
@@ -465,6 +929,28 @@
       "placa": "TEV9A06",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "3884662",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 10,
+      "total_bpp": 429.78,
+      "max_bpp": 271.68,
+      "residual": 158.1,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $158 abaixo de $300",
+      "placa": "TBK4I35",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "4408685",
@@ -619,9 +1105,82 @@
       "placa": "TBK9C94",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "2237627",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 50.23,
+      "max_bpp": 27.69,
+      "residual": 22.54,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "TZV6I10",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Monitorado"
     }
   ],
   "180": [
+    {
+      "id": "331128",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 7,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026",
+        "05/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 35,
+      "total_bpp": 448.39,
+      "max_bpp": 60.58,
+      "residual": 387.81,
+      "tipo": "pnr_lor",
+      "apto": true,
+      "motivo": "",
+      "placa": "DCG0518",
+      "data_solicitacao": "",
+      "status_bl": "Monitorado"
+    },
+    {
+      "id": "292999",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 6,
+      "meses": [
+        "03/2026",
+        "04/2026",
+        "05/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 59,
+      "total_bpp": 1336.52,
+      "max_bpp": 179.08,
+      "residual": 1157.44,
+      "tipo": "pnr_lor",
+      "apto": true,
+      "motivo": "",
+      "placa": "DCG0346",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
     {
       "id": "860778",
       "nome": "Kangu Logistics",
@@ -648,6 +1207,53 @@
       "status_bl": ""
     },
     {
+      "id": "3884662",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 5,
+      "meses": [
+        "03/2026",
+        "04/2026",
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 16,
+      "total_bpp": 598.42,
+      "max_bpp": 271.68,
+      "residual": 326.74,
+      "tipo": "pnr_lor",
+      "apto": true,
+      "motivo": "",
+      "placa": "TBK4I35",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4428742",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 60,
+      "total_bpp": 1585.23,
+      "max_bpp": 296.74,
+      "residual": 1288.49,
+      "tipo": "pnr_lor",
+      "apto": true,
+      "motivo": "",
+      "placa": "DCG4490",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
+    },
+    {
       "id": "4408685",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -669,6 +1275,50 @@
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "799048",
+      "nome": "PANTERA LOG TRAN",
+      "transportadora": "PANTERA LOG TRAN",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026"
+      ],
+      "n_pkgs": 343,
+      "total_bpp": 9562.77,
+      "max_bpp": 500.05,
+      "residual": 9062.72,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "3626546",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "04/2026",
+        "05/2026",
+        "06/2026"
+      ],
+      "n_pkgs": 59,
+      "total_bpp": 1260.44,
+      "max_bpp": 209.03,
+      "residual": 1051.41,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "1303319",
@@ -713,6 +1363,109 @@
       "placa": "SDD-RUS8E81",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "4674841",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 131,
+      "total_bpp": 5161.26,
+      "max_bpp": 336.27,
+      "residual": 4824.99,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "TZP4A03",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4299345",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "04/2026",
+        "05/2026"
+      ],
+      "n_pkgs": 99,
+      "total_bpp": 4732.4,
+      "max_bpp": 1537.09,
+      "residual": 3195.31,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4432981",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "05/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 60,
+      "total_bpp": 1094.53,
+      "max_bpp": 73.94,
+      "residual": 1020.59,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "UAZ7F62",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4755613",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 1,
+      "meses": [
+        "06/2026"
+      ],
+      "n_pkgs": 73,
+      "total_bpp": 2073.3,
+      "max_bpp": 283.42,
+      "residual": 1789.88,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "4889124",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 1,
+      "meses": [
+        "08/2026"
+      ],
+      "n_pkgs": 65,
+      "total_bpp": 1657.12,
+      "max_bpp": 175.91,
+      "residual": 1481.21,
+      "tipo": "fraude_pura",
+      "apto": true,
+      "motivo": "",
+      "placa": "UBS8J41",
+      "data_solicitacao": "04/08/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "3003725",
@@ -835,6 +1588,29 @@
       "placa": "TBK9C94",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "1573090",
+      "nome": "PANTERA LOG TRAN",
+      "transportadora": "PANTERA LOG TRAN",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 10,
+      "total_bpp": 383.03,
+      "max_bpp": 197.12,
+      "residual": 185.91,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $186 abaixo de $300",
+      "placa": "RUZ8A64",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "4277678",
@@ -975,6 +1751,29 @@
       "status_bl": ""
     },
     {
+      "id": "2237627",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "04/2026",
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 6,
+      "total_bpp": 63.32,
+      "max_bpp": 27.69,
+      "residual": 35.63,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $36 abaixo de $300",
+      "placa": "TZV6I10",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Monitorado"
+    },
+    {
       "id": "3505508",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -996,6 +1795,50 @@
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "3556158",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "03/2026",
+        "04/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 9,
+      "total_bpp": 306.25,
+      "max_bpp": 80.96,
+      "residual": 225.29,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Residual $225 abaixo de $300",
+      "placa": "TZG8C97",
+      "data_solicitacao": "05/05/2026",
+      "status_bl": "Inativo"
+    },
+    {
+      "id": "3993876",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 147.61,
+      "max_bpp": 105.86,
+      "residual": 41.75,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "TZV6I07",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "4294477",
@@ -1122,28 +1965,6 @@
       "total_bpp": 45.9,
       "max_bpp": 19.42,
       "residual": 26.48,
-      "tipo": "pnr",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "2139088",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "02/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 44.94,
-      "max_bpp": 24.64,
-      "residual": 20.3,
       "tipo": "pnr",
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
