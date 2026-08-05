@@ -2624,7 +2624,7 @@ def gerar_html(d):
     <div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="header-title">Análise de Fraude — SSP30</div>
-        <span class="ver-badge">v2.8</span>
+        <span class="ver-badge">v2.9</span>
       </div>
       <div class="header-sub">Base {d["ano"]} · <span id="upd-badge">Gerado em {d["gerado"]}</span><span id="upd-ts" data-ts="{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}" style="display:none"></span></div>
     </div>
@@ -3089,7 +3089,7 @@ async function carregarDaPlanilha() {{
         const resp=await fetch(SHEETS_CSV_URL,{{credentials:'include',cache:'no-store'}});
         if(!resp.ok) throw new Error('HTTP '+resp.status);
         const csv=await resp.text();
-        const lines=csv.split('\n').filter(l=>l.trim());
+        const lines=csv.split('\\n').filter(l=>l.trim());
         if(lines.length<2) throw new Error('vazia');
         let hi=lines.findIndex(l=>l.replace(/"/g,'').startsWith('periodo_dias'));
         if(hi<0) throw new Error('sem header');
@@ -6177,7 +6177,7 @@ def gerar_sinistros_html(dados):
     <div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="header-title">Sinistros / Eventos SVC — SSP30</div>
-        <span class="ver-badge">v2.8</span>
+        <span class="ver-badge">v2.9</span>
       </div>
       <div class="header-sub">Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>
     </div>
