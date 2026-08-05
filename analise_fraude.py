@@ -3187,7 +3187,7 @@ async function carregarDaPlanilha() {{
         const resp=await fetch(SHEETS_CSV_URL,{{credentials:'include',cache:'no-store'}});
         if(!resp.ok) throw new Error('HTTP '+resp.status);
         const csv=await resp.text();
-        const lines=csv.split('\n').filter(l=>l.trim());
+        const lines=csv.split('\\n').filter(l=>l.trim());
         if(lines.length<2) throw new Error('vazia');
         let hi=lines.findIndex(l=>l.replace(/"/g,'').startsWith('periodo_dias'));
         if(hi<0) throw new Error('sem header');
