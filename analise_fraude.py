@@ -55,6 +55,8 @@ QUERY_DRIVER_SHIPMENTS = f"""
 -- Todos os SHP IDs por driver para exibir no dashboard
 SELECT
     SAFE_CAST(DRIVER_ID AS STRING)       AS DRIVER_ID,
+    IFNULL(DRIVER_NAME, '')              AS DRIVER_NAME,
+    IFNULL(MLP, '')                      AS MLP,
     CAST(SHIPMENT_ID AS STRING)          AS SHP_ID,
     Classification_LM                    AS CLASSIFICACAO,
     ROUND(BPP_CASHOUT_USD, 2)            AS BPP,
@@ -488,41 +490,39 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
     cutoff = _dta.now() - _td(days=days)
     min_meses = 2 if days <= 60 else 3
     result = []
+    # LOR+FRAUD: inclui LOST ON WAY, LOST ENE e FRAUD ON ROUTE/AT STATION/ENE e PNR C
+    # STOLEN ON ROUTE = roubo de carga (sinistro) — monitorado separadamente, não entra aqui
+    _CLASSES_VALIDAS = ('FRAUD', 'LOST ON ROUTE', 'LOST ON WAY', 'LOST ENE', 'PNR C', 'EMPTY BOX', 'DNR')
+    def _in_window(s):
+        try:
+            return _dta.strptime(s.get('data',''), '%d/%m/%Y') >= cutoff
+        except Exception:
+            return False
     for d in drivers:
         did  = str(d.get('id','') or '').strip()
         dst  = str(d.get('status','') or '').strip().lower()
         if not did or dst in STATUS_NAO_BLOQ: continue
         shps_all = shp_por_driver.get(did, [])
-        # FRAUD, LOST ON ROUTE, STOLEN ON ROUTE e PNR C monitorados
-        # DAMAGED, LOST AT STATION e LOST ON WAY excluídos
-        _CLASSES_VALIDAS = ('FRAUD', 'LOST ON ROUTE', 'STOLEN ON ROUTE', 'PNR C')
-        def _in_window(s):
-            try:
-                return _dta.strptime(s.get('data',''), '%d/%m/%Y') >= cutoff
-            except Exception:
-                return False
         shps = [s for s in shps_all
                 if float(s.get('bpp',0) or 0) > 0
                 and _in_window(s)
                 and any(k in str(s.get('class','')) for k in _CLASSES_VALIDAS)]
         if not shps: continue
         classes = [str(s.get('class','')) for s in shps]
-        has_stolen = any('STOLEN ON ROUTE' == c for c in classes)
         meses = set()
         for s in shps:
             try:
                 dr = _dta.strptime(s.get('data',''), '%d/%m/%Y')
                 meses.add(f'{dr.month:02d}/{dr.year}')
             except Exception: pass
-        # STOLEN ON ROUTE (roubo de carga) bypassa requisito de acúmulo mensal
-        if not has_stolen and len(meses) < min_meses: continue
-        has_fraud  = any('FRAUD' in c or 'STOLEN' in c for c in classes)
-        has_lost   = any('LOST ON ROUTE' == c for c in classes)
-        has_pnr    = any('PNR C' == c for c in classes)
+        if len(meses) < min_meses: continue
+        # FRAUD: FRAUD ON ROUTE/AT STATION/ENE, PNR C, EMPTY BOX, DNR
+        has_fraud = any('FRAUD' in c or 'PNR' in c or 'EMPTY BOX' in c or 'DNR' in c for c in classes)
+        # LOR: driver não devolve pacotes (LOST ON ROUTE, LOST ON WAY, LOST ENE)
+        has_lost  = any(c in ('LOST ON ROUTE', 'LOST ON WAY', 'LOST ENE') for c in classes)
         if has_fraud and has_lost:    tipo = 'lost_fraude'
         elif has_fraud:               tipo = 'fraude_pura'
-        elif has_pnr and has_lost:    tipo = 'pnr_lor'
-        elif has_pnr:                 tipo = 'pnr'
+        elif has_lost:                tipo = 'pnr_lor'  # lost sem fraude confirmada
         else:                         tipo = 'outro'
         total_bpp = round(sum(float(s.get('bpp',0) or 0) for s in shps), 2)
         max_bpp   = round(max((float(s.get('bpp',0) or 0) for s in shps), default=0), 2)
@@ -1600,6 +1600,22 @@ def prioridade(score, fraud_conf):
     if score >= 4:                     return 'MEDIA'
     return 'BAIXA'
 
+def _build_all_acumulo(shp_por_driver, status_map, routes_map, driver_meta):
+    """Retorna lista com TODOS os drivers que têm SHPs, enriquecida com status e transportadora."""
+    result = []
+    for did in shp_por_driver:
+        if not did: continue
+        st = status_map.get(did, {})
+        rt = routes_map.get(did, {})
+        meta = driver_meta.get(did, {})
+        result.append({
+            'id':            did,
+            'status':        st.get('status', ''),
+            'nome':          meta.get('nome', ''),
+            'transportadora':rt.get('transportadora', '') or meta.get('mlp', '') or 'N/A',
+        })
+    return result
+
 def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_status, df_routes):
     # ---- Drivers (score combinado) ----
     drivers = []
@@ -1776,11 +1792,17 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
 
     # ---- SHP IDs por driver ----
     shp_por_driver = {}
+    driver_meta = {}  # {driver_id: {nome, mlp}} — preenchido a partir dos SHPs
     for _, r in df_shp.iterrows():
         did = str(r.get('DRIVER_ID', ''))
         if not did: continue
         if did not in shp_por_driver:
             shp_por_driver[did] = []
+            # captura nome/MLP do primeiro SHP disponível
+            nome_shp = str(r.get('DRIVER_NAME', '') or '')
+            mlp_shp  = str(r.get('MLP', '') or '')
+            if nome_shp or mlp_shp:
+                driver_meta[did] = {'nome': nome_shp, 'mlp': mlp_shp}
         shp_por_driver[did].append({
             'id':    str(r.get('SHP_ID', '')),
             'class': str(r.get('CLASSIFICACAO', '')),
@@ -1905,6 +1927,9 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
     top10_places_labels = [p['nome'][:25]+'…' if len(p['nome'])>25 else p['nome'] for p in places[:10]]
     top10_places_vals   = [p['total'] for p in places[:10]]
 
+    # Constrói uma vez a lista completa de drivers para cálculo de acúmulo LOR+FRAUD
+    _all_drv = _build_all_acumulo(shp_por_driver, status_map, routes_map, driver_meta)
+
     return {
         'gerado':    datetime.now().strftime('%d/%m/%Y %H:%M'),
         'ano':       ANO_INICIO[:4],
@@ -1936,12 +1961,12 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
         'top10_places_vals':   top10_places_vals,
         'monthly_agg':         monthly_agg,
         'monthly_dr':          monthly_dr,
-        'acumulo_bloqueio': processar_acumulo_bloqueio(drivers, shp_por_driver, days=90),
+        'acumulo_bloqueio':    processar_acumulo_bloqueio(_all_drv, shp_por_driver, days=90),
         'acumulo_por_periodo': {
-            '30':  processar_acumulo_bloqueio(drivers, shp_por_driver, days=30),
-            '60':  processar_acumulo_bloqueio(drivers, shp_por_driver, days=60),
-            '90':  processar_acumulo_bloqueio(drivers, shp_por_driver, days=90),
-            '180': processar_acumulo_bloqueio(drivers, shp_por_driver, days=180),
+            '30':  processar_acumulo_bloqueio(_all_drv, shp_por_driver, days=30),
+            '60':  processar_acumulo_bloqueio(_all_drv, shp_por_driver, days=60),
+            '90':  processar_acumulo_bloqueio(_all_drv, shp_por_driver, days=90),
+            '180': processar_acumulo_bloqueio(_all_drv, shp_por_driver, days=180),
         },
         'transp_damaged_ranking': transp_damaged_ranking,
         'driver_transp': {str(dmg['id']): ((routes_map.get(dmg['id'], {}) or {}).get('transportadora') or 'N/A').strip() or 'N/A' for dmg in damaged},
