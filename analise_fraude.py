@@ -2096,13 +2096,17 @@ def _render_bloqueados_bl(bloqueados_bl):
     )
 
 def render_passiv_bloqueio(candidatos, bloqueados_bl=None):
-    """Renderiza a seção 'Passíveis de Bloqueio' para a aba bloqueios."""
+    """Renderiza a seção 'Passíveis de Bloqueio' para a aba bloqueios — design ação-focado."""
     bloqueados_bl = bloqueados_bl or []
     if not candidatos and not bloqueados_bl:
         return ''
     TIPO_LABEL = {
         'fraude_pura': 'Fraude Pura', 'lost_fraude': 'Lost+Fraude',
         'pnr_lor': 'PNR+LOR', 'pnr': 'PNR',
+    }
+    TIPO_COLOR = {
+        'fraude_pura': '#f87171', 'lost_fraude': '#fb923c',
+        'pnr_lor': '#fbbf24', 'pnr': '#fde68a',
     }
     BLOQ = {'bloqueado','blocked'}
     para_bloquear = [c for c in candidatos if c['tipo'] in ('fraude_pura','lost_fraude')]
@@ -2111,103 +2115,164 @@ def render_passiv_bloqueio(candidatos, bloqueados_bl=None):
     n_pb  = len(para_bloquear)
     n_pnr = len(acao_pnr)
 
-    def _acao_badge(c):
+    def _status_badge(c):
         s = (c.get('status_bl') or '').strip()
         sl = s.lower()
         if sl in BLOQ:
-            return '<span style="background:#064e3b;color:#4ade80;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">✓ Bloqueado</span>'
+            return '<span style="background:#064e3b;color:#4ade80;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">✓ Bloqueado</span>'
         if sl == 'solicitado':
-            return '<span style="background:#1e3a5f;color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">↻ Solicitado</span>'
+            return '<span style="background:#1e3a5f;color:#60a5fa;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">↻ Solicitado</span>'
         if sl == 'monitorado':
-            return '<span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⊙ Monitorado</span>'
-        return '<span style="background:#1c1008;color:#fb923c;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⚠ Pendente</span>'
+            return '<span style="background:#713f12;color:#fde68a;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">⊙ Monitorado</span>'
+        return '<span style="background:#3b0a0a;color:#fb923c;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">⚠ Pendente</span>'
 
-    def _urgente_badge(c):
-        s = (c.get('status_bl') or '').strip().lower()
-        if s in BLOQ: return ''
-        if c.get('residual', 0) >= 1000:
-            return '<span style="background:#450a0a;color:#f87171;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-right:4px">URGENTE</span>'
-        return ''
+    def _driver_card(c, accent_color='#ef4444', accent_bg='#1a0505'):
+        did   = c['id']
+        nome  = c.get('nome') or '—'
+        transp= c.get('transportadora') or '—'
+        placa = c.get('placa') or '—'
+        tipo  = TIPO_LABEL.get(c['tipo'], c['tipo'])
+        tcor  = TIPO_COLOR.get(c['tipo'], '#9ca3af')
+        pkgs  = c.get('n_pkgs', 0)
+        bpp   = c.get('total_bpp', 0)
+        res   = c.get('residual', 0)
+        meses = c.get('n_meses', 0)
+        s_bl  = (c.get('status_bl') or '').strip().lower()
+        # Link: Envios Extra usa drivers-management, outros usam drivers-block
+        if 'extra' in transp.lower():
+            link = f'https://envios.adminml.com/logistics/drivers-management/drivers/{did}'
+        else:
+            link = f'https://envios.adminml.com/logistics/provider-management/drivers-block/list?searchType=id&searchValue={did}'
+        urgente = (s_bl not in BLOQ) and res >= 1000
 
-    def _rows(lista):
-        out = ''
-        for c in lista:
-            did   = c['id']
-            nome  = c.get('nome') or '—'
-            transp= c.get('transportadora') or '—'
-            placa = c.get('placa') or '—'
-            tipo  = TIPO_LABEL.get(c['tipo'], c['tipo'])
-            pkgs  = c.get('n_pkgs', 0)
-            bpp   = c.get('total_bpp', 0)
-            res   = c.get('residual', 0)
-            dias  = c.get('n_meses', 0)
-            link  = f'https://envios.adminml.com/logistics/drivers-management/drivers/{did}'
-            s_bl  = (c.get('status_bl') or '').strip().lower()
-            row_bg= 'background:#0a1a0a;' if s_bl in BLOQ else ''
-            out  += (
-                f'<tr style="{row_bg}border-bottom:1px solid #1f2937">'
-                f'<td style="padding:7px 8px;font-family:monospace;font-size:12px">'
-                f'  {_urgente_badge(c)}<a href="{link}" target="_blank" style="color:#93c5fd;text-decoration:none">{did}</a>'
-                f'</td>'
-                f'<td style="padding:7px 8px;font-size:12px;color:#d1d5db">{nome[:28]}</td>'
-                f'<td style="padding:7px 8px;font-size:11px;color:#9ca3af">{transp[:20]}</td>'
-                f'<td style="padding:7px 8px;font-size:11px;color:#9ca3af">{placa}</td>'
-                f'<td style="padding:7px 8px;font-size:11px;color:#c4b5fd">{tipo}</td>'
-                f'<td style="padding:7px 8px;font-size:12px;text-align:right">{pkgs}</td>'
-                f'<td style="padding:7px 8px;font-size:12px;text-align:right;color:#f87171">${bpp:,.2f}</td>'
-                f'<td style="padding:7px 8px;font-size:12px;text-align:right;color:#fb923c">${res:,.2f}</td>'
-                f'<td style="padding:7px 8px;font-size:11px;color:#9ca3af;text-align:center">{dias}m</td>'
-                f'<td style="padding:7px 8px">{_acao_badge(c)}</td>'
+        # SHP detail rows
+        shp_rows = ''
+        for s in c.get('shps', []):
+            bpp_v = float(s.get('bpp', 0) or 0)
+            is_max = abs(bpp_v - c.get('max_bpp', 0)) < 0.01
+            max_tag = ' <span style="color:#fbbf24;font-size:9px" title="maior BPP individual">★</span>' if is_max else ''
+            cls = str(s.get('class', ''))
+            cls_cor = ('#f87171' if ('FRAUD' in cls or 'STOLEN' in cls) else
+                       '#fb923c' if 'PNR C' in cls else
+                       '#fbbf24' if 'LOST' in cls else '#6b7280')
+            sem = str(s.get('semana', ''))
+            if '-W' in sem:
+                sem = 'S' + (sem.split('-W')[-1].lstrip('0') or '?')
+            shp_id = s.get('id', '')
+            shp_link = (f'<a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/{shp_id}" '
+                        f'target="_blank" style="color:#60a5fa;font-family:monospace;font-size:11px;text-decoration:none">'
+                        f'{shp_id}</a>') if shp_id else '—'
+            shp_rows += (
+                f'<tr style="border-bottom:1px solid #1a2030">'
+                f'<td style="padding:5px 10px;font-size:10px;color:#6b7280;font-family:monospace;width:50px">{sem}</td>'
+                f'<td style="padding:5px 10px;font-size:10px;color:{cls_cor};width:200px">{cls}</td>'
+                f'<td style="padding:5px 10px">{shp_link}</td>'
+                f'<td style="padding:5px 10px;font-size:11px;text-align:right;font-weight:600;color:#e5e7eb;white-space:nowrap">'
+                f'${bpp_v:,.2f}{max_tag}</td>'
                 f'</tr>'
             )
-        return out
 
-    THEAD = '''<thead><tr>
-      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Driver ID</th>
-      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Nome</th>
-      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Transportadora</th>
-      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Placa</th>
-      <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Tipo</th>
-      <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Pkgs</th>
-      <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">BPP Total</th>
-      <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Residual</th>
-      <th style="text-align:center;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Meses</th>
-      <th style="text-align:center;color:#6b7280;font-size:10px;font-weight:600;padding:6px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #374151">Status</th>
-    </tr></thead>'''
+        urg_badge = ('<span style="background:#450a0a;color:#f87171;padding:2px 7px;border-radius:3px;'
+                     'font-size:9px;font-weight:700;margin-right:6px;flex-shrink:0">URGENTE</span>') if urgente else ''
+        border_col = '#166534' if s_bl in BLOQ else ('#374151' if s_bl == 'solicitado' else accent_color)
 
-    pb_rows  = _rows(para_bloquear)
-    pnr_rows = _rows(acao_pnr)
+        return (
+            f'<div style="background:{accent_bg};border:1px solid {border_col};border-radius:8px;'
+            f'margin-bottom:10px;overflow:hidden">'
+            # Header
+            f'<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;flex-wrap:wrap;'
+            f'border-bottom:1px solid #1a2030">'
+            f'{urg_badge}'
+            f'<a href="{link}" target="_blank" title="Abrir no adminml" '
+            f'style="font-family:monospace;font-size:13px;font-weight:700;color:#93c5fd;text-decoration:none;flex-shrink:0">'
+            f'{did}</a>'
+            f'<span style="font-size:12px;color:#d1d5db;flex:1;min-width:100px;overflow:hidden;'
+            f'text-overflow:ellipsis;white-space:nowrap" title="{nome}">{nome[:32]}</span>'
+            f'<span style="font-size:11px;color:#9ca3af;white-space:nowrap">{transp[:22]}</span>'
+            f'<span style="font-size:10px;color:#6b7280">·</span>'
+            f'<span style="font-size:11px;color:#6b7280;font-family:monospace">{placa}</span>'
+            f'<span style="background:#1f0e3a;color:{tcor};font-size:10px;padding:2px 8px;'
+            f'border-radius:3px;white-space:nowrap">{tipo}</span>'
+            f'<span style="font-size:11px;color:#6b7280;white-space:nowrap">{pkgs} pkgs · {meses}m</span>'
+            f'<span style="color:#f87171;font-size:13px;font-weight:700;white-space:nowrap">${bpp:,.2f}</span>'
+            f'<span style="font-size:10px;color:#9ca3af;white-space:nowrap">res ${res:,.2f}</span>'
+            f'{_status_badge(c)}'
+            f'</div>'
+            # SHP table
+            f'<table style="width:100%;border-collapse:collapse;background:#080d19">'
+            f'<thead><tr style="background:#0d1321">'
+            f'<th style="padding:4px 10px;font-size:9px;color:#374151;font-weight:600;text-transform:uppercase;'
+            f'letter-spacing:.5px;text-align:left">Sem.</th>'
+            f'<th style="padding:4px 10px;font-size:9px;color:#374151;font-weight:600;text-transform:uppercase;'
+            f'letter-spacing:.5px;text-align:left">Classificação</th>'
+            f'<th style="padding:4px 10px;font-size:9px;color:#374151;font-weight:600;text-transform:uppercase;'
+            f'letter-spacing:.5px;text-align:left">SHP ID</th>'
+            f'<th style="padding:4px 10px;font-size:9px;color:#374151;font-weight:600;text-transform:uppercase;'
+            f'letter-spacing:.5px;text-align:right">BPP</th>'
+            f'</tr></thead>'
+            f'<tbody>{shp_rows}</tbody>'
+            f'</table>'
+            f'</div>'
+        )
+
+    def _section(title, lista, accent_color, accent_bg, icon='shield-x'):
+        if not lista:
+            return ''
+        cards = ''.join(_driver_card(c, accent_color, accent_bg) for c in lista)
+        return (
+            f'<div style="margin-bottom:20px">'
+            f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;'
+            f'padding:8px 12px;background:#0d1321;border-radius:6px;border-left:3px solid {accent_color}">'
+            f'<i data-lucide="{icon}" width="13" height="13" style="color:{accent_color};flex-shrink:0"></i>'
+            f'<span style="font-size:11px;font-weight:700;color:{accent_color};text-transform:uppercase;'
+            f'letter-spacing:.6px">{title}</span>'
+            f'<span style="margin-left:auto;background:#0a0f1a;color:{accent_color};font-size:11px;'
+            f'font-weight:700;padding:2px 10px;border-radius:4px">{len(lista)}</span>'
+            f'</div>'
+            f'{cards}'
+            f'</div>'
+        )
+
+    pb_section  = _section('Solicitar Bloqueio Agora', para_bloquear, '#ef4444', '#0f0505', 'shield-x')
+    pnr_section = _section('Ação PNR', acao_pnr, '#f59e0b', '#0f0900', 'alert-circle')
+
+    # Já bloqueados em collapse
+    bloq_section = ''
+    if bloqueados_bl:
+        inner = _render_bloqueados_bl(bloqueados_bl)
+        bloq_section = (
+            f'<details style="margin-top:4px">'
+            f'<summary style="cursor:pointer;padding:8px 12px;background:#061206;'
+            f'border:1px solid #166534;border-radius:6px;font-size:11px;font-weight:700;'
+            f'color:#4ade80;text-transform:uppercase;letter-spacing:.5px;list-style:none;'
+            f'display:flex;align-items:center;gap:8px">'
+            f'<i data-lucide="shield-check" width="13" height="13"></i>'
+            f' Já Bloqueados — {n_bloqueados} drivers confirmados'
+            f'<span style="margin-left:auto;font-size:10px;color:#374151">▼ expandir</span>'
+            f'</summary>'
+            f'<div style="margin-top:8px">{inner}</div>'
+            f'</details>'
+        )
 
     return f'''
-<div class="box" style="margin-bottom:18px">
-  <div class="box-title" style="margin-bottom:14px">
-    <i data-lucide="shield-alert" width="12" height="12" class="ci" style="margin-right:6px;color:#ef4444"></i>
-    PASSÍVEIS DE BLOQUEIO — {len(candidatos)} candidatos identificados
-  </div>
-
-  <div style="display:flex;gap:12px;margin-bottom:18px">
-    <div style="flex:1;background:#1a0a0a;border:1px solid #7f1d1d;border-radius:8px;padding:12px 16px">
-      <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Para Bloquear</div>
-      <div style="font-size:26px;font-weight:700;color:#ef4444">{n_pb}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:2px">pendentes de solicitação</div>
+<div style="margin-bottom:20px">
+  <div style="display:flex;gap:10px;margin-bottom:20px">
+    <div style="flex:1;background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:14px 18px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:#ef4444;line-height:1">{n_pb}</div>
+      <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Para Bloquear</div>
     </div>
-    <div style="flex:1;background:#1a100a;border:1px solid #92400e;border-radius:8px;padding:12px 16px">
-      <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Ação PNR</div>
-      <div style="font-size:26px;font-weight:700;color:#f59e0b">{n_pnr}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:2px">PNR + LOR pendentes</div>
+    <div style="flex:1;background:#0f0900;border:1px solid #92400e;border-radius:8px;padding:14px 18px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:#f59e0b;line-height:1">{n_pnr}</div>
+      <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Ação PNR</div>
     </div>
-    <div style="flex:1;background:#0a1a0a;border:1px solid #166534;border-radius:8px;padding:12px 16px">
-      <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Já Bloqueados</div>
-      <div style="font-size:26px;font-weight:700;color:#4ade80">{n_bloqueados}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:2px">ações LP realizadas ✓</div>
+    <div style="flex:1;background:#061206;border:1px solid #166534;border-radius:8px;padding:14px 18px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:#4ade80;line-height:1">{n_bloqueados}</div>
+      <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Bloqueados ✓</div>
     </div>
   </div>
-
-  {'<div style="margin-bottom:18px"><div style="font-size:11px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;gap:6px"><i data-lucide="shield-x" width="12" height="12"></i> PARA BLOQUEAR ('+str(len(para_bloquear))+')</div><div class="tbl-scroll"><table style="width:100%;font-size:12px;border-collapse:collapse">'+THEAD+'<tbody>'+pb_rows+'</tbody></table></div></div>' if para_bloquear else ''}
-
-  {'<div style="margin-bottom:18px"><div style="font-size:11px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;gap:6px"><i data-lucide="alert-circle" width="12" height="12"></i> AÇÃO PNR ('+str(len(acao_pnr))+')</div><div class="tbl-scroll"><table style="width:100%;font-size:12px;border-collapse:collapse">'+THEAD+'<tbody>'+pnr_rows+'</tbody></table></div></div>' if acao_pnr else ''}
-
-  {_render_bloqueados_bl(bloqueados_bl) if bloqueados_bl else ''}
+  {pb_section}
+  {pnr_section}
+  {bloq_section}
 </div>'''
 
 def rows_block_list(rows):
@@ -3441,6 +3506,7 @@ let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
 function initBlCharts() {{
   if (_blDone) return;
   _blDone = true;
+  if (!document.getElementById('cBlStatus')) return;
   requestAnimationFrame(function() {{
     try {{
       const _stLabels = {j([k for k in d["bl"]["por_status"].keys() if k in ('Bloqueado','Monitorado','Solicitado','Inativo')])};
@@ -5522,81 +5588,61 @@ lucide.createIcons();
 <!-- ABA BLOQUEIOS -->
 <div id="tab-bloqueios" class="content">
 
-  {render_passiv_bloqueio(d.get('passiv_bloqueio', []), [r for r in d['bl'].get('rows',[]) if (r.get('status') or '').strip().lower() in ('bloqueado','blocked')])}
-
-  {f'''<div style="background:#0f0606;border:1px solid #7f1d1d;border-radius:8px;padding:14px 18px;margin-bottom:20px">
+  {f'''<div style="background:#0f0606;border:1px solid #7f1d1d;border-radius:8px;padding:14px 18px;margin-bottom:18px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <i data-lucide="alert-triangle" width="16" height="16" style="color:#ef4444;flex-shrink:0"></i>
-      <span style="font-size:13px;font-weight:600;color:#f87171">{len(d["alertas_bl"])} driver(s) da Block List com SHP de alto valor nos últimos 15 dias</span>
-      <span style="margin-left:auto;background:#450a0a;color:#f87171;font-size:10px;font-weight:700;padding:3px 9px;border-radius:3px;white-space:nowrap">≥ $200 USD</span>
+      <span style="font-size:13px;font-weight:600;color:#f87171">{len(d["alertas_bl"])} driver(s) da Block List com SHP ≥ $200 nos últimos 15 dias — verificar se precisa reforçar bloqueio</span>
     </div>
     <table style="width:100%;font-size:12px;border-collapse:collapse">
       <thead><tr>
-        <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">Driver</th>
-        <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">Status BL</th>
-        <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">SHP ID</th>
-        <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">BPP</th>
-        <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:4px 0;text-transform:uppercase;letter-spacing:.5px">Data</th>
+        <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:4px 8px;text-transform:uppercase;letter-spacing:.5px">Driver</th>
+        <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:4px 8px;text-transform:uppercase;letter-spacing:.5px">Status BL</th>
+        <th style="text-align:left;color:#6b7280;font-size:10px;font-weight:600;padding:4px 8px;text-transform:uppercase;letter-spacing:.5px">SHP ID</th>
+        <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:4px 8px;text-transform:uppercase;letter-spacing:.5px">BPP</th>
+        <th style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;padding:4px 8px;text-transform:uppercase;letter-spacing:.5px">Data</th>
       </tr></thead>
       <tbody>{rows_alertas_bl(d["alertas_bl"])}</tbody>
     </table>
   </div>''' if d["alertas_bl"] else ''}
 
-  <div class="cards">
-    <div class="card">
-      <div class="card-header"><i data-lucide="list" class="ci" width="14" height="14"></i><span class="cl">Total Solicitações</span></div>
-      <div class="cv" id="bl-cv-total">{d["bl"]["total"]}</div><div class="cd">2026</div>
-    </div>
-    <div class="card card-ok">
-      <div class="card-header"><i data-lucide="shield-check" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">Bloqueados</span></div>
-      <div class="cv val-ok" id="bl-cv-bloqueados">{d["bl"]["bloqueados"]}</div><div class="cd">Confirmados</div>
-    </div>
-    <div class="card">
-      <div class="card-header"><i data-lucide="clock" class="ci" width="14" height="14"></i><span class="cl">Solicitados</span></div>
-      <div class="cv" style="color:#60a5fa" id="bl-cv-solicitados">{d["bl"]["solicitados"]}</div><div class="cd">Aguardando</div>
-    </div>
-    <div class="card">
-      <div class="card-header"><i data-lucide="eye" class="ci" width="14" height="14"></i><span class="cl">Monitorados</span></div>
-      <div class="cv val-warn" id="bl-cv-monitorados">{d["bl"]["monitorados"]}</div><div class="cd">Em acompanhamento</div>
-    </div>
-    <div class="card card-ok">
-      <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">GMV Protegido</span></div>
-      <div class="cv val-ok" id="bl-cv-gmv">${d["bl"]["gmv_protegido"]:,.2f}</div><div class="cd">Bloqueados confirmados</div>
-    </div>
-    <div class="card">
-      <div class="card-header"><i data-lucide="calendar-check" class="ci" width="14" height="14" style="color:#a78bfa"></i><span class="cl">Esta Semana</span></div>
-      <div class="cv" style="color:#a78bfa">{d["bl"]["esta_semana"]}</div><div class="cd">Bloqueios semana {datetime.now().strftime("%W").lstrip("0") or "0"}</div>
-    </div>
-  </div>
+  {render_passiv_bloqueio(d.get('passiv_bloqueio', []), [r for r in d['bl'].get('rows',[]) if (r.get('status') or '').strip().lower() in ('bloqueado','blocked')])}
 
-  {'<div style="background:#1c1008;border:1px solid #92400e;border-radius:8px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px"><span style="font-size:18px">📋</span><div><div style="font-size:12px;font-weight:600;color:#fbbf24">Block List vazia</div><div style="font-size:11px;color:#9ca3af;margin-top:4px">Nenhum driver adicionado ainda. Preencha a aba <em>Drivers Bloqueados</em> na planilha e reprocesse o dashboard.</div></div></div>' if not d["bl"]["rows"] else ''}
-  <div id="bl-period-note" style="display:none;font-size:11px;color:#fb923c;background:#1c1008;border:1px solid #92400e;border-radius:6px;padding:6px 14px;margin-bottom:16px;text-align:center"></div>
+  <!-- Hidden elements for JS updateBloqueiosCards compatibility -->
+  <span id="bl-cv-total" style="display:none">{d["bl"]["total"]}</span>
+  <span id="bl-cv-bloqueados" style="display:none">{d["bl"]["bloqueados"]}</span>
+  <span id="bl-cv-solicitados" style="display:none">{d["bl"]["solicitados"]}</span>
+  <span id="bl-cv-monitorados" style="display:none">{d["bl"]["monitorados"]}</span>
+  <span id="bl-cv-gmv" style="display:none">${d["bl"]["gmv_protegido"]:,.2f}</span>
+  <div id="bl-period-note" style="display:none"></div>
 
-  <div class="grid2 mb16">
-    <div class="box"><div class="bt">Por Status</div><div style="position:relative;height:220px"><canvas id="cBlStatus"></canvas></div></div>
-    <div class="box"><div class="bt">Por Transportadora</div><div style="position:relative;height:220px"><canvas id="cBlTransp"></canvas></div></div>
-  </div>
-  <div class="box mb16"><div class="bt">Bloqueios por Semana (2026)</div><div style="position:relative;height:200px"><canvas id="cBlSemana"></canvas></div></div>
-
-  <div class="tbl-wrap">
-    <div class="tbl-title">Lista Completa — Block List 2026</div>
-    <div class="filter-bar">
-      <input id="bl_search" type="text" oninput="filtrarBloqueios()" class="filter-select" placeholder="🔍 Driver ID ou Nome..." style="width:180px">
-      <select id="bl_status" onchange="filtrarBloqueios()" class="filter-select">
-        <option value="">Todos os status</option>
-        <option value="Bloqueado">Bloqueado</option>
-        <option value="Solicitado">Solicitado</option>
-        <option value="Monitorado">Monitorado</option>
-      </select>
-      <select id="bl_transp" onchange="filtrarBloqueios()" class="filter-select">
-        <option value="">Todas as transportadoras</option>
-        {''.join(f'<option value="{t}">{t}</option>' for t in sorted(t for t in set(r["mlp"] for r in d["bl"]["rows"]) if t and t not in ("N/A","")))}
-      </select>
-      <button onclick="document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';document.getElementById('bl_search').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
-      <button onclick="exportBlCSV()" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer;margin-left:auto">⬇ Exportar CSV</button>
+  <details style="margin-top:8px">
+    <summary style="cursor:pointer;padding:10px 16px;background:#0d1321;border:1px solid #1f2937;
+      border-radius:8px;font-size:12px;font-weight:600;color:#6b7280;list-style:none;
+      display:flex;align-items:center;gap:8px">
+      <i data-lucide="list" width="13" height="13"></i>
+      Block List Completa 2026 — {d["bl"]["total"]} registros
+      &nbsp;·&nbsp; Bloqueados: {d["bl"]["bloqueados"]} &nbsp;·&nbsp; Solicitados: {d["bl"]["solicitados"]} &nbsp;·&nbsp; Monitorados: {d["bl"]["monitorados"]}
+      <span style="margin-left:auto;font-size:10px">▼ expandir</span>
+    </summary>
+    <div style="margin-top:10px">
+      <div class="filter-bar">
+        <input id="bl_search" type="text" oninput="filtrarBloqueios()" class="filter-select" placeholder="🔍 Driver ID ou Nome..." style="width:180px">
+        <select id="bl_status" onchange="filtrarBloqueios()" class="filter-select">
+          <option value="">Todos os status</option>
+          <option value="Bloqueado">Bloqueado</option>
+          <option value="Solicitado">Solicitado</option>
+          <option value="Monitorado">Monitorado</option>
+        </select>
+        <select id="bl_transp" onchange="filtrarBloqueios()" class="filter-select">
+          <option value="">Todas as transportadoras</option>
+          {''.join(f'<option value="{t}">{t}</option>' for t in sorted(t for t in set(r["mlp"] for r in d["bl"]["rows"]) if t and t not in ("N/A","")))}
+        </select>
+        <button onclick="document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';document.getElementById('bl_search').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
+        <button onclick="exportBlCSV()" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer;margin-left:auto">⬇ Exportar CSV</button>
+      </div>
+      <div id="tabulator-bloqueios"></div>
     </div>
-    <div id="tabulator-bloqueios"></div>
-  </div>
+  </details>
 </div>
 
 <!-- ===== ABA BSD (Buyer Seller Driver) ===== -->

@@ -66932,6 +66932,7 @@ let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
 function initBlCharts() {
   if (_blDone) return;
   _blDone = true;
+  if (!document.getElementById('cBlStatus')) return;
   requestAnimationFrame(function() {
     try {
       const _stLabels = ["Bloqueado"];
@@ -69283,61 +69284,39 @@ document.addEventListener('DOMContentLoaded',function(){
     </table>
   </div>
 
-  <div class="cards">
-    <div class="card">
-      <div class="card-header"><i data-lucide="list" class="ci" width="14" height="14"></i><span class="cl">Total Solicitações</span></div>
-      <div class="cv" id="bl-cv-total">166</div><div class="cd">2026</div>
-    </div>
-    <div class="card card-ok">
-      <div class="card-header"><i data-lucide="shield-check" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">Bloqueados</span></div>
-      <div class="cv val-ok" id="bl-cv-bloqueados">166</div><div class="cd">Confirmados</div>
-    </div>
-    <div class="card">
-      <div class="card-header"><i data-lucide="clock" class="ci" width="14" height="14"></i><span class="cl">Solicitados</span></div>
-      <div class="cv" style="color:#60a5fa" id="bl-cv-solicitados">0</div><div class="cd">Aguardando</div>
-    </div>
-    <div class="card">
-      <div class="card-header"><i data-lucide="eye" class="ci" width="14" height="14"></i><span class="cl">Monitorados</span></div>
-      <div class="cv val-warn" id="bl-cv-monitorados">0</div><div class="cd">Em acompanhamento</div>
-    </div>
-    <div class="card card-ok">
-      <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14" style="color:#064e3b"></i><span class="cl">GMV Protegido</span></div>
-      <div class="cv val-ok" id="bl-cv-gmv">$46,143.42</div><div class="cd">Bloqueados confirmados</div>
-    </div>
-    <div class="card">
-      <div class="card-header"><i data-lucide="calendar-check" class="ci" width="14" height="14" style="color:#a78bfa"></i><span class="cl">Esta Semana</span></div>
-      <div class="cv" style="color:#a78bfa">1</div><div class="cd">Bloqueios semana 31</div>
-    </div>
-  </div>
+  <!-- hidden spans for JS updateBloqueiosCards compatibility -->
+  <span id="bl-cv-total" style="display:none">166</span>
+  <span id="bl-cv-bloqueados" style="display:none">166</span>
+  <span id="bl-cv-solicitados" style="display:none">0</span>
+  <span id="bl-cv-monitorados" style="display:none">0</span>
+  <span id="bl-cv-gmv" style="display:none">$46,143.42</span>
+  <div id="bl-period-note" style="display:none"></div>
 
-  
-  <div id="bl-period-note" style="display:none;font-size:11px;color:#fb923c;background:#1c1008;border:1px solid #92400e;border-radius:6px;padding:6px 14px;margin-bottom:16px;text-align:center"></div>
-
-  <div class="grid2 mb16">
-    <div class="box"><div class="bt">Por Status</div><div style="position:relative;height:220px"><canvas id="cBlStatus"></canvas></div></div>
-    <div class="box"><div class="bt">Por Transportadora</div><div style="position:relative;height:220px"><canvas id="cBlTransp"></canvas></div></div>
-  </div>
-  <div class="box mb16"><div class="bt">Bloqueios por Semana (2026)</div><div style="position:relative;height:200px"><canvas id="cBlSemana"></canvas></div></div>
-
-  <div class="tbl-wrap">
-    <div class="tbl-title">Lista Completa — Block List 2026</div>
-    <div class="filter-bar">
-      <input id="bl_search" type="text" oninput="filtrarBloqueios()" class="filter-select" placeholder="🔍 Driver ID ou Nome..." style="width:180px">
-      <select id="bl_status" onchange="filtrarBloqueios()" class="filter-select">
-        <option value="">Todos os status</option>
-        <option value="Bloqueado">Bloqueado</option>
-        <option value="Solicitado">Solicitado</option>
-        <option value="Monitorado">Monitorado</option>
-      </select>
-      <select id="bl_transp" onchange="filtrarBloqueios()" class="filter-select">
-        <option value="">Todas as transportadoras</option>
-        <option value="Agencias Kangu">Agencias Kangu</option><option value="Cargobr">Cargobr</option><option value="DHL">DHL</option><option value="ENVIOS EXTRA">ENVIOS EXTRA</option><option value="Eco Express">Eco Express</option><option value="Euro">Euro</option><option value="Flashlog">Flashlog</option><option value="Flight Cargo">Flight Cargo</option><option value="HAWK">HAWK</option><option value="Hawk">Hawk</option><option value="Jm transportes">Jm transportes</option><option value="KANGU">KANGU</option><option value="Kangu">Kangu</option><option value="ME Extra">ME Extra</option><option value="ME extra">ME extra</option><option value="Me extra">Me extra</option><option value="Murici">Murici</option><option value="Pantera">Pantera</option><option value="Pantera Log">Pantera Log</option><option value="me extra">me extra</option>
-      </select>
-      <button onclick="document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';document.getElementById('bl_search').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
-      <button onclick="exportBlCSV()" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer;margin-left:auto">⬇ Exportar CSV</button>
+  <details style="margin-top:8px">
+    <summary style="cursor:pointer;padding:10px 16px;background:#0d1321;border:1px solid #1f2937;border-radius:8px;font-size:12px;font-weight:600;color:#6b7280;list-style:none;display:flex;align-items:center;gap:8px">
+      <i data-lucide="list" width="13" height="13"></i>
+      Block List Completa 2026 — 166 registros &nbsp;·&nbsp; Bloqueados: 166 &nbsp;·&nbsp; Solicitados: 0 &nbsp;·&nbsp; Monitorados: 0
+      <span style="margin-left:auto;font-size:10px">▼ expandir</span>
+    </summary>
+    <div style="margin-top:10px">
+      <div class="filter-bar">
+        <input id="bl_search" type="text" oninput="filtrarBloqueios()" class="filter-select" placeholder="🔍 Driver ID ou Nome..." style="width:180px">
+        <select id="bl_status" onchange="filtrarBloqueios()" class="filter-select">
+          <option value="">Todos os status</option>
+          <option value="Bloqueado">Bloqueado</option>
+          <option value="Solicitado">Solicitado</option>
+          <option value="Monitorado">Monitorado</option>
+        </select>
+        <select id="bl_transp" onchange="filtrarBloqueios()" class="filter-select">
+          <option value="">Todas as transportadoras</option>
+          <option value="Agencias Kangu">Agencias Kangu</option><option value="Cargobr">Cargobr</option><option value="DHL">DHL</option><option value="ENVIOS EXTRA">ENVIOS EXTRA</option><option value="Eco Express">Eco Express</option><option value="Euro">Euro</option><option value="Flashlog">Flashlog</option><option value="Flight Cargo">Flight Cargo</option><option value="HAWK">HAWK</option><option value="Hawk">Hawk</option><option value="Jm transportes">Jm transportes</option><option value="KANGU">KANGU</option><option value="Kangu">Kangu</option><option value="ME Extra">ME Extra</option><option value="ME extra">ME extra</option><option value="Me extra">Me extra</option><option value="Murici">Murici</option><option value="Pantera">Pantera</option><option value="Pantera Log">Pantera Log</option><option value="me extra">me extra</option>
+        </select>
+        <button onclick="document.getElementById('bl_status').value='';document.getElementById('bl_transp').value='';document.getElementById('bl_search').value='';filtrarBloqueios()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>
+        <button onclick="exportBlCSV()" style="background:#1e3a5f;color:#60a5fa;border:1px solid #1e40af;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer;margin-left:auto">⬇ Exportar CSV</button>
+      </div>
+      <div id="tabulator-bloqueios"></div>
     </div>
-    <div id="tabulator-bloqueios"></div>
-  </div>
+  </details>
 </div>
 
 <!-- ===== ABA BSD (Buyer Seller Driver) ===== -->
