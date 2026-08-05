@@ -486,12 +486,11 @@ def conectar():
 
 def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
     from datetime import datetime as _dta, timedelta as _td
-    STATUS_NAO_BLOQ = {'inactive','inativo','bloqueado','blocked','suspendido','suspended'}
+    STATUS_JA_BLOQ = {'bloqueado','blocked','suspendido','suspended'}
+    STATUS_INATIVO = {'inactive','inativo','removed'}
     cutoff = _dta.now() - _td(days=days)
     min_meses = 2 if days <= 60 else 3
     result = []
-    # LOR+FRAUD: inclui LOST ON WAY, LOST ENE e FRAUD ON ROUTE/AT STATION/ENE e PNR C
-    # STOLEN ON ROUTE = roubo de carga (sinistro) — monitorado separadamente, não entra aqui
     _CLASSES_VALIDAS = ('FRAUD', 'LOST ON ROUTE', 'LOST ON WAY', 'LOST ENE', 'PNR C', 'EMPTY BOX', 'DNR')
     def _in_window(s):
         try:
@@ -501,7 +500,7 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
     for d in drivers:
         did  = str(d.get('id','') or '').strip()
         dst  = str(d.get('status','') or '').strip().lower()
-        if not did or dst in STATUS_NAO_BLOQ: continue
+        if not did: continue
         shps_all = shp_por_driver.get(did, [])
         shps = [s for s in shps_all
                 if float(s.get('bpp',0) or 0) > 0
@@ -516,27 +515,31 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
                 meses.add(f'{dr.month:02d}/{dr.year}')
             except Exception: pass
         if len(meses) < min_meses: continue
-        # FRAUD: FRAUD ON ROUTE/AT STATION/ENE, PNR C, EMPTY BOX, DNR
         has_fraud = any('FRAUD' in c or 'PNR' in c or 'EMPTY BOX' in c or 'DNR' in c for c in classes)
-        # LOR: driver não devolve pacotes (LOST ON ROUTE, LOST ON WAY, LOST ENE)
         has_lost  = any(c in ('LOST ON ROUTE', 'LOST ON WAY', 'LOST ENE') for c in classes)
         if has_fraud and has_lost:    tipo = 'lost_fraude'
         elif has_fraud:               tipo = 'fraude_pura'
-        elif has_lost:                tipo = 'pnr_lor'  # lost sem fraude confirmada
+        elif has_lost:                tipo = 'pnr_lor'
         else:                         tipo = 'outro'
         total_bpp = round(sum(float(s.get('bpp',0) or 0) for s in shps), 2)
         max_bpp   = round(max((float(s.get('bpp',0) or 0) for s in shps), default=0), 2)
         residual  = round(total_bpp - max_bpp, 2)
         n_pkgs    = len(shps)
-        apto, motivo = True, ''
-        if n_pkgs <= 5:
+        nome = str(d.get('nome','') or d.get('transportadora','') or '').strip()
+        transp = str(d.get('transportadora','') or '').strip()
+        # apto: critérios quantitativos — não exclui mais por status
+        if dst in STATUS_JA_BLOQ:
+            apto, motivo = False, 'Já bloqueado'
+        elif dst in STATUS_INATIVO:
+            apto, motivo = False, f'Status: {dst}'
+        elif n_pkgs <= 5:
             apto, motivo = False, f'Apenas {n_pkgs} pacotes (mínimo 6)'
         elif total_bpp <= 300:
             apto, motivo = False, f'Total ${total_bpp:.0f} abaixo de $300'
         elif residual <= 200:
             apto, motivo = False, f'Residual ${residual:.0f} abaixo de $200'
-        nome = str(d.get('nome','') or d.get('transportadora','') or '').strip()
-        transp = str(d.get('transportadora','') or '').strip()
+        else:
+            apto, motivo = True, ''
         result.append({
             'id':did,'nome':nome,'transportadora':transp,'status':dst,
             'n_meses':len(meses),'meses':sorted(meses),
@@ -544,7 +547,7 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
             'tipo':tipo,'apto':apto,'motivo':motivo,
             'shps':sorted(shps, key=lambda x: -float(x.get('bpp',0) or 0)),
         })
-    result.sort(key=lambda x: (0 if x['apto'] else 1, -x['n_meses'], -x['total_bpp']))
+    result.sort(key=lambda x: (-x['total_bpp'],))
     return result
 
 def rows_acumulo_bloqueio(candidatos, pid=''):
@@ -2096,61 +2099,49 @@ def _render_bloqueados_bl(bloqueados_bl):
     )
 
 def render_passiv_bloqueio(candidatos, bloqueados_bl=None):
-    """Renderiza a seção 'Passíveis de Bloqueio' para a aba bloqueios — design ação-focado."""
-    bloqueados_bl = bloqueados_bl or []
-    if not candidatos and not bloqueados_bl:
-        return ''
+    """Tabela rankeada por BPP de todos os drivers com LoR/Fraude no período."""
+    if not candidatos:
+        return '<div style="padding:32px;text-align:center;color:#6b7280">Nenhum driver identificado no período.</div>'
+
     TIPO_LABEL = {
         'fraude_pura': 'Fraude Pura', 'lost_fraude': 'Lost+Fraude',
-        'pnr_lor': 'PNR+LOR', 'pnr': 'PNR',
+        'pnr_lor': 'PNR+LOR', 'pnr': 'PNR', 'outro': 'Outro',
     }
-    TIPO_COLOR = {
+    TIPO_COR = {
         'fraude_pura': '#f87171', 'lost_fraude': '#fb923c',
-        'pnr_lor': '#fbbf24', 'pnr': '#fde68a',
+        'pnr_lor': '#fbbf24', 'pnr': '#a3e635', 'outro': '#9ca3af',
     }
-    BLOQ = {'bloqueado','blocked'}
-    para_bloquear = [c for c in candidatos if c['tipo'] in ('fraude_pura','lost_fraude')]
-    acao_pnr      = [c for c in candidatos if c['tipo'] in ('pnr_lor','pnr')]
-    n_bloqueados  = len(bloqueados_bl)
-    n_pb  = len(para_bloquear)
-    n_pnr = len(acao_pnr)
+    STATUS_BLOQ = {'bloqueado', 'blocked'}
+    STATUS_INATIV = {'inactive', 'inativo', 'removed', 'suspendido', 'suspended'}
+
+    def _eff_status(c):
+        s = (c.get('status_bl') or c.get('status') or '').strip().lower()
+        return s
 
     def _status_badge(c):
-        s = (c.get('status_bl') or '').strip()
-        sl = s.lower()
-        if sl in BLOQ:
-            return '<span style="background:#064e3b;color:#4ade80;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">✓ Bloqueado</span>'
-        if sl == 'solicitado':
-            return '<span style="background:#1e3a5f;color:#60a5fa;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">↻ Solicitado</span>'
-        if sl == 'monitorado':
-            return '<span style="background:#713f12;color:#fde68a;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">⊙ Monitorado</span>'
-        return '<span style="background:#3b0a0a;color:#fb923c;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">⚠ Pendente</span>'
+        s = _eff_status(c)
+        if s in STATUS_BLOQ:
+            return '<span style="background:#064e3b;color:#4ade80;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;white-space:nowrap">✓ Bloqueado</span>'
+        if s == 'solicitado':
+            return '<span style="background:#1e3a5f;color:#60a5fa;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;white-space:nowrap">↻ Solicitado</span>'
+        if s == 'monitorado':
+            return '<span style="background:#713f12;color:#fde68a;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;white-space:nowrap">⊙ Monitorado</span>'
+        if s in STATUS_INATIV:
+            return f'<span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;white-space:nowrap">{s.capitalize()}</span>'
+        return '<span style="background:#3b0a0a;color:#fb923c;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;white-space:nowrap">⚠ Pendente</span>'
 
-    def _driver_card(c, accent_color='#ef4444', accent_bg='#1a0505'):
-        did   = c['id']
-        nome  = c.get('nome') or '—'
-        transp= c.get('transportadora') or '—'
-        placa = c.get('placa') or '—'
-        tipo  = TIPO_LABEL.get(c['tipo'], c['tipo'])
-        tcor  = TIPO_COLOR.get(c['tipo'], '#9ca3af')
-        pkgs  = c.get('n_pkgs', 0)
-        bpp   = c.get('total_bpp', 0)
-        res   = c.get('residual', 0)
-        meses = c.get('n_meses', 0)
-        s_bl  = (c.get('status_bl') or '').strip().lower()
-        # Link: Envios Extra usa drivers-management, outros usam drivers-block
-        if 'extra' in transp.lower():
-            link = f'https://envios.adminml.com/logistics/drivers-management/drivers/{did}'
-        else:
-            link = f'https://envios.adminml.com/logistics/provider-management/drivers-block/list?searchType=id&searchValue={did}'
-        urgente = (s_bl not in BLOQ) and res >= 1000
+    def _link(c):
+        did = c['id']
+        transp = (c.get('transportadora') or '').lower()
+        if 'extra' in transp:
+            return f'https://envios.adminml.com/logistics/drivers-management/drivers/{did}'
+        return f'https://envios.adminml.com/logistics/provider-management/drivers-block/list?searchType=id&searchValue={did}'
 
-        # SHP detail rows
-        shp_rows = ''
+    def _shp_rows(c):
+        rows = ''
         for s in c.get('shps', []):
             bpp_v = float(s.get('bpp', 0) or 0)
             is_max = abs(bpp_v - c.get('max_bpp', 0)) < 0.01
-            max_tag = ' <span style="color:#fbbf24;font-size:9px" title="maior BPP individual">★</span>' if is_max else ''
             cls = str(s.get('class', ''))
             cls_cor = ('#f87171' if ('FRAUD' in cls or 'STOLEN' in cls) else
                        '#fb923c' if 'PNR C' in cls else
@@ -2160,60 +2151,166 @@ def render_passiv_bloqueio(candidatos, bloqueados_bl=None):
                 sem = 'S' + (sem.split('-W')[-1].lstrip('0') or '?')
             shp_id = s.get('id', '')
             shp_link = (f'<a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/{shp_id}" '
-                        f'target="_blank" style="color:#60a5fa;font-family:monospace;font-size:11px;text-decoration:none">'
-                        f'{shp_id}</a>') if shp_id else '—'
-            shp_rows += (
-                f'<tr style="border-bottom:1px solid #1a2030">'
-                f'<td style="padding:5px 10px;font-size:10px;color:#6b7280;font-family:monospace;width:50px">{sem}</td>'
-                f'<td style="padding:5px 10px;font-size:10px;color:{cls_cor};width:200px">{cls}</td>'
-                f'<td style="padding:5px 10px">{shp_link}</td>'
-                f'<td style="padding:5px 10px;font-size:11px;text-align:right;font-weight:600;color:#e5e7eb;white-space:nowrap">'
-                f'${bpp_v:,.2f}{max_tag}</td>'
+                       f'target="_blank" style="color:#60a5fa;font-family:monospace;font-size:11px;text-decoration:none">{shp_id}</a>'
+                       ) if shp_id else '—'
+            star = ' ★' if is_max else ''
+            rows += (f'<tr style="border-bottom:1px solid #0d1321">'
+                    f'<td style="padding:4px 12px;font-size:10px;color:#6b7280;font-family:monospace">{sem}</td>'
+                    f'<td style="padding:4px 12px;font-size:10px;color:{cls_cor}">{cls}</td>'
+                    f'<td style="padding:4px 12px">{shp_link}</td>'
+                    f'<td style="padding:4px 12px;font-size:11px;font-weight:600;color:#e5e7eb;text-align:right">${bpp_v:,.2f}{star}</td>'
+                    f'</tr>')
+        return rows
+
+    # Separar em seções
+    para_bloquear = [c for c in candidatos if _eff_status(c) not in STATUS_BLOQ | STATUS_INATIV
+                     and c.get('tipo') in ('fraude_pura','lost_fraude') and c.get('apto')]
+    acao_pnr      = [c for c in candidatos if _eff_status(c) not in STATUS_BLOQ | STATUS_INATIV
+                     and c.get('tipo') in ('pnr_lor','pnr') and c.get('apto')]
+    # inaptos ativos: atenção, não bloqueados mas abaixo do threshold
+    inaptos       = [c for c in candidatos if _eff_status(c) not in STATUS_BLOQ | STATUS_INATIV
+                     and not c.get('apto')]
+    ja_bloq       = [c for c in candidatos if _eff_status(c) in STATUS_BLOQ]
+    inativos      = [c for c in candidatos if _eff_status(c) in STATUS_INATIV]
+
+    n_pb  = len(para_bloquear)
+    n_pnr = len(acao_pnr)
+    n_bl  = len(ja_bloq)
+    n_in  = len(inativos)
+
+    TABLE_HEAD = (
+        '<table style="width:100%;border-collapse:collapse">'
+        '<thead><tr style="background:#0a0f1e;border-bottom:2px solid #1f2937">'
+        '<th style="padding:8px 10px;font-size:10px;color:#4b5563;font-weight:600;text-align:center;width:36px">#</th>'
+        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">DRIVER ID</th>'
+        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">NOME</th>'
+        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">MLP</th>'
+        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:center">PKGS</th>'
+        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:right">BPP TOTAL</th>'
+        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:center">TIPO</th>'
+        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">STATUS</th>'
+        '</tr></thead><tbody>'
+    )
+
+    def _rows(lista, offset=0):
+        html = ''
+        for i, c in enumerate(lista):
+            did   = c['id']
+            nome  = (c.get('nome') or '—')[:28]
+            transp= (c.get('transportadora') or '—')[:22]
+            pkgs  = c.get('n_pkgs', 0)
+            bpp   = c.get('total_bpp', 0)
+            tipo  = c.get('tipo', 'outro')
+            res   = c.get('residual', 0)
+            link  = _link(c)
+            uid   = f'pv_{did}'
+            st    = _eff_status(c)
+            urgente = st not in STATUS_BLOQ and res >= 1000
+            urg = ('<span style="color:#f87171;font-size:9px;font-weight:700;background:#450a0a;'
+                   'padding:1px 5px;border-radius:2px;margin-right:4px">!</span>') if urgente else ''
+            tipo_badge = (f'<span style="background:{TIPO_COR.get(tipo,"#9ca3af")}18;color:{TIPO_COR.get(tipo,"#9ca3af")};'
+                         f'padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700">'
+                         f'{TIPO_LABEL.get(tipo, tipo)}</span>')
+            bg = '#0c1520' if i % 2 == 0 else '#080d16'
+            html += (
+                f'<tr class="pv-row" onclick="togglePvDetail(\'{uid}\')" '
+                f'style="cursor:pointer;border-bottom:1px solid #1a2035;background:{bg}">'
+                f'<td style="padding:8px 10px;font-size:11px;color:#4b5563;text-align:center">{i+1+offset}</td>'
+                f'<td style="padding:8px 12px">{urg}'
+                f'<a href="{link}" target="_blank" onclick="event.stopPropagation()" '
+                f'style="font-family:monospace;font-size:13px;font-weight:700;color:#93c5fd;text-decoration:none">{did}</a></td>'
+                f'<td style="padding:8px 12px;font-size:11px;color:#d1d5db;max-width:160px;overflow:hidden;'
+                f'text-overflow:ellipsis;white-space:nowrap" title="{nome}">{nome}</td>'
+                f'<td style="padding:8px 12px;font-size:11px;color:#9ca3af">{transp}</td>'
+                f'<td style="padding:8px 12px;font-size:12px;color:#e5e7eb;text-align:center;font-weight:600">{pkgs}</td>'
+                f'<td style="padding:8px 12px;font-size:13px;font-weight:700;color:#f87171;text-align:right">${bpp:,.2f}</td>'
+                f'<td style="padding:8px 12px;text-align:center">{tipo_badge}</td>'
+                f'<td style="padding:8px 12px">{_status_badge(c)}</td>'
                 f'</tr>'
+                f'<tr id="{uid}" style="display:none;background:#050a14">'
+                f'<td colspan="8" style="padding:0">'
+                f'<table style="width:100%;border-collapse:collapse">'
+                f'<tr style="background:#0a0f1e">'
+                f'<th style="padding:4px 12px;font-size:9px;color:#374151;font-weight:600;text-align:left">SEM</th>'
+                f'<th style="padding:4px 12px;font-size:9px;color:#374151;font-weight:600;text-align:left">CLASSIFICAÇÃO</th>'
+                f'<th style="padding:4px 12px;font-size:9px;color:#374151;font-weight:600;text-align:left">SHP ID</th>'
+                f'<th style="padding:4px 12px;font-size:9px;color:#374151;font-weight:600;text-align:right">BPP</th>'
+                f'</tr>{_shp_rows(c)}</table></td></tr>'
             )
+        return html
 
-        urg_badge = ('<span style="background:#450a0a;color:#f87171;padding:2px 7px;border-radius:3px;'
-                     'font-size:9px;font-weight:700;margin-right:6px;flex-shrink:0">URGENTE</span>') if urgente else ''
-        border_col = '#166534' if s_bl in BLOQ else ('#374151' if s_bl == 'solicitado' else accent_color)
+    def _section(title, lista, color, border, offset=0, collapsible=False):
+        if not lista: return ''
+        body = (TABLE_HEAD + _rows(lista, offset) + '</tbody></table>')
+        inner = f'<div style="border:1px solid #1f2937;border-radius:0 0 6px 6px;overflow:hidden">{body}</div>'
+        hdr_style = (f'font-size:11px;font-weight:700;color:{color};text-transform:uppercase;'
+                     f'letter-spacing:.8px;padding:7px 14px;background:{border}18;border-left:3px solid {border}')
+        if not collapsible:
+            return f'<div style="margin-bottom:10px"><div style="{hdr_style}">{title}</div>{inner}</div>'
+        return (f'<details style="margin-bottom:10px">'
+                f'<summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;'
+                f'align-items:center;{hdr_style}">'
+                f'<span>{title}</span>'
+                f'<span style="font-size:10px;color:#4b5563;font-weight:400">▼ expandir</span></summary>'
+                f'{inner}</details>')
 
-        return (
-            f'<div style="background:{accent_bg};border:1px solid {border_col};border-radius:8px;'
-            f'margin-bottom:10px;overflow:hidden">'
-            # Header
-            f'<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;flex-wrap:wrap;'
-            f'border-bottom:1px solid #1a2030">'
-            f'{urg_badge}'
-            f'<a href="{link}" target="_blank" title="Abrir no adminml" '
-            f'style="font-family:monospace;font-size:13px;font-weight:700;color:#93c5fd;text-decoration:none;flex-shrink:0">'
-            f'{did}</a>'
-            f'<span style="font-size:12px;color:#d1d5db;flex:1;min-width:100px;overflow:hidden;'
-            f'text-overflow:ellipsis;white-space:nowrap" title="{nome}">{nome[:32]}</span>'
-            f'<span style="font-size:11px;color:#9ca3af;white-space:nowrap">{transp[:22]}</span>'
-            f'<span style="font-size:10px;color:#6b7280">·</span>'
-            f'<span style="font-size:11px;color:#6b7280;font-family:monospace">{placa}</span>'
-            f'<span style="background:#1f0e3a;color:{tcor};font-size:10px;padding:2px 8px;'
-            f'border-radius:3px;white-space:nowrap">{tipo}</span>'
-            f'<span style="font-size:11px;color:#6b7280;white-space:nowrap">{pkgs} pkgs · {meses}m</span>'
-            f'<span style="color:#f87171;font-size:13px;font-weight:700;white-space:nowrap">${bpp:,.2f}</span>'
-            f'<span style="font-size:10px;color:#9ca3af;white-space:nowrap">res ${res:,.2f}</span>'
-            f'{_status_badge(c)}'
-            f'</div>'
-            # SHP table
-            f'<table style="width:100%;border-collapse:collapse;background:#080d19">'
-            f'<thead><tr style="background:#0d1321">'
-            f'<th style="padding:4px 10px;font-size:9px;color:#374151;font-weight:600;text-transform:uppercase;'
-            f'letter-spacing:.5px;text-align:left">Sem.</th>'
-            f'<th style="padding:4px 10px;font-size:9px;color:#374151;font-weight:600;text-transform:uppercase;'
-            f'letter-spacing:.5px;text-align:left">Classificação</th>'
-            f'<th style="padding:4px 10px;font-size:9px;color:#374151;font-weight:600;text-transform:uppercase;'
-            f'letter-spacing:.5px;text-align:left">SHP ID</th>'
-            f'<th style="padding:4px 10px;font-size:9px;color:#374151;font-weight:600;text-transform:uppercase;'
-            f'letter-spacing:.5px;text-align:right">BPP</th>'
-            f'</tr></thead>'
-            f'<tbody>{shp_rows}</tbody>'
-            f'</table>'
-            f'</div>'
-        )
+    # Counters
+    html = (
+        f'<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">'
+        f'<div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:12px 20px;flex:1;min-width:100px;text-align:center">'
+        f'<div style="font-size:26px;font-weight:700;color:#f87171">{n_pb}</div>'
+        f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Para Bloquear</div></div>'
+        f'<div style="background:#1a1100;border:1px solid #92400e;border-radius:8px;padding:12px 20px;flex:1;min-width:100px;text-align:center">'
+        f'<div style="font-size:26px;font-weight:700;color:#fbbf24">{n_pnr}</div>'
+        f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Ação PNR</div></div>'
+        f'<div style="background:#051a0f;border:1px solid #166534;border-radius:8px;padding:12px 20px;flex:1;min-width:100px;text-align:center">'
+        f'<div style="font-size:26px;font-weight:700;color:#4ade80">{n_bl}</div>'
+        f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Já Bloqueados</div></div>'
+        f'<div style="background:#111827;border:1px solid #374151;border-radius:8px;padding:12px 20px;flex:1;min-width:100px;text-align:center">'
+        f'<div style="font-size:26px;font-weight:700;color:#6b7280">{n_in}</div>'
+        f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Inativos/Removidos</div></div>'
+        f'</div>'
+    )
+
+    # Barra de busca
+    html += (
+        f'<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+        f'<input id="pv_search" type="text" oninput="filterPvRows()" placeholder="🔍 Driver ID ou Nome..." '
+        f'style="background:#0d1321;border:1px solid #1f2937;color:#e5e7eb;border-radius:6px;padding:7px 12px;font-size:12px;width:220px">'
+        f'<button onclick="document.getElementById(\'pv_search\').value=\'\';filterPvRows()" '
+        f'style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>'
+        f'</div>'
+    )
+
+    offset = 0
+    html += _section(f'Para Bloquear — {n_pb} drivers', para_bloquear, '#f87171', '#dc2626', offset)
+    offset += n_pb
+    html += _section(f'Ação PNR — {n_pnr} drivers', acao_pnr, '#fbbf24', '#d97706', offset)
+    offset += n_pnr
+    # Inaptos ativos em collapse
+    if inaptos:
+        html += _section(f'Monitoramento — {len(inaptos)} drivers (abaixo do threshold)', inaptos, '#9ca3af', '#374151', offset, collapsible=True)
+        offset += len(inaptos)
+    # Já bloqueados em collapse
+    html += _section(f'Já Bloqueados — {n_bl} drivers', ja_bloq, '#4ade80', '#166534', offset, collapsible=True)
+    offset += n_bl
+    if inativos:
+        html += _section(f'Inativos/Removidos — {n_in} drivers', inativos, '#6b7280', '#374151', offset, collapsible=True)
+
+    # JS
+    html += '''<script>
+function togglePvDetail(id){var e=document.getElementById(id);if(e)e.style.display=e.style.display==='none'?'table-row':'none';}
+function filterPvRows(){
+  var q=(document.getElementById('pv_search')||{}).value||'';q=q.toLowerCase();
+  document.querySelectorAll('.pv-row').forEach(function(r){
+    var match=!q||r.textContent.toLowerCase().includes(q);
+    r.style.display=match?'':'none';
+    var det=r.nextElementSibling;
+    if(det&&det.id&&det.id.startsWith('pv_'))det.style.display='none';
+  });
+}
+</script>'''
+    return html
 
     def _section(title, lista, accent_color, accent_bg, icon='shield-x'):
         if not lista:
@@ -7018,15 +7115,15 @@ if __name__ == '__main__':
     dados['acumulo_bloqueio'] = _enrich_acbl(dados.get('acumulo_bloqueio', []))
     for _pk in list(dados.get('acumulo_por_periodo', {}).keys()):
         dados['acumulo_por_periodo'][_pk] = _enrich_acbl(dados['acumulo_por_periodo'][_pk])
-    # passiv_bloqueio: todos apto=True (inclusive já bloqueados) — melhor período por driver
+    # passiv_bloqueio: TODOS os drivers com incidentes no período — melhor janela por driver
     _seen_pv = {}
-    for _dias in ['30', '60', '90', '180']:
+    for _dias in ['90', '60', '30', '180']:
         for _c in dados.get('acumulo_por_periodo', {}).get(_dias, []):
-            if _c.get('apto') and _c['id'] not in _seen_pv:
+            if _c['id'] not in _seen_pv:
                 _seen_pv[_c['id']] = _c
     dados['passiv_bloqueio'] = sorted(
         _seen_pv.values(),
-        key=lambda x: (0 if x['tipo'] in ('fraude_pura','lost_fraude') else 1, -x.get('total_bpp', 0))
+        key=lambda x: -x.get('total_bpp', 0)
     )
     adicionar_aptos_block_list(gs, dados['passiv_bloqueio'], bl_rows)
     # filtra bloqueados dos acumulo views (mantém comportamento original)
