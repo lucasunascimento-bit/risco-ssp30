@@ -7115,12 +7115,13 @@ if __name__ == '__main__':
     dados['acumulo_bloqueio'] = _enrich_acbl(dados.get('acumulo_bloqueio', []))
     for _pk in list(dados.get('acumulo_por_periodo', {}).keys()):
         dados['acumulo_por_periodo'][_pk] = _enrich_acbl(dados['acumulo_por_periodo'][_pk])
-    # passiv_bloqueio: TODOS os drivers com incidentes no período — melhor janela por driver
+    # passiv_bloqueio: TODOS os drivers — janela com maior total_bpp por driver
     _seen_pv = {}
     for _dias in ['90', '60', '30', '180']:
         for _c in dados.get('acumulo_por_periodo', {}).get(_dias, []):
-            if _c['id'] not in _seen_pv:
-                _seen_pv[_c['id']] = _c
+            _did = _c['id']
+            if _did not in _seen_pv or _c.get('total_bpp', 0) > _seen_pv[_did].get('total_bpp', 0):
+                _seen_pv[_did] = _c
     dados['passiv_bloqueio'] = sorted(
         _seen_pv.values(),
         key=lambda x: -x.get('total_bpp', 0)
@@ -7276,7 +7277,7 @@ if __name__ == '__main__':
               END AS nivel_risco
             FROM saidas
             ORDER BY tentativas DESC, nivel_risco
-            LIMIT 2000
+            LIMIT 5000
         """
         _q_devos = f"""
             SELECT
@@ -7330,7 +7331,7 @@ if __name__ == '__main__':
             FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
             WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
               AND CAST(FLAG_ENE AS STRING) = '1'
-              AND date_bpp >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+              AND date_bpp >= '{ANO_INICIO}'
               AND CUS_NICKNAME_SEL IS NOT NULL
             GROUP BY 1
             ORDER BY total_cashout DESC, qtd_ene DESC
@@ -7355,7 +7356,7 @@ if __name__ == '__main__':
               STRING_AGG(DISTINCT CAST(SHP_SHIPMENT_BPP AS STRING) LIMIT 30) AS shp_ids
             FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
             WHERE SHP_LG_FACILITY_ID = 'SSP30'
-              AND DATE_BPP >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+              AND DATE_BPP >= '{ANO_INICIO}'
               AND FLUJO LIKE '%EnE%'
             GROUP BY 1
             ORDER BY nao_entregue DESC, total DESC
