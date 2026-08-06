@@ -1074,6 +1074,73 @@ def adicionar_aptos_block_list(gs, passiv_bloqueio, bl_rows):
         print(f"  Aviso Auto BL: {e}")
 
 
+def processar_driver_lor_fraud(shp_por_driver, status_map, driver_meta, routes_map):
+    """Dados LOR+FRAUD por shipment para tab de análise (desde ANO_INICIO)."""
+    _KEYS_LF = ('FRAUD', 'LOST ON ROUTE', 'PNR C', 'EMPTY BOX')
+
+    def _mes(data_str):
+        try: return datetime.strptime(data_str, '%d/%m/%Y').strftime('%Y-%m')
+        except: return ''
+
+    def _sem_label(data_str):
+        try: return f'Semana {datetime.strptime(data_str, "%d/%m/%Y").isocalendar()[1]}'
+        except: return ''
+
+    all_shps, drivers_set, por_mlp, por_class = [], set(), {}, {}
+
+    for did, shps_all in shp_por_driver.items():
+        lor_shps = [s for s in shps_all
+                    if any(k in str(s.get('class', '')) for k in _KEYS_LF)]
+        if not lor_shps:
+            continue
+        drivers_set.add(str(did))
+        st_info = status_map.get(str(did), {}) or {}
+        status  = (st_info.get('status', '') or 'active').lower()
+        meta    = driver_meta.get(str(did), {}) or {}
+        rt      = routes_map.get(str(did), {}) or {}
+        mlp     = (meta.get('mlp', '') or rt.get('transportadora', '')).strip() or 'N/A'
+        for s in lor_shps:
+            bpp = float(s.get('bpp', 0) or 0)
+            if bpp <= 0:
+                continue
+            cls = str(s.get('class', ''))
+            mes = _mes(s.get('data', ''))
+            all_shps.append({
+                'semana':    _sem_label(s.get('data', '')),
+                'class':     cls,
+                'shp_id':    s.get('id', ''),
+                'driver_id': str(did),
+                'mlp':       mlp,
+                'status':    status,
+                'bpp':       round(bpp, 2),
+                'mes':       mes,
+            })
+            por_mlp.setdefault(mlp, {'count': 0, 'bpp': 0.0})
+            por_mlp[mlp]['count'] += 1
+            por_mlp[mlp]['bpp']    = round(por_mlp[mlp]['bpp'] + bpp, 2)
+            por_class.setdefault(cls, {'count': 0, 'bpp': 0.0})
+            por_class[cls]['count'] += 1
+            por_class[cls]['bpp']   = round(por_class[cls]['bpp'] + bpp, 2)
+
+    all_shps.sort(key=lambda x: -x['bpp'])
+    total_bpp = round(sum(s['bpp'] for s in all_shps), 2)
+    por_status = {}
+    for did in drivers_set:
+        st = (status_map.get(did, {}) or {}).get('status', 'active') or 'active'
+        por_status[st] = por_status.get(st, 0) + 1
+
+    return {
+        'total_shps':     len(all_shps),
+        'total_bpp':      total_bpp,
+        'drivers_unique': len(drivers_set),
+        'por_status':     por_status,
+        'por_mlp':        dict(sorted(por_mlp.items(), key=lambda x: -x[1]['bpp'])),
+        'por_class':      dict(sorted(por_class.items(), key=lambda x: -x[1]['bpp'])),
+        'meses':          sorted({s['mes'] for s in all_shps if s['mes']}),
+        'shps':           all_shps,
+    }
+
+
 def processar_block_list(rows):
     if not rows:
         return {
@@ -1972,6 +2039,7 @@ def processar(df_score, df_dxp, df_places, df_damaged, df_shp, df_place_shp, df_
             '180': processar_acumulo_bloqueio(_all_drv, shp_por_driver, days=180),
         },
         'transp_damaged_ranking': transp_damaged_ranking,
+        'driver_lor_fraud': processar_driver_lor_fraud(shp_por_driver, status_map, driver_meta, routes_map),
         'driver_transp': {str(dmg['id']): ((routes_map.get(dmg['id'], {}) or {}).get('transportadora') or 'N/A').strip() or 'N/A' for dmg in damaged},
     }
 
@@ -2098,18 +2166,34 @@ def _render_bloqueados_bl(bloqueados_bl):
         f'{thead}<tbody>{rows}</tbody></table></div></div>'
     )
 
+def _semana_to_ym(semana_str):
+    """Converte '2026-W25' → '2026-06' usando cálculo ISO week."""
+    from datetime import datetime, timedelta
+    try:
+        s = str(semana_str)
+        if '-W' in s:
+            yr, wk = s.split('-W')
+            yr, wk = int(yr), int(wk)
+            jan4 = datetime(yr, 1, 4)
+            w1 = jan4 - timedelta(days=jan4.isoweekday() - 1)
+            return (w1 + timedelta(weeks=wk - 1)).strftime('%Y-%m')
+    except Exception:
+        pass
+    return ''
+
+
 def render_passiv_bloqueio(candidatos, bloqueados_bl=None):
-    """Tabela rankeada por BPP de todos os drivers com LoR/Fraude no período."""
+    """Tabela pvtb rankeada por BPP — gera data-months para filtro de período."""
     if not candidatos:
         return '<div style="padding:32px;text-align:center;color:#6b7280">Nenhum driver identificado no período.</div>'
 
     TIPO_LABEL = {
         'fraude_pura': 'Fraude Pura', 'lost_fraude': 'Lost+Fraude',
-        'pnr_lor': 'PNR+LOR', 'pnr': 'PNR', 'outro': 'Outro',
+        'pnr_lor': 'PNR+LOR', 'pnr': 'PNR+LOR', 'outro': 'Outro',
     }
     TIPO_COR = {
         'fraude_pura': '#f87171', 'lost_fraude': '#fb923c',
-        'pnr_lor': '#fbbf24', 'pnr': '#a3e635', 'outro': '#9ca3af',
+        'pnr_lor': '#fbbf24', 'pnr': '#fbbf24', 'outro': '#9ca3af',
     }
     STATUS_BLOQ = {'bloqueado', 'blocked'}
     STATUS_INATIV = {'inactive', 'inativo', 'removed', 'suspendido', 'suspended'}
@@ -2162,153 +2246,203 @@ def render_passiv_bloqueio(candidatos, bloqueados_bl=None):
                     f'</tr>')
         return rows
 
-    # Separar em seções
+    # ── Separar em seções ────────────────────────────────────────────────────────
+    def _data_months(c):
+        yms = set()
+        for s in c.get('shps', []):
+            ym = _semana_to_ym(str(s.get('semana', '')))
+            if ym:
+                yms.add(ym)
+        return ' '.join(sorted(yms))
+
     para_bloquear = [c for c in candidatos if _eff_status(c) not in STATUS_BLOQ | STATUS_INATIV
-                     and c.get('tipo') in ('fraude_pura','lost_fraude') and c.get('apto')]
+                     and c.get('tipo') in ('fraude_pura', 'lost_fraude') and c.get('apto')]
     acao_pnr      = [c for c in candidatos if _eff_status(c) not in STATUS_BLOQ | STATUS_INATIV
-                     and c.get('tipo') in ('pnr_lor','pnr') and c.get('apto')]
-    # inaptos ativos: atenção, não bloqueados mas abaixo do threshold
+                     and c.get('tipo') in ('pnr_lor', 'pnr') and c.get('apto')]
     inaptos       = [c for c in candidatos if _eff_status(c) not in STATUS_BLOQ | STATUS_INATIV
                      and not c.get('apto')]
     ja_bloq       = [c for c in candidatos if _eff_status(c) in STATUS_BLOQ]
-    inativos      = [c for c in candidatos if _eff_status(c) in STATUS_INATIV]
 
-    n_pb  = len(para_bloquear)
-    n_pnr = len(acao_pnr)
-    n_bl  = len(ja_bloq)
-    n_in  = len(inativos)
+    n_pend  = len(para_bloquear) + len(acao_pnr)
+    n_bl    = len(ja_bloq)
+    n_monit = len(inaptos)
+    n_total = n_pend + n_bl + n_monit
 
-    TABLE_HEAD = (
-        '<table style="width:100%;border-collapse:collapse">'
-        '<thead><tr style="background:#0a0f1e;border-bottom:2px solid #1f2937">'
-        '<th style="padding:8px 10px;font-size:10px;color:#4b5563;font-weight:600;text-align:center;width:36px">#</th>'
-        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">DRIVER ID</th>'
-        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">NOME</th>'
-        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">MLP</th>'
-        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:center">PKGS</th>'
-        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:right">BPP TOTAL</th>'
-        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:center">TIPO</th>'
-        '<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">STATUS</th>'
-        '</tr></thead><tbody>'
-    )
+    # ── Gerar linhas pvtb ──────────────────────────────────────────────────────
+    def _pvr(i, c, sec):
+        did    = c['id']
+        nome   = (c.get('nome') or '—')[:28]
+        transp = (c.get('transportadora') or '—')[:22]
+        pkgs   = c.get('n_pkgs', 0)
+        bpp    = c.get('total_bpp', 0)
+        tipo   = c.get('tipo', 'outro')
+        link   = _link(c)
+        months = _data_months(c)
+        tlabel = TIPO_LABEL.get(tipo, tipo)
+        tcor   = TIPO_COR.get(tipo, '#9ca3af')
+        tbadge = (f'<span style="background:{tcor}18;color:{tcor};'
+                  f'padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700">'
+                  f'{tlabel}</span>')
+        mattr  = f' data-months="{months}"' if months else ''
+        return (
+            f'<tr class="pvr" data-sec="{sec}" data-tipo="{tlabel}"{mattr}>'
+            f'<td style="padding:8px 10px;font-size:11px;color:#4b5563;text-align:center">{i+1}</td>'
+            f'<td style="padding:8px 12px">'
+            f'<a href="{link}" target="_blank" '
+            f'style="font-family:monospace;font-size:13px;font-weight:700;color:#93c5fd;text-decoration:none">{did}</a></td>'
+            f'<td style="padding:8px 12px;font-size:11px;color:#d1d5db;max-width:160px;overflow:hidden;'
+            f'text-overflow:ellipsis;white-space:nowrap" title="{nome}">{nome}</td>'
+            f'<td style="padding:8px 12px;font-size:11px;color:#9ca3af">{transp}</td>'
+            f'<td style="padding:8px 12px;font-size:12px;color:#e5e7eb;text-align:center;font-weight:600">{pkgs}</td>'
+            f'<td style="padding:8px 12px;font-size:13px;font-weight:700;color:#f87171;text-align:right">${bpp:,.2f}</td>'
+            f'<td style="padding:8px 12px;text-align:center">{tbadge}</td>'
+            f'<td style="padding:8px 12px">{_status_badge(c)}</td>'
+            f'</tr>'
+        )
 
-    def _rows(lista, offset=0):
-        html = ''
-        for i, c in enumerate(lista):
-            did   = c['id']
-            nome  = (c.get('nome') or '—')[:28]
-            transp= (c.get('transportadora') or '—')[:22]
-            pkgs  = c.get('n_pkgs', 0)
-            bpp   = c.get('total_bpp', 0)
-            tipo  = c.get('tipo', 'outro')
-            res   = c.get('residual', 0)
-            link  = _link(c)
-            uid   = f'pv_{did}'
-            st    = _eff_status(c)
-            urgente = st not in STATUS_BLOQ and res >= 1000
-            urg = ('<span style="color:#f87171;font-size:9px;font-weight:700;background:#450a0a;'
-                   'padding:1px 5px;border-radius:2px;margin-right:4px">!</span>') if urgente else ''
-            tipo_badge = (f'<span style="background:{TIPO_COR.get(tipo,"#9ca3af")}18;color:{TIPO_COR.get(tipo,"#9ca3af")};'
-                         f'padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700">'
-                         f'{TIPO_LABEL.get(tipo, tipo)}</span>')
-            bg = '#0c1520' if i % 2 == 0 else '#080d16'
-            html += (
-                f'<tr class="pv-row" onclick="togglePvDetail(\'{uid}\')" '
-                f'style="cursor:pointer;border-bottom:1px solid #1a2035;background:{bg}">'
-                f'<td style="padding:8px 10px;font-size:11px;color:#4b5563;text-align:center">{i+1+offset}</td>'
-                f'<td style="padding:8px 12px">{urg}'
-                f'<a href="{link}" target="_blank" onclick="event.stopPropagation()" '
-                f'style="font-family:monospace;font-size:13px;font-weight:700;color:#93c5fd;text-decoration:none">{did}</a></td>'
-                f'<td style="padding:8px 12px;font-size:11px;color:#d1d5db;max-width:160px;overflow:hidden;'
-                f'text-overflow:ellipsis;white-space:nowrap" title="{nome}">{nome}</td>'
-                f'<td style="padding:8px 12px;font-size:11px;color:#9ca3af">{transp}</td>'
-                f'<td style="padding:8px 12px;font-size:12px;color:#e5e7eb;text-align:center;font-weight:600">{pkgs}</td>'
-                f'<td style="padding:8px 12px;font-size:13px;font-weight:700;color:#f87171;text-align:right">${bpp:,.2f}</td>'
-                f'<td style="padding:8px 12px;text-align:center">{tipo_badge}</td>'
-                f'<td style="padding:8px 12px">{_status_badge(c)}</td>'
-                f'</tr>'
-                f'<tr id="{uid}" style="display:none;background:#050a14">'
-                f'<td colspan="8" style="padding:0">'
-                f'<table style="width:100%;border-collapse:collapse">'
-                f'<tr style="background:#0a0f1e">'
-                f'<th style="padding:4px 12px;font-size:9px;color:#374151;font-weight:600;text-align:left">SEM</th>'
-                f'<th style="padding:4px 12px;font-size:9px;color:#374151;font-weight:600;text-align:left">CLASSIFICAÇÃO</th>'
-                f'<th style="padding:4px 12px;font-size:9px;color:#374151;font-weight:600;text-align:left">SHP ID</th>'
-                f'<th style="padding:4px 12px;font-size:9px;color:#374151;font-weight:600;text-align:right">BPP</th>'
-                f'</tr>{_shp_rows(c)}</table></td></tr>'
-            )
-        return html
+    rows_html = ''
+    i = 0
+    for c in para_bloquear:
+        rows_html += _pvr(i, c, 'pendente'); i += 1
+    for c in acao_pnr:
+        rows_html += _pvr(i, c, 'pendente'); i += 1
+    for c in inaptos:
+        rows_html += _pvr(i, c, 'monitorado'); i += 1
+    for c in ja_bloq:
+        rows_html += _pvr(i, c, 'bloqueado'); i += 1
 
-    def _section(title, lista, color, border, offset=0, collapsible=False):
-        if not lista: return ''
-        body = (TABLE_HEAD + _rows(lista, offset) + '</tbody></table>')
-        inner = f'<div style="border:1px solid #1f2937;border-radius:0 0 6px 6px;overflow:hidden">{body}</div>'
-        hdr_style = (f'font-size:11px;font-weight:700;color:{color};text-transform:uppercase;'
-                     f'letter-spacing:.8px;padding:7px 14px;background:{border}18;border-left:3px solid {border}')
-        if not collapsible:
-            return f'<div style="margin-bottom:10px"><div style="{hdr_style}">{title}</div>{inner}</div>'
-        return (f'<details style="margin-bottom:10px">'
-                f'<summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;'
-                f'align-items:center;{hdr_style}">'
-                f'<span>{title}</span>'
-                f'<span style="font-size:10px;color:#4b5563;font-weight:400">▼ expandir</span></summary>'
-                f'{inner}</details>')
-
-    # Counters
+    # ── Stat cards ────────────────────────────────────────────────────────────
     html = (
         f'<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">'
         f'<div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:12px 20px;flex:1;min-width:100px;text-align:center">'
-        f'<div style="font-size:26px;font-weight:700;color:#f87171">{n_pb}</div>'
+        f'<div id="pv-card-pendente" style="font-size:26px;font-weight:700;color:#f87171">{n_pend}</div>'
         f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Para Bloquear</div></div>'
-        f'<div style="background:#1a1100;border:1px solid #92400e;border-radius:8px;padding:12px 20px;flex:1;min-width:100px;text-align:center">'
-        f'<div style="font-size:26px;font-weight:700;color:#fbbf24">{n_pnr}</div>'
-        f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Ação PNR</div></div>'
         f'<div style="background:#051a0f;border:1px solid #166534;border-radius:8px;padding:12px 20px;flex:1;min-width:100px;text-align:center">'
-        f'<div style="font-size:26px;font-weight:700;color:#4ade80">{n_bl}</div>'
+        f'<div id="pv-card-bloqueado" style="font-size:26px;font-weight:700;color:#4ade80">{n_bl}</div>'
         f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Já Bloqueados</div></div>'
         f'<div style="background:#111827;border:1px solid #374151;border-radius:8px;padding:12px 20px;flex:1;min-width:100px;text-align:center">'
-        f'<div style="font-size:26px;font-weight:700;color:#6b7280">{n_in}</div>'
-        f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Inativos/Removidos</div></div>'
+        f'<div id="pv-card-monit" style="font-size:26px;font-weight:700;color:#6b7280">{n_monit}</div>'
+        f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Monitorados</div></div>'
+        f'<div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:12px 20px;flex:1;min-width:100px;text-align:center">'
+        f'<div id="pv-card-total" style="font-size:26px;font-weight:700;color:#e5e7eb">{n_total}</div>'
+        f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Total</div></div>'
         f'</div>'
     )
 
-    # Barra de busca
+    # ── Barra de filtros ──────────────────────────────────────────────────────
     html += (
         f'<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
-        f'<input id="pv_search" type="text" oninput="filterPvRows()" placeholder="🔍 Driver ID ou Nome..." '
+        f'<input id="pvs" type="text" oninput="pvFilter()" placeholder="🔍 Driver ID ou Nome..." '
         f'style="background:#0d1321;border:1px solid #1f2937;color:#e5e7eb;border-radius:6px;padding:7px 12px;font-size:12px;width:220px">'
-        f'<button onclick="document.getElementById(\'pv_search\').value=\'\';filterPvRows()" '
+        f'<select id="pvst" onchange="pvFilter()" '
+        f'style="background:#0d1321;border:1px solid #1f2937;color:#e5e7eb;border-radius:6px;padding:7px 10px;font-size:12px">'
+        f'<option value="">Todos os status</option>'
+        f'<option value="pendente">Para Bloquear</option>'
+        f'<option value="bloqueado">Já Bloqueado</option>'
+        f'<option value="monitorado">Monitorado</option>'
+        f'</select>'
+        f'<select id="pvtp" onchange="pvFilter()" '
+        f'style="background:#0d1321;border:1px solid #1f2937;color:#e5e7eb;border-radius:6px;padding:7px 10px;font-size:12px">'
+        f'<option value="">Todos os tipos</option>'
+        f'<option value="Fraude Pura">Fraude Pura</option>'
+        f'<option value="Lost+Fraude">Lost+Fraude</option>'
+        f'<option value="PNR+LOR">PNR+LOR</option>'
+        f'</select>'
+        f'<button onclick="pvClear()" '
         f'style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:11px;cursor:pointer">Limpar</button>'
+        f'<span id="pv-count" style="font-size:11px;color:#4b5563;margin-left:4px">{n_total} drivers</span>'
+        f'<span style="font-size:10px;color:#374151;margin-left:8px;padding:2px 8px;background:#0a0f1e;border-radius:4px;border:1px solid #1f2937">'
+        f'janela 90 dias · independente do período</span>'
         f'</div>'
     )
 
-    offset = 0
-    html += _section(f'Para Bloquear — {n_pb} drivers', para_bloquear, '#f87171', '#dc2626', offset)
-    offset += n_pb
-    html += _section(f'Ação PNR — {n_pnr} drivers', acao_pnr, '#fbbf24', '#d97706', offset)
-    offset += n_pnr
-    # Inaptos ativos em collapse
-    if inaptos:
-        html += _section(f'Monitoramento — {len(inaptos)} drivers (abaixo do threshold)', inaptos, '#9ca3af', '#374151', offset, collapsible=True)
-        offset += len(inaptos)
-    # Já bloqueados em collapse
-    html += _section(f'Já Bloqueados — {n_bl} drivers', ja_bloq, '#4ade80', '#166534', offset, collapsible=True)
-    offset += n_bl
-    if inativos:
-        html += _section(f'Inativos/Removidos — {n_in} drivers', inativos, '#6b7280', '#374151', offset, collapsible=True)
+    # ── Tabela pvtb ───────────────────────────────────────────────────────────
+    html += (
+        f'<div style="border:1px solid #1f2937;border-radius:6px;overflow:hidden">'
+        f'<table id="pvtb" style="width:100%;border-collapse:collapse">'
+        f'<thead><tr style="background:#0a0f1e;border-bottom:2px solid #1f2937">'
+        f'<th style="padding:8px 10px;font-size:10px;color:#4b5563;font-weight:600;text-align:center;width:36px">#</th>'
+        f'<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">DRIVER ID</th>'
+        f'<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">NOME</th>'
+        f'<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">MLP</th>'
+        f'<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:center">PKGS</th>'
+        f'<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:right">BPP TOTAL</th>'
+        f'<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:center">TIPO</th>'
+        f'<th style="padding:8px 12px;font-size:10px;color:#6b7280;font-weight:600;text-align:left">STATUS</th>'
+        f'</tr></thead>'
+        f'<tbody>{rows_html}</tbody>'
+        f'</table></div>'
+    )
 
-    # JS
+    # ── JS pvFilter / pvClear / pvExpand ──────────────────────────────────────
     html += '''<script>
-function togglePvDetail(id){var e=document.getElementById(id);if(e)e.style.display=e.style.display==='none'?'table-row':'none';}
-function filterPvRows(){
-  var q=(document.getElementById('pv_search')||{}).value||'';q=q.toLowerCase();
-  document.querySelectorAll('.pv-row').forEach(function(r){
-    var match=!q||r.textContent.toLowerCase().includes(q);
-    r.style.display=match?'':'none';
-    var det=r.nextElementSibling;
-    if(det&&det.id&&det.id.startsWith('pv_'))det.style.display='none';
+(function(){
+  function _isoWeekToYM(wk){
+    var yr=2026;
+    var jan4=new Date(yr,0,4);
+    var dow=(jan4.getDay()||7);
+    var w1=new Date(jan4);w1.setDate(jan4.getDate()-dow+1);
+    var ws=new Date(w1);ws.setDate(w1.getDate()+(wk-1)*7);
+    return ws.getFullYear()+'-'+String(ws.getMonth()+1).padStart(2,'0');
+  }
+  function pvFilter(){
+    var q=(document.getElementById('pvs')||{}).value||'';q=q.toLowerCase();
+    var st=(document.getElementById('pvst')||{}).value||'';
+    var tp=(document.getElementById('pvtp')||{}).value||'';
+    var de=(typeof _periodDe!=='undefined'?_periodDe:'');
+    var ate=(typeof _periodAte!=='undefined'?_periodAte:'');
+    var vis=0,nPend=0,nBlq=0,nMonit=0;
+    document.querySelectorAll('#pvtb tr.pvr').forEach(function(r){
+      var periodOk=true;
+      if(de||ate){
+        var ms=(r.dataset.months||'').split(' ').filter(Boolean);
+        if(ms.length>0){periodOk=ms.some(function(m){return(!de||m>=de)&&(!ate||m<=ate);});}
+      }
+      var ok=periodOk&&(!q||r.textContent.toLowerCase().indexOf(q)>=0)&&(!st||r.dataset.sec===st)&&(!tp||r.dataset.tipo===tp);
+      r.style.display=ok?'':'none';
+      var ex=r.nextElementSibling;
+      if(ex&&ex.classList.contains('pvr-expand'))ex.style.display=ok?'':'none';
+      if(ok){r.cells[0].textContent=++vis;
+        if(r.dataset.sec==='pendente')nPend++;
+        else if(r.dataset.sec==='bloqueado')nBlq++;
+        else if(r.dataset.sec==='monitorado')nMonit++;
+      }
+    });
+    var el=document.getElementById('pv-count');if(el)el.textContent=vis+' drivers';
+    var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+    set('pv-card-pendente',nPend);set('pv-card-bloqueado',nBlq);
+    set('pv-card-monit',nMonit);set('pv-card-total',vis);
+  }
+  function pvClear(){
+    var f=document.getElementById('pvs');if(f)f.value='';
+    var s=document.getElementById('pvst');if(s)s.value='';
+    var t=document.getElementById('pvtp');if(t)t.value='';
+    pvFilter();
+  }
+  function pvExpand(row){
+    var next=row.nextElementSibling;
+    if(next&&next.classList.contains('pvr-expand')){next.remove();row.removeAttribute('data-expanded');return;}
+    var a=row.querySelector('a[href*="/drivers/"]');
+    if(!a){a=row.querySelector('a');if(!a)return;}
+    var m=(a.href||'').match(/[?&]searchValue=(\d+)|\/drivers\/(\d+)/);
+    if(!m)return;
+    var did=m[1]||m[2];var src=null;
+    ['p60','p180','p30','p90'].forEach(function(p){if(!src){var el=document.getElementById('acbl_'+p+'_'+did);if(el)src=el;}});
+    if(!src)src=document.getElementById('acbl_'+did);
+    var html=src?(src.querySelector('table')||src).outerHTML:'<span style="color:#6b7280;font-size:11px">Sem detalhes para driver '+did+'</span>';
+    var tr=document.createElement('tr');tr.className='pvr-expand';
+    tr.innerHTML='<td colspan="8" style="padding:10px 20px 12px 36px;background:#0d1321;border-bottom:1px solid #1f2937"><div style="font-size:10px;color:#6b7280;margin-bottom:6px">&#9660; SHPs &middot; Driver '+did+'</div><div style="overflow-x:auto;max-height:240px;overflow-y:auto;font-size:11px">'+html+'</div></td>';
+    row.parentNode.insertBefore(tr,row.nextSibling);
+    row.dataset.expanded='1';
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    document.querySelectorAll('#pvtb tr.pvr').forEach(function(r){
+      r.style.cursor='pointer';
+      r.addEventListener('click',function(e){if(e.target.tagName==='A')return;pvExpand(r);});
+    });
   });
-}
+  window.pvFilter=pvFilter;window.pvClear=pvClear;window.pvExpand=pvExpand;
+})();
 </script>'''
     return html
 
@@ -2765,6 +2899,13 @@ def gerar_html(d):
                 <td style="color:#10b981">${drv["bpp"]:,.2f}</td>
             </tr>'''
 
+    _dlf = d.get('driver_lor_fraud', {}) or {}
+    _lf_month_btns = ''.join(
+        f'<button class="lf-btn" onclick="lfMes(\'{m}\',this)">'
+        f'{datetime.strptime(m, "%Y-%m").strftime("%b/%y").upper()}</button>'
+        for m in _dlf.get('meses', [])
+    )
+
     return f'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -2810,6 +2951,9 @@ def gerar_html(d):
   .acbl-prd-btn{{background:#1f2937;border:1px solid #374151;color:#9ca3af;font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .15s}}
   .acbl-prd-btn:hover{{border-color:#6b7280;color:#e2e8f0}}
   .acbl-prd-btn.acbl-prd-active{{background:#ef4444;border-color:#ef4444;color:#fff;font-weight:600}}
+  .lf-btn{{background:#1f2937;border:1px solid #374151;color:#9ca3af;font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .15s}}
+  .lf-btn:hover{{border-color:#6b7280;color:#e2e8f0}}
+  .lf-btn.lf-active{{background:#3b82f6;border-color:#3b82f6;color:#fff;font-weight:600}}
   .main-content{{flex:1;overflow-y:auto}}
   .content{{display:none;padding:28px 32px}}
   .content.active{{display:block}}
@@ -2884,7 +3028,7 @@ def gerar_html(d):
     <div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="header-title">Análise de Fraude — SSP30</div>
-        <span class="ver-badge">v2.9</span>
+        <span class="ver-badge">v3.1</span>
       </div>
       <div class="header-sub">Base {d["ano"]} · <span id="upd-badge">Gerado em {d["gerado"]}</span><span id="upd-ts" data-ts="{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}" style="display:none"></span></div>
     </div>
@@ -2928,6 +3072,10 @@ def gerar_html(d):
   <div class="sb-item" data-tab="acumulo" onclick="showTab('acumulo',this)">
     <i data-lucide="shield-x" width="14" height="14" class="ci"></i>
     Acúmulo Bloqueio <span class="sb-badge" id="tab-count-acumulo">{len(d["acumulo_bloqueio"])}</span>
+  </div>
+  <div class="sb-item" data-tab="lor-fraud" onclick="showTab('lor-fraud',this);setTimeout(function(){{if(window.lfRender)window.lfRender();}},80)">
+    <i data-lucide="truck" width="14" height="14" class="ci"></i>
+    LOR+Fraud <span class="sb-badge red" id="tab-count-lor-fraud">{d["driver_lor_fraud"]["total_shps"]}</span>
   </div>
   <div class="sb-item" data-tab="dxp" onclick="showTab('dxp',this)">
     <i data-lucide="map-pin" width="14" height="14" class="ci"></i>
@@ -3094,6 +3242,130 @@ def gerar_html(d):
     </div>
   </div>
   {''.join(f'<div id="acbl-content-{p}" class="acbl-period-content" style="display:{"" if p=="90" else "none"}">{rows_acumulo_bloqueio(d["acumulo_por_periodo"][p], pid=p)}</div>' for p in ["30","60","90","180"])}
+</div>
+
+<!-- ANÁLISE LOR+FRAUD -->
+<div id="tab-lor-fraud" class="content">
+<div style="font-size:18px;font-weight:700;color:#f9fafb;margin-bottom:6px">Análise Drivers — LOR + Fraude</div>
+<div style="font-size:12px;color:#6b7280;margin-bottom:14px">Todos os casos desde {d["ano"]} · Lost on Route + Fraude + PNR C · Filtro por mês</div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+  <span style="font-size:11px;color:#9ca3af;font-weight:500;margin-right:4px">Período:</span>
+  <button class="lf-btn lf-active" onclick="lfMes('all',this)">Todos</button>
+  {_lf_month_btns}
+</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px">
+  <div class="card">
+    <div class="card-header"><i data-lucide="package-x" class="ci" width="14" height="14" style="color:#E24B4A"></i><span class="cl">Casos LOR+Fraud</span></div>
+    <div id="lf-cnt-total" class="card-value" style="color:#E24B4A">{_dlf.get("total_shps",0):,}</div>
+    <div class="card-delta">pacotes desde {d["ano"]}</div>
+  </div>
+  <div class="card">
+    <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14"></i><span class="cl">BPP Total</span></div>
+    <div id="lf-cnt-bpp" class="card-value" style="font-size:20px">${_dlf.get("total_bpp",0):,.0f}</div>
+    <div class="card-delta">valor acumulado</div>
+  </div>
+  <div class="card">
+    <div class="card-header"><i data-lucide="users" class="ci" width="14" height="14"></i><span class="cl">Drivers</span></div>
+    <div id="lf-cnt-drivers" class="card-value">{_dlf.get("drivers_unique",0)}</div>
+    <div class="card-delta">envolvidos no período</div>
+  </div>
+  <div class="card c-red">
+    <div class="card-header"><i data-lucide="shield-x" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Bloqueados</span></div>
+    <div id="lf-cnt-blocked" class="card-value red">{_dlf.get("por_status",{}).get("blocked",0)}</div>
+    <div class="card-delta">status blocked</div>
+  </div>
+  <div class="card">
+    <div class="card-header"><i data-lucide="activity" class="ci" width="14" height="14" style="color:#f59e0b"></i><span class="cl">Ativos</span></div>
+    <div id="lf-cnt-active" class="card-value" style="color:#f59e0b">{_dlf.get("por_status",{}).get("active",0)}</div>
+    <div class="card-delta">ainda ativos</div>
+  </div>
+</div>
+<div class="grid2" style="margin-bottom:18px">
+  <div class="box"><div class="bt">Distribuição por Transportadora (MLP)</div><canvas id="cLfMlp" height="250"></canvas></div>
+  <div class="box"><div class="bt">BPP por Classificação (USD)</div><canvas id="cLfClass" height="250"></canvas></div>
+</div>
+<div class="tbl-wrap">
+  <div class="tbl-title">Casos por Shipment <span id="lf-table-label" style="font-weight:400;font-size:11px;color:#6b7280"></span></div>
+  <div class="tbl-scroll">
+    <table class="tbl">
+      <thead><tr>
+        <th>Semana</th><th>Classificação</th><th>Shipment ID</th>
+        <th>Driver ID</th><th>MLP</th><th>Status</th><th style="text-align:right">BPP (USD)</th>
+      </tr></thead>
+      <tbody id="lf-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+(function(){{
+  var _lfD   = {j(_dlf.get('shps', []))};
+  var _lfSel = 'all';
+  var _lfChM = null, _lfChC = null;
+  var SB = {{blocked:'background:#7f1d1d;color:#fca5a5',inactive:'background:#1f2937;color:#9ca3af',removed:'background:#374151;color:#d1d5db',active:'background:#064e3b;color:#6ee7b7'}};
+  var CB = {{'LOST ON ROUTE':'background:#1e3a5f;color:#93c5fd','FRAUD ON ROUTE':'background:#450a0a;color:#fca5a5','FRAUD AT STATION':'background:#4c1d95;color:#c4b5fd','FRAUD ENE':'background:#431407;color:#fdba74','PNR C':'background:#451a03;color:#fde68a','EMPTY BOX':'background:#1a1a2e;color:#818cf8'}};
+  var PC = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16','#f97316','#6366f1','#14b8a6','#a855f7'];
+
+  window.lfMes = function(mes, btn) {{
+    _lfSel = mes;
+    document.querySelectorAll('.lf-btn').forEach(function(b){{ b.classList.remove('lf-active'); }});
+    if (btn) btn.classList.add('lf-active');
+    lfRender();
+  }};
+
+  window.lfRender = function() {{
+    var rows = _lfSel === 'all' ? _lfD : _lfD.filter(function(r){{ return r.mes === _lfSel; }});
+    var totalBpp = rows.reduce(function(a,r){{ return a+r.bpp; }}, 0);
+    var drvSet={{}}, blkSet={{}}, actSet={{}};
+    rows.forEach(function(r){{ drvSet[r.driver_id]=1; if(r.status==='blocked') blkSet[r.driver_id]=1; if(r.status==='active') actSet[r.driver_id]=1; }});
+    var el = function(id){{ return document.getElementById(id); }};
+    el('lf-cnt-total').textContent   = rows.length.toLocaleString('pt-BR');
+    el('lf-cnt-bpp').textContent     = '$'+Math.round(totalBpp).toLocaleString('pt-BR');
+    el('lf-cnt-drivers').textContent = Object.keys(drvSet).length;
+    el('lf-cnt-blocked').textContent = Object.keys(blkSet).length;
+    el('lf-cnt-active').textContent  = Object.keys(actSet).length;
+
+    var mlpA={{}}, clsA={{}};
+    rows.forEach(function(r){{
+      mlpA[r.mlp]=(mlpA[r.mlp]||0)+1;
+      if(!clsA[r.class]) clsA[r.class]={{count:0,bpp:0}};
+      clsA[r.class].count++; clsA[r.class].bpp+=r.bpp;
+    }});
+    var mLbl=Object.keys(mlpA).sort(function(a,b){{ return mlpA[b]-mlpA[a]; }});
+    var mVal=mLbl.map(function(k){{ return mlpA[k]; }});
+    var cLbl=Object.keys(clsA).sort(function(a,b){{ return clsA[b].bpp-clsA[a].bpp; }});
+    var cBpp=cLbl.map(function(k){{ return +clsA[k].bpp.toFixed(2); }});
+
+    if(_lfChM) _lfChM.destroy();
+    if(_lfChC) _lfChC.destroy();
+    var ctxM=document.getElementById('cLfMlp');
+    if(ctxM && mLbl.length) {{
+      _lfChM=new Chart(ctxM,{{type:'pie',data:{{labels:mLbl,datasets:[{{data:mVal,backgroundColor:PC,borderWidth:0}}]}},options:{{plugins:{{legend:{{position:'right',labels:{{color:'#9ca3af',font:{{size:11}},boxWidth:12}}}},tooltip:{{callbacks:{{label:function(c){{ return ' '+c.label+': '+c.raw+' ('+((c.raw/rows.length)*100).toFixed(1)+'%)'; }}}}}}}}}}}});
+    }}
+    var ctxC=document.getElementById('cLfClass');
+    if(ctxC && cLbl.length) {{
+      _lfChC=new Chart(ctxC,{{type:'bar',data:{{labels:cLbl.map(function(l){{ return l.length>22?l.substring(0,20)+'…':l; }}),datasets:[{{label:'BPP',data:cBpp,backgroundColor:'#f59e0b',borderRadius:4}}]}},options:{{indexAxis:'y',plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:function(c){{ return '$'+c.raw.toLocaleString('pt-BR',{{minimumFractionDigits:2}}); }}}}}}}},scales:{{x:{{grid:{{color:'#1f2937'}},ticks:{{color:'#6b7280'}}}},y:{{grid:{{color:'#1f2937'}},ticks:{{color:'#9ca3af'}}}}}}}}}});
+    }}
+
+    var tbody=document.getElementById('lf-tbody');
+    var lbl=document.getElementById('lf-table-label');
+    var top=rows.slice(0,500);
+    if(lbl) lbl.textContent='· '+rows.length.toLocaleString('pt-BR')+' casos'+(rows.length>500?' (top 500)':'');
+    tbody.innerHTML=top.map(function(r){{
+      var sb=SB[r.status]||'background:#1f2937;color:#9ca3af';
+      var cb=CB[r.class]||'background:#1f2937;color:#9ca3af';
+      return '<tr>'
+        +'<td style="color:#9ca3af">'+r.semana+'</td>'
+        +'<td><span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;'+cb+'">'+r.class+'</span></td>'
+        +'<td style="font-family:monospace;font-size:11px;color:#93c5fd">'+r.shp_id+'</td>'
+        +'<td style="font-family:monospace;font-size:12px">'+r.driver_id+'</td>'
+        +'<td style="font-size:11px;color:#d1d5db">'+r.mlp+'</td>'
+        +'<td><span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;'+sb+'">'+r.status+'</span></td>'
+        +'<td style="color:#10b981;font-weight:600;text-align:right">$'+r.bpp.toLocaleString("pt-BR",{{minimumFractionDigits:2}})+'</td>'
+        +'</tr>';
+    }}).join('');
+  }};
+}})();
+</script>
 </div>
 
 <!-- DRIVER × PLACE -->
@@ -3685,7 +3957,7 @@ function applyPeriodoToTab(name) {{
   else if (name === 'dxp')        {{ _filterTblByPeriod(_tblDxp); }}
   else if (name === 'places')     {{ _filterTblByPeriod(_tblPlaces); }}
   else if (name === 'damaged')    {{ _applyDamagedFilters(); }}
-  else if (name === 'bloqueios')  {{ filtrarBloqueios(); }}
+  else if (name === 'bloqueios')  {{ filtrarBloqueios(); if(window.pvFilter) pvFilter(); }}
   else if (name === 'tendencia')  {{ renderTendencia(); }}
   else if (name === 'ofensores')  {{ try {{ renderOfensores(); }} catch(e) {{}} }}
   else if (name === 'cruzamento') {{ renderCrzMes(); }}
@@ -6443,7 +6715,7 @@ def gerar_sinistros_html(dados):
     <div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="header-title">Sinistros / Eventos SVC — SSP30</div>
-        <span class="ver-badge">v2.9</span>
+        <span class="ver-badge">v3.1</span>
       </div>
       <div class="header-sub">Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>
     </div>
