@@ -67014,7 +67014,7 @@ function applyPeriodoToTab(name) {
   else if (name === 'dxp')        { _filterTblByPeriod(_tblDxp); }
   else if (name === 'places')     { _filterTblByPeriod(_tblPlaces); }
   else if (name === 'damaged')    { _applyDamagedFilters(); }
-  else if (name === 'bloqueios')  { filtrarBloqueios(); }
+  else if (name === 'bloqueios')  { filtrarBloqueios(); if(window.pvFilter) pvFilter(); }
   else if (name === 'tendencia')  { renderTendencia(); }
   else if (name === 'ofensores')  { try { renderOfensores(); } catch(e) {} }
   else if (name === 'cruzamento') { renderCrzMes(); }
@@ -69209,22 +69209,22 @@ document.addEventListener('DOMContentLoaded',function(){
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
     <div style="background:linear-gradient(135deg,#1a0505,#2a0808);border:1px solid #7f1d1d;border-radius:10px;padding:14px 16px">
       <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Para Bloquear</div>
-      <div style="font-size:30px;font-weight:800;color:#f87171;line-height:1">66</div>
+      <div id="pv-card-pendente" style="font-size:30px;font-weight:800;color:#f87171;line-height:1">66</div>
       <div style="font-size:10px;color:#6b7280;margin-top:3px">BPP: $45,990</div>
     </div>
     <div style="background:linear-gradient(135deg,#051a0f,#082a18);border:1px solid #166534;border-radius:10px;padding:14px 16px">
       <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Ja Bloqueados</div>
-      <div style="font-size:30px;font-weight:800;color:#4ade80;line-height:1">26</div>
+      <div id="pv-card-bloqueado" style="font-size:30px;font-weight:800;color:#4ade80;line-height:1">26</div>
       <div style="font-size:10px;color:#6b7280;margin-top:3px">acoes LP realizadas</div>
     </div>
     <div style="background:linear-gradient(135deg,#111000,#1c1800);border:1px solid #92400e;border-radius:10px;padding:14px 16px">
       <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Monitoramento</div>
-      <div style="font-size:30px;font-weight:800;color:#fbbf24;line-height:1">0</div>
+      <div id="pv-card-monit" style="font-size:30px;font-weight:800;color:#fbbf24;line-height:1">0</div>
       <div style="font-size:10px;color:#6b7280;margin-top:3px">em observacao</div>
     </div>
     <div style="background:linear-gradient(135deg,#0d1321,#111827);border:1px solid #1f2937;border-radius:10px;padding:14px 16px">
       <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total</div>
-      <div style="font-size:30px;font-weight:800;color:#e5e7eb;line-height:1">92</div>
+      <div id="pv-card-total" style="font-size:30px;font-weight:800;color:#e5e7eb;line-height:1">92</div>
       <div style="font-size:10px;color:#6b7280;margin-top:3px">drivers no periodo</div>
     </div>
   </div>
@@ -69250,6 +69250,7 @@ document.addEventListener('DOMContentLoaded',function(){
       style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:8px 13px;font-size:11px;cursor:pointer">
       Limpar</button>
     <span id="pv-count" style="margin-left:auto;font-size:11px;color:#4b5563">92 drivers</span>
+    <span style="font-size:10px;color:#374151;background:#111827;border:1px solid #1f2937;border-radius:4px;padding:3px 8px;white-space:nowrap">&#128467; janela 90 dias &middot; independente do per&iacute;odo</span>
   </div>
   <!-- Tabela -->
   <div style="border:1px solid #1f2937;border-radius:8px;overflow:hidden;overflow-x:auto">
@@ -69274,23 +69275,85 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 <script>
 (function(){
+  function _isoWeekToYM(wk){
+    var yr=2026;
+    var jan4=new Date(yr,0,4);
+    var dow=(jan4.getDay()||7);
+    var w1=new Date(jan4);w1.setDate(jan4.getDate()-dow+1);
+    var ws=new Date(w1);ws.setDate(w1.getDate()+(wk-1)*7);
+    return ws.getFullYear()+'-'+String(ws.getMonth()+1).padStart(2,'0');
+  }
   function pvFilter(){
     var q=(document.getElementById('pvs')||{}).value||'';q=q.toLowerCase();
     var st=(document.getElementById('pvst')||{}).value||'';
     var tp=(document.getElementById('pvtp')||{}).value||'';
-    var vis=0;
+    var de=(typeof _periodDe!=='undefined'?_periodDe:'');
+    var ate=(typeof _periodAte!=='undefined'?_periodAte:'');
+    var vis=0,nPend=0,nBlq=0,nMonit=0;
     document.querySelectorAll('#pvtb tr.pvr').forEach(function(r){
-      var ok=(!q||r.textContent.toLowerCase().indexOf(q)>=0)&&(!st||r.dataset.sec===st)&&(!tp||r.dataset.tipo===tp);
+      var periodOk=true;
+      if(de||ate){
+        var ms=(r.dataset.months||'').split(' ').filter(Boolean);
+        if(ms.length>0){periodOk=ms.some(function(m){return(!de||m>=de)&&(!ate||m<=ate);});}
+      }
+      var ok=periodOk&&(!q||r.textContent.toLowerCase().indexOf(q)>=0)&&(!st||r.dataset.sec===st)&&(!tp||r.dataset.tipo===tp);
       r.style.display=ok?'':'none';
-      if(ok){r.cells[0].textContent=++vis;}
+      if(ok){r.cells[0].textContent=++vis;
+        if(r.dataset.sec==='pendente')nPend++;
+        else if(r.dataset.sec==='bloqueado')nBlq++;
+        else if(r.dataset.sec==='monitorado')nMonit++;
+      }
     });
     var el=document.getElementById('pv-count');if(el)el.textContent=vis+' drivers';
+    var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+    set('pv-card-pendente',nPend);
+    set('pv-card-bloqueado',nBlq);
+    set('pv-card-monit',nMonit);
+    set('pv-card-total',vis);
   }
   function pvClear(){
     ['pvs','pvst','pvtp'].forEach(function(id){var e=document.getElementById(id);if(e)e.value=''});
     pvFilter();
   }
-  window.pvFilter=pvFilter;window.pvClear=pvClear;
+  function pvExpand(row){
+    var next=row.nextElementSibling;
+    if(next&&next.classList.contains('pvr-expand')){next.remove();row.removeAttribute('data-expanded');return;}
+    var a=row.querySelector('a[href*="/drivers/"]');
+    if(!a)return;
+    var m=a.href.match(/\/drivers\/(\d+)/);
+    if(!m)return;
+    var did=m[1];
+    var src=null;
+    ['p60','p180','p30','p90'].forEach(function(p){if(!src){var el=document.getElementById('acbl_'+p+'_'+did);if(el)src=el;}});
+    if(!src)src=document.getElementById('acbl_'+did);
+    var html=src?(src.querySelector('table')||src).outerHTML:'<span style="color:#6b7280;font-size:11px">Sem detalhes disponíveis para driver '+did+'</span>';
+    var tr=document.createElement('tr');tr.className='pvr-expand';
+    tr.innerHTML='<td colspan="8" style="padding:10px 20px 12px 36px;background:#0d1321;border-bottom:1px solid #1f2937"><div style="font-size:10px;color:#6b7280;margin-bottom:6px">&#9660; SHPs · Driver '+did+'</div><div style="overflow-x:auto;max-height:240px;overflow-y:auto;font-size:11px">'+html+'</div></td>';
+    row.parentNode.insertBefore(tr,row.nextSibling);
+    row.dataset.expanded='1';
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    document.querySelectorAll('#pvtb tr.pvr').forEach(function(r){
+      r.style.cursor='pointer';
+      r.addEventListener('click',function(e){if(e.target.tagName==='A')return;pvExpand(r);});
+      // Inject data-months from acbl SHP week data
+      var a=r.querySelector('a[href*="/drivers/"]');
+      if(!a)return;
+      var m=a.href.match(/\/drivers\/(\d+)/);
+      if(!m)return;
+      var did=m[1],src=null;
+      ['p60','p180','p30','p90'].forEach(function(p){if(!src){var el=document.getElementById('acbl_'+p+'_'+did);if(el)src=el;}});
+      if(!src)src=document.getElementById('acbl_'+did);
+      if(!src)return;
+      var yms=new Set();
+      src.querySelectorAll('td').forEach(function(td){
+        var t=(td.textContent||'').trim(),wm=t.match(/^S(\d+)$/);
+        if(wm){var ym=_isoWeekToYM(parseInt(wm[1],10));yms.add(ym);}
+      });
+      if(yms.size>0)r.dataset.months=Array.from(yms).join(' ');
+    });
+  });
+  window.pvFilter=pvFilter;window.pvClear=pvClear;window.pvExpand=pvExpand;
 })();
 </script>
 <details style="margin-top:8px">
