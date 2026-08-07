@@ -95,7 +95,6 @@ def carregar_dados():
 def gerar_html(drivers):
     all_meses   = sorted({m for d in drivers for m in d['meses']})
     all_classes = sorted({d['classe'] for d in drivers if d['classe']})
-    all_hubs    = sorted({h for d in drivers for h in d['hubs']})
 
     data_json = json.dumps(drivers, ensure_ascii=False)
     agora     = datetime.now().strftime('%d/%m/%Y %H:%M')
@@ -105,7 +104,6 @@ def gerar_html(drivers):
         for m in all_meses
     )
     cls_opts = ''.join(f'<option value="{c}">{c}</option>' for c in all_classes)
-    hub_opts = ''.join(f'<option value="{h}">{h}</option>' for h in all_hubs)
 
     return f'''<!DOCTYPE html>
 <html lang="pt-BR">
@@ -172,8 +170,8 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
     <div class="hacc"></div>
     <div class="lp">LP</div>
     <div>
-      <div class="htitle">Visão Geral — Drivers Monitorados</div>
-      <div class="hsub">SSP30 Guarulhos Mega · Fraude &amp; Lost · Jan–Ago 2026</div>
+      <div class="htitle">Visão Geral — Drivers Monitorados <span style="font-size:10px;font-weight:700;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle">SSP30</span></div>
+      <div class="hsub">Guarulhos Mega · Fraude &amp; Lost · todos os dados SSP30</div>
     </div>
   </div>
   <div class="hinfo">Atualizado: {agora}</div>
@@ -198,10 +196,6 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
   <select id="f-classe" onchange="render()">
     <option value="">Toda classe</option>
     {cls_opts}
-  </select>
-  <select id="f-hub" onchange="render()">
-    <option value="">Todos os hubs</option>
-    {hub_opts}
   </select>
   <select id="f-status" onchange="render()">
     <option value="">Todos os status</option>
@@ -260,7 +254,7 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
         <th>Distribuição</th>
         <th>Classificação</th>
         <th onclick="sortBy('bpp')" id="th-bpp">BPP (USD) ↕</th>
-        <th>Ativo em</th>
+        <th>Meses ativos</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -293,7 +287,6 @@ function render() {{
   const ate    = document.getElementById('f-ate').value;
   const causa  = document.getElementById('f-causa').value;
   const classe = document.getElementById('f-classe').value;
-  const hub    = document.getElementById('f-hub').value;
   const stF    = document.getElementById('f-status').value;
   const busca  = document.getElementById('f-busca').value.trim();
 
@@ -305,7 +298,6 @@ function render() {{
     if (causa === 'FRAUD' && d.fraud === 0) return false;
     if (causa === 'LOST'  && d.lost  === 0) return false;
     if (classe && d.classe !== classe) return false;
-    if (hub && !d.hubs.includes(hub)) return false;
     if (stF && getSt(d.id) !== stF) return false;
     if (busca && !d.id.includes(busca)) return false;
     return true;
@@ -335,7 +327,7 @@ function render() {{
 
   const body = document.getElementById('tbody');
   if (!rows.length) {{
-    body.innerHTML = '<tr><td colspan="10" class="empty">Nenhum driver encontrado.</td></tr>';
+    body.innerHTML = '<tr><td colspan="9" class="empty">Nenhum driver encontrado.</td></tr>';
     return;
   }}
   body.innerHTML = rows.map((d,i) => {{
@@ -360,14 +352,14 @@ function render() {{
       </td>
       <td><span class="tag">${{d.classe||'—'}}</span></td>
       <td class="num" style="color:#34d399">$${{d.bpp.toLocaleString('en-US',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</td>
-      <td style="font-size:10px;color:#6b7280">${{mLbl}}</td>
+      <td style="font-size:10px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis">${{mLbl}}</td>
       <td><span class="badge-s ${{ST_CLS[st]}}" onclick="nextSt('${{d.id}}')">${{ST_LBL[st]}}</span></td>
     </tr>`;
   }}).join('');
 }}
 
 function resetF() {{
-  ['f-de','f-ate','f-causa','f-classe','f-hub','f-status'].forEach(id => document.getElementById(id).value='');
+  ['f-de','f-ate','f-causa','f-classe','f-status'].forEach(id => document.getElementById(id).value='');
   document.getElementById('f-busca').value = '';
   render();
 }}
