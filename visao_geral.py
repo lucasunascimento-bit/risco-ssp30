@@ -17,8 +17,8 @@ ANO_INICIO    = '2026-01-01'
 OUTPUT        = Path(__file__).parent / 'visao_geral.html'
 
 # URL base do backoffice logístico — ajuste se necessário
-BO_SHP_URL    = 'https://logistics.adminml.com/backoffice/shipments/'
-BO_DRIVER_URL = 'https://logistics.adminml.com/backoffice/drivers/'
+BO_SHP_URL    = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/'
+BO_DRIVER_URL = 'https://shipping-bo.adminml.com/sauron/drivers/driver/'
 
 QUERY = """
 SELECT
