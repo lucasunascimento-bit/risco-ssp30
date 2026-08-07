@@ -150,7 +150,7 @@
     <div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="header-title">Análise de Fraude — SSP30</div>
-        <span class="ver-badge">v3.3</span>
+        <span class="ver-badge">v3.4</span>
       </div>
       <div class="header-sub">Base 2026 · <span id="upd-badge">Gerado em 07/08/2026 11:45</span><span id="upd-ts" data-ts="2026-08-07T11:50:05Z" style="display:none"></span></div>
     </div>
@@ -231,7 +231,7 @@
   </div>
   <div class="sb-divider"></div>
   <div class="sb-section-header">Análise por Tipo</div>
-  <div class="sb-item" data-tab="lor-fraud" onclick="showTab('lor-fraud',this);setTimeout(function(){if(window.lfRender)window.lfRender();},80)">
+  <div class="sb-item" data-tab="lor-fraud" onclick="showTab('lor-fraud',this)">
     <i data-lucide="truck" width="14" height="14" class="ci"></i>
     LOR + Fraude <span class="sb-badge red" id="tab-count-lor-fraud">0</span>
   </div>
@@ -692,7 +692,7 @@ function buildLFCharts(){
     return l.length>18?l.slice(0,17)+'…':l;
   };
   if(eB){
-    if(lfChtBpp)lfChtBpp.destroy();
+    var _ec1=Chart.getChart(eB);if(_ec1)_ec1.destroy();if(lfChtBpp&&lfChtBpp!==_ec1)try{lfChtBpp.destroy();}catch(e){}
     lfChtBpp=new Chart(eB,{
       type:'bar',
       data:{
@@ -709,7 +709,7 @@ function buildLFCharts(){
     });
   }
   if(eS){
-    if(lfChtShps)lfChtShps.destroy();
+    var _ec2=Chart.getChart(eS);if(_ec2)_ec2.destroy();if(lfChtShps&&lfChtShps!==_ec2)try{lfChtShps.destroy();}catch(e){}
     lfChtShps=new Chart(eS,{
       type:'bar',
       data:{
@@ -1079,7 +1079,7 @@ function showTab(name, el) {
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
   const bp = document.getElementById('barra-periodo');
-  const _noPeriod = ['relatorio'];
+  const _noPeriod = ['relatorio','lor-fraud','sellers','buyers','nodos'];
   if (bp) bp.style.display = _noPeriod.includes(name) ? 'none' : 'flex';
   applyPeriodoToTab(name);
   if (name === 'bloqueios') initBlCharts();
@@ -1337,9 +1337,10 @@ function applyPeriodoToTab(name) {
   else if (name === 'dxp')        { _filterTblByPeriod(_tblDxp); }
   // places e damaged removidos
   else if (name === 'bloqueios')  { filtrarBloqueios(); if(window.pvFilter) pvFilter(); }
-  else if (name === 'sellers')    { if(window.filtrarSellers) filtrarSellers(); setTimeout(function(){if(window.buildSelCharts)buildSelCharts();},80); }
-  else if (name === 'buyers')     { if(window.filtrarBuyers) filtrarBuyers(); setTimeout(function(){if(window.buildBuyCharts)buildBuyCharts();},80); }
-  else if (name === 'nodos')      { if(window.filtrarNodos) filtrarNodos(); setTimeout(function(){if(window.buildNodoCharts)buildNodoCharts();},80); }
+  else if (name === 'lor-fraud')  { if(window.filtrarLF) filtrarLF(); setTimeout(function(){if(window.buildLFCharts)buildLFCharts();},300); }
+  else if (name === 'sellers')    { if(window.filtrarSellers) filtrarSellers(); setTimeout(function(){if(window.buildSelCharts)buildSelCharts();},300); }
+  else if (name === 'buyers')     { if(window.filtrarBuyers) filtrarBuyers(); setTimeout(function(){if(window.buildBuyCharts)buildBuyCharts();},300); }
+  else if (name === 'nodos')      { if(window.filtrarNodos) filtrarNodos(); setTimeout(function(){if(window.buildNodoCharts)buildNodoCharts();},300); }
   else if (name === 'cruzamento') { renderCrzMes(); }
   else if (name === 'damaged_ene') { initDamagedENE(); }
 }
