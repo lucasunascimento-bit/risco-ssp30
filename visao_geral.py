@@ -16,10 +16,15 @@ FACILITY_NAME = 'Guarulhos Mega'
 ANO_INICIO    = '2026-01-01'
 OUTPUT        = Path(__file__).parent / 'visao_geral.html'
 
+# URL base do backoffice logístico — ajuste se necessário
+BO_SHP_URL    = 'https://logistics.adminml.com/backoffice/shipments/'
+BO_DRIVER_URL = 'https://logistics.adminml.com/backoffice/drivers/'
+
 QUERY = """
 SELECT
     SAFE_CAST(DRIVER_ID AS STRING)                                     AS id,
     IFNULL(MAX(DRIVER_NAME), '')                                       AS nome,
+    IFNULL(MAX(MLP), '')                                               AS mlp,
     COUNT(DISTINCT SHIPMENT_ID)                                        AS total,
     COUNTIF(
         Classification_LM LIKE 'FRAUD%'
@@ -29,7 +34,9 @@ SELECT
     )                                                                  AS fraud,
     ROUND(SUM(BPP_CASHOUT_USD), 2)                                     AS bpp,
     APPROX_TOP_COUNT(Classification_LM, 1)[OFFSET(0)].value           AS classe,
-    ARRAY_AGG(DISTINCT FORMAT_DATE('%Y-%m', date_bpp))                 AS meses
+    ARRAY_AGG(DISTINCT FORMAT_DATE('%Y-%m', date_bpp))                 AS meses,
+    ARRAY_AGG(CAST(SHIPMENT_ID AS STRING)
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 30)                       AS shp_ids_sample
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{facility}'
   AND date_bpp >= '{inicio}'
@@ -54,24 +61,26 @@ def carregar_dados():
 
     drivers = []
     for row in rows:
-        meses = sorted(m for m in (row['meses'] or []) if m)
-        lost  = int(row['total']) - int(row['fraud'])
+        meses  = sorted(m for m in (row['meses'] or []) if m)
+        shps   = list(dict.fromkeys(str(s) for s in (row['shp_ids_sample'] or []) if s))[:30]
+        lost   = int(row['total']) - int(row['fraud'])
         drivers.append({
             'id':    row['id'],
             'nome':  row['nome'] or '',
+            'mlp':   row['mlp'] or '',
             'total': int(row['total']),
             'fraud': int(row['fraud']),
             'lost':  max(lost, 0),
             'bpp':   float(row['bpp'] or 0),
             'classe': row['classe'] or '',
             'meses': meses,
+            'shps':  shps,
         })
 
     return drivers
 
 
 def _mes_label(ym):
-    """'2026-08' → 'Ago/26'"""
     try:
         d = datetime.strptime(ym, '%Y-%m')
         return d.strftime('%b/%y').capitalize()
@@ -83,7 +92,6 @@ def gerar_html(drivers):
     all_meses   = sorted({m for d in drivers for m in d['meses']})
     all_classes = sorted({d['classe'] for d in drivers if d['classe']})
 
-    # Grupos de classificação para o filtro multi-select
     CLASS_GROUPS = [
         ('Fraude confirmada',   ['FRAUD ON ROUTE', 'FRAUD AT STATION', 'FRAUD ENE', 'STOLEN ON ROUTE']),
         ('PNR / Suspeita',      ['PNR C', 'EMPTY BOX', 'DNR', 'BUYER']),
@@ -119,8 +127,10 @@ def gerar_html(drivers):
                 f'</label>'
             )
 
-    data_json = json.dumps(drivers, ensure_ascii=False)
-    agora     = datetime.now().strftime('%d/%m/%Y %H:%M')
+    data_json   = json.dumps(drivers, ensure_ascii=False)
+    bo_shp      = BO_SHP_URL
+    bo_driver   = BO_DRIVER_URL
+    agora       = datetime.now().strftime('%d/%m/%Y %H:%M')
 
     mes_opts = ''.join(
         f'<option value="{m}">{_mes_label(m)}</option>'
@@ -150,6 +160,7 @@ body{{background:#080d19;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemF
 .sep{{color:#1f2937;font-size:18px}}
 .btn-r{{background:transparent;border:1px solid #1f2937;color:#4b5563;font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;height:30px;transition:all .15s}}
 .btn-r:hover{{border-color:#374151;color:#9ca3af}}
+.lbl{{font-size:11px;color:#6b7280;white-space:nowrap}}
 .kpis{{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:16px 28px}}
 .kpi{{background:#0d1321;border:1px solid #111827;border-radius:8px;padding:14px 16px}}
 .kpi-l{{font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:#4b5563;font-weight:700;margin-bottom:6px}}
@@ -166,12 +177,29 @@ table{{width:100%;border-collapse:collapse;font-size:12px}}
 thead th{{background:#0b101e;padding:9px 12px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:#374151;font-weight:700;border-bottom:1px solid #111827;white-space:nowrap;cursor:pointer;user-select:none}}
 thead th:hover{{color:#9ca3af}}
 thead th.sorted{{color:#9ca3af}}
-tbody tr{{border-bottom:1px solid #0b101e;transition:background .1s}}
-tbody tr:hover{{background:#0d1321}}
+thead th.no-sort{{cursor:default}}
+thead th.no-sort:hover{{color:#374151}}
+tbody tr.dr-row{{border-bottom:1px solid #0b101e;transition:background .1s}}
+tbody tr.dr-row:hover{{background:#0d1321}}
 tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
-.rank{{color:#374151;font-size:11px;width:32px;text-align:right}}
-.did{{font-weight:700;color:#f9fafb;font-variant-numeric:tabular-nums}}
+/* Driver ID button */
+.did-btn{{background:none;border:none;color:#f9fafb;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer;font-size:12px;padding:0;font-family:inherit;display:flex;align-items:center;gap:5px}}
+.did-btn:hover{{color:#60a5fa}}
+.did-chevron{{font-size:9px;color:#374151;transition:transform .15s;display:inline-block}}
+.did-chevron.open{{transform:rotate(180deg);color:#60a5fa}}
+/* SHP expandable row */
+.shp-row td{{background:#06090f;padding:10px 16px 14px 52px;border-bottom:1px solid #1f2937}}
+.shp-meta{{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}}
+.shp-driver-link{{font-size:10px;color:#9ca3af;background:#111827;border:1px solid #1f2937;border-radius:4px;padding:3px 10px;text-decoration:none;white-space:nowrap}}
+.shp-driver-link:hover{{color:#e2e8f0;border-color:#374151}}
+.shp-count{{font-size:10px;color:#4b5563}}
+.shp-list{{display:flex;flex-wrap:wrap;gap:6px}}
+.shp-chip{{font-size:11px;color:#60a5fa;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:4px;padding:3px 8px;text-decoration:none;font-variant-numeric:tabular-nums;white-space:nowrap;transition:background .1s}}
+.shp-chip:hover{{background:rgba(96,165,250,.18);border-color:rgba(96,165,250,.4)}}
+/* Other cells */
+.rank{{color:#374151;font-size:11px;text-align:right}}
 .num{{font-variant-numeric:tabular-nums}}
+.mlp-cell{{font-size:11px;color:#9ca3af;max-width:130px;overflow:hidden;text-overflow:ellipsis}}
 .bar-wrap{{display:flex;gap:5px;align-items:center}}
 .bar-bg{{width:56px;height:4px;background:#1f2937;border-radius:99px;overflow:hidden;flex-shrink:0}}
 .bar-fill{{height:100%;border-radius:99px;background:#ef4444}}
@@ -183,7 +211,7 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
 .tag{{font-size:10px;color:#9ca3af;background:#111827;padding:2px 7px;border-radius:4px}}
 .empty{{text-align:center;padding:48px;color:#374151;font-size:13px}}
 .tip{{font-size:10px;color:#374151;padding:6px 28px 0;text-align:right}}
-/* ── Multi-select classificação ─────────────────────────────────── */
+/* Multi-select */
 .ms-wrap{{position:relative;display:inline-block}}
 .ms-btn{{background:#0d1321;border:1px solid #1f2937;color:#e2e8f0;font-size:12px;padding:0 10px;border-radius:6px;height:30px;cursor:pointer;white-space:nowrap;min-width:130px;text-align:left;transition:border-color .15s}}
 .ms-btn:hover{{border-color:#374151}}
@@ -215,7 +243,7 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
 </div>
 
 <div class="controls">
-  <span style="font-size:11px;color:#6b7280">Período</span>
+  <span class="lbl">Período</span>
   <select id="f-de" onchange="render()">
     <option value="">De...</option>
     {mes_opts}
@@ -251,7 +279,9 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
     <option value="blq">Bloqueado</option>
   </select>
   <span class="sep">|</span>
-  <input type="search" id="f-busca" placeholder="Driver ID..." oninput="render()" style="width:140px">
+  <span class="lbl">Mín. SHPs</span>
+  <input type="number" id="f-min" value="1" min="1" max="9999" oninput="render()" style="width:58px;text-align:center">
+  <input type="search" id="f-busca" placeholder="Driver ID..." oninput="render()" style="width:130px">
   <button class="btn-r" onclick="resetF()">&#x2715; Limpar</button>
 </div>
 
@@ -283,7 +313,7 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
   </div>
 </div>
 
-<div class="tip">&#9432; Status é salvo localmente no browser. Clique no badge para ciclar: Monitorado → Em investigação → Bloqueado.</div>
+<div class="tip">&#9432; Status salvo localmente. Clique no badge para ciclar: Monitorado → Em investigação → Bloqueado. Clique no Driver ID para ver os SHPs.</div>
 
 <div class="tbl-hdr">
   <span class="tbl-title">Ranking de drivers</span>
@@ -293,16 +323,17 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
   <table>
     <thead>
       <tr>
-        <th class="rank-h">#</th>
+        <th class="no-sort">#</th>
         <th onclick="sortBy('total')" id="th-total">Total SHPs ↕</th>
-        <th>Driver ID</th>
+        <th class="no-sort">Driver ID</th>
+        <th class="no-sort">Transportadora</th>
         <th onclick="sortBy('fraud')" id="th-fraud">FRAUD ↕</th>
         <th onclick="sortBy('lost')" id="th-lost">LOST ↕</th>
-        <th>Distribuição</th>
-        <th>Classificação principal</th>
+        <th class="no-sort">Distribuição</th>
+        <th class="no-sort">Classificação</th>
         <th onclick="sortBy('bpp')" id="th-bpp">BPP (USD) ↕</th>
-        <th>Meses ativos</th>
-        <th>Status</th>
+        <th class="no-sort">Meses</th>
+        <th class="no-sort">Status</th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
@@ -311,11 +342,13 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
 
 <script>
 const DATA = {data_json};
+const BO_SHP    = '{bo_shp}';
+const BO_DRIVER = '{bo_driver}';
+
 const ST_CYCLE = ['mon','inv','blq'];
 const ST_LBL = {{mon:'Monitorado', inv:'Em investigação', blq:'Bloqueado'}};
 const ST_CLS = {{mon:'s-mon', inv:'s-inv', blq:'s-blq'}};
 
-// Presets de classificação
 const PRESET_LORF  = ['FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE','STOLEN ON ROUTE',
                       'PNR C','EMPTY BOX','DNR','LOST ON ROUTE','LOST ENE','LOST AT STATION','LOST'];
 const PRESET_FRAUD = ['FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE','STOLEN ON ROUTE'];
@@ -334,7 +367,7 @@ function updateMsBtn() {{
   const n = document.querySelectorAll('.ms-cb:checked').length;
   const btn = document.getElementById('ms-btn');
   btn.textContent = n ? n + ' classe(s) ▾' : 'Toda classe ▾';
-  btn.className = n ? 'ms-btn active' : 'ms-btn';
+  btn.className   = n ? 'ms-btn active' : 'ms-btn';
 }}
 function msAll()  {{ document.querySelectorAll('.ms-cb').forEach(e => e.checked = true);  updateMsBtn(); render(); }}
 function msNone() {{ document.querySelectorAll('.ms-cb').forEach(e => e.checked = false); updateMsBtn(); render(); }}
@@ -349,16 +382,26 @@ document.addEventListener('click', e => {{
     document.getElementById('ms-panel').style.display = 'none';
 }});
 
-// ── Sorting ─────────────────────────────────────────────────────────
-function getSt(id) {{ return localStorage.getItem('vg_'+id) || 'mon'; }}
+// ── SHP dropdown ────────────────────────────────────────────────────
+function toggleShps(id) {{
+  const row = document.getElementById('shps-' + id);
+  const chv = document.getElementById('chv-' + id);
+  if (!row) return;
+  const isOpen = row.style.display !== 'none';
+  row.style.display = isOpen ? 'none' : 'table-row';
+  if (chv) chv.className = isOpen ? 'did-chevron' : 'did-chevron open';
+}}
+
+// ── Status & sort ───────────────────────────────────────────────────
+function getSt(id)  {{ return localStorage.getItem('vg_' + id) || 'mon'; }}
 function nextSt(id) {{
   const cur  = getSt(id);
-  const next = ST_CYCLE[(ST_CYCLE.indexOf(cur)+1) % 3];
-  localStorage.setItem('vg_'+id, next);
+  const next = ST_CYCLE[(ST_CYCLE.indexOf(cur) + 1) % 3];
+  localStorage.setItem('vg_' + id, next);
   render();
 }}
 function sortBy(k) {{
-  if (_sortKey===k) _sortDir *= -1; else {{ _sortKey=k; _sortDir=-1; }}
+  if (_sortKey === k) _sortDir *= -1; else {{ _sortKey = k; _sortDir = -1; }}
   render();
 }}
 
@@ -369,9 +412,11 @@ function render() {{
   const causa    = document.getElementById('f-causa').value;
   const stF      = document.getElementById('f-status').value;
   const busca    = document.getElementById('f-busca').value.trim();
+  const minShps  = parseInt(document.getElementById('f-min').value) || 1;
   const classeSel = new Set([...document.querySelectorAll('.ms-cb:checked')].map(e => e.value));
 
   let rows = DATA.filter(d => {{
+    if (d.total < minShps) return false;
     if (de || ate) {{
       const ok = d.meses.some(m => (!de || m >= de) && (!ate || m <= ate));
       if (!ok) return false;
@@ -384,61 +429,85 @@ function render() {{
     return true;
   }});
 
-  rows.sort((a,b) => _sortDir * (a[_sortKey] - b[_sortKey]));
+  rows.sort((a, b) => _sortDir * (a[_sortKey] - b[_sortKey]));
 
-  const inv  = rows.filter(d => getSt(d.id)==='inv').length;
-  const blq  = rows.filter(d => getSt(d.id)==='blq').length;
-  const shps = rows.reduce((s,d) => s+d.total, 0);
-  const bpp  = rows.reduce((s,d) => s+d.bpp, 0);
+  const inv  = rows.filter(d => getSt(d.id) === 'inv').length;
+  const blq  = rows.filter(d => getSt(d.id) === 'blq').length;
+  const shps = rows.reduce((s, d) => s + d.total, 0);
+  const bpp  = rows.reduce((s, d) => s + d.bpp, 0);
 
   document.getElementById('kv-tot').textContent = rows.length.toLocaleString('pt-BR');
-  document.getElementById('ks-tot').textContent = rows.length===DATA.length ? 'total monitorados' : `de ${{DATA.length}} monitorados`;
+  document.getElementById('ks-tot').textContent = rows.length === DATA.length ? 'total monitorados' : 'de ' + DATA.length.toLocaleString('pt-BR') + ' monitorados';
   document.getElementById('kv-inv').textContent = inv.toLocaleString('pt-BR');
   document.getElementById('kv-blq').textContent = blq.toLocaleString('pt-BR');
   document.getElementById('kv-shp').textContent = shps.toLocaleString('pt-BR');
-  document.getElementById('kv-bpp').textContent = '$'+Math.round(bpp).toLocaleString('en-US');
+  document.getElementById('kv-bpp').textContent = '$' + Math.round(bpp).toLocaleString('en-US');
   document.getElementById('tbl-ct').textContent = rows.length + ' drivers';
 
   ['total','fraud','lost','bpp'].forEach(k => {{
-    const el = document.getElementById('th-'+k);
-    if (el) el.className = _sortKey===k ? 'sorted' : '';
+    const el = document.getElementById('th-' + k);
+    if (el) el.className = _sortKey === k ? 'sorted' : '';
   }});
 
   const body = document.getElementById('tbody');
   if (!rows.length) {{
-    body.innerHTML = '<tr><td colspan="10" class="empty">Nenhum driver encontrado.</td></tr>';
+    body.innerHTML = '<tr><td colspan="11" class="empty">Nenhum driver encontrado.</td></tr>';
     return;
   }}
-  body.innerHTML = rows.map((d,i) => {{
+
+  body.innerHTML = rows.map((d, i) => {{
     const st     = getSt(d.id);
-    const fraudW = Math.round(d.total ? d.fraud/d.total*100 : 0);
-    const mLbl   = d.meses.length ? d.meses.slice(-3).map(m => {{
-      const dt = new Date(m+'-15');
-      return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('. ','/');
-    }}).join(' · ') + (d.meses.length>3 ? ' +' : '') : '—';
-    return `<tr>
-      <td class="rank num">${{i+1}}</td>
-      <td class="num"><strong>${{d.total.toLocaleString('pt-BR')}}</strong></td>
-      <td class="did">${{d.id}}</td>
-      <td class="num" style="color:#f87171">${{d.fraud}}</td>
-      <td class="num" style="color:#fbbf24">${{d.lost}}</td>
-      <td>
-        <div class="bar-wrap">
-          <div class="bar-bg"><div class="bar-fill" style="width:${{fraudW}}%"></div></div>
-          <span style="font-size:10px;color:#4b5563">${{fraudW}}%F</span>
-        </div>
-      </td>
-      <td><span class="tag">${{d.classe||'—'}}</span></td>
-      <td class="num" style="color:#34d399">$${{d.bpp.toLocaleString('en-US',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</td>
-      <td style="font-size:10px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis">${{mLbl}}</td>
-      <td><span class="badge-s ${{ST_CLS[st]}}" onclick="nextSt('${{d.id}}')">${{ST_LBL[st]}}</span></td>
-    </tr>`;
+    const fraudW = Math.round(d.total ? d.fraud / d.total * 100 : 0);
+    const mLbl   = d.meses.length
+      ? d.meses.slice(-3).map(m => {{
+          const dt = new Date(m + '-15');
+          return dt.toLocaleDateString('pt-BR', {{month:'short', year:'2-digit'}}).replace('. ', '/');
+        }}).join(' · ') + (d.meses.length > 3 ? ' +' : '')
+      : '—';
+
+    const mainRow = '<tr class="dr-row">' +
+      '<td class="rank num">' + (i+1) + '</td>' +
+      '<td class="num"><strong>' + d.total.toLocaleString('pt-BR') + '</strong></td>' +
+      '<td><button class="did-btn" onclick="toggleShps(\'' + d.id + '\')">' +
+        d.id + '<span class="did-chevron" id="chv-' + d.id + '">▼</span>' +
+      '</button></td>' +
+      '<td class="mlp-cell" title="' + (d.mlp||'') + '">' + (d.mlp || '—') + '</td>' +
+      '<td class="num" style="color:#f87171">' + d.fraud + '</td>' +
+      '<td class="num" style="color:#fbbf24">' + d.lost + '</td>' +
+      '<td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:' + fraudW + '%"></div></div>' +
+        '<span style="font-size:10px;color:#4b5563">' + fraudW + '%F</span></div></td>' +
+      '<td><span class="tag">' + (d.classe || '—') + '</span></td>' +
+      '<td class="num" style="color:#34d399">$' + d.bpp.toLocaleString('en-US', {{minimumFractionDigits:2, maximumFractionDigits:2}}) + '</td>' +
+      '<td style="font-size:10px;color:#6b7280;max-width:140px;overflow:hidden;text-overflow:ellipsis">' + mLbl + '</td>' +
+      '<td><span class="badge-s ' + ST_CLS[st] + '" onclick="nextSt(\'' + d.id + '\')">' + ST_LBL[st] + '</span></td>' +
+      '</tr>';
+
+    const shps = d.shps || [];
+    let shpRow = '';
+    if (shps.length) {{
+      const chips = shps.map(s =>
+        '<a href="' + BO_SHP + s + '" target="_blank" class="shp-chip">' + s + '</a>'
+      ).join('');
+      const extra = d.total > shps.length
+        ? ' <span style="color:#374151"> · +' + (d.total - shps.length) + ' não exibidos</span>' : '';
+      shpRow = '<tr class="shp-row" id="shps-' + d.id + '" style="display:none">' +
+        '<td colspan="11">' +
+        '<div class="shp-meta">' +
+          '<a href="' + BO_DRIVER + d.id + '" target="_blank" class="shp-driver-link">↗ Ver driver no backoffice</a>' +
+          '<span class="shp-count">' + shps.length + ' IDs (top BPP)' + extra + '</span>' +
+        '</div>' +
+        '<div class="shp-list">' + chips + '</div>' +
+        '</td></tr>';
+    }}
+
+    return mainRow + shpRow;
   }}).join('');
 }}
 
 function resetF() {{
-  ['f-de','f-ate','f-causa','f-status'].forEach(id => document.getElementById(id).value='');
+  ['f-de','f-ate','f-causa','f-status'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-busca').value = '';
+  document.getElementById('f-min').value  = '1';
   msNone();
 }}
 
