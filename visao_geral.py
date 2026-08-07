@@ -468,7 +468,7 @@ function render() {{
     const mainRow = '<tr class="dr-row">' +
       '<td class="rank num">' + (i+1) + '</td>' +
       '<td class="num"><strong>' + d.total.toLocaleString('pt-BR') + '</strong></td>' +
-      '<td><button class="did-btn" onclick="toggleShps(\'' + d.id + '\')">' +
+      '<td><button class="did-btn" onclick="toggleShps(' + d.id + ')">' +
         d.id + '<span class="did-chevron" id="chv-' + d.id + '">▼</span>' +
       '</button></td>' +
       '<td class="mlp-cell" title="' + (d.mlp||'') + '">' + (d.mlp || '—') + '</td>' +
@@ -479,7 +479,7 @@ function render() {{
       '<td><span class="tag">' + (d.classe || '—') + '</span></td>' +
       '<td class="num" style="color:#34d399">$' + d.bpp.toLocaleString('en-US', {{minimumFractionDigits:2, maximumFractionDigits:2}}) + '</td>' +
       '<td style="font-size:10px;color:#6b7280;max-width:140px;overflow:hidden;text-overflow:ellipsis">' + mLbl + '</td>' +
-      '<td><span class="badge-s ' + ST_CLS[st] + '" onclick="nextSt(\'' + d.id + '\')">' + ST_LBL[st] + '</span></td>' +
+      '<td><span class="badge-s ' + ST_CLS[st] + '" onclick="nextSt(' + d.id + ')">' + ST_LBL[st] + '</span></td>' +
       '</tr>';
 
     const shps = d.shps || [];
