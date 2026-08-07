@@ -83,6 +83,42 @@ def gerar_html(drivers):
     all_meses   = sorted({m for d in drivers for m in d['meses']})
     all_classes = sorted({d['classe'] for d in drivers if d['classe']})
 
+    # Grupos de classificação para o filtro multi-select
+    CLASS_GROUPS = [
+        ('Fraude confirmada',   ['FRAUD ON ROUTE', 'FRAUD AT STATION', 'FRAUD ENE', 'STOLEN ON ROUTE']),
+        ('PNR / Suspeita',      ['PNR C', 'EMPTY BOX', 'DNR', 'BUYER']),
+        ('LOR — perda na rota', ['LOST ON ROUTE', 'LOST AT STATION', 'LOST ENE', 'LOST']),
+        ('Dano',                ['DAMAGED', 'DAMAGED ON ROUTE', 'DAMAGED AT STATION', 'DAMAGED ENE',
+                                 'DAMAGED EMBALAJE', 'DAMAGED PRODUTO', 'DAMAGED SELLER']),
+        ('Atraso',              ['DELAYED ON ROUTE', 'DELAYED AT STATION', 'DELAYED ENE']),
+    ]
+
+    all_classes_set = set(all_classes)
+    cls_boxes_html  = ''
+    assigned        = set()
+
+    for grp_name, grp_items in CLASS_GROUPS:
+        visible = [c for c in grp_items if c in all_classes_set]
+        if visible:
+            cls_boxes_html += f'<div class="ms-glabel">{grp_name}</div>'
+            for c in visible:
+                cls_boxes_html += (
+                    f'<label class="ms-item">'
+                    f'<input type="checkbox" class="ms-cb" value="{c}" onchange="msChg()"> {c}'
+                    f'</label>'
+                )
+            assigned.update(visible)
+
+    leftovers = [c for c in all_classes if c not in assigned]
+    if leftovers:
+        cls_boxes_html += '<div class="ms-glabel">Outros</div>'
+        for c in leftovers:
+            cls_boxes_html += (
+                f'<label class="ms-item">'
+                f'<input type="checkbox" class="ms-cb" value="{c}" onchange="msChg()"> {c}'
+                f'</label>'
+            )
+
     data_json = json.dumps(drivers, ensure_ascii=False)
     agora     = datetime.now().strftime('%d/%m/%Y %H:%M')
 
@@ -90,7 +126,6 @@ def gerar_html(drivers):
         f'<option value="{m}">{_mes_label(m)}</option>'
         for m in all_meses
     )
-    cls_opts = ''.join(f'<option value="{c}">{c}</option>' for c in all_classes)
 
     return f'''<!DOCTYPE html>
 <html lang="pt-BR">
@@ -148,6 +183,21 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
 .tag{{font-size:10px;color:#9ca3af;background:#111827;padding:2px 7px;border-radius:4px}}
 .empty{{text-align:center;padding:48px;color:#374151;font-size:13px}}
 .tip{{font-size:10px;color:#374151;padding:6px 28px 0;text-align:right}}
+/* ── Multi-select classificação ─────────────────────────────────── */
+.ms-wrap{{position:relative;display:inline-block}}
+.ms-btn{{background:#0d1321;border:1px solid #1f2937;color:#e2e8f0;font-size:12px;padding:0 10px;border-radius:6px;height:30px;cursor:pointer;white-space:nowrap;min-width:130px;text-align:left;transition:border-color .15s}}
+.ms-btn:hover{{border-color:#374151}}
+.ms-btn.active{{border-color:#ef4444;color:#f87171}}
+.ms-panel{{position:absolute;top:34px;left:0;z-index:200;background:#0d1321;border:1px solid #1f2937;border-radius:8px;padding:8px 0 6px;min-width:240px;max-height:380px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.7)}}
+.ms-actions{{display:flex;gap:5px;padding:4px 10px 8px;border-bottom:1px solid #111827;margin-bottom:4px;flex-wrap:wrap}}
+.ms-actions button{{font-size:10px;color:#4b5563;background:transparent;border:1px solid #1f2937;border-radius:4px;padding:2px 8px;cursor:pointer;white-space:nowrap;line-height:1.6}}
+.ms-actions button:hover{{color:#9ca3af;border-color:#374151}}
+.ms-preset-lorf{{color:#f87171 !important;border-color:rgba(239,68,68,.3) !important}}
+.ms-preset-lorf:hover{{color:#fca5a5 !important;border-color:rgba(239,68,68,.5) !important}}
+.ms-glabel{{font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#374151;padding:6px 10px 3px}}
+.ms-item{{display:flex;align-items:center;gap:8px;padding:4px 10px;font-size:12px;color:#e2e8f0;cursor:pointer;user-select:none}}
+.ms-item:hover{{background:#111827}}
+.ms-item input[type=checkbox]{{accent-color:#ef4444;cursor:pointer;width:13px;height:13px;flex-shrink:0}}
 </style>
 </head>
 <body>
@@ -180,10 +230,20 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
     <option value="FRAUD">FRAUD</option>
     <option value="LOST">LOST</option>
   </select>
-  <select id="f-classe" onchange="render()">
-    <option value="">Toda classe</option>
-    {cls_opts}
-  </select>
+  <div class="ms-wrap" id="ms-wrap">
+    <button class="ms-btn" id="ms-btn" onclick="toggleMs()">Toda classe ▾</button>
+    <div class="ms-panel" id="ms-panel" style="display:none">
+      <div class="ms-actions">
+        <button onclick="msAll()">Todas</button>
+        <button onclick="msNone()">Nenhuma</button>
+        <button class="ms-preset-lorf" onclick="msPreset(PRESET_LORF)">LOR+Fraude</button>
+        <button onclick="msPreset(PRESET_FRAUD)">Só Fraude</button>
+        <button onclick="msPreset(PRESET_LOR)">Só LOR</button>
+        <button onclick="msPreset(PRESET_PNR)">PNR/Suspeita</button>
+      </div>
+      {cls_boxes_html}
+    </div>
+  </div>
   <select id="f-status" onchange="render()">
     <option value="">Todos os status</option>
     <option value="mon">Monitorado</option>
@@ -239,7 +299,7 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
         <th onclick="sortBy('fraud')" id="th-fraud">FRAUD ↕</th>
         <th onclick="sortBy('lost')" id="th-lost">LOST ↕</th>
         <th>Distribuição</th>
-        <th>Classificação</th>
+        <th>Classificação principal</th>
         <th onclick="sortBy('bpp')" id="th-bpp">BPP (USD) ↕</th>
         <th>Meses ativos</th>
         <th>Status</th>
@@ -255,11 +315,44 @@ const ST_CYCLE = ['mon','inv','blq'];
 const ST_LBL = {{mon:'Monitorado', inv:'Em investigação', blq:'Bloqueado'}};
 const ST_CLS = {{mon:'s-mon', inv:'s-inv', blq:'s-blq'}};
 
+// Presets de classificação
+const PRESET_LORF  = ['FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE','STOLEN ON ROUTE',
+                      'PNR C','EMPTY BOX','DNR','LOST ON ROUTE','LOST ENE','LOST AT STATION','LOST'];
+const PRESET_FRAUD = ['FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE','STOLEN ON ROUTE'];
+const PRESET_LOR   = ['LOST ON ROUTE','LOST AT STATION','LOST ENE','LOST'];
+const PRESET_PNR   = ['PNR C','EMPTY BOX','DNR','BUYER'];
+
 let _sortKey = 'total', _sortDir = -1;
 
+// ── Multi-select ────────────────────────────────────────────────────
+function toggleMs() {{
+  const p = document.getElementById('ms-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}}
+function msChg() {{ updateMsBtn(); render(); }}
+function updateMsBtn() {{
+  const n = document.querySelectorAll('.ms-cb:checked').length;
+  const btn = document.getElementById('ms-btn');
+  btn.textContent = n ? n + ' classe(s) ▾' : 'Toda classe ▾';
+  btn.className = n ? 'ms-btn active' : 'ms-btn';
+}}
+function msAll()  {{ document.querySelectorAll('.ms-cb').forEach(e => e.checked = true);  updateMsBtn(); render(); }}
+function msNone() {{ document.querySelectorAll('.ms-cb').forEach(e => e.checked = false); updateMsBtn(); render(); }}
+function msPreset(vals) {{
+  const s = new Set(vals);
+  document.querySelectorAll('.ms-cb').forEach(e => e.checked = s.has(e.value));
+  updateMsBtn(); render();
+}}
+document.addEventListener('click', e => {{
+  const wrap = document.getElementById('ms-wrap');
+  if (wrap && !wrap.contains(e.target))
+    document.getElementById('ms-panel').style.display = 'none';
+}});
+
+// ── Sorting ─────────────────────────────────────────────────────────
 function getSt(id) {{ return localStorage.getItem('vg_'+id) || 'mon'; }}
 function nextSt(id) {{
-  const cur = getSt(id);
+  const cur  = getSt(id);
   const next = ST_CYCLE[(ST_CYCLE.indexOf(cur)+1) % 3];
   localStorage.setItem('vg_'+id, next);
   render();
@@ -269,13 +362,14 @@ function sortBy(k) {{
   render();
 }}
 
+// ── Render ──────────────────────────────────────────────────────────
 function render() {{
-  const de     = document.getElementById('f-de').value;
-  const ate    = document.getElementById('f-ate').value;
-  const causa  = document.getElementById('f-causa').value;
-  const classe = document.getElementById('f-classe').value;
-  const stF    = document.getElementById('f-status').value;
-  const busca  = document.getElementById('f-busca').value.trim();
+  const de       = document.getElementById('f-de').value;
+  const ate      = document.getElementById('f-ate').value;
+  const causa    = document.getElementById('f-causa').value;
+  const stF      = document.getElementById('f-status').value;
+  const busca    = document.getElementById('f-busca').value.trim();
+  const classeSel = new Set([...document.querySelectorAll('.ms-cb:checked')].map(e => e.value));
 
   let rows = DATA.filter(d => {{
     if (de || ate) {{
@@ -284,7 +378,7 @@ function render() {{
     }}
     if (causa === 'FRAUD' && d.fraud === 0) return false;
     if (causa === 'LOST'  && d.lost  === 0) return false;
-    if (classe && d.classe !== classe) return false;
+    if (classeSel.size && !classeSel.has(d.classe)) return false;
     if (stF && getSt(d.id) !== stF) return false;
     if (busca && !d.id.includes(busca)) return false;
     return true;
@@ -343,9 +437,9 @@ function render() {{
 }}
 
 function resetF() {{
-  ['f-de','f-ate','f-causa','f-classe','f-status'].forEach(id => document.getElementById(id).value='');
+  ['f-de','f-ate','f-causa','f-status'].forEach(id => document.getElementById(id).value='');
   document.getElementById('f-busca').value = '';
-  render();
+  msNone();
 }}
 
 render();
