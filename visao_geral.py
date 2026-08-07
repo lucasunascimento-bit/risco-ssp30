@@ -1,16 +1,73 @@
 """
-visao_geral.py — Dashboard Visão Geral de Drivers (Fraude & Lost) a partir do CSV KPI.
+visao_geral.py — Dashboard Visão Geral de Drivers (Fraude & Lost) via BigQuery.
+Dados desde 2026-01-01 — Guarulhos Mega / SSP30.
 Uso: python visao_geral.py
 Saída: visao_geral.html (abre automaticamente no browser)
 """
 
-import csv, glob as _glob, json, os, webbrowser
-from collections import defaultdict
+import json, os, webbrowser
 from datetime import datetime
 from pathlib import Path
 
-DOWNLOADS = Path(r'C:\Users\lucasn\Downloads')
-OUTPUT = Path(__file__).parent / 'visao_geral.html'
+from google.cloud import bigquery
+from google.auth import default
+
+FACILITY_NAME = 'Guarulhos Mega'
+ANO_INICIO    = '2026-01-01'
+OUTPUT        = Path(__file__).parent / 'visao_geral.html'
+
+QUERY = """
+SELECT
+    SAFE_CAST(DRIVER_ID AS STRING)                                     AS id,
+    IFNULL(MAX(DRIVER_NAME), '')                                       AS nome,
+    COUNT(DISTINCT SHIPMENT_ID)                                        AS total,
+    COUNTIF(
+        Classification_LM LIKE 'FRAUD%'
+        OR Classification_LM = 'STOLEN ON ROUTE'
+        OR Classification_LM = 'PNR C'
+        OR Classification_LM = 'EMPTY BOX'
+    )                                                                  AS fraud,
+    ROUND(SUM(BPP_CASHOUT_USD), 2)                                     AS bpp,
+    APPROX_TOP_COUNT(Classification_LM, 1)[OFFSET(0)].value           AS classe,
+    ARRAY_AGG(DISTINCT FORMAT_DATE('%Y-%m', date_bpp))                 AS meses
+FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+WHERE SHP_LG_FACILITY_NAME = '{facility}'
+  AND date_bpp >= '{inicio}'
+  AND date_bpp <= CURRENT_DATE()
+  AND DRIVER_ID IS NOT NULL
+GROUP BY 1
+ORDER BY total DESC
+""".format(facility=FACILITY_NAME, inicio=ANO_INICIO)
+
+
+def conectar():
+    creds, project = default()
+    return bigquery.Client(credentials=creds, project='meli-bi-data')
+
+
+def carregar_dados():
+    print('Conectando ao BigQuery...')
+    client = conectar()
+    print('Consultando DM_LP_MELI_OPTIMIZADO (desde 2026-01-01)...')
+    rows = list(client.query(QUERY).result())
+    print(f'  {len(rows)} drivers retornados pelo BQ')
+
+    drivers = []
+    for row in rows:
+        meses = sorted(m for m in (row['meses'] or []) if m)
+        lost  = int(row['total']) - int(row['fraud'])
+        drivers.append({
+            'id':    row['id'],
+            'nome':  row['nome'] or '',
+            'total': int(row['total']),
+            'fraud': int(row['fraud']),
+            'lost':  max(lost, 0),
+            'bpp':   float(row['bpp'] or 0),
+            'classe': row['classe'] or '',
+            'meses': meses,
+        })
+
+    return drivers
 
 
 def _mes_label(ym):
@@ -20,76 +77,6 @@ def _mes_label(ym):
         return d.strftime('%b/%y').capitalize()
     except Exception:
         return ym
-
-
-def carregar_dados():
-    csvs = sorted(_glob.glob(str(DOWNLOADS / 'KPI*com_driver*.csv')), key=os.path.getmtime, reverse=True)
-    if not csvs:
-        raise FileNotFoundError('CSV KPI*com_driver*.csv não encontrado em Downloads')
-    csv_path = Path(csvs[0])
-    print(f'CSV: {csv_path.name}')
-
-    seen_shp = set()
-    drivers = defaultdict(lambda: {
-        'fraud': 0, 'lost': 0, 'bpp': 0.0,
-        'classes': defaultdict(int), 'hubs': set(), 'meses': set()
-    })
-
-    with open(csv_path, encoding='utf-8-sig', errors='replace') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            shp = (row.get('SHIPMENT_ID') or '').strip()
-            did = (row.get('DRIVER_ID') or '').strip()
-            if not shp or not did or shp in seen_shp:
-                continue
-            seen_shp.add(shp)
-
-            causa = (row.get('CAUSA') or '').strip()
-            cls   = (row.get('CLASSIFICACAO_BQ') or row.get('CLASSIFICATION_LM') or '').strip()
-            hub   = (row.get('HUB_ORIGIN') or '').strip()
-            data  = (row.get('DATEPARAMETER') or '').strip()
-            try:
-                bpp = float(row.get('BPP') or 0)
-            except Exception:
-                bpp = 0.0
-
-            d = drivers[did]
-            if causa == 'FRAUD':
-                d['fraud'] += 1
-            else:
-                d['lost'] += 1
-            d['bpp'] += bpp
-            if cls:
-                d['classes'][cls] += 1
-            if hub:
-                d['hubs'].add(hub)
-            if data:
-                try:
-                    dt = datetime.strptime(data, '%m/%d/%Y')
-                    d['meses'].add(dt.strftime('%Y-%m'))
-                except Exception:
-                    pass
-
-    result = []
-    for did, info in sorted(
-        drivers.items(),
-        key=lambda x: x[1]['fraud'] + x[1]['lost'],
-        reverse=True
-    ):
-        total   = info['fraud'] + info['lost']
-        top_cls = max(info['classes'], key=info['classes'].get) if info['classes'] else ''
-        result.append({
-            'id':     did,
-            'total':  total,
-            'fraud':  info['fraud'],
-            'lost':   info['lost'],
-            'bpp':    round(info['bpp'], 2),
-            'classe': top_cls,
-            'hubs':   sorted(info['hubs']),
-            'meses':  sorted(info['meses']),
-        })
-
-    return result
 
 
 def gerar_html(drivers):
@@ -171,7 +158,7 @@ tbody td{{padding:8px 12px;color:#e2e8f0;white-space:nowrap}}
     <div class="lp">LP</div>
     <div>
       <div class="htitle">Visão Geral — Drivers Monitorados <span style="font-size:10px;font-weight:700;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle">SSP30</span></div>
-      <div class="hsub">Guarulhos Mega · Fraude &amp; Lost · todos os dados SSP30</div>
+      <div class="hsub">Guarulhos Mega · Fraude &amp; Lost · dados desde jan/2026</div>
     </div>
   </div>
   <div class="hinfo">Atualizado: {agora}</div>
@@ -318,8 +305,6 @@ function render() {{
   document.getElementById('kv-bpp').textContent = '$'+Math.round(bpp).toLocaleString('en-US');
   document.getElementById('tbl-ct').textContent = rows.length + ' drivers';
 
-  const maxT = rows.length ? rows.reduce((m,d)=>Math.max(m,d.total),0) : 1;
-
   ['total','fraud','lost','bpp'].forEach(k => {{
     const el = document.getElementById('th-'+k);
     if (el) el.className = _sortKey===k ? 'sorted' : '';
@@ -327,17 +312,16 @@ function render() {{
 
   const body = document.getElementById('tbody');
   if (!rows.length) {{
-    body.innerHTML = '<tr><td colspan="9" class="empty">Nenhum driver encontrado.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" class="empty">Nenhum driver encontrado.</td></tr>';
     return;
   }}
   body.innerHTML = rows.map((d,i) => {{
-    const st    = getSt(d.id);
+    const st     = getSt(d.id);
     const fraudW = Math.round(d.total ? d.fraud/d.total*100 : 0);
-    const mLbl  = d.meses.length ? d.meses.slice(-3).map(m => {{
+    const mLbl   = d.meses.length ? d.meses.slice(-3).map(m => {{
       const dt = new Date(m+'-15');
       return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('. ','/');
     }}).join(' · ') + (d.meses.length>3 ? ' +' : '') : '—';
-    const hubLbl = d.hubs.length ? d.hubs.slice(0,2).join(', ')+(d.hubs.length>2?'…':'') : '—';
     return `<tr>
       <td class="rank num">${{i+1}}</td>
       <td class="num"><strong>${{d.total.toLocaleString('pt-BR')}}</strong></td>
@@ -372,9 +356,8 @@ render();
 
 if __name__ == '__main__':
     print('=' * 55)
-    print('Visão Geral — Fraude SSP30')
+    print('Visão Geral — Fraude SSP30 (BigQuery)')
     print('=' * 55)
-    print('Carregando CSV...')
     drivers = carregar_dados()
     print(f'{len(drivers)} drivers carregados')
     html = gerar_html(drivers)
