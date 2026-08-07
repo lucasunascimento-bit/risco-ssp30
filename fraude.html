@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Fraude SSP30 â€” Dashboard</title>
+<title>Fraude SSP30 — Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ðŸ”</text></svg>">
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -149,7 +149,7 @@
     <div class="lp-badge">LP</div>
     <div>
       <div style="display:flex;align-items:center;gap:8px">
-        <div class="header-title">Análise de Fraude â€” SSP30</div>
+        <div class="header-title">Análise de Fraude — SSP30</div>
         <span class="ver-badge">v3.3</span>
       </div>
       <div class="header-sub">Base 2026 · <span id="upd-badge">Gerado em 07/08/2026 11:45</span><span id="upd-ts" data-ts="2026-08-07T11:50:05Z" style="display:none"></span></div>
@@ -266,7 +266,7 @@
 </nav>
 <main class="main-content">
 
-<!-- BARRA DE PERÍODO â€” oculta na aba Acúmulo -->
+<!-- BARRA DE PERÍODO — oculta na aba Acúmulo -->
 <div id="barra-periodo" style="background:#080d19;border-bottom:1px solid #1f2937;padding:10px 32px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
   <span class="filter-label">Período:</span>
   <span style="font-size:11px;color:#6b7280">De</span>
@@ -573,7 +573,7 @@
   </div>
 
   <div class="grid2">
-    <div class="box"><div class="bt">Top 10 Drivers â€” Fraude vs Damaged <span style="font-weight:400;font-size:11px;color:#6b7280">· reativo ao período</span></div><canvas id="cDrivers" height="280"></canvas></div>
+    <div class="box"><div class="bt">Top 10 Drivers — Fraude vs Damaged <span style="font-weight:400;font-size:11px;color:#6b7280">· reativo ao período</span></div><canvas id="cDrivers" height="280"></canvas></div>
     <div class="box"><div class="bt">Top 10 Places com mais Fraudes <span style="font-weight:400;font-size:11px;color:#6b7280">· acumulado anual</span></div><canvas id="cPlaces" height="280"></canvas></div>
   </div>
 </div>
@@ -806,7 +806,7 @@ document.addEventListener('DOMContentLoaded',function(){
 <!-- DAMAGED -->
 
 <script>
-// Filtro da aba Bloqueios â€” usa período global _periodDe/_periodAte + Tabulator
+// Filtro da aba Bloqueios — usa período global _periodDe/_periodAte + Tabulator
 var _tblBloqueios = null;
 function filtrarBloqueios() {
   if (!_tblBloqueios) return;
@@ -832,7 +832,7 @@ function exportBlCSV() {
   }
 }
 
-// sortBl() removido â€” Tabulator gerencia ordenação nativamente
+// sortBl() removido — Tabulator gerencia ordenação nativamente
 
 // Badge "atualizado há X min"
 function _updBadge() {
@@ -876,7 +876,7 @@ function updateBloqueiosCards() {
   const noteEl = document.getElementById('bl-period-note');
   if (noteEl) {
     if (allTotal > 0 && total === 0) {
-      noteEl.textContent = allTotal + (allTotal > 1 ? ' entradas ocultadas' : ' entrada ocultada') + ' pelo filtro de período â€” limpe o período para ver todas';
+      noteEl.textContent = allTotal + (allTotal > 1 ? ' entradas ocultadas' : ' entrada ocultada') + ' pelo filtro de período — limpe o período para ver todas';
       noteEl.style.display = '';
     } else if (total > 0 && total < allTotal) {
       noteEl.textContent = 'Exibindo ' + total + ' de ' + allTotal + ' entradas no período selecionado';
@@ -904,7 +904,7 @@ function updateBloqueiosCards() {
   }
 }
 
-// Menu Dashboards â€” abre/fecha com click, fecha ao clicar fora
+// Menu Dashboards — abre/fecha com click, fecha ao clicar fora
 // Filtro da tabela de drivers
 function filtrarDrivers() {
   const busca  = (document.getElementById('busca_driver')?.value || '').toLowerCase();
@@ -983,7 +983,7 @@ function _acblCardHTML(c) {
   <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#0d1526;border-bottom:0.5px solid #1a2035">
     <div style="flex:1">
       <a href="https://envios.adminml.com/logistics/provider-management/drivers-block/list?searchType=id&searchValue=${c.id}" target="_blank" style="font-size:15px;font-weight:700;color:#60a5fa;font-family:monospace;text-decoration:none">${c.id}</a>
-      <div style="font-size:10px;color:#6b7280;margin-top:2px">${c.nome||c.transportadora||'â€”'}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">${c.nome||c.transportadora||'—'}</div>
     </div>
     <span style="${ts};font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500">${tl}</span>
     ${ah}
@@ -993,7 +993,7 @@ function _acblCardHTML(c) {
     <div style="flex:1;padding:8px 14px;border-right:0.5px solid #1a2035"><div style="font-size:18px;font-weight:600;color:#f9fafb">${c.n_meses}</div><div style="font-size:10px;color:#6b7280">meses</div></div>
     <div style="flex:1;padding:8px 14px;border-right:0.5px solid #1a2035"><div style="font-size:18px;font-weight:600;color:#f9fafb">${c.n_pkgs}</div><div style="font-size:10px;color:#6b7280">pacotes</div></div>
     <div style="flex:1;padding:8px 14px;border-right:0.5px solid #1a2035"><div style="font-size:18px;font-weight:600;color:#E24B4A">$${bpp}</div><div style="font-size:10px;color:#6b7280">BPP total</div></div>
-    <div style="flex:1;padding:8px 14px"><div style="font-size:13px;font-weight:600;color:${blc}">${c.status_bl||'â€”'}</div><div style="font-size:10px;color:#6b7280">status BL</div></div>
+    <div style="flex:1;padding:8px 14px"><div style="font-size:13px;font-weight:600;color:${blc}">${c.status_bl||'—'}</div><div style="font-size:10px;color:#6b7280">status BL</div></div>
   </div>
 </div>`;
 }
@@ -1111,7 +1111,7 @@ window.addEventListener('load',       () => _handleHashNav(400));
 window.addEventListener('pageshow',   (e) => { if (e.persisted) _handleHashNav(400); });
 window.addEventListener('hashchange', () => _handleHashNav(100));
 
-// Modo restrito: ?view=ofensores â€” esconde nav e trava na aba
+// Modo restrito: ?view=ofensores — esconde nav e trava na aba
 (function() {
   const p = new URLSearchParams(window.location.search);
   if (p.get('view') !== 'ofensores') return;
@@ -1223,7 +1223,7 @@ new Chart(document.getElementById('cPlacesBar'), {
   }
 });
 
-// Mapa fixo de cores por status â€” evita troca de cor ao atualizar dinamicamente
+// Mapa fixo de cores por status — evita troca de cor ao atualizar dinamicamente
 const BL_COLORS = {Bloqueado:'#10b981',Solicitado:'#3b82f6',Monitorado:'#f59e0b',Inativo:'#6b7280'};
 function _blColors(labels) { return labels.map(l => BL_COLORS[l] || '#94a3b8'); }
 
@@ -1249,7 +1249,7 @@ function switchAcblPeriod(dias, btn) {
   if (dt) dt.textContent = `drivers com ${minM}+ meses BPP`;
 }
 
-// Gráficos de Bloqueios â€” criados na 1Âª vez que a aba abre
+// Gráficos de Bloqueios — criados na 1Âª vez que a aba abre
 // requestAnimationFrame garante pós-layout do CSS grid antes do Chart.js medir o canvas
 let _blDone = false, _chartBlStatus = null, _chartBlTransp = null;
 function initBlCharts() {
@@ -1433,7 +1433,7 @@ function _rebuildTranspRanking() {
       '</tr>';
   });
   container.innerHTML =
-    '<div class="tbl-title" style="color:#f59e0b">Ranking de Transportadoras â€” Damaged (' + ranking.length + ' transportadora(s))' +
+    '<div class="tbl-title" style="color:#f59e0b">Ranking de Transportadoras — Damaged (' + ranking.length + ' transportadora(s))' +
     '<span style="font-weight:400;font-size:11px;color:#9ca3af;margin-left:8px">· reativo ao período</span></div>' +
     '<div class="tbl-scroll"><table>' +
     '<thead><tr><th style="text-align:center">#</th><th>Transportadora</th>' +
@@ -1514,7 +1514,7 @@ function updateCountCards() {
   }
   function set(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
 
-  // Drivers críticos â€” contagem estática (prioridade calculada no Python sobre todos os dados)
+  // Drivers críticos — contagem estática (prioridade calculada no Python sobre todos os dados)
   set('cv-criticos', CRITICOS_COUNT);
 
   // Contagem period-aware (independe da aba ter sido visitada)
@@ -1529,7 +1529,7 @@ function updateCountCards() {
     return n;
   };
 
-  // Places â€” usa DXP_DATA/PLACES_DATA (Tabulator, não DOM)
+  // Places — usa DXP_DATA/PLACES_DATA (Tabulator, não DOM)
   const placesN = _countDataMonths(PLACES_DATA);
   set('cv-places', placesN);
   set('tab-count-places', placesN);
@@ -1540,7 +1540,7 @@ function updateCountCards() {
   // Damaged
   set('tab-count-damaged', _cntMths('tbl_damaged'));
 
-  // Cruzados F+D â€” filtra tabela e alerta
+  // Cruzados F+D — filtra tabela e alerta
   let cruzados = 0;
   document.querySelectorAll('#tbl_cruzados > tbody > tr[data-months]').forEach(tr => {
     if (tr.style.display !== 'none') cruzados++;
@@ -1567,7 +1567,7 @@ const _crzMes = {"2026-08": {"sellers": [{"id": "480265022", "qtd": 5}, {"id": "
   setPeriodo();
 })();
 
-// Ofensores do Período â€” reage ao filtro global pd_de/pd_ate
+// Ofensores do Período — reage ao filtro global pd_de/pd_ate
 function renderDrMes() {
   const meses = Object.keys(_drMes).filter(m => (!_periodDe || m >= _periodDe) && (!_periodAte || m <= _periodAte));
   const acc = {};
@@ -1619,7 +1619,7 @@ function renderCrzMes() {
   _s('crz-cv-buyers',  Object.keys(accB).length);
 }
 
-// Tendência â€” Gráfico combo barras (Fraudes+Damaged) + linha (BPP)
+// Tendência — Gráfico combo barras (Fraudes+Damaged) + linha (BPP)
 let _tendChart = null;
 function renderTendencia() {
   const meses = MONTHLY.filter(m => (!_periodDe || m.key >= _periodDe) && (!_periodAte || m.key <= _periodAte));
@@ -1710,7 +1710,7 @@ function _dbTipoCls(tipo) {
 }
 function _dbItemHtml(item, isExtra) {
   const dc=item.feito?'db-done':'', ck=item.feito?'âœ“':'';
-  const time=(item.hora_ini&&item.hora_fim)?`${item.hora_ini}â€“${item.hora_fim}`:(item.hora_ini||'');
+  const time=(item.hora_ini&&item.hora_fim)?`${item.hora_ini}“${item.hora_fim}`:(item.hora_ini||'');
   const aEsc=(item.atividade||'').replace(/'/g,"\\'");
   const oEsc=(item.obs||'').replace(/"/g,'&quot;');
   const delBtn=isExtra?`<button onclick="dbDeletarExtra('${aEsc}')" style="background:none;border:none;color:#6B7280;font-size:11px;cursor:pointer;padding:0 2px;margin-left:auto">âœ•</button>`:'';
@@ -1844,12 +1844,12 @@ async function gerarPptx(driverId) {
   const LINE  = '1E2740';
   const TIPO_LBL = {fraude_pura:'Fraude',lost_fraude:'Lost + Fraude',outro:'Outro'};
   const today    = new Date().toLocaleDateString('pt-BR');
-  const nomeExib = c.nome || 'â€”';
-  const placa    = c.placa || 'â€”';
-  const transp   = c.transportadora || 'â€”';
-  const status   = c.status_bl || c.status || 'â€”';
+  const nomeExib = c.nome || '—';
+  const placa    = c.placa || '—';
+  const transp   = c.transportadora || '—';
+  const status   = c.status_bl || c.status || '—';
   const tentativaBloqueio = c.data_solicitacao
-    ? ('Sim â€” ' + c.data_solicitacao)
+    ? ('Sim — ' + c.data_solicitacao)
     : 'Nao';
   const aptoTxt  = c.apto
     ? (c.tipo === 'fraude_pura' ? 'Acionar time de fraude para validacao' : 'Apto para bloqueio')
@@ -1862,12 +1862,12 @@ async function gerarPptx(driverId) {
   // Barra vermelha topo
   s1.addShape(pptx.ShapeType.rect, {x:0, y:0, w:13.33, h:0.08, fill:{color:RED}});
 
-  // Coluna esquerda â€” identidade do caso
+  // Coluna esquerda — identidade do caso
   s1.addText('SOLICITACAO DE BLOQUEIO', {
     x:0.5, y:0.3, w:6.5, h:0.35,
     fontSize:9, bold:true, color:RED, fontFace:'Calibri', charSpacing:2
   });
-  s1.addText('Loss Prevention â€” SSP30', {
+  s1.addText('Loss Prevention — SSP30', {
     x:0.5, y:0.62, w:6.5, h:0.3,
     fontSize:10, color:GRAY, fontFace:'Calibri'
   });
@@ -1890,7 +1890,7 @@ async function gerarPptx(driverId) {
   // Separador
   s1.addShape(pptx.ShapeType.rect, {x:0.5, y:2.75, w:6.0, h:0.015, fill:{color:LINE}});
 
-  // Grade de campos â€” 2 colunas
+  // Grade de campos — 2 colunas
   const campos = [
     ['Placa',          placa],
     ['Transportadora', transp],
@@ -1915,7 +1915,7 @@ async function gerarPptx(driverId) {
   s1.addText('CONCLUSAO', {x:0.5, y:6.55, w:2, h:0.25, fontSize:7, bold:true, color:GRAY, fontFace:'Calibri', charSpacing:1});
   s1.addText(aptoTxt, {x:0.5, y:6.78, w:6.0, h:0.35, fontSize:12, bold:true, color:RED, fontFace:'Calibri'});
 
-  // Coluna direita â€” branding
+  // Coluna direita — branding
   s1.addText('LOSS', {
     x:7.1, y:2.6, w:5.8, h:1.4,
     fontSize:72, bold:true, color:LINE, align:'center', fontFace:'Calibri'
@@ -1925,14 +1925,14 @@ async function gerarPptx(driverId) {
     fontSize:38, bold:true, color:LINE, align:'center', fontFace:'Calibri'
   });
   s1.addShape(pptx.ShapeType.rect, {x:7.5, y:4.85, w:4.8, h:0.04, fill:{color:RED}});
-  s1.addText('Mercado Livre â€” Guarulhos Mega', {
+  s1.addText('Mercado Livre — Guarulhos Mega', {
     x:7.1, y:5.05, w:5.8, h:0.35, align:'center',
     fontSize:10, color:GRAY, fontFace:'Calibri'
   });
 
   // Rodape
   s1.addShape(pptx.ShapeType.rect, {x:0, y:7.3, w:13.33, h:0.015, fill:{color:LINE}});
-  s1.addText('CONFIDENCIAL â€” Uso interno. Este documento e de uso restrito ao time de Loss Prevention.', {
+  s1.addText('CONFIDENCIAL — Uso interno. Este documento e de uso restrito ao time de Loss Prevention.', {
     x:0.5, y:7.33, w:12.5, h:0.2,
     fontSize:7, color:GRAY, fontFace:'Calibri'
   });
@@ -1947,7 +1947,7 @@ async function gerarPptx(driverId) {
     x:0.5, y:0.25, w:9, h:0.38,
     fontSize:9, bold:true, color:RED, fontFace:'Calibri', charSpacing:2
   });
-  s2.addText('Driver ' + String(c.id) + '  â€”  ' + nomeExib + '  |  Placa: ' + placa + '  |  ' + transp, {
+  s2.addText('Driver ' + String(c.id) + '  —  ' + nomeExib + '  |  Placa: ' + placa + '  |  ' + transp, {
     x:0.5, y:0.6, w:12.3, h:0.32,
     fontSize:11, color:GRAY, fontFace:'Calibri'
   });
@@ -1972,8 +1972,8 @@ async function gerarPptx(driverId) {
     bppTot += bpp_v;
     tblRows.push([
       {text:sem,                   options:{fontSize:9, color:GRAY, align:'center', fill:rowBg}},
-      {text:shp.class || 'â€”',      options:{fontSize:9, color:isFraud?'E57373':WH, fill:rowBg}},
-      {text:String(shp.id || 'â€”'), options:{fontSize:9, color:WH, fontFace:'Courier New', fill:rowBg}},
+      {text:shp.class || '—',      options:{fontSize:9, color:isFraud?'E57373':WH, fill:rowBg}},
+      {text:String(shp.id || '—'), options:{fontSize:9, color:WH, fontFace:'Courier New', fill:rowBg}},
       {text:'$' + bpp_v.toLocaleString('pt-BR',{minimumFractionDigits:2}) + (isMaior?' *':''),
         options:{fontSize:9, color:isMaior?'F59E0B':WH, align:'right', bold:isMaior, fill:rowBg}},
     ]);
@@ -1997,13 +1997,13 @@ async function gerarPptx(driverId) {
   // Criterio
   let crit = c.tipo === 'lost_fraude'
     ? 'Criterio Lost+Fraude: ' + c.n_pkgs + ' pacotes (min. 5) | BPP sem maior: $' + c.residual.toFixed(2) + ' (min. $300) | ' + (c.apto ? 'APTO' : 'NAO APTO')
-    : 'Criterio Fraude Pura: acumulo em 3+ meses â€” encaminhar para validacao do time de fraude';
+    : 'Criterio Fraude Pura: acumulo em 3+ meses — encaminhar para validacao do time de fraude';
   s2.addText(crit, {
     x:0.5, y:7.1, w:12.3, h:0.22,
     fontSize:8, color:GRAY, fontFace:'Calibri', italic:true
   });
   s2.addShape(pptx.ShapeType.rect, {x:0, y:7.3, w:13.33, h:0.015, fill:{color:LINE}});
-  s2.addText('CONFIDENCIAL â€” Uso interno. Este documento e de uso restrito ao time de Loss Prevention.', {
+  s2.addText('CONFIDENCIAL — Uso interno. Este documento e de uso restrito ao time de Loss Prevention.', {
     x:0.5, y:7.33, w:12.5, h:0.2, fontSize:7, color:GRAY, fontFace:'Calibri'
   });
 
@@ -2017,7 +2017,7 @@ async function gerarPptx(driverId) {
     fontSize:48, bold:true, color:LINE, align:'center', fontFace:'Calibri'
   });
   s3.addShape(pptx.ShapeType.rect, {x:4.5, y:3.95, w:4.3, h:0.04, fill:{color:RED}});
-  s3.addText('Mercado Livre â€” SSP30 â€” Guarulhos Mega', {
+  s3.addText('Mercado Livre — SSP30 — Guarulhos Mega', {
     x:0, y:4.15, w:13.33, h:0.4,
     fontSize:12, color:GRAY, align:'center', fontFace:'Calibri'
   });
@@ -2025,7 +2025,7 @@ async function gerarPptx(driverId) {
     x:0, y:4.7, w:13.33, h:0.3,
     fontSize:10, color:LINE, align:'center', fontFace:'Calibri'
   });
-  s3.addText('CONFIDENCIAL â€” Uso interno. Este documento e de uso restrito ao time de Loss Prevention.', {
+  s3.addText('CONFIDENCIAL — Uso interno. Este documento e de uso restrito ao time de Loss Prevention.', {
     x:0.5, y:7.33, w:12.5, h:0.2, fontSize:7, color:GRAY, fontFace:'Calibri'
   });
 
@@ -2041,8 +2041,8 @@ function irPara(tab) {
 
 
 // === RELATÃ“RIO SEMANAL ===
-const WP_BASE = "ðŸ“Š *Relatório LP SSP30 â€” W32/2026*\n\nðŸ”´ *SINISTROS*\nâ€¢ Eventos: 528 | BPP: $510,745\nâ€¢ Recuperados: 75 (14.2%) | BPP Rec.: $0\n\nðŸ›¡ï¸ *BLOCK LIST*\nâ€¢ Bloqueados: 91 | Monitorados: 35\nâ€¢ GMV Protegido: $24,502\n\nðŸ“¦ *FRAUDES/DAMAGED (acumulado 2026)*\nâ€¢ Fraudes: 2558 | Damaged: 1753\nâ€¢ BPP Total: $168,416\n\nâš¡ *ON WAY / ON ROUTE*\n";
-const EM_BASE = "Relatório LP SSP30 â€” W32/2026\n\nSINISTROS\nEventos: 528 | BPP: $510,745\nRecuperados: 75 (14.2%) | BPP Rec.: $0\n\nBLOCK LIST\nBloqueados: 91 | Monitorados: 35\nGMV Protegido: $24,502\n\nFRAUDES/DAMAGED (acumulado 2026)\nFraudes: 2558 | Damaged: 1753 | BPP Total: $168,416\n\nON WAY / ON ROUTE\n";
+const WP_BASE = "ðŸ“Š *Relatório LP SSP30 — W32/2026*\n\nðŸ”´ *SINISTROS*\nâ€¢ Eventos: 528 | BPP: $510,745\nâ€¢ Recuperados: 75 (14.2%) | BPP Rec.: $0\n\nðŸ›¡ï¸ *BLOCK LIST*\nâ€¢ Bloqueados: 91 | Monitorados: 35\nâ€¢ GMV Protegido: $24,502\n\nðŸ“¦ *FRAUDES/DAMAGED (acumulado 2026)*\nâ€¢ Fraudes: 2558 | Damaged: 1753\nâ€¢ BPP Total: $168,416\n\nâš¡ *ON WAY / ON ROUTE*\n";
+const EM_BASE = "Relatório LP SSP30 — W32/2026\n\nSINISTROS\nEventos: 528 | BPP: $510,745\nRecuperados: 75 (14.2%) | BPP Rec.: $0\n\nBLOCK LIST\nBloqueados: 91 | Monitorados: 35\nGMV Protegido: $24,502\n\nFRAUDES/DAMAGED (acumulado 2026)\nFraudes: 2558 | Damaged: 1753 | BPP Total: $168,416\n\nON WAY / ON ROUTE\n";
 var _wyCount = null, _rtCount = null;
 function carregarTratados() {
   Promise.allSettled([
@@ -2061,14 +2061,14 @@ function carregarTratados() {
     _rtCount = rtTrat;
     const wyEl = document.getElementById('rel-wy-count');
     const rtEl = document.getElementById('rel-rt-count');
-    if (wyEl) wyEl.textContent = wyTrat !== null ? wyTrat : 'â€”';
-    if (rtEl) rtEl.textContent = 'ON ROUTE: ' + (rtTrat !== null ? rtTrat : 'â€”');
+    if (wyEl) wyEl.textContent = wyTrat !== null ? wyTrat : '—';
+    if (rtEl) rtEl.textContent = 'ON ROUTE: ' + (rtTrat !== null ? rtTrat : '—');
   });
 }
 function copiarRelatorio(modo) {
   const obs = (document.getElementById('rel-obs')?.value || '').trim();
-  const wy  = _wyCount !== null ? String(_wyCount) : 'â€”';
-  const rt  = _rtCount !== null ? String(_rtCount) : 'â€”';
+  const wy  = _wyCount !== null ? String(_wyCount) : '—';
+  const rt  = _rtCount !== null ? String(_rtCount) : '—';
   let txt = modo === 'whatsapp' ? WP_BASE : EM_BASE;
   if (modo === 'whatsapp') {
     txt += 'â€¢ Tratados ON WAY: ' + wy + '\nâ€¢ Tratados ON ROUTE: ' + rt;
@@ -2089,7 +2089,7 @@ function copiarRelatorio(modo) {
   });
 }
 
-// â”€â”€ INVESTIGAÃ‡ÃƒO LP â€” helper global â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ INVESTIGAÃ‡ÃƒO LP — helper global â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _setEl(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
 
 function _showBqBanner(containerId, show) {
@@ -2107,14 +2107,14 @@ function _showBqBanner(containerId, show) {
   const ageH       = BQ_STATUS.cache_age_h;
   if (isSemDados) {
     b.style.cssText = 'background:#160a0a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#fca5a5;font-size:13px;display:flex;align-items:center;gap:10px;';
-    b.innerHTML = '<span style="font-size:18px;flex-shrink:0">ðŸš«</span><span><b>Sem dados disponíveis</b> â€” BQ sem cota e sem cache local. Acione o GitHub Actions ou aguarde a próxima janela de cota.</span>';
+    b.innerHTML = '<span style="font-size:18px;flex-shrink:0">ðŸš«</span><span><b>Sem dados disponíveis</b> — BQ sem cota e sem cache local. Acione o GitHub Actions ou aguarde a próxima janela de cota.</span>';
   } else if (isCache) {
     const ageStr = ageH < 24 ? ageH.toFixed(1) + 'h' : (ageH/24).toFixed(1) + 'd';
     b.style.cssText = 'background:#1e293b;border:1px solid #f59e0b;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#fcd34d;font-size:13px;display:flex;align-items:center;gap:10px;';
-    b.innerHTML = `<span style="font-size:18px;flex-shrink:0">âš ï¸</span><span><b>Dados do cache</b> (há ${ageStr}) â€” BQ com cota esgotada na última execução. Os dados abaixo são da última busca bem-sucedida.</span>`;
+    b.innerHTML = `<span style="font-size:18px;flex-shrink:0">âš ï¸</span><span><b>Dados do cache</b> (há ${ageStr}) — BQ com cota esgotada na última execução. Os dados abaixo são da última busca bem-sucedida.</span>`;
   } else {
     b.style.cssText = 'background:#1e293b;border:1px solid #f87171;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#fca5a5;font-size:13px;display:flex;align-items:center;gap:10px;';
-    b.innerHTML = '<span style="font-size:18px;flex-shrink:0">âš ï¸</span><span>Sem dados do BigQuery â€” cota esgotada na última execução. Os dados serão atualizados na próxima rodada agendada.</span>';
+    b.innerHTML = '<span style="font-size:18px;flex-shrink:0">âš ï¸</span><span>Sem dados do BigQuery — cota esgotada na última execução. Os dados serão atualizados na próxima rodada agendada.</span>';
   }
   b.style.display = 'flex';
 }
@@ -2151,9 +2151,9 @@ function filtrarSaidas() {
       <td style="padding:7px 10px;text-align:center;font-weight:700;color:${r.tentativas>=3?'#f87171':'#fbbf24'}">${r.tentativas}</td>
       <td style="padding:7px 10px;color:#cbd5e1">${r.data_ini}</td>
       <td style="padding:7px 10px;color:#cbd5e1">${r.data_fim}</td>
-      <td style="padding:7px 10px;color:#e2e8f0">${r.transportadora||'â€”'}</td>
-      <td style="padding:7px 10px;color:#e2e8f0;font-family:monospace">${r.motorista||'â€”'}</td>
-      <td style="padding:7px 10px"><span style="color:${r.status==='NOT DELIVERED'?'#f87171':'#86efac'}">${r.status||'â€”'}</span>${r.sub_status?`<span style='color:#64748b;font-size:10px'> ${r.sub_status}</span>`:''}</td>
+      <td style="padding:7px 10px;color:#e2e8f0">${r.transportadora||'—'}</td>
+      <td style="padding:7px 10px;color:#e2e8f0;font-family:monospace">${r.motorista||'—'}</td>
+      <td style="padding:7px 10px"><span style="color:${r.status==='NOT DELIVERED'?'#f87171':'#86efac'}">${r.status||'—'}</span>${r.sub_status?`<span style='color:#64748b;font-size:10px'> ${r.sub_status}</span>`:''}</td>
       <td style="padding:7px 10px"><span style="background:${(RISCO_COR[r.risco]||'#64748b')}22;color:${RISCO_COR[r.risco]||'#94a3b8'};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">${r.risco}</span></td>
     </tr>`).join('');
   _setEl('sm-total', dados.length);
@@ -2213,7 +2213,7 @@ function filtrarDevolucoes() {
   _setEl('dv-sellers', sellers.length);
   const stb = document.getElementById('dv-sellers-tbody');
   if (stb) stb.innerHTML = sellers.slice(0,10).map(s =>
-    `<tr><td style="padding:4px 6px;color:#e2e8f0">${s.nome||'â€”'}</td><td style="padding:4px 6px;text-align:center;color:#fbbf24;font-weight:600">${s.cnt}</td><td style="padding:4px 6px;color:${s.fraud>0?'#f87171':'#86efac'}">${s.fraud>0?`FRAUD (${s.fraud})`:'OK'}</td></tr>`
+    `<tr><td style="padding:4px 6px;color:#e2e8f0">${s.nome||'—'}</td><td style="padding:4px 6px;text-align:center;color:#fbbf24;font-weight:600">${s.cnt}</td><td style="padding:4px 6px;color:${s.fraud>0?'#f87171':'#86efac'}">${s.fraud>0?`FRAUD (${s.fraud})`:'OK'}</td></tr>`
   ).join('');
   const causaMap = {};
   dados.forEach(r => { const k = r.causa||'N/A'; causaMap[k]=(causaMap[k]||0)+1; });
@@ -2226,13 +2226,13 @@ function filtrarDevolucoes() {
     <tr style="border-bottom:1px solid #1e293b">
       <td style="padding:7px 10px;color:#94a3b8">${r.data}</td>
       <td style="padding:7px 10px;color:#38bdf8;font-family:monospace">${r.id}</td>
-      <td style="padding:7px 10px;color:#e2e8f0">${r.seller||'â€”'}</td>
-      <td style="padding:7px 10px;color:#cbd5e1">${r.flujo||'â€”'}</td>
-      <td style="padding:7px 10px;color:#cbd5e1">${r.causa||'â€”'}</td>
-      <td style="padding:7px 10px;color:#94a3b8;font-size:11px">${r.class||'â€”'}</td>
-      <td style="padding:7px 10px"><span style="background:${(LP_COR[r.class_lp]||'#64748b')}22;color:${LP_COR[r.class_lp]||'#94a3b8'};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">${r.class_lp||'â€”'}</span></td>
-      <td style="padding:7px 10px;color:${(r.status_rts||'').includes('LOST')?'#f87171':'#94a3b8'};font-size:11px">${r.status_rts||'â€”'}</td>
-      <td style="padding:7px 10px;color:${r.status_bko==='not_delivered'?'#f87171':r.status_bko==='delivered'?'#86efac':'#94a3b8'};font-size:11px">${r.status_bko||'â€”'}</td>
+      <td style="padding:7px 10px;color:#e2e8f0">${r.seller||'—'}</td>
+      <td style="padding:7px 10px;color:#cbd5e1">${r.flujo||'—'}</td>
+      <td style="padding:7px 10px;color:#cbd5e1">${r.causa||'—'}</td>
+      <td style="padding:7px 10px;color:#94a3b8;font-size:11px">${r.class||'—'}</td>
+      <td style="padding:7px 10px"><span style="background:${(LP_COR[r.class_lp]||'#64748b')}22;color:${LP_COR[r.class_lp]||'#94a3b8'};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">${r.class_lp||'—'}</span></td>
+      <td style="padding:7px 10px;color:${(r.status_rts||'').includes('LOST')?'#f87171':'#94a3b8'};font-size:11px">${r.status_rts||'—'}</td>
+      <td style="padding:7px 10px;color:${r.status_bko==='not_delivered'?'#f87171':r.status_bko==='delivered'?'#86efac':'#94a3b8'};font-size:11px">${r.status_bko||'—'}</td>
     </tr>`).join('');
   const emEl = document.getElementById('dv-empty');
   if (emEl) emEl.style.display = dados.length ? 'none' : 'block';
@@ -2324,7 +2324,7 @@ function initDamagedENE() {
   let totalBpp = 0;
   casosFiltrados.forEach(c => {
     totalBpp += c.bpp || 0;
-    const key = c.seller_nome || 'â€”';
+    const key = c.seller_nome || '—';
     if (!_selMap[key]) _selMap[key] = { seller_nome: key, total: 0, bpp: 0, meses: new Set() };
     _selMap[key].total++;
     _selMap[key].bpp += c.bpp || 0;
@@ -2395,7 +2395,7 @@ function initDamagedENE() {
     });
   }
 
-  // Word cloud â€” estático (causas do BT_LP_NODES, independente do período)
+  // Word cloud — estático (causas do BT_LP_NODES, independente do período)
   if (!_deneWCDone) {
     const wcEl = document.getElementById('dene-wordcloud');
     const wc = (d.wordcloud || []);
@@ -2419,7 +2419,7 @@ function initDamagedENE() {
     }
   }
 
-  // Causas recorrentes â€” estáticas (BT_LP_NODES)
+  // Causas recorrentes — estáticas (BT_LP_NODES)
   const clEl = document.getElementById('dene-causas-lista');
   if (clEl) {
     const causas = (d.causas || []).slice(0, 20);
@@ -2441,7 +2441,7 @@ function initDamagedENE() {
     }
   }
 
-  // Sellers ranking table â€” com dropdown expansível de SHP IDs
+  // Sellers ranking table — com dropdown expansível de SHP IDs
   const stb = document.getElementById('dene-sellers-tbody');
   if (stb) {
     stb.innerHTML = sellers.slice(0, 50).map((s,i) => {
@@ -2452,7 +2452,7 @@ function initDamagedENE() {
         '<td style="padding:4px 10px;text-align:right;color:#f87171;font-size:11px">US$ ' + c.bpp.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</td>' +
         '<td style="padding:4px 10px;color:#94a3b8;font-size:11px">' + (c.data||'') + '</td>' +
         '<td style="padding:4px 10px;color:#64748b;font-size:11px" colspan="2">' + (c.mes||'') + '</td>' +
-        '<td style="padding:4px 10px;color:#cbd5e1;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (c.item_title||'') + '">' + (c.item_title||'â€”') + '</td>' +
+        '<td style="padding:4px 10px;color:#cbd5e1;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (c.item_title||'') + '">' + (c.item_title||'—') + '</td>' +
         '</tr>'
       ).join('');
       return (
@@ -2460,7 +2460,7 @@ function initDamagedENE() {
         '<td style="padding:7px 10px;text-align:center;color:#64748b;font-size:11px">' + (i+1) + '</td>' +
         '<td style="padding:7px 10px;color:#38bdf8;font-weight:600">' +
           '<span id="dene-sc-' + i + '" style="display:inline-block;transition:transform .15s;margin-right:5px;font-size:9px;color:#64748b;vertical-align:middle">â–¶</span>' +
-          (s.seller_nome||'â€”') + '</td>' +
+          (s.seller_nome||'—') + '</td>' +
         '<td style="padding:7px 10px;text-align:center;font-weight:700;color:' + (s.total>=10?'#f87171':s.total>=5?'#fb923c':'#fbbf24') + '">' + s.total + '</td>' +
         '<td style="padding:7px 10px;text-align:right;color:#86efac;font-weight:600">US$ ' + s.bpp.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</td>' +
         '<td style="padding:7px 10px;text-align:center;color:#818cf8">' + s.n_meses + '</td>' +
@@ -2518,7 +2518,7 @@ function filtrarDamagedENE(casosPeriodo) {
   tb.innerHTML = casos.slice(0, 500).map(r => `
     <tr style="border-bottom:1px solid #1e293b">
       <td style="padding:6px 10px;font-family:monospace;color:#60a5fa;font-size:11px">${r.shp_id}</td>
-      <td style="padding:6px 10px;color:#e2e8f0;font-size:12px">${r.seller_nome||'â€”'}</td>
+      <td style="padding:6px 10px;color:#e2e8f0;font-size:12px">${r.seller_nome||'—'}</td>
       <td style="padding:6px 10px;text-align:right;color:#f87171;font-weight:600;font-size:12px">US$ ${r.bpp.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
       <td style="padding:6px 10px;color:#94a3b8;font-size:11px">${r.data}</td>
       <td style="padding:6px 10px;color:#64748b;font-size:11px">${r.mes}</td>
@@ -2963,37 +2963,37 @@ function renderOfensores() {
     rows = _ofensTopSellersDevo();
     labels = rows.map(r => r.nome);
     vals   = rows.map(r => r.count);
-    metricLabel = 'Qtd Devoluções'; title = 'Top 10 Sellers â€” Devoluções';
+    metricLabel = 'Qtd Devoluções'; title = 'Top 10 Sellers — Devoluções';
   } else if (_ofensView === 'ene_dam_seller') {
     rows = _ofensTopSellersENEDam();
     labels = rows.map(r => r.nome);
     vals   = rows.map(r => r.count);
-    metricLabel = 'Qtd ENE Damaged'; title = 'Sellers â€” ENE Damaged (pacotes devolvidos avariados)';
+    metricLabel = 'Qtd ENE Damaged'; title = 'Sellers — ENE Damaged (pacotes devolvidos avariados)';
   } else if (_ofensView === 'ene_dam_buyer') {
     rows = _ofensTopBuyersENEDam();
     labels = rows.map(r => r.id);
     vals   = rows.map(r => r.count);
-    metricLabel = 'Qtd ENE Damaged'; title = 'Buyers â€” ENE Damaged (compradores recorrentes)';
+    metricLabel = 'Qtd ENE Damaged'; title = 'Buyers — ENE Damaged (compradores recorrentes)';
   } else if (_ofensView === 'origem') {
     rows = _ofensOrigemNodo();
     labels = rows.map(r => r.node);
     vals   = rows.map(r => r.count);
-    metricLabel = 'Qtd Devoluções'; title = 'Cross / SVC de Origem â€” De onde os pacotes vieram para SSP30';
+    metricLabel = 'Qtd Devoluções'; title = 'Cross / SVC de Origem — De onde os pacotes vieram para SSP30';
   } else if (_ofensView === 'dominio') {
     rows = _ofensDominio();
     labels = rows.map(r => r.dominio);
     vals   = rows.map(r => r.count);
-    metricLabel = 'Qtd Devoluções'; title = 'Domínio Ofensor â€” Tipo de Produto com Devoluções';
+    metricLabel = 'Qtd Devoluções'; title = 'Domínio Ofensor — Tipo de Produto com Devoluções';
   } else if (_ofensView === 'ene_svc') {
     rows = _ofensENEService();
     labels = rows.map(r => r.carrier);
     vals   = rows.map(r => r.nao_entregue);
-    metricLabel = 'Não Entregue'; title = 'ENE Service â€” Carriers c/ Entrega Não Efetiva (por Transportadora)';
+    metricLabel = 'Não Entregue'; title = 'ENE Service — Carriers c/ Entrega Não Efetiva (por Transportadora)';
   } else {
     rows = _ofensTopBuyersDevo();
     labels = rows.map(r => r.nome || r.id);
     vals   = rows.map(r => r.count);
-    metricLabel = 'Qtd Devoluções'; title = 'Top 10 Buyers â€” Devoluções';
+    metricLabel = 'Qtd Devoluções'; title = 'Top 10 Buyers — Devoluções';
   }
 
   const titleEl = document.getElementById('ofens-chart-title');
@@ -3100,7 +3100,7 @@ function renderOfensores() {
         <td style="padding:8px 8px;text-align:right"><span style="color:#f87171">${r.perdido}</span></td>
         <td style="padding:8px 8px;text-align:right"><span style="color:#fb923c">${r.avariado}</span></td>
         <td style="padding:8px 8px;text-align:right" title="sem_rota=${r.sem_rota} + rota<2h=${r.rota_curta_2h}">
-          <span style="color:${desconColor};font-weight:${descon > 0 ? '700' : '400'}">${descon > 0 ? 'âš  ' + descon : 'â€”'}</span>
+          <span style="color:${desconColor};font-weight:${descon > 0 ? '700' : '400'}">${descon > 0 ? 'âš  ' + descon : '—'}</span>
         </td>
       </tr>${detailRow}`;
     }).join('');
@@ -3295,7 +3295,7 @@ function _filterTblByPeriod(tbl) {
          formatter: r => {
            const v = r.getValue();
            const colors = {Bloqueado:'#10b981',Solicitado:'#3b82f6',Monitorado:'#f59e0b'};
-           return `<span style="color:${colors[v]||'#94a3b8'};font-weight:600">${v||'â€”'}</span>`;
+           return `<span style="color:${colors[v]||'#94a3b8'};font-weight:600">${v||'—'}</span>`;
          } },
       { title: 'Motivo', field: 'motivo', tooltip: true },
       { title: 'Data',   field: 'data',   sorter: 'date' },
@@ -3917,7 +3917,7 @@ document.addEventListener('DOMContentLoaded',function(){filtrarNodos();var b=doc
   <div style="background:#0f0606;border:1px solid #7f1d1d;border-radius:8px;padding:14px 18px;margin-bottom:18px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <i data-lucide="alert-triangle" width="16" height="16" style="color:#ef4444;flex-shrink:0"></i>
-      <span style="font-size:13px;font-weight:600;color:#f87171">1 driver(s) da Block List com SHP â‰¥ $200 nos últimos 15 dias â€” verificar se precisa reforçar bloqueio</span>
+      <span style="font-size:13px;font-weight:600;color:#f87171">1 driver(s) da Block List com SHP â‰¥ $200 nos últimos 15 dias — verificar se precisa reforçar bloqueio</span>
     </div>
     <table style="width:100%;font-size:12px;border-collapse:collapse">
       <thead><tr>
@@ -4088,7 +4088,7 @@ window._pvChartReady=true;
       border-radius:8px;font-size:12px;font-weight:600;color:#6b7280;list-style:none;
       display:flex;align-items:center;gap:8px">
       <i data-lucide="list" width="13" height="13"></i>
-      Block List Completa 2026 â€” 167 registros
+      Block List Completa 2026 — 167 registros
       &nbsp;·&nbsp; Bloqueados: 91 &nbsp;·&nbsp; Solicitados: 4 &nbsp;·&nbsp; Monitorados: 35
       <span style="margin-left:auto;font-size:10px">â–¼ expandir</span>
     </summary>
@@ -4538,7 +4538,7 @@ window._pvChartReady=true;
   </div>
 
   <div class="tbl-wrap">
-    <div class="tbl-title">BSD â€” Buyer Ã— Seller Ã— Driver Ã— Pacotes</div>
+    <div class="tbl-title">BSD — Buyer Ã— Seller Ã— Driver Ã— Pacotes</div>
     <div class="tbl-scroll"><table>
       <thead><tr>
         <th>#</th><th>Seller ID</th><th>Buyer ID</th><th>Fraudes</th><th>Drivers</th><th>Pacotes (SHP IDs)</th>
@@ -4696,7 +4696,7 @@ window._pvChartReady=true;
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">777338596</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">1190449</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">2</td>
-          <td style="font-size:10px"><span style="color:#4b5563">â€”</span></td>
+          <td style="font-size:10px"><span style="color:#4b5563">—</span></td>
           <td style="font-size:11px"><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46258129551" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46258129551</a> <a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46258129969" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46258129969</a> <button data-shps="46258129551,46258129969" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">âŽ˜</button></td>
         </tr><tr>
           <td style="color:#4b5563;font-size:11px;text-align:center">23</td>
@@ -4717,7 +4717,7 @@ window._pvChartReady=true;
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">377104562</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">1520916644</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">2</td>
-          <td style="font-size:10px"><span style="color:#4b5563">â€”</span></td>
+          <td style="font-size:10px"><span style="color:#4b5563">—</span></td>
           <td style="font-size:11px"><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46666674601" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46666674601</a> <a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/47365734556" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">47365734556</a> <button data-shps="46666674601,47365734556" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">âŽ˜</button></td>
         </tr><tr>
           <td style="color:#4b5563;font-size:11px;text-align:center">26</td>
@@ -4871,14 +4871,14 @@ window._pvChartReady=true;
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">429279532</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">268832166</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">2</td>
-          <td style="font-size:10px"><span style="color:#4b5563">â€”</span></td>
+          <td style="font-size:10px"><span style="color:#4b5563">—</span></td>
           <td style="font-size:11px"><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46226919832" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46226919832</a> <a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46330778943" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46330778943</a> <button data-shps="46226919832,46330778943" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">âŽ˜</button></td>
         </tr><tr>
           <td style="color:#4b5563;font-size:11px;text-align:center">48</td>
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">794399897</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">532535544</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">2</td>
-          <td style="font-size:10px"><span style="color:#4b5563">â€”</span></td>
+          <td style="font-size:10px"><span style="color:#4b5563">—</span></td>
           <td style="font-size:11px"><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46542753715" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46542753715</a> <a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46543031014" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46543031014</a> <button data-shps="46542753715,46543031014" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">âŽ˜</button></td>
         </tr><tr>
           <td style="color:#4b5563;font-size:11px;text-align:center">49</td>
@@ -4899,7 +4899,7 @@ window._pvChartReady=true;
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">25231756</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">609406564</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">2</td>
-          <td style="font-size:10px"><span style="color:#4b5563">â€”</span></td>
+          <td style="font-size:10px"><span style="color:#4b5563">—</span></td>
           <td style="font-size:11px"><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46907520362" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46907520362</a> <a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46907201433" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46907201433</a> <button data-shps="46907520362,46907201433" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">âŽ˜</button></td>
         </tr><tr>
           <td style="color:#4b5563;font-size:11px;text-align:center">52</td>
@@ -4913,7 +4913,7 @@ window._pvChartReady=true;
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">480265022</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">20016899</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">2</td>
-          <td style="font-size:10px"><span style="color:#4b5563">â€”</span></td>
+          <td style="font-size:10px"><span style="color:#4b5563">—</span></td>
           <td style="font-size:11px"><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46224076670" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46224076670</a> <a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46215821237" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46215821237</a> <button data-shps="46224076670,46215821237" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">âŽ˜</button></td>
         </tr><tr>
           <td style="color:#4b5563;font-size:11px;text-align:center">54</td>
@@ -4955,7 +4955,7 @@ window._pvChartReady=true;
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">568249785</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">260530276</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">2</td>
-          <td style="font-size:10px"><span style="color:#4b5563">â€”</span></td>
+          <td style="font-size:10px"><span style="color:#4b5563">—</span></td>
           <td style="font-size:11px"><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46844024618" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46844024618</a> <a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46844024658" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46844024658</a> <button data-shps="46844024618,46844024658" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">âŽ˜</button></td>
         </tr><tr>
           <td style="color:#4b5563;font-size:11px;text-align:center">60</td>
@@ -5088,7 +5088,7 @@ window._pvChartReady=true;
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">2266804194</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">502417037</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">2</td>
-          <td style="font-size:10px"><span style="color:#4b5563">â€”</span></td>
+          <td style="font-size:10px"><span style="color:#4b5563">—</span></td>
           <td style="font-size:11px"><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46240346409" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46240346409</a> <a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46240615974" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46240615974</a> <button data-shps="46240346409,46240615974" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">âŽ˜</button></td>
         </tr><tr>
           <td style="color:#4b5563;font-size:11px;text-align:center">79</td>
@@ -5102,7 +5102,7 @@ window._pvChartReady=true;
           <td style="font-family:monospace;font-size:12px;color:#f59e0b">1146195261</td>
           <td style="font-family:monospace;font-size:12px;color:#60a5fa">129898290</td>
           <td style="font-weight:700;color:#ef4444;text-align:center">2</td>
-          <td style="font-size:10px"><span style="color:#4b5563">â€”</span></td>
+          <td style="font-size:10px"><span style="color:#4b5563">—</span></td>
           <td style="font-size:11px"><a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46464482593" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46464482593</a> <a href="https://shipping-bo.adminml.com/sauron/shipments/shipment/46427691269" target="_blank" style="color:#60a5fa;text-decoration:none;font-family:monospace;margin-right:4px">46427691269</a> <button data-shps="46464482593,46427691269" onclick="_copyShps(this)" style="font-size:9px;padding:1px 5px;border:1px solid #1e3a5f;border-radius:3px;background:#0d1e33;color:#60a5fa;cursor:pointer;vertical-align:middle;margin-left:2px">âŽ˜</button></td>
         </tr><tr>
           <td style="color:#4b5563;font-size:11px;text-align:center">81</td>
@@ -5147,9 +5147,9 @@ window._pvChartReady=true;
   <div class="tbl-wrap" style="margin-top:18px">
     <div class="tbl-title" style="display:flex;align-items:center;gap:8px">
       <i data-lucide="git-merge" width="14" height="14" style="color:#a78bfa"></i>
-      <span style="color:#a78bfa">Driver Ã— Seller / Buyer â€” Conexões Suspeitas</span>
+      <span style="color:#a78bfa">Driver Ã— Seller / Buyer — Conexões Suspeitas</span>
     </div>
-    <div style="font-size:11px;color:#4b5563;padding:0 18px 10px">Drivers que aparecem em múltiplos pares SellerÃ—Buyer â€” possível conluio.</div>
+    <div style="font-size:11px;color:#4b5563;padding:0 18px 10px">Drivers que aparecem em múltiplos pares SellerÃ—Buyer — possível conluio.</div>
     <div class="tbl-scroll"><table>
       <thead><tr>
         <th>#</th><th>Driver ID</th><th>Fraudes</th>
@@ -5502,7 +5502,7 @@ window._pvChartReady=true;
 
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
       <div>
-        <div style="font-size:18px;font-weight:800;color:#fff">Relatório LP â€” W32/2026</div>
+        <div style="font-size:18px;font-weight:800;color:#fff">Relatório LP — W32/2026</div>
         <div style="font-size:12px;color:#6b7280;margin-top:4px">Gerado em 07/08/2026 11:45 · dados acumulados 2026</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -5533,14 +5533,14 @@ window._pvChartReady=true;
       </div>
       <div style="background:#0d1321;border:1px solid rgba(167,139,250,.3);border-radius:10px;padding:16px">
         <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">ON WAY tratados</div>
-        <div style="font-size:28px;font-weight:800;color:#a78bfa" id="rel-wy-count">â€”</div>
-        <div style="font-size:11px;color:#9ca3af;margin-top:4px" id="rel-rt-count">ON ROUTE: â€”</div>
+        <div style="font-size:28px;font-weight:800;color:#a78bfa" id="rel-wy-count">—</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px" id="rel-rt-count">ON ROUTE: —</div>
       </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
       <div class="box">
-        <div class="bt">Sinistros â€” Detalhe</div>
+        <div class="bt">Sinistros — Detalhe</div>
         <table style="width:100%;font-size:13px;border-collapse:collapse">
           <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">Total de eventos</td><td style="text-align:right;font-weight:700;border-bottom:1px solid #1f2937">528</td></tr>
           <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">BPP total</td><td style="text-align:right;color:#f97316;font-weight:700;border-bottom:1px solid #1f2937">$510,745.25</td></tr>
@@ -5550,7 +5550,7 @@ window._pvChartReady=true;
         </table>
       </div>
       <div class="box">
-        <div class="bt">Block List â€” Detalhe</div>
+        <div class="bt">Block List — Detalhe</div>
         <table style="width:100%;font-size:13px;border-collapse:collapse">
           <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">Total de registros</td><td style="text-align:right;font-weight:700;border-bottom:1px solid #1f2937">167</td></tr>
           <tr><td style="padding:6px 0;color:#9ca3af;border-bottom:1px solid #1f2937">Bloqueados</td><td style="text-align:right;color:#60a5fa;font-weight:700;border-bottom:1px solid #1f2937">91</td></tr>
@@ -5562,7 +5562,7 @@ window._pvChartReady=true;
     </div>
 
     <div class="box" style="margin-bottom:24px">
-      <div class="bt">Fraudes/Damaged â€” Acumulado 2026</div>
+      <div class="bt">Fraudes/Damaged — Acumulado 2026</div>
       <div style="display:flex;gap:32px;flex-wrap:wrap;padding-top:8px">
         <div><div style="font-size:11px;color:#6b7280;margin-bottom:4px">Fraudes/Lost</div><div style="font-size:22px;font-weight:800;color:#ef4444">2558</div></div>
         <div><div style="font-size:11px;color:#6b7280;margin-bottom:4px">Damaged</div><div style="font-size:22px;font-weight:800;color:#f59e0b">1753</div></div>
