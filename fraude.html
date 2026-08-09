@@ -3851,7 +3851,10 @@ function renderHistTbody(){
     var hl = sel ? 'background:#0f2040;border-left:3px solid #38bdf8;' : 'border-left:3px solid transparent;';
     return '<tr data-nick="'+s.n+'" class="sel-hist-row" style="border-bottom:1px solid #0a0f1e;cursor:pointer;'+hl+'">'
       + '<td style="padding:4px 8px;color:#374151;font-size:9px">'+(i+1)+'</td>'
-      + '<td style="padding:4px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="https://www.mercadolivre.com.br/loja/'+s.n+'" target="_blank" style="color:#60a5fa;font-size:10px;font-weight:700;text-decoration:none" title="Ver perfil: '+s.n+'">'+s.n+'</a></td>'
+      + '<td style="padding:4px 8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
+      + '<span style="color:#60a5fa;font-size:10px;font-weight:700" title="'+s.n+'">'+s.n+'</span>'
+      + ' <a href="https://www.mercadolivre.com.br/loja/'+s.n+'" target="_blank" onclick="event.stopPropagation()" style="color:#374151;font-size:9px;text-decoration:none" title="Ver perfil ML">↗</a>'
+      + '</td>'
       + '<td style="padding:4px 8px">'+repBadge(s.r)+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.t+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#a78bfa">'+s.d+'</td>'
