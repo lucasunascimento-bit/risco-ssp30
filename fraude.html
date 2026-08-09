@@ -3625,6 +3625,27 @@ document.addEventListener('DOMContentLoaded',function(){
         </table>
       </div>
     </div>
+    <!-- PAINEL DE SHPs DO SELLER SELECIONADO -->
+    <div id="sel-hist-shp-panel" style="display:none;margin-top:10px;border:1px solid #1e3a5f;border-radius:8px;overflow:hidden">
+      <div style="background:#0a1628;padding:8px 14px;display:flex;align-items:center;justify-content:space-between">
+        <span id="sel-hist-shp-title" style="font-size:11px;font-weight:700;color:#38bdf8"></span>
+        <button onclick="selHistClear()" style="background:transparent;color:#4b5563;border:none;font-size:12px;cursor:pointer">✕ fechar</button>
+      </div>
+      <div style="overflow-y:auto;max-height:280px;background:#060a14">
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead style="position:sticky;top:0;background:#0a1628">
+            <tr>
+              <th style="padding:5px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Shipment ID</th>
+              <th style="padding:5px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Tipo</th>
+              <th style="padding:5px 8px;text-align:left;color:#9ca3af;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Classificacao</th>
+              <th style="padding:5px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Mes</th>
+              <th style="padding:5px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
+            </tr>
+          </thead>
+          <tbody id="sel-hist-shp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- DAMAGED -->
@@ -3847,6 +3868,43 @@ function renderHistTbody(){
 function selHistSel(nick){
   _selSel = (_selSel === nick) ? null : nick;
   renderHistTbody();
+  renderHistShpPanel();
+}
+
+function renderHistShpPanel(){
+  var panel = document.getElementById('sel-hist-shp-panel');
+  var tbody = document.getElementById('sel-hist-shp-tbody');
+  var title = document.getElementById('sel-hist-shp-title');
+  if(!panel || !tbody) return;
+  if(!_selSel){ panel.style.display='none'; return; }
+
+  // Combina SHPs de fraude e damaged do seller selecionado
+  var shps = [];
+  SHP_FRAUDE.filter(function(s){ return s.n === _selSel; }).forEach(function(s){
+    shps.push({sid:s.s, tipo:'FRAUDE', sub:s.tf, causa:s.c, mes:s.mes, bpp:s.b});
+  });
+  SHP_DAMAGE.filter(function(s){ return s.n === _selSel; }).forEach(function(s){
+    shps.push({sid:s.s, tipo:'DAMAGED', sub:s.td, causa:s.c, mes:s.mes, bpp:s.b});
+  });
+  shps.sort(function(a,b){ return b.bpp - a.bpp; });
+
+  if(title) title.textContent = _selSel + ' — ' + shps.length + ' SHPs (Fraude + Damaged)';
+
+  if(shps.length === 0){
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:10px;text-align:center;color:#4b5563;font-size:11px">Sem SHPs de fraude ou damaged neste seller.</td></tr>';
+  } else {
+    tbody.innerHTML = shps.map(function(s){
+      var cor = s.tipo==='FRAUDE' ? '#fbbf24' : '#a78bfa';
+      return '<tr style="border-bottom:1px solid #0a0f1e">'
+        + '<td style="padding:4px 8px"><a href="https://logistics.mercadolibre.com.br/shipments/'+s.sid+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:700;text-decoration:none">'+s.sid+'</a></td>'
+        + '<td style="padding:4px 8px"><span style="color:'+cor+';font-size:9px;font-weight:700;background:rgba(0,0,0,.3);border-radius:3px;padding:1px 6px">'+s.tipo+'</span></td>'
+        + '<td style="padding:4px 8px;color:#9ca3af;font-size:10px">'+s.sub+'</td>'
+        + '<td style="padding:4px 8px;text-align:center;color:#4b5563;font-size:10px">'+s.mes+'</td>'
+        + '<td style="padding:4px 8px;text-align:right;color:#f87171;font-size:10px">$'+s.bpp.toFixed(2)+'</td>'
+        + '</tr>';
+    }).join('');
+  }
+  panel.style.display = '';
 }
 
 window.selHistFiltrar = function(){
