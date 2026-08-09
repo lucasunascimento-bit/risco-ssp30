@@ -703,7 +703,7 @@ window.selExportCSV = function(){{
   _sellers.forEach(function(s){{ rows.push([s.n, s.r, s.t, s.d, s.f, s.m, s.b, s.g]); }});
   var csv = rows.map(function(r){{
     return r.map(function(v){{ return '"' + String(v).replace(/"/g, '""') + '"'; }}).join(',');
-  }}).join('\n');
+  }}).join('\\n');
   var a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
   a.download = 'sellers_ssp30.csv';

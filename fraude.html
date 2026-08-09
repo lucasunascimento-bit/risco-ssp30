@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -222,80 +222,13 @@
 
 <div class="app-body">
 <nav class="sidebar">
-  <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
-    <i data-lucide="bar-chart-2" width="14" height="14" class="ci"></i> Visão Geral
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section-header">Análise de Risco</div>
-  <div class="sb-item" data-tab="acumulo" onclick="showTab('acumulo',this)">
-    <i data-lucide="shield-x" width="14" height="14" class="ci"></i>
-    Acúmulo Bloqueio <span class="sb-badge" id="tab-count-acumulo">226</span>
-  </div>
-  <div class="sb-item" data-tab="lor-fraud" onclick="showTab('lor-fraud',this);setTimeout(function(){if(window.lfRender)window.lfRender();},80)">
+  <div class="sb-item active" data-tab="lor-fraud" onclick="showTab('lor-fraud',this);setTimeout(function(){if(window.lfRender)window.lfRender();},80)">
     <i data-lucide="truck" width="14" height="14" class="ci"></i>
     LOR+Fraud <span class="sb-badge red" id="tab-count-lor-fraud">11755</span>
   </div>
   <div class="sb-item" data-tab="sellers" onclick="showTab('sellers',this);setTimeout(function(){if(window.selAplicar)window.selAplicar();},80)">
     <i data-lucide="store" width="14" height="14" class="ci"></i>
     Sellers <span class="sb-badge" id="tab-count-sellers">0</span>
-  </div>
-  <div class="sb-item" data-tab="dxp" onclick="showTab('dxp',this)">
-    <i data-lucide="map-pin" width="14" height="14" class="ci"></i>
-    Driver × Place <span class="sb-badge" id="tab-count-dxp">80</span>
-  </div>
-  <div class="sb-item" data-tab="places" onclick="showTab('places',this)">
-    <i data-lucide="building-2" width="14" height="14" class="ci"></i>
-    Places <span class="sb-badge" id="tab-count-places">50</span>
-  </div>
-  <div class="sb-item" data-tab="damaged" onclick="showTab('damaged',this)">
-    <i data-lucide="package-x" width="14" height="14" class="ci"></i>
-    Damaged <span class="sb-badge" id="tab-count-damaged">60</span>
-  </div>
-  <div class="sb-item" data-tab="tendencia" onclick="showTab('tendencia',this)">
-    <i data-lucide="trending-up" width="14" height="14" class="ci"></i>
-    Tendência
-  </div>
-  <div class="sb-item" data-tab="dcnex" onclick="showTab('dcnex',this)">
-    <i data-lucide="warehouse" width="14" height="14" class="ci"></i>
-    DC / NEX <span class="sb-badge red" id="tab-count-dcnex">0</span>
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section-header">Investigação LP</div>
-  <div class="sb-item" data-tab="saidas" onclick="showTab('saidas',this)">
-    <i data-lucide="repeat-2" width="14" height="14" class="ci"></i>
-    Saídas Múltiplas <span class="sb-badge red" id="tab-count-saidas">0</span>
-  </div>
-  <div class="sb-item" data-tab="devolucoes" onclick="showTab('devolucoes',this)">
-    <i data-lucide="package-open" width="14" height="14" class="ci"></i>
-    Devoluções <span class="sb-badge amber" id="tab-count-devolucoes">0</span>
-  </div>
-  <div class="sb-item" data-tab="sellers_ene" onclick="showTab('sellers_ene',this)">
-    <i data-lucide="store" width="14" height="14" class="ci"></i>
-    Sellers ENE <span class="sb-badge red" id="tab-count-sellers-ene">0</span>
-  </div>
-  <div class="sb-item" data-tab="damaged_ene" onclick="showTab('damaged_ene',this)">
-    <i data-lucide="package-open" width="14" height="14" class="ci"></i>
-    Damaged ENE <span class="sb-badge red" id="tab-count-damaged-ene">0</span>
-  </div>
-  <div class="sb-item" data-tab="ofensores" onclick="showTab('ofensores',this)">
-    <i data-lucide="target" width="14" height="14" class="ci"></i>
-    Ofensores <span class="sb-badge purple">82</span>
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section-header">Block List</div>
-  <div class="sb-item" data-tab="bloqueios" onclick="showTab('bloqueios',this)">
-    <i data-lucide="shield" width="14" height="14" class="ci"></i>
-    Bloqueios <span class="sb-badge green" id="tab-count-bloqueios">230</span>
-  </div>
-  <div class="sb-item" data-tab="cruzamento" onclick="showTab('cruzamento',this)">
-    <i data-lucide="git-merge" width="14" height="14" class="ci"></i>
-    Cruzamento <span class="sb-badge amber">87</span>
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section-header">Relatórios</div>
-  <div class="sb-item" data-tab="relatorio" onclick="showTab('relatorio',this)">
-    <i data-lucide="file-text" width="14" height="14" class="ci"></i>
-    Rel. Semanal
   </div>
 </nav>
 <main class="main-content">
@@ -4121,8 +4054,7 @@ window.selExportCSV = function(){
   _sellers.forEach(function(s){ rows.push([s.n, s.r, s.t, s.d, s.f, s.m, s.b, s.g]); });
   var csv = rows.map(function(r){
     return r.map(function(v){ return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
-  }).join('
-');
+  }).join('\n');
   var a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
   a.download = 'sellers_ssp30.csv';
