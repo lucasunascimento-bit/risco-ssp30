@@ -535,7 +535,7 @@ function renderDmgTbody(){{
   var el = document.getElementById('sel-dmg-tbody'); if(!el) return;
   el.innerHTML = filtrado.slice(0, 2000).map(function(s){{
     return '<tr style="border-bottom:1px solid #080c18">'
-      + '<td style="padding:4px 8px;color:#60a5fa;font-size:10px;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.n+'</td>'
+      + '<td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="https://www.mercadolivre.com.br/loja/"+s.n+\'" target="_blank" style="color:#60a5fa;font-size:10px;font-weight:600;text-decoration:none" title="\'+s.n+\'">'+s.n+'</a></td>'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
       + '<td style="padding:4px 8px;font-size:10px;color:#a78bfa">'+s.c+'</td>'
       + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.td+'</td>'
@@ -575,7 +575,7 @@ function renderFrTbody(){{
   var el = document.getElementById('sel-fr-tbody'); if(!el) return;
   el.innerHTML = filtrado.map(function(s){{
     return '<tr style="border-bottom:1px solid #080c18">'
-      + '<td style="padding:4px 8px;color:#60a5fa;font-size:10px;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.n+'</td>'
+      + '<td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="https://www.mercadolivre.com.br/loja/"+s.n+\'" target="_blank" style="color:#60a5fa;font-size:10px;font-weight:600;text-decoration:none" title="\'+s.n+\'">'+s.n+'</a></td>'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
       + '<td style="padding:4px 8px;font-size:10px;color:#fbbf24;font-weight:600">'+s.tf+'</td>'
       + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.c+'</td>'
