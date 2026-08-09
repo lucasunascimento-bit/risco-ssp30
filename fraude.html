@@ -245,7 +245,7 @@
 </div>
 
 <!-- VISÃO GERAL -->
-<div id="tab-geral" class="content active">
+<div id="tab-geral" class="content">
 
   <div class="cards">
     <div class="card c-red">
@@ -549,7 +549,7 @@
 <div id="tab-acumulo" class="content"><!-- removida --></div>
 
 <!-- ANÁLISE LOR+FRAUD -->
-<div id="tab-lor-fraud" class="content">
+<div id="tab-lor-fraud" class="content active">
 <div style="padding:20px 32px">
 
   <!-- HEADER -->
@@ -659,7 +659,7 @@
   </div>
 
   <!-- SHIPMENT PANEL -->
-  <div>
+  <div id="lf2-shp-panel" style="display:none">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
       <div>
         <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Shipments</span>
@@ -801,10 +801,13 @@ function renderDrivers(){
 }
 
 function renderShps(){
+  var panel=document.getElementById('lf2-shp-panel');
   var tbody=document.getElementById('lf2-shp-tbody');
   var hdr=document.getElementById('lf2-shp-header');
   var note=document.getElementById('lf2-shp-note');
   if(!tbody)return;
+  if(!_sel){if(panel)panel.style.display='none';if(tbody)tbody.innerHTML='';return;}
+  if(panel)panel.style.display='';
   var q=_qShp.trim();
   var base=_sel?_shps.filter(function(s){return s.d===_sel;}):_shps;
   var filtrado=q?base.filter(function(s){return s.s.indexOf(q)>=0;}):base;
