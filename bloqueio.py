@@ -443,7 +443,7 @@ function blqRender() {{
       '<tr class="blq-dr-row">'+
       '<td style="color:#374151;font-size:11px">'+(i+1)+'</td>'+
       '<td style="color:#f87171;font-weight:700">US$ '+d.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'+
-      '<td><button class="blq-did-btn" onclick="blqToggleShps(\''+d.id+'\')">'+d.id+
+      '<td><button class="blq-did-btn" onclick="blqToggleShps(\\''+d.id+'\\')">'+d.id+
         '<span class="blq-chv" id="blq-chv-'+d.id+'">&#9660;</span></button></td>'+
       '<td class="blq-mlp" title="'+(d.mlp||'')+'">'+(d.mlp||'—')+'</td>'+
       '<td style="color:#f87171">'+d.fraud+'</td>'+
@@ -451,7 +451,7 @@ function blqRender() {{
       '<td>'+d.total+'</td>'+
       '<td><span class="blq-tag" title="'+(d.classe||'')+'">'+(d.classe||'—')+'</span></td>'+
       '<td style="font-size:10px;color:#6b7280">'+mLbl+'</td>'+
-      '<td><span class="blq-badge '+ST_CLS[st]+'" onclick="blqNextSt(\''+d.id+'\')">'+ST_LBL[st]+'</span></td>'+
+      '<td><span class="blq-badge '+ST_CLS[st]+'" onclick="blqNextSt(\\''+d.id+'\\')">'+ST_LBL[st]+'</span></td>'+
       '</tr>';
 
     var shps = d.shps || [];
