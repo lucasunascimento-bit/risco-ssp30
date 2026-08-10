@@ -261,7 +261,11 @@ window.limparFiltrosNodos=function(){{
 window.filtrarNodos=filtrarNodos;
 window.buildNodoCharts=buildNodoCharts;
 
-document.addEventListener('DOMContentLoaded',function(){{filtrarNodos();}});
+document.addEventListener('DOMContentLoaded',function(){{
+  filtrarNodos();
+  var badge=document.getElementById('tab-count-nodos');
+  if(badge)badge.textContent=NODOS_DATA.length;
+}});
 }})();
 </script>
 </div>
@@ -299,20 +303,55 @@ def find_and_replace_tab(content, tab_id, new_html):
     return content, False
 
 
-def injetar_no_fraude(tab_html, tab_id='tab-nodos'):
+def inject_nodos_sidebar(html):
+    if 'data-tab="nodos"' in html:
+        return html
+    old = '<div class="sb-item" data-tab="buyers"'
+    new = (
+        '<div class="sb-item" data-tab="nodos" onclick="showTab(\'nodos\',this);'
+        'setTimeout(function(){if(window.buildNodoCharts)window.buildNodoCharts();'
+        'if(window.filtrarNodos)window.filtrarNodos();},80)">\n'
+        '      <i data-lucide="map-pin" width="14" height="14" class="ci"></i>\n'
+        '      Nodos <span class="sb-badge" id="tab-count-nodos">0</span>\n'
+        '    </div>\n'
+        '    <div class="sb-item" data-tab="buyers"'
+    )
+    return html.replace(old, new, 1)
+
+
+def injetar_no_fraude(tab_html, nodos, tab_id='tab-nodos'):
+    import re
     print(f'Lendo {FRAUDE_HTML}...')
     content = FRAUDE_HTML.read_text(encoding='utf-8')
+
+    content = inject_nodos_sidebar(content)
+
     content, ok = find_and_replace_tab(content, tab_id, tab_html)
+    if not ok:
+        ins = content.rfind('</main>')
+        if ins == -1:
+            ins = content.rfind('</body>')
+        if ins > 0:
+            content = content[:ins] + tab_html + '\n' + content[ins:]
+            ok = True
+
+    content = re.sub(
+        r'<span class="ver-badge">v[\d.]+</span>',
+        '<span class="ver-badge">v4.3</span>',
+        content, count=1
+    )
+
     if ok:
         FRAUDE_HTML.write_text(content, encoding='utf-8')
-        print(f'  Salvo: {FRAUDE_HTML}')
+        mb = FRAUDE_HTML.stat().st_size / 1024 / 1024
+        print(f'  Salvo: {FRAUDE_HTML.name} ({mb:.1f} MB) — v4.3')
     return ok
 
 
 def main():
     nodos = carregar_dados()
     tab_html = gerar_tab_html(nodos)
-    if injetar_no_fraude(tab_html, 'tab-nodos'):
+    if injetar_no_fraude(tab_html, nodos, 'tab-nodos'):
         print(f'\n✓ Tab Nodos injetada com {len(nodos)} nodos')
     else:
         print('\n✗ Falha na injeção')
