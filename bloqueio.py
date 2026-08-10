@@ -128,12 +128,29 @@ def gerar_tab(drivers):
 
     data_json = json.dumps(drivers, ensure_ascii=False).replace('</', '<\\/')
 
-    bl_cache_path = Path(__file__).parent / '_bl_cache.json'
+    # Extrair IDs com status=Bloqueado do BL_DATA já embutido no fraude.html (fonte de verdade)
+    blocked_ids = []
     try:
-        bl_cache = json.loads(bl_cache_path.read_text(encoding='utf-8'))
-        blocked_ids = sorted(set(str(r.get('Driver ID', '')).strip() for r in bl_cache if r.get('Driver ID')))
+        existing_html = HTML_OUT.read_text(encoding='utf-8')
+        idx_bl = existing_html.find('const BL_DATA')
+        if idx_bl >= 0:
+            sb = existing_html.find('[', idx_bl)
+            depth = 0
+            eb = sb
+            for i, c in enumerate(existing_html[sb:], sb):
+                if c == '[': depth += 1
+                elif c == ']':
+                    depth -= 1
+                    if depth == 0:
+                        eb = i
+                        break
+            bl_data = json.loads(existing_html[sb:eb+1])
+            blocked_ids = sorted(set(
+                r['driver_id'] for r in bl_data
+                if r.get('status', '').lower() == 'bloqueado' and r.get('driver_id')
+            ))
     except Exception:
-        blocked_ids = []
+        pass
     blocked_ids_js = json.dumps(blocked_ids)
 
     return f"""<div id="tab-bloqueios" class="content">
