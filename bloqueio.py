@@ -18,11 +18,21 @@ HTML_OUT  = Path(__file__).parent / 'fraude.html'
 LOG_URL   = 'https://logistics.mercadolibre.com.br/shipments/'
 BO_DRIVER = 'https://shipping-bo.adminml.com/sauron/drivers/driver/'
 
+# Classificações para contar SHPs de fraude (inclui STOLEN ON ROUTE e LOST ON ROUTE)
 _FC = (
     "Classification_LM LIKE 'FRAUD%' "
     "OR Classification_LM = 'STOLEN ON ROUTE' "
     "OR Classification_LM = 'PNR C' "
-    "OR Classification_LM = 'EMPTY BOX'"
+    "OR Classification_LM = 'EMPTY BOX' "
+    "OR Classification_LM = 'LOST ON ROUTE'"
+)
+
+# Classificações para calcular BPP exibido — alinhado ao KPI Megas (sem STOLEN ON ROUTE)
+_FC_BPP = (
+    "Classification_LM LIKE 'FRAUD%' "
+    "OR Classification_LM = 'PNR C' "
+    "OR Classification_LM = 'EMPTY BOX' "
+    "OR Classification_LM = 'LOST ON ROUTE'"
 )
 
 QUERY = f"""
@@ -32,10 +42,10 @@ SELECT
     IFNULL(MAX(MLP), '')                                       AS mlp,
     COUNT(DISTINCT SHIPMENT_ID)                                AS total,
     COUNT(DISTINCT CASE WHEN {_FC} THEN SHIPMENT_ID END)      AS fraud,
-    ROUND(SUM(BPP_CASHOUT_USD), 2)                             AS bpp,
+    ROUND(SUM(CASE WHEN {_FC_BPP} THEN BPP_CASHOUT_USD ELSE 0 END), 2) AS bpp,
     APPROX_TOP_COUNT(Classification_LM, 1)[OFFSET(0)].value   AS classe,
     ARRAY_AGG(DISTINCT FORMAT_DATE('%Y-%m', date_bpp))         AS meses,
-    ARRAY_AGG(CAST(SHIPMENT_ID AS STRING)
+    ARRAY_AGG(CASE WHEN {_FC_BPP} THEN CAST(SHIPMENT_ID AS STRING) END IGNORE NULLS
         ORDER BY BPP_CASHOUT_USD DESC LIMIT 30)                AS shp_ids_sample
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
@@ -664,13 +674,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.8</span>',
+        '<span class="ver-badge">v4.9</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.4')
+    print(f'Pronto! {mb:.1f} MB — v4.9')
 
 
 if __name__ == '__main__':
