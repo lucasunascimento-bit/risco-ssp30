@@ -3746,6 +3746,17 @@ function blqNextSt(id) {
   blqRender();
 }
 // Status real do driver — independente da Ação (toggle ativo/blq)
+function blqGetSt2(id) {
+  try {
+    var s = localStorage.getItem('blq_s2_'+id);
+    return s !== null ? s : (BLQ_BLOCKED.has(id) ? 'blq' : 'ativo');
+  } catch(e) { return BLQ_BLOCKED.has(id) ? 'blq' : 'ativo'; }
+}
+function blqToggleSt2(id) {
+  var cur = blqGetSt2(id);
+  try { localStorage.setItem('blq_s2_'+id, cur==='blq'?'ativo':'blq'); } catch(e) {}
+  blqRender();
+}
 function blqSortBy(k) {
   if(_blqSort===k) _blqDir*=-1; else {_blqSort=k;_blqDir=-1;}
   blqRender();
@@ -3779,8 +3790,8 @@ function blqRender() {
     if(de||ate){ var ok=d.meses.some(function(m){return(!de||m>=de)&&(!ate||m<=ate);});if(!ok)return false; }
     if(mlpSel.size && !mlpSel.has(d.mlp||'')) return false;
     if(clsSel.size && !clsSel.has(d.classe))  return false;
-    if(stF==='ativo' && BLQ_BLOCKED.has(d.id)) return false;
-    if(stF==='blq'   && !BLQ_BLOCKED.has(d.id)) return false;
+    if(stF==='ativo' && blqGetSt2(d.id)==='blq') return false;
+    if(stF==='blq'   && blqGetSt2(d.id)!=='blq') return false;
     if(minPct>0 && d.pct<minPct)              return false;
     if(busca && d.id.indexOf(busca)<0)        return false;
     return true;
@@ -3804,7 +3815,7 @@ function blqRender() {
   if(kF) kF.textContent = filtFraud.toLocaleString('pt-BR');
 
   var inv = rows.filter(function(d){return blqGetSt(d.id)==='inv';}).length;
-  var blk = rows.filter(function(d){return BLQ_BLOCKED.has(d.id);}).length;
+  var blk = rows.filter(function(d){return blqGetSt2(d.id)==='blq';}).length;
   var kBL=document.getElementById('blq-k-blq');
   if(kBL) kBL.textContent = blk;
   var ct  = document.getElementById('blq-tbl-ct');
@@ -3861,7 +3872,7 @@ function blqRender() {
       '<td><span class="blq-tag" title="'+(d.classe||'')+'">'+(d.classe||'—')+'</span></td>'+
       '<td style="font-size:10px;color:#6b7280">'+mLbl+'</td>'+
       '<td><span class="blq-badge '+ST_CLS[st]+'" onclick="blqNextSt(\''+d.id+'\')">'+ST_LBL[st]+'</span></td>'+
-      '<td><span class="blq-badge '+(BLQ_BLOCKED.has(d.id)?'blq-s-blq':'blq-s-ativo')+'">'+(BLQ_BLOCKED.has(d.id)?'Bloqueado':'Ativo')+'</span></td>'+
+      '<td><span class="blq-badge '+(blqGetSt2(d.id)==='blq'?'blq-s-blq':'blq-s-ativo')+'" onclick="blqToggleSt2(\''+d.id+'\')" title="Clique para alternar">'+(blqGetSt2(d.id)==='blq'?'Bloqueado':'Ativo')+'</span></td>'+
       '</tr>';
 
     var shps = d.shps || [];
@@ -3891,6 +3902,8 @@ window.blqToggleShps = function(id) {
   if(chv) chv.className = open ? 'blq-chv' : 'blq-chv open';
 };
 window.blqNextSt    = blqNextSt;
+window.blqGetSt2    = blqGetSt2;
+window.blqToggleSt2 = blqToggleSt2;
 window.blqSortBy    = blqSortBy;
 window.blqMsChg     = blqMsChg;
 window.blqToggleMs  = blqToggleMs;
