@@ -374,6 +374,14 @@ function blqNextSt(id) {{
   try {{ localStorage.setItem('blq_vg_'+id, next); }} catch(e) {{}}
   blqRender();
 }}
+function blqGetSt2(id) {{
+  try {{ return localStorage.getItem('blq_s2_'+id) || 'ativo'; }} catch(e) {{ return 'ativo'; }}
+}}
+function blqToggleSt2(id) {{
+  var cur = blqGetSt2(id);
+  try {{ localStorage.setItem('blq_s2_'+id, cur==='blq'?'ativo':'blq'); }} catch(e) {{}}
+  blqRender();
+}}
 function blqSortBy(k) {{
   if(_blqSort===k) _blqDir*=-1; else {{_blqSort=k;_blqDir=-1;}}
   blqRender();
@@ -407,8 +415,8 @@ function blqRender() {{
     if(de||ate){{ var ok=d.meses.some(function(m){{return(!de||m>=de)&&(!ate||m<=ate);}});if(!ok)return false; }}
     if(mlpSel.size && !mlpSel.has(d.mlp||'')) return false;
     if(clsSel.size && !clsSel.has(d.classe))  return false;
-    if(stF==='ativo' && blqGetSt(d.id)==='blq') return false;
-    if(stF==='blq'   && blqGetSt(d.id)!=='blq') return false;
+    if(stF==='ativo' && blqGetSt2(d.id)==='blq') return false;
+    if(stF==='blq'   && blqGetSt2(d.id)!=='blq') return false;
     if(minPct>0 && d.pct<minPct)              return false;
     if(busca && d.id.indexOf(busca)<0)        return false;
     return true;
@@ -432,11 +440,29 @@ function blqRender() {{
   if(kF) kF.textContent = filtFraud.toLocaleString('pt-BR');
 
   var inv = rows.filter(function(d){{return blqGetSt(d.id)==='inv';}}).length;
-  var blk = rows.filter(function(d){{return blqGetSt(d.id)==='blq';}}).length;
+  var blk = rows.filter(function(d){{return blqGetSt2(d.id)==='blq';}}).length;
   var kBL = document.getElementById('blq-k-blq');
   if(kBL) kBL.textContent = blk;
   var ct  = document.getElementById('blq-tbl-ct');
   if(ct) ct.textContent = rows.length+' drivers · '+inv+' em investigacao · '+blk+' bloqueados';
+
+  // Atualiza gráficos se já foram construídos
+  if(_blqCMlp || _blqCTop) {{
+    var mlpCnt = {{}};
+    rows.forEach(function(d){{ var k=d.mlp||'Sem transportadora'; mlpCnt[k]=(mlpCnt[k]||0)+1; }});
+    var mlpArr = Object.keys(mlpCnt).map(function(k){{return [k,mlpCnt[k]];}}).sort(function(a,b){{return b[1]-a[1];}}).slice(0,8);
+    if(_blqCMlp){{
+      _blqCMlp.data.labels = mlpArr.map(function(x){{return x[0].substring(0,22);}});
+      _blqCMlp.data.datasets[0].data = mlpArr.map(function(x){{return x[1];}});
+      _blqCMlp.update();
+    }}
+    var topArr = rows.slice(0).sort(function(a,b){{return b.bpp-a.bpp;}}).slice(0,10);
+    if(_blqCTop){{
+      _blqCTop.data.labels = topArr.map(function(d){{return d.id;}});
+      _blqCTop.data.datasets[0].data = topArr.map(function(d){{return Math.round(d.bpp*100)/100;}});
+      _blqCTop.update();
+    }}
+  }}
 
   var tbody = document.getElementById('blq-tbody');
   if(!tbody) return;
@@ -471,7 +497,7 @@ function blqRender() {{
       '<td><span class="blq-tag" title="'+(d.classe||'')+'">'+(d.classe||'—')+'</span></td>'+
       '<td style="font-size:10px;color:#6b7280">'+mLbl+'</td>'+
       '<td><span class="blq-badge '+ST_CLS[st]+'" onclick="blqNextSt(\\''+d.id+'\\')">'+ST_LBL[st]+'</span></td>'+
-      '<td><span class="blq-badge '+(st==='blq'?'blq-s-blq':'blq-s-ativo')+'">'+(st==='blq'?'Bloqueado':'Ativo')+'</span></td>'+
+      '<td><span class="blq-badge '+(blqGetSt2(d.id)==='blq'?'blq-s-blq':'blq-s-ativo')+'" onclick="blqToggleSt2(\\''+d.id+'\\')">'+( blqGetSt2(d.id)==='blq'?'Bloqueado':'Ativo')+'</span></td>'+
       '</tr>';
 
     var shps = d.shps || [];
@@ -501,6 +527,8 @@ window.blqToggleShps = function(id) {{
   if(chv) chv.className = open ? 'blq-chv' : 'blq-chv open';
 }};
 window.blqNextSt    = blqNextSt;
+window.blqGetSt2    = blqGetSt2;
+window.blqToggleSt2 = blqToggleSt2;
 window.blqSortBy    = blqSortBy;
 window.blqMsChg     = blqMsChg;
 window.blqToggleMs  = blqToggleMs;
@@ -607,7 +635,7 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.6</span>',
+        '<span class="ver-badge">v4.7</span>',
         html, count=1
     )
 
