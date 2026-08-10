@@ -128,6 +128,14 @@ def gerar_tab(drivers):
 
     data_json = json.dumps(drivers, ensure_ascii=False).replace('</', '<\\/')
 
+    bl_cache_path = Path(__file__).parent / '_bl_cache.json'
+    try:
+        bl_cache = json.loads(bl_cache_path.read_text(encoding='utf-8'))
+        blocked_ids = sorted(set(str(r.get('Driver ID', '')).strip() for r in bl_cache if r.get('Driver ID')))
+    except Exception:
+        blocked_ids = []
+    blocked_ids_js = json.dumps(blocked_ids)
+
     return f"""<div id="tab-bloqueios" class="content">
 <style>
 #tab-bloqueios .blq-crit{{background:#0d1017;border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:8px 16px;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:8px;flex-wrap:wrap}}
@@ -322,9 +330,10 @@ def gerar_tab(drivers):
 </div>
 <script>
 (function(){{
-var BLQ_DATA = {data_json};
-var BLQ_LOG  = '{LOG_URL}';
-var BLQ_DRV  = '{BO_DRIVER}';
+var BLQ_DATA    = {data_json};
+var BLQ_LOG     = '{LOG_URL}';
+var BLQ_DRV     = '{BO_DRIVER}';
+var BLQ_BLOCKED = new Set({blocked_ids_js});
 var _blqSort = 'bpp', _blqDir = -1;
 
 var _blqCMlp = null, _blqCTop = null;
@@ -374,14 +383,6 @@ function blqNextSt(id) {{
   try {{ localStorage.setItem('blq_vg_'+id, next); }} catch(e) {{}}
   blqRender();
 }}
-function blqGetSt2(id) {{
-  try {{ return localStorage.getItem('blq_s2_'+id) || 'ativo'; }} catch(e) {{ return 'ativo'; }}
-}}
-function blqToggleSt2(id) {{
-  var cur = blqGetSt2(id);
-  try {{ localStorage.setItem('blq_s2_'+id, cur==='blq'?'ativo':'blq'); }} catch(e) {{}}
-  blqRender();
-}}
 function blqSortBy(k) {{
   if(_blqSort===k) _blqDir*=-1; else {{_blqSort=k;_blqDir=-1;}}
   blqRender();
@@ -415,8 +416,8 @@ function blqRender() {{
     if(de||ate){{ var ok=d.meses.some(function(m){{return(!de||m>=de)&&(!ate||m<=ate);}});if(!ok)return false; }}
     if(mlpSel.size && !mlpSel.has(d.mlp||'')) return false;
     if(clsSel.size && !clsSel.has(d.classe))  return false;
-    if(stF==='ativo' && blqGetSt2(d.id)==='blq') return false;
-    if(stF==='blq'   && blqGetSt2(d.id)!=='blq') return false;
+    if(stF==='ativo' && BLQ_BLOCKED.has(d.id)) return false;
+    if(stF==='blq'   && !BLQ_BLOCKED.has(d.id)) return false;
     if(minPct>0 && d.pct<minPct)              return false;
     if(busca && d.id.indexOf(busca)<0)        return false;
     return true;
@@ -440,7 +441,7 @@ function blqRender() {{
   if(kF) kF.textContent = filtFraud.toLocaleString('pt-BR');
 
   var inv = rows.filter(function(d){{return blqGetSt(d.id)==='inv';}}).length;
-  var blk = rows.filter(function(d){{return blqGetSt2(d.id)==='blq';}}).length;
+  var blk = rows.filter(function(d){{return BLQ_BLOCKED.has(d.id);}}).length;
   var kBL = document.getElementById('blq-k-blq');
   if(kBL) kBL.textContent = blk;
   var ct  = document.getElementById('blq-tbl-ct');
@@ -497,7 +498,7 @@ function blqRender() {{
       '<td><span class="blq-tag" title="'+(d.classe||'')+'">'+(d.classe||'—')+'</span></td>'+
       '<td style="font-size:10px;color:#6b7280">'+mLbl+'</td>'+
       '<td><span class="blq-badge '+ST_CLS[st]+'" onclick="blqNextSt(\\''+d.id+'\\')">'+ST_LBL[st]+'</span></td>'+
-      '<td><span class="blq-badge '+(blqGetSt2(d.id)==='blq'?'blq-s-blq':'blq-s-ativo')+'" onclick="blqToggleSt2(\\''+d.id+'\\')">'+( blqGetSt2(d.id)==='blq'?'Bloqueado':'Ativo')+'</span></td>'+
+      '<td><span class="blq-badge '+(BLQ_BLOCKED.has(d.id)?'blq-s-blq':'blq-s-ativo')+'">'+(BLQ_BLOCKED.has(d.id)?'Bloqueado':'Ativo')+'</span></td>'+
       '</tr>';
 
     var shps = d.shps || [];
@@ -527,8 +528,6 @@ window.blqToggleShps = function(id) {{
   if(chv) chv.className = open ? 'blq-chv' : 'blq-chv open';
 }};
 window.blqNextSt    = blqNextSt;
-window.blqGetSt2    = blqGetSt2;
-window.blqToggleSt2 = blqToggleSt2;
 window.blqSortBy    = blqSortBy;
 window.blqMsChg     = blqMsChg;
 window.blqToggleMs  = blqToggleMs;
@@ -635,7 +634,7 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.7</span>',
+        '<span class="ver-badge">v4.8</span>',
         html, count=1
     )
 
