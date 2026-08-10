@@ -581,11 +581,20 @@ window.blqExportCSV = function() {{
 window.blqBuildCharts = blqBuildCharts;
 window.blqRender      = blqRender;
 
-// Conecta ao filtro global de período
-['pd_de','pd_ate'].forEach(function(id) {{
-  var el = document.getElementById(id);
-  if (el) el.addEventListener('change', function() {{ blqRender(); }});
-}});
+// Intercepta setPeriodo para chamar blqRender automaticamente
+(function() {{
+  var _orig = window.setPeriodo;
+  window.setPeriodo = function() {{
+    if (_orig) _orig.apply(window, arguments);
+    try {{ blqRender(); }} catch(e) {{}}
+  }};
+  // Também intercepta resetPeriodo
+  var _origR = window.resetPeriodo;
+  window.resetPeriodo = function() {{
+    if (_origR) _origR.apply(window, arguments);
+    try {{ blqRender(); }} catch(e) {{}}
+  }};
+}})();
 
 // Badge: set synchronously + DOMContentLoaded (belt-and-suspenders)
 (function() {{ var b=document.getElementById('tab-count-bloqueios'); if(b) b.textContent=BLQ_DATA.length; }})();
@@ -665,13 +674,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.12</span>',
+        '<span class="ver-badge">v4.13</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.12')
+    print(f'Pronto! {mb:.1f} MB — v4.13')
 
 
 if __name__ == '__main__':
