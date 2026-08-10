@@ -350,11 +350,14 @@ function blqBuildCharts(){{
   }}
 }}
 
-function blqGetSt(id) {{ return localStorage.getItem('blq_vg_'+id) || 'mon'; }}
+function blqGetSt(id) {{
+  try {{ return localStorage.getItem('blq_vg_'+id) || 'mon'; }} catch(e) {{ return 'mon'; }}
+}}
 function blqNextSt(id) {{
   var cycle = ['mon','inv','blq'];
-  var next = cycle[(cycle.indexOf(blqGetSt(id))+1)%3];
-  localStorage.setItem('blq_vg_'+id, next);
+  var cur; try {{ cur = localStorage.getItem('blq_vg_'+id) || 'mon'; }} catch(e) {{ cur = 'mon'; }}
+  var next = cycle[(cycle.indexOf(cur)+1)%3];
+  try {{ localStorage.setItem('blq_vg_'+id, next); }} catch(e) {{}}
   blqRender();
 }}
 function blqSortBy(k) {{
@@ -498,10 +501,11 @@ window.blqExportCSV = function() {{
 window.blqBuildCharts = blqBuildCharts;
 window.blqRender      = blqRender;
 
+// Badge: set synchronously (DOM already parsed when this script runs)
+(function() {{ var b=document.getElementById('tab-count-bloqueios'); if(b) b.textContent=BLQ_DATA.length; }})();
+
 document.addEventListener('DOMContentLoaded', function() {{
-  blqRender();
-  var badge = document.getElementById('tab-count-bloqueios');
-  if(badge) badge.textContent = BLQ_DATA.length;
+  try {{ blqRender(); }} catch(e) {{ console.error('blqRender init error:', e); }}
 }});
 }})();
 </script>
@@ -515,7 +519,7 @@ def inject_bloqueios_sidebar(html):
     new = (
         '<div class="sb-item" data-tab="bloqueios" onclick="showTab(\'bloqueios\',this);'
         'setTimeout(function(){if(window.blqBuildCharts)window.blqBuildCharts();'
-        'if(window.blqRender)window.blqRender();},80)">\n'
+        'if(window.blqRender)window.blqRender();},250)">\n'
         '      <i data-lucide="shield-x" width="14" height="14" class="ci"></i>\n'
         '      Bloqueios <span class="sb-badge" id="tab-count-bloqueios">0</span>\n'
         '    </div>\n'
