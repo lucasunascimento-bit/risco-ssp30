@@ -11,9 +11,9 @@
         "08/2026"
       ],
       "n_pkgs": 147,
-      "total_bpp": 2677.11,
+      "total_bpp": 2665.49,
       "max_bpp": 97.31,
-      "residual": 2579.8,
+      "residual": 2568.18,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -52,10 +52,10 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 106,
-      "total_bpp": 1868.16,
+      "n_pkgs": 108,
+      "total_bpp": 1876.2,
       "max_bpp": 86.14,
-      "residual": 1782.02,
+      "residual": 1790.06,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -115,10 +115,10 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 8,
-      "total_bpp": 826.27,
+      "n_pkgs": 7,
+      "total_bpp": 818.1,
       "max_bpp": 335.53,
-      "residual": 490.74,
+      "residual": 482.57,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -157,10 +157,10 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 31,
-      "total_bpp": 699.76,
+      "n_pkgs": 30,
+      "total_bpp": 691.49,
       "max_bpp": 102.03,
-      "residual": 597.73,
+      "residual": 589.46,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -200,9 +200,9 @@
         "08/2026"
       ],
       "n_pkgs": 24,
-      "total_bpp": 587.17,
+      "total_bpp": 602.17,
       "max_bpp": 97.58,
-      "residual": 489.59,
+      "residual": 504.59,
       "tipo": "pnr_lor",
       "apto": true,
       "motivo": "",
@@ -220,10 +220,10 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 17,
-      "total_bpp": 560.57,
+      "n_pkgs": 18,
+      "total_bpp": 566.48,
       "max_bpp": 174.35,
-      "residual": 386.22,
+      "residual": 392.13,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -316,27 +316,6 @@
       "status_bl": ""
     },
     {
-      "id": "4696163",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 26,
-      "total_bpp": 430.52,
-      "max_bpp": 58.2,
-      "residual": 372.32,
-      "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
-      "placa": "",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
       "id": "4519616",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -354,6 +333,27 @@
       "apto": true,
       "motivo": "",
       "placa": "TBH7C98",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
+      "id": "4696163",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 25,
+      "total_bpp": 415.17,
+      "max_bpp": 58.2,
+      "residual": 356.97,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Solicitado"
     },
@@ -438,8 +438,8 @@
       "apto": true,
       "motivo": "",
       "placa": "TZI6A75",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4888692",
@@ -459,8 +459,8 @@
       "apto": true,
       "motivo": "",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4500365",
@@ -568,27 +568,6 @@
       "status_bl": ""
     },
     {
-      "id": "4806175",
-      "nome": "TORRESTRANSP",
-      "transportadora": "TORRESTRANSP",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 16,
-      "total_bpp": 262.56,
-      "max_bpp": 45.14,
-      "residual": 217.42,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $263 abaixo de $300",
-      "placa": "TZI6A56",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4772219",
       "nome": "Agencias Kangu",
       "transportadora": "Agencias Kangu",
@@ -610,27 +589,6 @@
       "status_bl": ""
     },
     {
-      "id": "4428742",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 15,
-      "total_bpp": 258.12,
-      "max_bpp": 44.08,
-      "residual": 214.04,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $258 abaixo de $300",
-      "placa": "DCG4490",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
       "id": "4886503",
       "nome": "Agencias Kangu",
       "transportadora": "Agencias Kangu",
@@ -650,6 +608,27 @@
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "4428742",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 14,
+      "total_bpp": 251.99,
+      "max_bpp": 44.08,
+      "residual": 207.91,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $252 abaixo de $300",
+      "placa": "DCG4490",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "3493884",
@@ -715,6 +694,27 @@
       "status_bl": ""
     },
     {
+      "id": "4806175",
+      "nome": "TORRESTRANSP",
+      "transportadora": "TORRESTRANSP",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 15,
+      "total_bpp": 236.87,
+      "max_bpp": 45.14,
+      "residual": 191.73,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $237 abaixo de $300",
+      "placa": "TZI6A56",
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
       "id": "4565694",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -753,6 +753,27 @@
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
       "placa": "TET5B18",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4506428",
+      "nome": "DHL",
+      "transportadora": "DHL",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 14,
+      "total_bpp": 214.62,
+      "max_bpp": 65.27,
+      "residual": 149.35,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Total $215 abaixo de $300",
+      "placa": "SDD-TDS1E06",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -799,27 +820,6 @@
       "status_bl": "Solicitado"
     },
     {
-      "id": "4506428",
-      "nome": "DHL",
-      "transportadora": "DHL",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 13,
-      "total_bpp": 208.6,
-      "max_bpp": 65.27,
-      "residual": 143.33,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $209 abaixo de $300",
-      "placa": "SDD-TDS1E06",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4742165",
       "nome": "Agencias Kangu",
       "transportadora": "Agencias Kangu",
@@ -837,8 +837,8 @@
       "apto": false,
       "motivo": "Total $207 abaixo de $300",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "292999",
@@ -988,48 +988,6 @@
       "status_bl": ""
     },
     {
-      "id": "4868070",
-      "nome": "ECO EXPRESS",
-      "transportadora": "ECO EXPRESS",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 145.95,
-      "max_bpp": 65.39,
-      "residual": 80.56,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "TBR8I13",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4759332",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "blocked",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 8,
-      "total_bpp": 144.91,
-      "max_bpp": 46.21,
-      "residual": 98.7,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Já bloqueado",
-      "placa": "FCQ4B24",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "3420600",
       "nome": "Hawk Transportes",
       "transportadora": "Hawk Transportes",
@@ -1067,27 +1025,6 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Total $134 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4530764",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 7,
-      "total_bpp": 133.12,
-      "max_bpp": 43.01,
-      "residual": 90.11,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $133 abaixo de $300",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
@@ -1173,6 +1110,27 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "DUU1I13",
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Monitorado"
+    },
+    {
+      "id": "4530764",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 6,
+      "total_bpp": 123.19,
+      "max_bpp": 43.01,
+      "residual": 80.18,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $123 abaixo de $300",
+      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -1240,6 +1198,27 @@
       "status_bl": "Solicitado"
     },
     {
+      "id": "4736378",
+      "nome": "ECO EXPRESS",
+      "transportadora": "ECO EXPRESS",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 113.66,
+      "max_bpp": 42.33,
+      "residual": 71.33,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "FNL8H36",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4039662",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -1301,27 +1280,6 @@
       "placa": "GJU0I41",
       "data_solicitacao": "03/08/2026",
       "status_bl": "Solicitado"
-    },
-    {
-      "id": "331128",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 9,
-      "total_bpp": 102.97,
-      "max_bpp": 22.02,
-      "residual": 80.95,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $103 abaixo de $300",
-      "placa": "DCG0518",
-      "data_solicitacao": "",
-      "status_bl": "Monitorado"
     },
     {
       "id": "4486269",
@@ -1404,27 +1362,6 @@
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
       "placa": "RVD8G80",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4843779",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 8,
-      "total_bpp": 100.54,
-      "max_bpp": 33.14,
-      "residual": 67.4,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $101 abaixo de $300",
-      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -1555,6 +1492,48 @@
       "status_bl": ""
     },
     {
+      "id": "4843779",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 6,
+      "total_bpp": 86.54,
+      "max_bpp": 33.14,
+      "residual": 53.4,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $87 abaixo de $300",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "331128",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 8,
+      "total_bpp": 86.23,
+      "max_bpp": 22.02,
+      "residual": 64.21,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $86 abaixo de $300",
+      "placa": "DCG0518",
+      "data_solicitacao": "",
+      "status_bl": "Monitorado"
+    },
+    {
       "id": "4040502",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -1635,6 +1614,27 @@
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
       "placa": "ELK6B53",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4759332",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "blocked",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 74.82,
+      "max_bpp": 46.21,
+      "residual": 28.61,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Já bloqueado",
+      "placa": "FCQ4B24",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -1886,7 +1886,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "TET5B29",
+      "placa": "TBW6I82",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -2164,27 +2164,6 @@
       "status_bl": ""
     },
     {
-      "id": "4895235",
-      "nome": "DHL",
-      "transportadora": "DHL",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 2,
-      "total_bpp": 42.03,
-      "max_bpp": 39.07,
-      "residual": 2.96,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 2 pacotes (mínimo 6)",
-      "placa": "SDD-RME6I12",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4993584",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -2432,28 +2411,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "SDD-TDL2J07",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4277678",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 33.28,
-      "max_bpp": 15.0,
-      "residual": 18.28,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "TBH7C93",
+      "placa": "SDD-FEI7G86",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -2537,48 +2495,6 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Apenas 2 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4447763",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 30.25,
-      "max_bpp": 9.42,
-      "residual": 20.83,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
-      "id": "4625334",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 29.61,
-      "max_bpp": 13.82,
-      "residual": 15.79,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
@@ -2710,6 +2626,27 @@
       "status_bl": ""
     },
     {
+      "id": "4447763",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 25.21,
+      "max_bpp": 9.42,
+      "residual": 15.79,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
       "id": "4567661",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -2832,6 +2769,27 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "RFI5F45",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4277678",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 2,
+      "total_bpp": 20.65,
+      "max_bpp": 15.0,
+      "residual": 5.65,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 2 pacotes (mínimo 6)",
+      "placa": "TBH7C93",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -3067,6 +3025,27 @@
       "status_bl": ""
     },
     {
+      "id": "4625334",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 2,
+      "total_bpp": 15.79,
+      "max_bpp": 8.54,
+      "residual": 7.25,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 2 pacotes (mínimo 6)",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4826135",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -3247,9 +3226,9 @@
         "08/2026"
       ],
       "n_pkgs": 148,
-      "total_bpp": 2680.07,
+      "total_bpp": 2668.45,
       "max_bpp": 97.31,
-      "residual": 2582.76,
+      "residual": 2571.14,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -3310,10 +3289,10 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 106,
-      "total_bpp": 1868.16,
+      "n_pkgs": 108,
+      "total_bpp": 1876.2,
       "max_bpp": 86.14,
-      "residual": 1782.02,
+      "residual": 1790.06,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -3364,28 +3343,6 @@
       "status_bl": "Solicitado"
     },
     {
-      "id": "4415553",
-      "nome": "Hawk Transportes",
-      "transportadora": "Hawk Transportes",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 11,
-      "total_bpp": 1668.25,
-      "max_bpp": 1478.07,
-      "residual": 190.18,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Residual $190 abaixo de $200",
-      "placa": "RVD8G31",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
       "id": "1541944",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -3429,6 +3386,28 @@
       "status_bl": "Solicitado"
     },
     {
+      "id": "4415553",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 9,
+      "total_bpp": 1651.81,
+      "max_bpp": 1478.07,
+      "residual": 173.74,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Residual $174 abaixo de $200",
+      "placa": "RVD8G31",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
       "id": "3400551",
       "nome": "Hawk Transportes",
       "transportadora": "Hawk Transportes",
@@ -3439,56 +3418,14 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 10,
-      "total_bpp": 1602.41,
+      "n_pkgs": 9,
+      "total_bpp": 1595.43,
       "max_bpp": 1451.52,
-      "residual": 150.89,
+      "residual": 143.91,
       "tipo": "lost_fraude",
       "apto": false,
-      "motivo": "Residual $151 abaixo de $200",
+      "motivo": "Residual $144 abaixo de $200",
       "placa": "TZG9I95",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3672372",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 1309.16,
-      "max_bpp": 443.14,
-      "residual": 866.02,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "FUU8A48",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Monitorado"
-    },
-    {
-      "id": "4026678",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "removed",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 29,
-      "total_bpp": 1281.58,
-      "max_bpp": 235.74,
-      "residual": 1045.84,
-      "tipo": "pnr_lor",
-      "apto": false,
-      "motivo": "Status: removed",
-      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -3512,6 +3449,27 @@
       "placa": "TBK9C81",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Solicitado"
+    },
+    {
+      "id": "3672372",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 1182.76,
+      "max_bpp": 443.14,
+      "residual": 739.62,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "FUU8A48",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "3549522",
@@ -3554,6 +3512,27 @@
       "placa": "TBW6I75",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Solicitado"
+    },
+    {
+      "id": "4026678",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "removed",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 28,
+      "total_bpp": 1089.58,
+      "max_bpp": 235.74,
+      "residual": 853.84,
+      "tipo": "pnr_lor",
+      "apto": false,
+      "motivo": "Status: removed",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
     },
     {
       "id": "4642822",
@@ -3664,28 +3643,6 @@
       "status_bl": ""
     },
     {
-      "id": "4428742",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 34,
-      "total_bpp": 819.23,
-      "max_bpp": 296.74,
-      "residual": 522.49,
-      "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
-      "placa": "DCG4490",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
       "id": "4506747",
       "nome": "DHL",
       "transportadora": "DHL",
@@ -3705,27 +3662,6 @@
       "placa": "SDD-GAC8E17",
       "data_solicitacao": "",
       "status_bl": ""
-    },
-    {
-      "id": "4726579",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 32,
-      "total_bpp": 757.47,
-      "max_bpp": 142.07,
-      "residual": 615.4,
-      "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
-      "placa": "",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
     },
     {
       "id": "4723709",
@@ -3750,6 +3686,28 @@
       "status_bl": "Solicitado"
     },
     {
+      "id": "4428742",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 27,
+      "total_bpp": 695.22,
+      "max_bpp": 296.74,
+      "residual": 398.48,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "DCG4490",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
       "id": "4929514",
       "nome": "Agencias Kangu",
       "transportadora": "Agencias Kangu",
@@ -3759,10 +3717,10 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 31,
-      "total_bpp": 699.76,
+      "n_pkgs": 30,
+      "total_bpp": 691.49,
       "max_bpp": 102.03,
-      "residual": 597.73,
+      "residual": 589.46,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -3825,9 +3783,30 @@
         "08/2026"
       ],
       "n_pkgs": 28,
-      "total_bpp": 629.12,
+      "total_bpp": 644.12,
       "max_bpp": 97.58,
-      "residual": 531.54,
+      "residual": 546.54,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
+      "id": "4726579",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 31,
+      "total_bpp": 615.4,
+      "max_bpp": 74.47,
+      "residual": 540.93,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -3857,6 +3836,27 @@
       "status_bl": "Solicitado"
     },
     {
+      "id": "4827486",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 20,
+      "total_bpp": 587.07,
+      "max_bpp": 174.35,
+      "residual": 412.72,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
       "id": "4759332",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -3878,27 +3878,6 @@
       "status_bl": ""
     },
     {
-      "id": "4827486",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 19,
-      "total_bpp": 581.16,
-      "max_bpp": 174.35,
-      "residual": 406.81,
-      "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
-      "placa": "",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
       "id": "4402613",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -3916,27 +3895,6 @@
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
       "placa": "",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
-      "id": "4633458",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 11,
-      "total_bpp": 557.68,
-      "max_bpp": 252.22,
-      "residual": 305.46,
-      "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
-      "placa": "TZN6J36",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Solicitado"
     },
@@ -4134,25 +4092,25 @@
       "status_bl": ""
     },
     {
-      "id": "4358137",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
+      "id": "4633458",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
       "n_meses": 2,
       "meses": [
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 10,
-      "total_bpp": 474.69,
-      "max_bpp": 137.67,
-      "residual": 337.02,
+      "n_pkgs": 9,
+      "total_bpp": 480.07,
+      "max_bpp": 252.22,
+      "residual": 227.85,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
-      "placa": "",
+      "placa": "TZN6J36",
       "data_solicitacao": "08/08/2026",
-      "status_bl": "Monitorado"
+      "status_bl": "Solicitado"
     },
     {
       "id": "4521599",
@@ -4174,6 +4132,27 @@
       "placa": "",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Monitorado"
+    },
+    {
+      "id": "4358137",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "inactive",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 9,
+      "total_bpp": 446.3,
+      "max_bpp": 137.67,
+      "residual": 308.63,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Status: inactive",
+      "placa": "",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Inativo"
     },
     {
       "id": "292999",
@@ -4219,28 +4198,6 @@
       "status_bl": ""
     },
     {
-      "id": "4500365",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 9,
-      "total_bpp": 429.24,
-      "max_bpp": 119.89,
-      "residual": 309.35,
-      "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
-      "placa": "",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Monitorado"
-    },
-    {
       "id": "4750203",
       "nome": "Agencias Kangu",
       "transportadora": "Agencias Kangu",
@@ -4262,27 +4219,6 @@
       "status_bl": "Solicitado"
     },
     {
-      "id": "4579481",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 423.66,
-      "max_bpp": 213.39,
-      "residual": 210.27,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4278237",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -4302,6 +4238,28 @@
       "placa": "TBK9D04",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Solicitado"
+    },
+    {
+      "id": "4500365",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 8,
+      "total_bpp": 417.92,
+      "max_bpp": 119.89,
+      "residual": 298.03,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "4626577",
@@ -4385,8 +4343,8 @@
       "apto": true,
       "motivo": "",
       "placa": "TZI6A75",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "3199492",
@@ -4431,28 +4389,6 @@
       "status_bl": ""
     },
     {
-      "id": "3340587",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 341.57,
-      "max_bpp": 297.86,
-      "residual": 43.71,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "TBK9D66",
-      "data_solicitacao": "01/06/2026",
-      "status_bl": "Monitorado"
-    },
-    {
       "id": "4565694",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -4473,6 +4409,28 @@
       "placa": "TZG8D10",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Solicitado"
+    },
+    {
+      "id": "3340587",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 328.89,
+      "max_bpp": 297.86,
+      "residual": 31.03,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "TBK9D66",
+      "data_solicitacao": "01/06/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "3959044",
@@ -4536,8 +4494,8 @@
       "apto": true,
       "motivo": "",
       "placa": "TZI6A56",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4359241",
@@ -4579,8 +4537,8 @@
       "apto": true,
       "motivo": "",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4742165",
@@ -4601,8 +4559,8 @@
       "apto": true,
       "motivo": "",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4613105",
@@ -4734,28 +4692,6 @@
       "status_bl": ""
     },
     {
-      "id": "4322387",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 273.8,
-      "max_bpp": 256.38,
-      "residual": 17.42,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "EUW5I04",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4564574",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -4773,6 +4709,27 @@
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
       "placa": "UBS8A66",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4322387",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 2,
+      "total_bpp": 266.69,
+      "max_bpp": 256.38,
+      "residual": 10.31,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 2 pacotes (mínimo 6)",
+      "placa": "EUW5I04",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -5011,26 +4968,25 @@
       "status_bl": ""
     },
     {
-      "id": "331128",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
+      "id": "4506428",
+      "nome": "DHL",
+      "transportadora": "DHL",
       "status": "",
-      "n_meses": 3,
+      "n_meses": 2,
       "meses": [
-        "06/2026",
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 21,
-      "total_bpp": 225.71,
-      "max_bpp": 25.55,
-      "residual": 200.16,
-      "tipo": "lost_fraude",
+      "n_pkgs": 15,
+      "total_bpp": 219.92,
+      "max_bpp": 65.27,
+      "residual": 154.65,
+      "tipo": "fraude_pura",
       "apto": false,
-      "motivo": "Total $226 abaixo de $300",
-      "placa": "DCG0518",
+      "motivo": "Total $220 abaixo de $300",
+      "placa": "SDD-TDS1E06",
       "data_solicitacao": "",
-      "status_bl": "Monitorado"
+      "status_bl": ""
     },
     {
       "id": "4307332",
@@ -5093,27 +5049,6 @@
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
       "placa": "RNM5D37",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4506428",
-      "nome": "DHL",
-      "transportadora": "DHL",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 14,
-      "total_bpp": 213.9,
-      "max_bpp": 65.27,
-      "residual": 148.63,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $214 abaixo de $300",
-      "placa": "SDD-TDS1E06",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -5224,9 +5159,9 @@
       "status_bl": "Solicitado"
     },
     {
-      "id": "3003725",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
+      "id": "331128",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
       "status": "",
       "n_meses": 3,
       "meses": [
@@ -5234,16 +5169,16 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 13,
-      "total_bpp": 202.27,
-      "max_bpp": 48.08,
-      "residual": 154.19,
-      "tipo": "fraude_pura",
+      "n_pkgs": 18,
+      "total_bpp": 202.0,
+      "max_bpp": 25.55,
+      "residual": 176.45,
+      "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Total $202 abaixo de $300",
-      "placa": "TEV9A06",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
+      "placa": "DCG0518",
+      "data_solicitacao": "",
+      "status_bl": "Monitorado"
     },
     {
       "id": "4408685",
@@ -5352,27 +5287,6 @@
       "status_bl": ""
     },
     {
-      "id": "4599201",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 9,
-      "total_bpp": 176.93,
-      "max_bpp": 73.1,
-      "residual": 103.83,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $177 abaixo de $300",
-      "placa": "TZG8D41",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4607119",
       "nome": "DHL",
       "transportadora": "DHL",
@@ -5416,27 +5330,6 @@
       "status_bl": ""
     },
     {
-      "id": "4677021",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 7,
-      "total_bpp": 169.76,
-      "max_bpp": 84.24,
-      "residual": 85.52,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $170 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4795965",
       "nome": "Agencias Kangu",
       "transportadora": "Agencias Kangu",
@@ -5459,9 +5352,9 @@
       "status_bl": ""
     },
     {
-      "id": "3565661",
-      "nome": "ECO EXPRESS",
-      "transportadora": "ECO EXPRESS",
+      "id": "3003725",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
       "status": "",
       "n_meses": 3,
       "meses": [
@@ -5469,16 +5362,16 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 5,
-      "total_bpp": 168.43,
-      "max_bpp": 80.95,
-      "residual": 87.48,
-      "tipo": "lost_fraude",
+      "n_pkgs": 12,
+      "total_bpp": 169.08,
+      "max_bpp": 48.08,
+      "residual": 121.0,
+      "tipo": "fraude_pura",
       "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "TBW6I82",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "motivo": "Total $169 abaixo de $300",
+      "placa": "TEV9A06",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4554058",
@@ -5737,46 +5630,26 @@
       "status_bl": ""
     },
     {
-      "id": "3867842",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
+      "id": "4736378",
+      "nome": "ECO EXPRESS",
+      "transportadora": "ECO EXPRESS",
       "status": "",
-      "n_meses": 2,
+      "n_meses": 3,
       "meses": [
         "06/2026",
-        "07/2026"
+        "07/2026",
+        "08/2026"
       ],
-      "n_pkgs": 3,
-      "total_bpp": 152.2,
-      "max_bpp": 80.15,
-      "residual": 72.05,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4347636",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 16,
-      "total_bpp": 151.95,
-      "max_bpp": 31.26,
-      "residual": 120.69,
+      "n_pkgs": 6,
+      "total_bpp": 152.04,
+      "max_bpp": 42.33,
+      "residual": 109.71,
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Total $152 abaixo de $300",
-      "placa": "SFB1G49",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
+      "placa": "FNL8H36",
+      "data_solicitacao": "",
+      "status_bl": ""
     },
     {
       "id": "4255613",
@@ -5821,24 +5694,23 @@
       "status_bl": ""
     },
     {
-      "id": "3420600",
-      "nome": "Hawk Transportes",
-      "transportadora": "Hawk Transportes",
+      "id": "4347636",
+      "nome": "PANTERA LOG TRAN",
+      "transportadora": "PANTERA LOG TRAN",
       "status": "",
-      "n_meses": 3,
+      "n_meses": 2,
       "meses": [
         "06/2026",
-        "07/2026",
-        "08/2026"
+        "07/2026"
       ],
-      "n_pkgs": 9,
-      "total_bpp": 149.01,
-      "max_bpp": 33.17,
-      "residual": 115.84,
+      "n_pkgs": 15,
+      "total_bpp": 147.55,
+      "max_bpp": 31.26,
+      "residual": 116.29,
       "tipo": "lost_fraude",
       "apto": false,
-      "motivo": "Total $149 abaixo de $300",
-      "placa": "TXN4H01",
+      "motivo": "Total $148 abaixo de $300",
+      "placa": "SFB1G49",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Solicitado"
     },
@@ -5880,7 +5752,7 @@
       "tipo": "fraude_pura",
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "TBR8I13",
+      "placa": "TBR8I07",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -5901,27 +5773,6 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4730201",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "blocked",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 144.25,
-      "max_bpp": 53.41,
-      "residual": 90.84,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Já bloqueado",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
@@ -5969,46 +5820,23 @@
       "status_bl": ""
     },
     {
-      "id": "4650072",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 3,
+      "id": "4677021",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
       "meses": [
         "06/2026",
-        "07/2026",
-        "08/2026"
+        "07/2026"
       ],
-      "n_pkgs": 8,
-      "total_bpp": 140.51,
-      "max_bpp": 34.65,
-      "residual": 105.86,
-      "tipo": "lost_fraude",
+      "n_pkgs": 5,
+      "total_bpp": 141.79,
+      "max_bpp": 84.24,
+      "residual": 57.55,
+      "tipo": "fraude_pura",
       "apto": false,
-      "motivo": "Total $141 abaixo de $300",
-      "placa": "UBS8B35",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4277678",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 15,
-      "total_bpp": 140.39,
-      "max_bpp": 22.77,
-      "residual": 117.62,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $140 abaixo de $300",
-      "placa": "TBH7C93",
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -6097,6 +5925,27 @@
       "status_bl": ""
     },
     {
+      "id": "3420600",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 8,
+      "total_bpp": 139.13,
+      "max_bpp": 33.17,
+      "residual": 105.96,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $139 abaixo de $300",
+      "placa": "TXN4H01",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
       "id": "4741546",
       "nome": "DHL",
       "transportadora": "DHL",
@@ -6115,28 +5964,6 @@
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
       "placa": "SDD-FAN1I73",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "1801748",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 136.76,
-      "max_bpp": 97.58,
-      "residual": 39.18,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "DUU1I13",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -6225,27 +6052,6 @@
       "status_bl": ""
     },
     {
-      "id": "4349442",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 132.13,
-      "max_bpp": 105.52,
-      "residual": 26.61,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "FVU6E60",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "3432289",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -6263,27 +6069,6 @@
       "apto": false,
       "motivo": "Total $132 abaixo de $300",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4400264",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 131.64,
-      "max_bpp": 93.36,
-      "residual": 38.28,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "TYJ0F51",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -6435,46 +6220,47 @@
       "status_bl": ""
     },
     {
-      "id": "4653221",
+      "id": "4650072",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
       "status": "",
-      "n_meses": 2,
+      "n_meses": 3,
       "meses": [
         "06/2026",
-        "07/2026"
+        "07/2026",
+        "08/2026"
       ],
-      "n_pkgs": 6,
-      "total_bpp": 124.42,
-      "max_bpp": 53.91,
-      "residual": 70.51,
+      "n_pkgs": 7,
+      "total_bpp": 124.19,
+      "max_bpp": 34.65,
+      "residual": 89.54,
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Total $124 abaixo de $300",
-      "placa": "UBS8J44",
+      "placa": "UBS8B35",
       "data_solicitacao": "",
       "status_bl": ""
     },
     {
-      "id": "2048905",
+      "id": "1801748",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
       "status": "active",
       "n_meses": 2,
       "meses": [
-        "06/2026",
-        "07/2026"
+        "07/2026",
+        "08/2026"
       ],
-      "n_pkgs": 6,
-      "total_bpp": 122.61,
-      "max_bpp": 41.72,
-      "residual": 80.89,
+      "n_pkgs": 3,
+      "total_bpp": 123.78,
+      "max_bpp": 97.58,
+      "residual": 26.2,
       "tipo": "fraude_pura",
       "apto": false,
-      "motivo": "Total $123 abaixo de $300",
-      "placa": "DZH8I18",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "motivo": "Apenas 3 pacotes (mínimo 6)",
+      "placa": "DUU1I13",
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "4105667",
@@ -6519,27 +6305,6 @@
       "status_bl": ""
     },
     {
-      "id": "4736378",
-      "nome": "ECO EXPRESS",
-      "transportadora": "ECO EXPRESS",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 120.32,
-      "max_bpp": 42.33,
-      "residual": 77.99,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "FNL8H36",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4556779",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -6580,6 +6345,27 @@
       "placa": "FMX7A58",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Monitorado"
+    },
+    {
+      "id": "4653221",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 117.33,
+      "max_bpp": 53.91,
+      "residual": 63.42,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "UBS8J44",
+      "data_solicitacao": "",
+      "status_bl": ""
     },
     {
       "id": "4772948",
@@ -6816,27 +6602,6 @@
       "status_bl": ""
     },
     {
-      "id": "3713568",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 99.6,
-      "max_bpp": 34.26,
-      "residual": 65.34,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $100 abaixo de $300",
-      "placa": "TZG8D07",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "3794371",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -6854,6 +6619,28 @@
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
       "placa": "SJI1I29",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4277678",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 9,
+      "total_bpp": 98.97,
+      "max_bpp": 22.77,
+      "residual": 76.2,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $99 abaixo de $300",
+      "placa": "TBH7C93",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -6922,27 +6709,6 @@
       "status_bl": ""
     },
     {
-      "id": "4394129",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 98.32,
-      "max_bpp": 54.89,
-      "residual": 43.43,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "2471286",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -6981,49 +6747,6 @@
       "apto": false,
       "motivo": "Total $97 abaixo de $300",
       "placa": "RVG9A05",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3832080",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 10,
-      "total_bpp": 96.52,
-      "max_bpp": 21.72,
-      "residual": 74.8,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $97 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4226826",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 96.19,
-      "max_bpp": 44.94,
-      "residual": 51.25,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "EPJ3C34",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -7136,6 +6859,27 @@
       "status_bl": ""
     },
     {
+      "id": "4700842",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 2,
+      "total_bpp": 93.14,
+      "max_bpp": 71.62,
+      "residual": 21.52,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 2 pacotes (mínimo 6)",
+      "placa": "FBL3G44",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4674841",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -7200,6 +6944,48 @@
       "status_bl": ""
     },
     {
+      "id": "4394129",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 91.23,
+      "max_bpp": 54.89,
+      "residual": 36.34,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4730201",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "blocked",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 90.84,
+      "max_bpp": 37.96,
+      "residual": 52.88,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Já bloqueado",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "3913120",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -7259,6 +7045,27 @@
       "apto": false,
       "motivo": "Apenas 2 pacotes (mínimo 6)",
       "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "3565661",
+      "nome": "ECO EXPRESS",
+      "transportadora": "ECO EXPRESS",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 87.48,
+      "max_bpp": 37.76,
+      "residual": 49.72,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "TBW6I82",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -7411,27 +7218,6 @@
       "status_bl": ""
     },
     {
-      "id": "3042396",
-      "nome": "Hawk Transportes",
-      "transportadora": "Hawk Transportes",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 83.28,
-      "max_bpp": 36.3,
-      "residual": 46.98,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "RVD8H72",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4604072",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -7496,70 +7282,6 @@
       "status_bl": ""
     },
     {
-      "id": "2852654",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 80.56,
-      "max_bpp": 54.4,
-      "residual": 26.16,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3135094",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 80.41,
-      "max_bpp": 35.27,
-      "residual": 45.14,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "TBK9F61",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3271860",
-      "nome": "Hawk Transportes",
-      "transportadora": "Hawk Transportes",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 79.94,
-      "max_bpp": 22.5,
-      "residual": 57.44,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $80 abaixo de $300",
-      "placa": "TZV6I21",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
       "id": "3843326",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -7599,28 +7321,6 @@
       "apto": false,
       "motivo": "Total $79 abaixo de $300",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "1671292",
-      "nome": "DHL",
-      "transportadora": "DHL",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 78.55,
-      "max_bpp": 34.14,
-      "residual": 44.41,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $79 abaixo de $300",
-      "placa": "SDD-QMS8D57",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -7690,6 +7390,28 @@
       "status_bl": ""
     },
     {
+      "id": "3135094",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 3,
+      "total_bpp": 76.39,
+      "max_bpp": 35.27,
+      "residual": 41.12,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 3 pacotes (mínimo 6)",
+      "placa": "TBK9F61",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "3042499",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -7730,6 +7452,27 @@
       "placa": "AUR9I37",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "3271860",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 75.57,
+      "max_bpp": 22.5,
+      "residual": 53.07,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "TZV6I21",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4853792",
@@ -7774,6 +7517,27 @@
       "status_bl": ""
     },
     {
+      "id": "4226826",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 70.82,
+      "max_bpp": 44.94,
+      "residual": 25.88,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "EPJ3C34",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "3812669",
       "nome": "ECO EXPRESS",
       "transportadora": "ECO EXPRESS",
@@ -7791,7 +7555,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Total $71 abaixo de $300",
-      "placa": "TET5B29",
+      "placa": "TBW6I82",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -7813,27 +7577,6 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "GGA7H79",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3161678",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 67.23,
-      "max_bpp": 33.92,
-      "residual": 33.31,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "FPA8D46",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -8114,6 +7857,27 @@
       "status_bl": "Monitorado"
     },
     {
+      "id": "1671292",
+      "nome": "DHL",
+      "transportadora": "DHL",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 60.9,
+      "max_bpp": 34.14,
+      "residual": 26.76,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "SDD-QMS8D57",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "821084",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -8257,27 +8021,6 @@
       "apto": false,
       "motivo": "Total $59 abaixo de $300",
       "placa": "TBK9F15",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4610317",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 59.0,
-      "max_bpp": 15.34,
-      "residual": 43.66,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $59 abaixo de $300",
-      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -8641,27 +8384,6 @@
       "status_bl": ""
     },
     {
-      "id": "4672510",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 53.64,
-      "max_bpp": 18.38,
-      "residual": 35.26,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "5023512",
       "nome": "Agencias Kangu",
       "transportadora": "Agencias Kangu",
@@ -8789,28 +8511,6 @@
       "status_bl": ""
     },
     {
-      "id": "4696123",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 51.17,
-      "max_bpp": 21.35,
-      "residual": 29.82,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4610722",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -8828,6 +8528,27 @@
       "apto": false,
       "motivo": "Apenas 2 pacotes (mínimo 6)",
       "placa": "TAL4E28",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4672510",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 49.84,
+      "max_bpp": 18.38,
+      "residual": 31.46,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -8869,6 +8590,28 @@
       "tipo": "fraude_pura",
       "apto": false,
       "motivo": "Apenas 2 pacotes (mínimo 6)",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "3832080",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 49.6,
+      "max_bpp": 15.01,
+      "residual": 34.59,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
@@ -9252,6 +8995,27 @@
       "status_bl": ""
     },
     {
+      "id": "3042396",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 2,
+      "total_bpp": 42.99,
+      "max_bpp": 36.3,
+      "residual": 6.69,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 2 pacotes (mínimo 6)",
+      "placa": "RVD8H72",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "3654093",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -9290,6 +9054,28 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "PWD8720",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4035982",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 3,
+      "total_bpp": 42.73,
+      "max_bpp": 20.57,
+      "residual": 22.16,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 3 pacotes (mínimo 6)",
+      "placa": "DJD3265",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -9420,6 +9206,27 @@
       "status_bl": ""
     },
     {
+      "id": "4489614",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 2,
+      "total_bpp": 41.38,
+      "max_bpp": 38.09,
+      "residual": 3.29,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 2 pacotes (mínimo 6)",
+      "placa": "TBH7C78",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4713963",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -9436,7 +9243,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "ERC1129",
+      "placa": "SHT1C92",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -9651,6 +9458,27 @@
       "status_bl": ""
     },
     {
+      "id": "4696123",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 2,
+      "meses": [
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 3,
+      "total_bpp": 38.98,
+      "max_bpp": 21.35,
+      "residual": 17.63,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 3 pacotes (mínimo 6)",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "5018413",
       "nome": "DHL",
       "transportadora": "DHL",
@@ -9668,6 +9496,27 @@
       "apto": false,
       "motivo": "Apenas 2 pacotes (mínimo 6)",
       "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4400264",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 3,
+      "total_bpp": 38.28,
+      "max_bpp": 16.47,
+      "residual": 21.81,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 3 pacotes (mínimo 6)",
+      "placa": "TYJ0F51",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -9752,7 +9601,7 @@
       "tipo": "fraude_pura",
       "apto": false,
       "motivo": "Apenas 2 pacotes (mínimo 6)",
-      "placa": "EVM9A80",
+      "placa": "PXD4G93",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -9773,28 +9622,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "SDD-GHD6J71",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "2945652",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 36.25,
-      "max_bpp": 17.27,
-      "residual": 18.98,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "FFQ6D40",
+      "placa": "SDD-QHV8C03",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -9837,48 +9665,6 @@
       "apto": false,
       "motivo": "Total $36 abaixo de $300",
       "placa": "DQV5G94",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4396644",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 35.6,
-      "max_bpp": 20.76,
-      "residual": 14.84,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "ODM1140",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4035982",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 2,
-      "total_bpp": 35.53,
-      "max_bpp": 20.57,
-      "residual": 14.96,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 2 pacotes (mínimo 6)",
-      "placa": "DJD3265",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -9983,7 +9769,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "SDD-TDL2J07",
+      "placa": "SDD-FEI7G86",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -10068,6 +9854,27 @@
       "apto": false,
       "motivo": "Apenas 2 pacotes (mínimo 6)",
       "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "2945652",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 3,
+      "total_bpp": 32.6,
+      "max_bpp": 17.27,
+      "residual": 15.33,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 3 pacotes (mínimo 6)",
+      "placa": "FFQ6D40",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -10601,27 +10408,6 @@
       "status_bl": ""
     },
     {
-      "id": "4018134",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 2,
-      "total_bpp": 26.54,
-      "max_bpp": 15.16,
-      "residual": 11.38,
-      "tipo": "pnr_lor",
-      "apto": false,
-      "motivo": "Apenas 2 pacotes (mínimo 6)",
-      "placa": "OZX4104",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Monitorado"
-    },
-    {
       "id": "2151102",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -11039,7 +10825,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Apenas 2 pacotes (mínimo 6)",
-      "placa": "ERI4I53",
+      "placa": "KPR8B91",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -11103,27 +10889,6 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4408502",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 2,
-      "meses": [
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 20.48,
-      "max_bpp": 8.35,
-      "residual": 12.13,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 4 pacotes (mínimo 6)",
-      "placa": "EJS9F52",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -11506,6 +11271,27 @@
       "status_bl": ""
     },
     {
+      "id": "4396644",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 2,
+      "total_bpp": 14.84,
+      "max_bpp": 7.62,
+      "residual": 7.22,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 2 pacotes (mínimo 6)",
+      "placa": "ODM1140",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4826135",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -11523,6 +11309,27 @@
       "apto": false,
       "motivo": "Apenas 2 pacotes (mínimo 6)",
       "placa": "TZG8D57",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4408502",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 2,
+      "meses": [
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 2,
+      "total_bpp": 14.68,
+      "max_bpp": 8.35,
+      "residual": 6.33,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 2 pacotes (mínimo 6)",
+      "placa": "EJS9F52",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -11959,29 +11766,6 @@
       "status_bl": ""
     },
     {
-      "id": "4428742",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 4,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 64,
-      "total_bpp": 1659.56,
-      "max_bpp": 296.74,
-      "residual": 1362.82,
-      "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
-      "placa": "DCG4490",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
       "id": "3400551",
       "nome": "Hawk Transportes",
       "transportadora": "Hawk Transportes",
@@ -12002,6 +11786,29 @@
       "placa": "TZG9I95",
       "data_solicitacao": "",
       "status_bl": ""
+    },
+    {
+      "id": "4428742",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 62,
+      "total_bpp": 1538.12,
+      "max_bpp": 296.74,
+      "residual": 1241.38,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "DCG4490",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "3884662",
@@ -12192,10 +11999,10 @@
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 14,
-      "total_bpp": 919.71,
+      "n_pkgs": 13,
+      "total_bpp": 913.64,
       "max_bpp": 375.42,
-      "residual": 544.29,
+      "residual": 538.22,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -12258,13 +12065,13 @@
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 19,
-      "total_bpp": 796.82,
+      "n_pkgs": 17,
+      "total_bpp": 775.16,
       "max_bpp": 623.21,
-      "residual": 173.61,
+      "residual": 151.95,
       "tipo": "lost_fraude",
       "apto": false,
-      "motivo": "Residual $174 abaixo de $200",
+      "motivo": "Residual $152 abaixo de $200",
       "placa": "SFB1G49",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Solicitado"
@@ -12391,9 +12198,9 @@
         "08/2026"
       ],
       "n_pkgs": 28,
-      "total_bpp": 629.12,
+      "total_bpp": 644.12,
       "max_bpp": 97.58,
-      "residual": 531.54,
+      "residual": 546.54,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -12427,7 +12234,7 @@
       "id": "4358137",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
-      "status": "active",
+      "status": "inactive",
       "n_meses": 3,
       "meses": [
         "05/2026",
@@ -12439,11 +12246,11 @@
       "max_bpp": 137.67,
       "residual": 448.64,
       "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
+      "apto": false,
+      "motivo": "Status: inactive",
       "placa": "",
       "data_solicitacao": "08/08/2026",
-      "status_bl": "Monitorado"
+      "status_bl": "Inativo"
     },
     {
       "id": "4278237",
@@ -12680,10 +12487,10 @@
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 22,
-      "total_bpp": 506.68,
+      "n_pkgs": 20,
+      "total_bpp": 488.83,
       "max_bpp": 134.59,
-      "residual": 372.09,
+      "residual": 354.24,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -12760,29 +12567,6 @@
       "status_bl": "Solicitado"
     },
     {
-      "id": "4408685",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 4,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 24,
-      "total_bpp": 372.03,
-      "max_bpp": 50.4,
-      "residual": 321.63,
-      "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
-      "placa": "",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
-    },
-    {
       "id": "3979398",
       "nome": "PANTERA LOG TRAN",
       "transportadora": "PANTERA LOG TRAN",
@@ -12823,8 +12607,8 @@
       "apto": true,
       "motivo": "",
       "placa": "TZI6A75",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4613105",
@@ -12841,6 +12625,29 @@
       "total_bpp": 360.76,
       "max_bpp": 83.26,
       "residual": 277.5,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
+      "id": "4408685",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 22,
+      "total_bpp": 358.43,
+      "max_bpp": 50.4,
+      "residual": 308.03,
       "tipo": "lost_fraude",
       "apto": true,
       "motivo": "",
@@ -12980,8 +12787,8 @@
       "apto": true,
       "motivo": "",
       "placa": "TZI6A56",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4018134",
@@ -13024,8 +12831,8 @@
       "apto": true,
       "motivo": "",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4215122",
@@ -13407,9 +13214,9 @@
       "status_bl": ""
     },
     {
-      "id": "681213",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
+      "id": "4506428",
+      "nome": "DHL",
+      "transportadora": "DHL",
       "status": "",
       "n_meses": 3,
       "meses": [
@@ -13417,14 +13224,14 @@
         "07/2026",
         "08/2026"
       ],
-      "n_pkgs": 3,
-      "total_bpp": 236.55,
-      "max_bpp": 203.19,
-      "residual": 33.36,
+      "n_pkgs": 16,
+      "total_bpp": 230.23,
+      "max_bpp": 65.27,
+      "residual": 164.96,
       "tipo": "fraude_pura",
       "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "TAL3A87",
+      "motivo": "Total $230 abaixo de $300",
+      "placa": "SDD-TDS1E06",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -13471,28 +13278,6 @@
       "placa": "FPH8G18",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Monitorado"
-    },
-    {
-      "id": "4506428",
-      "nome": "DHL",
-      "transportadora": "DHL",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 15,
-      "total_bpp": 224.21,
-      "max_bpp": 65.27,
-      "residual": 158.94,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $224 abaixo de $300",
-      "placa": "SDD-TDS1E06",
-      "data_solicitacao": "",
-      "status_bl": ""
     },
     {
       "id": "4598536",
@@ -13629,28 +13414,6 @@
       "status_bl": ""
     },
     {
-      "id": "4307454",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 9,
-      "total_bpp": 193.32,
-      "max_bpp": 64.65,
-      "residual": 128.67,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $193 abaixo de $300",
-      "placa": "FHQ7326",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4530764",
       "nome": "Agencias Kangu",
       "transportadora": "Agencias Kangu",
@@ -13692,28 +13455,6 @@
       "apto": false,
       "motivo": "Total $193 abaixo de $300",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3649136",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 190.41,
-      "max_bpp": 81.19,
-      "residual": 109.22,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "EJI3787",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -13784,28 +13525,6 @@
       "status_bl": ""
     },
     {
-      "id": "4349442",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 8,
-      "total_bpp": 181.61,
-      "max_bpp": 105.52,
-      "residual": 76.09,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $182 abaixo de $300",
-      "placa": "FVU6E60",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4650072",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -13850,26 +13569,26 @@
       "status_bl": ""
     },
     {
-      "id": "860778",
-      "nome": "Kangu Logistics",
-      "transportadora": "Kangu Logistics",
-      "status": "",
+      "id": "4307454",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
       "n_meses": 3,
       "meses": [
         "05/2026",
         "06/2026",
         "07/2026"
       ],
-      "n_pkgs": 15,
-      "total_bpp": 173.38,
-      "max_bpp": 29.77,
-      "residual": 143.61,
-      "tipo": "lost_fraude",
+      "n_pkgs": 8,
+      "total_bpp": 175.5,
+      "max_bpp": 64.65,
+      "residual": 110.85,
+      "tipo": "fraude_pura",
       "apto": false,
-      "motivo": "Total $173 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
+      "motivo": "Total $176 abaixo de $300",
+      "placa": "FHQ7326",
+      "data_solicitacao": "",
+      "status_bl": ""
     },
     {
       "id": "4486269",
@@ -13983,7 +13702,7 @@
       "status_bl": "Solicitado"
     },
     {
-      "id": "3400387",
+      "id": "860778",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
       "status": "",
@@ -13991,18 +13710,18 @@
       "meses": [
         "05/2026",
         "06/2026",
-        "08/2026"
+        "07/2026"
       ],
-      "n_pkgs": 7,
-      "total_bpp": 160.39,
-      "max_bpp": 56.66,
-      "residual": 103.73,
+      "n_pkgs": 14,
+      "total_bpp": 166.7,
+      "max_bpp": 29.77,
+      "residual": 136.93,
       "tipo": "lost_fraude",
       "apto": false,
-      "motivo": "Total $160 abaixo de $300",
-      "placa": "ERI4I53",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "motivo": "Total $167 abaixo de $300",
+      "placa": "",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4391606",
@@ -14160,6 +13879,28 @@
       "status_bl": ""
     },
     {
+      "id": "4736378",
+      "nome": "ECO EXPRESS",
+      "transportadora": "ECO EXPRESS",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 6,
+      "total_bpp": 152.04,
+      "max_bpp": 42.33,
+      "residual": 109.71,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $152 abaixo de $300",
+      "placa": "FNL8H36",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "3130796",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -14222,8 +13963,8 @@
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
       "placa": "DUU1I13",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "3390369",
@@ -14355,28 +14096,6 @@
       "apto": false,
       "motivo": "Total $131 abaixo de $300",
       "placa": "EVY1673",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "2692946",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 130.56,
-      "max_bpp": 93.51,
-      "residual": 37.05,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $131 abaixo de $300",
-      "placa": "EQQ6918",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -14558,6 +14277,28 @@
       "status_bl": ""
     },
     {
+      "id": "2692946",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 124.58,
+      "max_bpp": 93.51,
+      "residual": 31.07,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "EQQ6918",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "2631750",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -14690,28 +14431,6 @@
       "status_bl": ""
     },
     {
-      "id": "2236328",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 3,
-      "total_bpp": 115.82,
-      "max_bpp": 55.82,
-      "residual": 60.0,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 3 pacotes (mínimo 6)",
-      "placa": "EZB1183",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "3564273",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -14752,50 +14471,6 @@
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
       "placa": "EMH1C42",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3492791",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 8,
-      "total_bpp": 112.17,
-      "max_bpp": 26.48,
-      "residual": 85.69,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $112 abaixo de $300",
-      "placa": "FON7D76",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "1316954",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 7,
-      "total_bpp": 112.02,
-      "max_bpp": 37.97,
-      "residual": 74.05,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $112 abaixo de $300",
-      "placa": "CJJ3735",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -15223,6 +14898,50 @@
       "status_bl": ""
     },
     {
+      "id": "3492791",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 6,
+      "total_bpp": 88.95,
+      "max_bpp": 26.48,
+      "residual": 62.47,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Total $89 abaixo de $300",
+      "placa": "FON7D76",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "3400387",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 88.11,
+      "max_bpp": 33.98,
+      "residual": 54.13,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "KPR8B91",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "3135716",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -15267,25 +14986,24 @@
       "status_bl": ""
     },
     {
-      "id": "3843326",
+      "id": "1316954",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 4,
+      "status": "",
+      "n_meses": 3,
       "meses": [
         "05/2026",
         "06/2026",
-        "07/2026",
-        "08/2026"
+        "07/2026"
       ],
-      "n_pkgs": 5,
-      "total_bpp": 83.55,
-      "max_bpp": 34.32,
-      "residual": 49.23,
+      "n_pkgs": 6,
+      "total_bpp": 81.57,
+      "max_bpp": 37.97,
+      "residual": 43.6,
       "tipo": "fraude_pura",
       "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
+      "motivo": "Total $82 abaixo de $300",
+      "placa": "CJJ3735",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -15352,6 +15070,28 @@
       "apto": false,
       "motivo": "Total $80 abaixo de $300",
       "placa": "DIR1293",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "3843326",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 79.58,
+      "max_bpp": 34.32,
+      "residual": 45.26,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -15593,7 +15333,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Total $71 abaixo de $300",
-      "placa": "TET5B29",
+      "placa": "TBW6I82",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -15682,6 +15422,28 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "FGJ7D72",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4489614",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 3,
+      "total_bpp": 69.61,
+      "max_bpp": 38.09,
+      "residual": 31.52,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 3 pacotes (mínimo 6)",
+      "placa": "TBH7C78",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -15792,28 +15554,6 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "QMY0I69",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3584672",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 65.19,
-      "max_bpp": 19.44,
-      "residual": 45.75,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $65 abaixo de $300",
-      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -16013,6 +15753,28 @@
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
       "placa": "RFI5F45",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "3584672",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 59.11,
+      "max_bpp": 19.44,
+      "residual": 39.67,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -16238,28 +16000,6 @@
       "status_bl": "Monitorado"
     },
     {
-      "id": "3548298",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 50.12,
-      "max_bpp": 14.64,
-      "residual": 35.48,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "EEU4G26",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4204069",
       "nome": "Hawk Transportes",
       "transportadora": "Hawk Transportes",
@@ -16370,6 +16110,28 @@
       "status_bl": ""
     },
     {
+      "id": "3548298",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 45.63,
+      "max_bpp": 14.64,
+      "residual": 30.99,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "EEU4G26",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4307263",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -16455,6 +16217,28 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4035982",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 3,
+      "total_bpp": 42.73,
+      "max_bpp": 20.57,
+      "residual": 22.16,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 3 pacotes (mínimo 6)",
+      "placa": "DJD3265",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -17172,7 +16956,7 @@
       "id": "2963255",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
-      "status": "inactive",
+      "status": "active",
       "n_meses": 4,
       "meses": [
         "02/2026",
@@ -17185,8 +16969,8 @@
       "max_bpp": 1145.29,
       "residual": 335.58,
       "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Status: inactive",
+      "apto": true,
+      "motivo": "",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
@@ -17679,7 +17463,7 @@
       "id": "4358137",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
-      "status": "active",
+      "status": "inactive",
       "n_meses": 4,
       "meses": [
         "04/2026",
@@ -17692,11 +17476,11 @@
       "max_bpp": 137.67,
       "residual": 661.42,
       "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
+      "apto": false,
+      "motivo": "Status: inactive",
       "placa": "",
       "data_solicitacao": "08/08/2026",
-      "status_bl": "Monitorado"
+      "status_bl": "Inativo"
     },
     {
       "id": "4612243",
@@ -18015,6 +17799,28 @@
       "status_bl": "Monitorado"
     },
     {
+      "id": "4696118",
+      "nome": "Agencias Kangu",
+      "transportadora": "Agencias Kangu",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 28,
+      "total_bpp": 644.12,
+      "max_bpp": 97.58,
+      "residual": 546.54,
+      "tipo": "lost_fraude",
+      "apto": true,
+      "motivo": "",
+      "placa": "",
+      "data_solicitacao": "08/08/2026",
+      "status_bl": "Solicitado"
+    },
+    {
       "id": "3489097",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -18081,28 +17887,6 @@
       "placa": "SHS1I60",
       "data_solicitacao": "08/08/2026",
       "status_bl": "Monitorado"
-    },
-    {
-      "id": "4696118",
-      "nome": "Agencias Kangu",
-      "transportadora": "Agencias Kangu",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 28,
-      "total_bpp": 629.12,
-      "max_bpp": 97.58,
-      "residual": 531.54,
-      "tipo": "lost_fraude",
-      "apto": true,
-      "motivo": "",
-      "placa": "",
-      "data_solicitacao": "08/08/2026",
-      "status_bl": "Solicitado"
     },
     {
       "id": "2394009",
@@ -18465,7 +18249,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Residual $89 abaixo de $200",
-      "placa": "EVM9A80",
+      "placa": "PXD4G93",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -18821,28 +18605,6 @@
       "status_bl": ""
     },
     {
-      "id": "3140066",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "06/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 411.47,
-      "max_bpp": 166.56,
-      "residual": 244.91,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "FZK2218",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4010333",
       "nome": "Murici",
       "transportadora": "Murici",
@@ -19142,8 +18904,8 @@
       "apto": true,
       "motivo": "",
       "placa": "TZI6A75",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4246784",
@@ -19254,28 +19016,6 @@
       "placa": "SHH6B70",
       "data_solicitacao": "01/06/2026",
       "status_bl": "Monitorado"
-    },
-    {
-      "id": "799048",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026"
-      ],
-      "n_pkgs": 9,
-      "total_bpp": 355.54,
-      "max_bpp": 164.84,
-      "residual": 190.7,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Residual $191 abaixo de $200",
-      "placa": "RVD8G80",
-      "data_solicitacao": "01/06/2026",
-      "status_bl": "Inativo"
     },
     {
       "id": "1683436",
@@ -19568,13 +19308,13 @@
         "05/2026",
         "06/2026"
       ],
-      "n_pkgs": 9,
-      "total_bpp": 326.28,
+      "n_pkgs": 8,
+      "total_bpp": 323.94,
       "max_bpp": 142.87,
-      "residual": 183.41,
+      "residual": 181.07,
       "tipo": "lost_fraude",
       "apto": false,
-      "motivo": "Residual $183 abaixo de $200",
+      "motivo": "Residual $181 abaixo de $200",
       "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
@@ -19764,8 +19504,8 @@
       "apto": true,
       "motivo": "",
       "placa": "TZI6A56",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "3350035",
@@ -19809,8 +19549,8 @@
       "apto": true,
       "motivo": "",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Solicitado"
     },
     {
       "id": "4257175",
@@ -19877,8 +19617,8 @@
       "apto": true,
       "motivo": "",
       "placa": "DUU1I13",
-      "data_solicitacao": "",
-      "status_bl": ""
+      "data_solicitacao": "09/08/2026",
+      "status_bl": "Monitorado"
     },
     {
       "id": "4215122",
@@ -20730,6 +20470,28 @@
       "status_bl": ""
     },
     {
+      "id": "4506428",
+      "nome": "DHL",
+      "transportadora": "DHL",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 16,
+      "total_bpp": 230.23,
+      "max_bpp": 65.27,
+      "residual": 164.96,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Total $230 abaixo de $300",
+      "placa": "SDD-TDS1E06",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4217010",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -20798,28 +20560,6 @@
       "status_bl": ""
     },
     {
-      "id": "4506428",
-      "nome": "DHL",
-      "transportadora": "DHL",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "05/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 15,
-      "total_bpp": 224.21,
-      "max_bpp": 65.27,
-      "residual": 158.94,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $224 abaixo de $300",
-      "placa": "SDD-TDS1E06",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4598536",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -20838,30 +20578,6 @@
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
       "placa": "TBH7C89",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "1423144",
-      "nome": "DHL",
-      "transportadora": "DHL",
-      "status": "",
-      "n_meses": 5,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026",
-        "05/2026",
-        "06/2026"
-      ],
-      "n_pkgs": 15,
-      "total_bpp": 220.09,
-      "max_bpp": 36.9,
-      "residual": 183.19,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $220 abaixo de $300",
-      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -21122,30 +20838,6 @@
       "status_bl": ""
     },
     {
-      "id": "3841883",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 5,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "06/2026",
-        "07/2026",
-        "08/2026"
-      ],
-      "n_pkgs": 10,
-      "total_bpp": 207.84,
-      "max_bpp": 43.61,
-      "residual": 164.23,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $208 abaixo de $300",
-      "placa": "SFB1G53",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "3610443",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -21193,27 +20885,51 @@
       "status_bl": ""
     },
     {
-      "id": "2631750",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 6,
+      "id": "1423144",
+      "nome": "DHL",
+      "transportadora": "DHL",
+      "status": "",
+      "n_meses": 5,
       "meses": [
         "02/2026",
         "03/2026",
         "04/2026",
         "05/2026",
-        "06/2026",
-        "07/2026"
+        "06/2026"
       ],
-      "n_pkgs": 16,
-      "total_bpp": 206.27,
-      "max_bpp": 50.31,
-      "residual": 155.96,
-      "tipo": "fraude_pura",
+      "n_pkgs": 14,
+      "total_bpp": 204.96,
+      "max_bpp": 36.9,
+      "residual": 168.06,
+      "tipo": "lost_fraude",
       "apto": false,
-      "motivo": "Total $206 abaixo de $300",
-      "placa": "GGA7H79",
+      "motivo": "Total $205 abaixo de $300",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4035982",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 6,
+      "meses": [
+        "03/2026",
+        "04/2026",
+        "05/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 7,
+      "total_bpp": 204.86,
+      "max_bpp": 135.58,
+      "residual": 69.28,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $205 abaixo de $300",
+      "placa": "DJD3265",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -21442,30 +21158,6 @@
       "apto": false,
       "motivo": "Total $198 abaixo de $300",
       "placa": "FMF5806",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "4035982",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 5,
-      "meses": [
-        "03/2026",
-        "04/2026",
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 197.66,
-      "max_bpp": 135.58,
-      "residual": 62.08,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $198 abaixo de $300",
-      "placa": "DJD3265",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -21704,30 +21396,6 @@
       "status_bl": ""
     },
     {
-      "id": "3616108",
-      "nome": "PANTERA LOG TRAN",
-      "transportadora": "PANTERA LOG TRAN",
-      "status": "",
-      "n_meses": 5,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026",
-        "05/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 191.51,
-      "max_bpp": 84.68,
-      "residual": 106.83,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $192 abaixo de $300",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "3891891",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -21793,6 +21461,31 @@
       "apto": false,
       "motivo": "Total $190 abaixo de $300",
       "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "2631750",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 6,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026",
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 14,
+      "total_bpp": 189.31,
+      "max_bpp": 50.31,
+      "residual": 139.0,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Total $189 abaixo de $300",
+      "placa": "GGA7H79",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -22008,6 +21701,30 @@
       "status_bl": ""
     },
     {
+      "id": "3616108",
+      "nome": "PANTERA LOG TRAN",
+      "transportadora": "PANTERA LOG TRAN",
+      "status": "",
+      "n_meses": 5,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026",
+        "05/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 181.73,
+      "max_bpp": 84.68,
+      "residual": 97.05,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4349442",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -22119,6 +21836,29 @@
       "status_bl": ""
     },
     {
+      "id": "3841883",
+      "nome": "PANTERA LOG TRAN",
+      "transportadora": "PANTERA LOG TRAN",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "03/2026",
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 9,
+      "total_bpp": 179.14,
+      "max_bpp": 43.61,
+      "residual": 135.53,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Total $179 abaixo de $300",
+      "placa": "SFB1G53",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "3884632",
       "nome": "FLASHLOG",
       "transportadora": "FLASHLOG",
@@ -22161,51 +21901,6 @@
       "apto": false,
       "motivo": "Total $178 abaixo de $300",
       "placa": "GHL0G77",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "1007629",
-      "nome": "Murici",
-      "transportadora": "Murici",
-      "status": "",
-      "n_meses": 3,
-      "meses": [
-        "02/2026",
-        "04/2026",
-        "05/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 175.66,
-      "max_bpp": 106.57,
-      "residual": 69.09,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "RHV8D30",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "1938361",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 4,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026",
-        "05/2026"
-      ],
-      "n_pkgs": 12,
-      "total_bpp": 173.8,
-      "max_bpp": 86.42,
-      "residual": 87.38,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $174 abaixo de $300",
-      "placa": "EUR3052",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -22410,7 +22105,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Total $170 abaixo de $300",
-      "placa": "ERI4I53",
+      "placa": "KPR8B91",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -22594,7 +22289,7 @@
       "tipo": "fraude_pura",
       "apto": false,
       "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "EDC2A73",
+      "placa": "FFE8A83",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -22640,7 +22335,7 @@
       "tipo": "lost_fraude",
       "apto": false,
       "motivo": "Total $166 abaixo de $300",
-      "placa": "TET5B29",
+      "placa": "TBW6I82",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -23074,30 +22769,6 @@
       "status_bl": ""
     },
     {
-      "id": "3651309",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 5,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026",
-        "05/2026",
-        "06/2026"
-      ],
-      "n_pkgs": 14,
-      "total_bpp": 155.69,
-      "max_bpp": 26.95,
-      "residual": 128.74,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $156 abaixo de $300",
-      "placa": "HCT0A11",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "3612140",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -23349,6 +23020,28 @@
       "status_bl": ""
     },
     {
+      "id": "4736378",
+      "nome": "ECO EXPRESS",
+      "transportadora": "ECO EXPRESS",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "06/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 6,
+      "total_bpp": 152.04,
+      "max_bpp": 42.33,
+      "residual": 109.71,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $152 abaixo de $300",
+      "placa": "FNL8H36",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "2841384",
       "nome": "Flight Cargo",
       "transportadora": "Flight Cargo",
@@ -23533,6 +23226,30 @@
       "status_bl": ""
     },
     {
+      "id": "3651309",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 5,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026",
+        "05/2026",
+        "06/2026"
+      ],
+      "n_pkgs": 13,
+      "total_bpp": 145.44,
+      "max_bpp": 26.95,
+      "residual": 118.49,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $145 abaixo de $300",
+      "placa": "HCT0A11",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "2664189",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -23667,6 +23384,28 @@
       "apto": false,
       "motivo": "Total $143 abaixo de $300",
       "placa": "SJI1I29",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "1007629",
+      "nome": "Murici",
+      "transportadora": "Murici",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "02/2026",
+        "04/2026",
+        "05/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 142.22,
+      "max_bpp": 106.57,
+      "residual": 35.65,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "RHV8D30",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -23972,6 +23711,28 @@
       "status_bl": ""
     },
     {
+      "id": "1938361",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "03/2026",
+        "04/2026",
+        "05/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 133.33,
+      "max_bpp": 86.42,
+      "residual": 46.91,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "EUR3052",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "1491407",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -24041,29 +23802,6 @@
       "status_bl": ""
     },
     {
-      "id": "2215323",
-      "nome": "Hawk Transportes",
-      "transportadora": "Hawk Transportes",
-      "status": "",
-      "n_meses": 4,
-      "meses": [
-        "02/2026",
-        "04/2026",
-        "05/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 131.7,
-      "max_bpp": 80.63,
-      "residual": 51.07,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "1738109",
       "nome": "Flight Cargo",
       "transportadora": "Flight Cargo",
@@ -24082,30 +23820,6 @@
       "apto": false,
       "motivo": "Total $132 abaixo de $300",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3756749",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 5,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026",
-        "05/2026",
-        "06/2026"
-      ],
-      "n_pkgs": 10,
-      "total_bpp": 131.39,
-      "max_bpp": 42.51,
-      "residual": 88.88,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $131 abaixo de $300",
-      "placa": "EUR2814",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -24246,6 +23960,29 @@
       "status_bl": ""
     },
     {
+      "id": "3756749",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 4,
+      "meses": [
+        "03/2026",
+        "04/2026",
+        "05/2026",
+        "06/2026"
+      ],
+      "n_pkgs": 9,
+      "total_bpp": 127.61,
+      "max_bpp": 42.51,
+      "residual": 85.1,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $128 abaixo de $300",
+      "placa": "EUR2814",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "2689536",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -24265,6 +24002,28 @@
       "apto": false,
       "motivo": "Total $126 abaixo de $300",
       "placa": "TAL3A92",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "2215323",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "04/2026",
+        "05/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 125.85,
+      "max_bpp": 80.63,
+      "residual": 45.22,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -24582,29 +24341,6 @@
       "status_bl": ""
     },
     {
-      "id": "3135716",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 4,
-      "meses": [
-        "02/2026",
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 12,
-      "total_bpp": 119.6,
-      "max_bpp": 29.57,
-      "residual": 90.03,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $120 abaixo de $300",
-      "placa": "FIK6F10",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "941628",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -24900,52 +24636,6 @@
       "status_bl": ""
     },
     {
-      "id": "1030231",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "",
-      "n_meses": 4,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026",
-        "06/2026"
-      ],
-      "n_pkgs": 10,
-      "total_bpp": 113.73,
-      "max_bpp": 29.73,
-      "residual": 84.0,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Total $114 abaixo de $300",
-      "placa": "EQA3I53",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "832561",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "",
-      "n_meses": 4,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026",
-        "05/2026"
-      ],
-      "n_pkgs": 6,
-      "total_bpp": 113.32,
-      "max_bpp": 75.48,
-      "residual": 37.84,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $113 abaixo de $300",
-      "placa": "RVS0I15",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "3633598",
       "nome": "Hawk Transportes",
       "transportadora": "Hawk Transportes",
@@ -25012,31 +24702,6 @@
       "apto": false,
       "motivo": "Total $113 abaixo de $300",
       "placa": "GHM3J36",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3201489",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 6,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026",
-        "05/2026",
-        "06/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 7,
-      "total_bpp": 112.42,
-      "max_bpp": 53.26,
-      "residual": 59.16,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $112 abaixo de $300",
-      "placa": "RUY3F29",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -25352,6 +25017,28 @@
       "apto": false,
       "motivo": "Total $107 abaixo de $300",
       "placa": "GDZ8E58",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "1030231",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "03/2026",
+        "04/2026",
+        "06/2026"
+      ],
+      "n_pkgs": 9,
+      "total_bpp": 107.24,
+      "max_bpp": 29.73,
+      "residual": 77.51,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Total $107 abaixo de $300",
+      "placa": "EQA3I53",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -25857,6 +25544,29 @@
       "status_bl": ""
     },
     {
+      "id": "3135716",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 4,
+      "meses": [
+        "02/2026",
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 10,
+      "total_bpp": 98.06,
+      "max_bpp": 29.57,
+      "residual": 68.49,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Total $98 abaixo de $300",
+      "placa": "FIK6F10",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4495480",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -26330,29 +26040,6 @@
       "apto": false,
       "motivo": "Total $87 abaixo de $300",
       "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3870279",
-      "nome": "Hawk Transportes",
-      "transportadora": "Hawk Transportes",
-      "status": "",
-      "n_meses": 4,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "05/2026",
-        "07/2026"
-      ],
-      "n_pkgs": 9,
-      "total_bpp": 86.73,
-      "max_bpp": 20.93,
-      "residual": 65.8,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Total $87 abaixo de $300",
-      "placa": "RVD8H67",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -26967,28 +26654,6 @@
       "status_bl": ""
     },
     {
-      "id": "3872780",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "blocked",
-      "n_meses": 3,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026"
-      ],
-      "n_pkgs": 4,
-      "total_bpp": 76.36,
-      "max_bpp": 38.53,
-      "residual": 37.83,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Já bloqueado",
-      "placa": "",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4263899",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -27279,6 +26944,29 @@
       "status_bl": ""
     },
     {
+      "id": "3870279",
+      "nome": "Hawk Transportes",
+      "transportadora": "Hawk Transportes",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "05/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 8,
+      "total_bpp": 72.31,
+      "max_bpp": 20.93,
+      "residual": 51.38,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $72 abaixo de $300",
+      "placa": "RVD8H67",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4413218",
       "nome": "Envios Extra",
       "transportadora": "Envios Extra",
@@ -27410,6 +27098,28 @@
       "apto": false,
       "motivo": "Total $71 abaixo de $300",
       "placa": "GAY5100",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "4489614",
+      "nome": "Kangu Logistics",
+      "transportadora": "Kangu Logistics",
+      "status": "",
+      "n_meses": 3,
+      "meses": [
+        "05/2026",
+        "07/2026",
+        "08/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 71.04,
+      "max_bpp": 38.09,
+      "residual": 32.95,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "TBH7C78",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -27815,28 +27525,6 @@
       "status_bl": ""
     },
     {
-      "id": "3900458",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 66.14,
-      "max_bpp": 35.59,
-      "residual": 30.55,
-      "tipo": "fraude_pura",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "EVA9H57",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
       "id": "4300433",
       "nome": "Kangu Logistics",
       "transportadora": "Kangu Logistics",
@@ -28011,28 +27699,6 @@
       "apto": false,
       "motivo": "Total $64 abaixo de $300",
       "placa": "CCB3H84",
-      "data_solicitacao": "",
-      "status_bl": ""
-    },
-    {
-      "id": "3806186",
-      "nome": "Envios Extra",
-      "transportadora": "Envios Extra",
-      "status": "active",
-      "n_meses": 3,
-      "meses": [
-        "02/2026",
-        "03/2026",
-        "04/2026"
-      ],
-      "n_pkgs": 5,
-      "total_bpp": 64.37,
-      "max_bpp": 25.73,
-      "residual": 38.64,
-      "tipo": "lost_fraude",
-      "apto": false,
-      "motivo": "Apenas 5 pacotes (mínimo 6)",
-      "placa": "",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -28440,6 +28106,28 @@
       "status_bl": ""
     },
     {
+      "id": "3900458",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026"
+      ],
+      "n_pkgs": 4,
+      "total_bpp": 60.79,
+      "max_bpp": 35.59,
+      "residual": 25.2,
+      "tipo": "fraude_pura",
+      "apto": false,
+      "motivo": "Apenas 4 pacotes (mínimo 6)",
+      "placa": "EVA9H57",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4349454",
       "nome": "Flight Cargo",
       "transportadora": "Flight Cargo",
@@ -28480,6 +28168,30 @@
       "apto": false,
       "motivo": "Apenas 4 pacotes (mínimo 6)",
       "placa": "FXY7B59",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "3201489",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 5,
+      "meses": [
+        "03/2026",
+        "04/2026",
+        "05/2026",
+        "06/2026",
+        "07/2026"
+      ],
+      "n_pkgs": 6,
+      "total_bpp": 59.16,
+      "max_bpp": 18.83,
+      "residual": 40.33,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Total $59 abaixo de $300",
+      "placa": "RUY3F29",
       "data_solicitacao": "",
       "status_bl": ""
     },
@@ -29469,6 +29181,28 @@
       "status_bl": ""
     },
     {
+      "id": "3806186",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "active",
+      "n_meses": 3,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026"
+      ],
+      "n_pkgs": 3,
+      "total_bpp": 41.42,
+      "max_bpp": 25.73,
+      "residual": 15.69,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 3 pacotes (mínimo 6)",
+      "placa": "",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
       "id": "4346556",
       "nome": "Murici",
       "transportadora": "Murici",
@@ -29620,6 +29354,29 @@
       "apto": false,
       "motivo": "Apenas 3 pacotes (mínimo 6)",
       "placa": "DHW7335",
+      "data_solicitacao": "",
+      "status_bl": ""
+    },
+    {
+      "id": "832561",
+      "nome": "Envios Extra",
+      "transportadora": "Envios Extra",
+      "status": "",
+      "n_meses": 4,
+      "meses": [
+        "02/2026",
+        "03/2026",
+        "04/2026",
+        "05/2026"
+      ],
+      "n_pkgs": 5,
+      "total_bpp": 37.84,
+      "max_bpp": 11.5,
+      "residual": 26.34,
+      "tipo": "lost_fraude",
+      "apto": false,
+      "motivo": "Apenas 5 pacotes (mínimo 6)",
+      "placa": "RVS0I15",
       "data_solicitacao": "",
       "status_bl": ""
     },
