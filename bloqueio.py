@@ -327,26 +327,34 @@ function blqBuildCharts(){{
   var eMlp = document.getElementById('blqCMlp');
   var eTop = document.getElementById('blqCTop');
   if(eMlp){{
-    if(_blqCMlp) _blqCMlp.destroy();
-    _blqCMlp = new Chart(eMlp, {{
-      type:'bar',
-      data:{{labels:{mlp_labels}, datasets:[{{data:{mlp_vals},backgroundColor:'rgba(239,68,68,0.65)',borderRadius:3,barThickness:16}}]}},
-      options:{{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-        plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:function(c){{return ' '+c.parsed.x+' drivers';}}}}}}}},
-        scales:{{x:{{grid:{{color:'#111827'}},ticks:{{color:'#6b7280',font:{{size:9}}}}}},y:{{grid:{{display:false}},ticks:{{color:'#9ca3af',font:{{size:9}}}}}}}}
-      }}
-    }});
+    var pw = eMlp.parentElement ? eMlp.parentElement.clientWidth : 0;
+    if(pw > 10){{ eMlp.setAttribute('width', pw); eMlp.setAttribute('height', 200); }}
+    if(_blqCMlp){{ try{{_blqCMlp.destroy();}}catch(ee){{}} _blqCMlp=null; }}
+    try{{
+      _blqCMlp = new Chart(eMlp, {{
+        type:'bar',
+        data:{{labels:{mlp_labels}, datasets:[{{data:{mlp_vals},backgroundColor:'rgba(239,68,68,0.65)',borderRadius:3,barThickness:16}}]}},
+        options:{{indexAxis:'y',responsive:false,maintainAspectRatio:false,
+          plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:function(c){{return ' '+c.parsed.x+' drivers';}}}}}}}},
+          scales:{{x:{{grid:{{color:'#111827'}},ticks:{{color:'#6b7280',font:{{size:9}}}}}},y:{{grid:{{display:false}},ticks:{{color:'#9ca3af',font:{{size:9}}}}}}}}
+        }}
+      }});
+    }}catch(ee){{console.error('blqCMlp:',ee);}}
   }}
   if(eTop){{
-    if(_blqCTop) _blqCTop.destroy();
-    _blqCTop = new Chart(eTop, {{
-      type:'bar',
-      data:{{labels:{top_labels}, datasets:[{{data:{top_vals},backgroundColor:'rgba(251,191,36,0.65)',borderRadius:3,barThickness:16}}]}},
-      options:{{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-        plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:function(c){{return ' $'+c.parsed.x.toLocaleString('en-US',{{minimumFractionDigits:2}});}}}}}}}},
-        scales:{{x:{{grid:{{color:'#111827'}},ticks:{{color:'#6b7280',font:{{size:9}},callback:function(v){{return '$'+v.toLocaleString();}}}}}},y:{{grid:{{display:false}},ticks:{{color:'#9ca3af',font:{{size:9}}}}}}}}
-      }}
-    }});
+    var pw2 = eTop.parentElement ? eTop.parentElement.clientWidth : 0;
+    if(pw2 > 10){{ eTop.setAttribute('width', pw2); eTop.setAttribute('height', 200); }}
+    if(_blqCTop){{ try{{_blqCTop.destroy();}}catch(ee){{}} _blqCTop=null; }}
+    try{{
+      _blqCTop = new Chart(eTop, {{
+        type:'bar',
+        data:{{labels:{top_labels}, datasets:[{{data:{top_vals},backgroundColor:'rgba(251,191,36,0.65)',borderRadius:3,barThickness:16}}]}},
+        options:{{indexAxis:'y',responsive:false,maintainAspectRatio:false,
+          plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:function(c){{return ' $'+c.parsed.x.toLocaleString('en-US',{{minimumFractionDigits:2}});}}}}}}}},
+          scales:{{x:{{grid:{{color:'#111827'}},ticks:{{color:'#6b7280',font:{{size:9}},callback:function(v){{return '$'+v.toLocaleString();}}}}}},y:{{grid:{{display:false}},ticks:{{color:'#9ca3af',font:{{size:9}}}}}}}}
+        }}
+      }});
+    }}catch(ee){{console.error('blqCTop:',ee);}}
   }}
 }}
 
@@ -501,10 +509,11 @@ window.blqExportCSV = function() {{
 window.blqBuildCharts = blqBuildCharts;
 window.blqRender      = blqRender;
 
-// Badge: set synchronously (DOM already parsed when this script runs)
+// Badge: set synchronously + DOMContentLoaded (belt-and-suspenders)
 (function() {{ var b=document.getElementById('tab-count-bloqueios'); if(b) b.textContent=BLQ_DATA.length; }})();
 
 document.addEventListener('DOMContentLoaded', function() {{
+  var b2=document.getElementById('tab-count-bloqueios'); if(b2) b2.textContent=BLQ_DATA.length;
   try {{ blqRender(); }} catch(e) {{ console.error('blqRender init error:', e); }}
 }});
 }})();
