@@ -547,24 +547,21 @@ def inject_bloqueios_sidebar(html):
 
 
 def find_and_replace_tab(content, tab_id, new_html):
-    start = content.find(f'<div id="{tab_id}" class="content">')
+    start_tag = f'<div id="{tab_id}" class="content">'
+    start = content.find(start_tag)
     if start == -1:
         return content, False
-    depth, pos = 0, start
-    while pos < len(content):
-        no = content.find('<div', pos)
-        nc = content.find('</div>', pos)
-        if no == -1 and nc == -1:
-            break
-        if no != -1 and (nc == -1 or no < nc):
-            depth += 1; pos = no + 4
-        else:
-            depth -= 1; end = nc + 6; pos = end
-            if depth == 0:
-                if pos < len(content) and content[pos] == '\n':
-                    end = pos + 1
-                return content[:start] + new_html + '\n' + content[end:], True
-    return content, False
+    after = start + len(start_tag)
+    # Usa '\n<' como prefixo para evitar falsos positivos dentro de <script>
+    candidates = []
+    for marker in ['\n<div id="tab-', '\n</main>', '\n</body>']:
+        idx = content.find(marker, after)
+        if idx != -1:
+            candidates.append(idx + 1)  # +1: aponta para '<', não '\n'
+    if not candidates:
+        return content, False
+    end = min(candidates)
+    return content[:start] + new_html + '\n' + content[end:], True
 
 
 def main():
