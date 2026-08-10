@@ -97,7 +97,7 @@ def gerar_tab(drivers):
     top_mlp_short = (top_mlp[:18] + '…') if len(top_mlp) > 18 else top_mlp
 
     mlp_items  = mlp_sorted[:8]
-    mlp_labels = json.dumps([x[0][:22] for x in mlp_items])
+    mlp_labels = json.dumps([x[0][:22] for x in mlp_items]).replace('</', '<\\/')
     mlp_vals   = json.dumps([x[1] for x in mlp_items])
 
     top10      = drivers[:10]
@@ -126,7 +126,7 @@ def gerar_tab(drivers):
         for c in all_classes
     )
 
-    data_json = json.dumps(drivers, ensure_ascii=False)
+    data_json = json.dumps(drivers, ensure_ascii=False).replace('</', '<\\/')
 
     return f"""<div id="tab-bloqueios" class="content">
 <style>
@@ -515,6 +515,15 @@ window.blqRender      = blqRender;
 document.addEventListener('DOMContentLoaded', function() {{
   var b2=document.getElementById('tab-count-bloqueios'); if(b2) b2.textContent=BLQ_DATA.length;
   try {{ blqRender(); }} catch(e) {{ console.error('blqRender init error:', e); }}
+  setTimeout(function() {{
+    // Re-seta badge (sobrescreve qualquer reset do JS principal)
+    var b3=document.getElementById('tab-count-bloqueios'); if(b3) b3.textContent=BLQ_DATA.length;
+    // Constrói charts se a aba já estiver visível (restaurada do localStorage sem onclick)
+    var tab=document.getElementById('tab-bloqueios');
+    if(tab && getComputedStyle(tab).display!=='none') {{
+      try {{ blqBuildCharts(); }} catch(e) {{ console.error('blqBuildCharts init:', e); }}
+    }}
+  }}, 500);
 }});
 }})();
 </script>
