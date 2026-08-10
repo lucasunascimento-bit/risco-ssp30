@@ -115,18 +115,8 @@ def gerar_tab(drivers):
     top_vals   = json.dumps([round(d['bpp'], 2) for d in top10])
 
     all_classes = sorted({d['classe'] for d in drivers if d['classe']})
-    all_meses   = sorted({m for d in drivers for m in d['meses']})
     all_mlps    = sorted({d['mlp'] for d in drivers if d['mlp']})
 
-    def mes_label(ym):
-        try:
-            return datetime.strptime(ym, '%Y-%m').strftime('%b/%y').capitalize()
-        except Exception:
-            return ym
-
-    mes_opts = ''.join(
-        f'<option value="{m}">{mes_label(m)}</option>' for m in all_meses
-    )
     mlp_cbs = ''.join(
         f'<label class="blq-ms-item"><input type="checkbox" class="blq-ms-cb blq-ms-cb-mlp" value="{m}" onchange="blqMsChg(\'mlp\')"> {m}</label>'
         for m in all_mlps
@@ -287,16 +277,6 @@ def gerar_tab(drivers):
 
   <!-- CONTROLES -->
   <div class="blq-controls">
-    <span style="font-size:11px;color:#6b7280">Período</span>
-    <select id="blq-de" onchange="blqRender()">
-      <option value="">De...</option>
-      {mes_opts}
-    </select>
-    <select id="blq-ate" onchange="blqRender()">
-      <option value="">Até...</option>
-      {mes_opts}
-    </select>
-    <span style="color:#1f2937;font-size:18px">|</span>
     <div class="blq-ms-wrap" id="blq-msw-mlp">
       <button class="blq-ms-btn" id="blq-msb-mlp" onclick="blqToggleMs('mlp')">Todas transp. ▾</button>
       <div class="blq-ms-panel" id="blq-msp-mlp" style="display:none">
@@ -329,6 +309,7 @@ def gerar_tab(drivers):
     <input type="search" id="blq-busca" placeholder="Driver ID..." oninput="blqRender()"
       style="width:130px">
     <button class="blq-btn-r" onclick="blqResetF()">&#x2715; Limpar</button>
+    <button class="blq-btn-r" onclick="blqResetStatus()" title="Apaga overrides manuais de Status e volta ao estado da block list">&#x21BA; Status</button>
     <span style="font-size:11px;color:#4b5563;margin-left:4px" id="blq-tbl-ct"></span>
   </div>
 
@@ -442,8 +423,8 @@ function blqMsAll(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(fun
 function blqMsNone(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(function(e){{e.checked=false;}}); blqUpdMsBtn(id); blqRender(); }}
 
 function blqRender() {{
-  var de     = (document.getElementById('blq-de')||{{}}).value||'';
-  var ate    = (document.getElementById('blq-ate')||{{}}).value||'';
+  var de     = (document.getElementById('pd_de')||{{}}).value||'';
+  var ate    = (document.getElementById('pd_ate')||{{}}).value||'';
   var stF    = (document.getElementById('blq-status')||{{}}).value||'';
   var minPct = parseFloat((document.getElementById('blq-pct')||{{}}).value)||0;
   var busca  = ((document.getElementById('blq-busca')||{{}}).value||'').trim();
@@ -574,10 +555,14 @@ window.blqToggleMs  = blqToggleMs;
 window.blqMsAll     = blqMsAll;
 window.blqMsNone    = blqMsNone;
 window.blqResetF    = function() {{
-  ['blq-de','blq-ate','blq-status'].forEach(function(id){{ var e=document.getElementById(id);if(e)e.value=''; }});
+  ['blq-status'].forEach(function(id){{ var e=document.getElementById(id);if(e)e.value=''; }});
   var b=document.getElementById('blq-busca');if(b)b.value='';
   var p=document.getElementById('blq-pct');if(p)p.value='0';
   blqMsNone('mlp'); blqMsNone('cls');
+  blqRender();
+}};
+window.blqResetStatus = function() {{
+  Object.keys(localStorage).filter(function(k){{return k.startsWith('blq_s2_');}}).forEach(function(k){{localStorage.removeItem(k);}});
   blqRender();
 }};
 window.blqExportCSV = function() {{
@@ -595,6 +580,12 @@ window.blqExportCSV = function() {{
 }};
 window.blqBuildCharts = blqBuildCharts;
 window.blqRender      = blqRender;
+
+// Conecta ao filtro global de período
+['pd_de','pd_ate'].forEach(function(id) {{
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('change', function() {{ blqRender(); }});
+}});
 
 // Badge: set synchronously + DOMContentLoaded (belt-and-suspenders)
 (function() {{ var b=document.getElementById('tab-count-bloqueios'); if(b) b.textContent=BLQ_DATA.length; }})();
@@ -674,13 +665,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.10</span>',
+        '<span class="ver-badge">v4.11</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.10')
+    print(f'Pronto! {mb:.1f} MB — v4.11')
 
 
 if __name__ == '__main__':
