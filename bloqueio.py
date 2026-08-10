@@ -44,7 +44,7 @@ SELECT
     COUNT(DISTINCT CASE WHEN {_FC} THEN SHIPMENT_ID END)      AS fraud,
     ROUND(SUM(CASE WHEN {_FC_BPP} THEN BPP_CASHOUT_USD ELSE 0 END), 2) AS bpp,
     APPROX_TOP_COUNT(Classification_LM, 1)[OFFSET(0)].value   AS classe,
-    ARRAY_AGG(DISTINCT CASE WHEN {_FC_BPP} THEN FORMAT_DATE('%Y-%m', date_bpp) END IGNORE NULLS) AS meses,
+    ARRAY_AGG(DISTINCT CASE WHEN {_FC} THEN FORMAT_DATE('%Y-%m', date_bpp) END IGNORE NULLS) AS meses,
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN CAST(SHIPMENT_ID AS STRING) END IGNORE NULLS
         ORDER BY BPP_CASHOUT_USD DESC LIMIT 30)                AS shp_ids_sample
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
@@ -665,13 +665,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.11</span>',
+        '<span class="ver-badge">v4.12</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.11')
+    print(f'Pronto! {mb:.1f} MB — v4.12')
 
 
 if __name__ == '__main__':
