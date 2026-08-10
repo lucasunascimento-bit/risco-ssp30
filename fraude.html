@@ -150,7 +150,7 @@
     <div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="header-title">Análise de Fraude — SSP30</div>
-        <span class="ver-badge">v4.4</span>
+        <span class="ver-badge">v4.5</span>
       </div>
       <div class="header-sub">Base 2026 · <span id="upd-badge">Gerado em 09/08/2026 11:24</span><span id="upd-ts" data-ts="2026-08-09T11:27:07Z" style="display:none"></span></div>
     </div>
@@ -3783,6 +3783,16 @@ function blqRender() {
     var el=document.getElementById('blq-th-'+k);
     if(el) el.className = _blqSort===k ? 'blq-sorted' : '';
   });
+
+  // Atualiza KPIs dinamicamente
+  var filtBpp   = rows.reduce(function(s,d){return s+d.bpp;},0);
+  var filtFraud = rows.reduce(function(s,d){return s+d.fraud;},0);
+  var kT=document.getElementById('blq-k-total');
+  if(kT) kT.textContent = rows.length;
+  var kB=document.getElementById('blq-k-bpp');
+  if(kB) kB.textContent = 'US$ '+filtBpp.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  var kF=document.getElementById('blq-k-fraud');
+  if(kF) kF.textContent = filtFraud.toLocaleString('pt-BR');
 
   var inv = rows.filter(function(d){return blqGetSt(d.id)==='inv';}).length;
   var blk = rows.filter(function(d){return blqGetSt(d.id)==='blq';}).length;

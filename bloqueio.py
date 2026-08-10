@@ -414,6 +414,16 @@ function blqRender() {{
     if(el) el.className = _blqSort===k ? 'blq-sorted' : '';
   }});
 
+  // Atualiza KPIs dinamicamente
+  var filtBpp   = rows.reduce(function(s,d){{return s+d.bpp;}},0);
+  var filtFraud = rows.reduce(function(s,d){{return s+d.fraud;}},0);
+  var kT=document.getElementById('blq-k-total');
+  if(kT) kT.textContent = rows.length;
+  var kB=document.getElementById('blq-k-bpp');
+  if(kB) kB.textContent = 'US$ '+filtBpp.toLocaleString('pt-BR',{{minimumFractionDigits:0,maximumFractionDigits:0}});
+  var kF=document.getElementById('blq-k-fraud');
+  if(kF) kF.textContent = filtFraud.toLocaleString('pt-BR');
+
   var inv = rows.filter(function(d){{return blqGetSt(d.id)==='inv';}}).length;
   var blk = rows.filter(function(d){{return blqGetSt(d.id)==='blq';}}).length;
   var ct  = document.getElementById('blq-tbl-ct');
