@@ -150,7 +150,7 @@
     <div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="header-title">Análise de Fraude — SSP30</div>
-        <span class="ver-badge">v4.5</span>
+        <span class="ver-badge">v4.6</span>
       </div>
       <div class="header-sub">Base 2026 · <span id="upd-badge">Gerado em 09/08/2026 11:24</span><span id="upd-ts" data-ts="2026-08-09T11:27:07Z" style="display:none"></span></div>
     </div>
@@ -3502,7 +3502,8 @@ document.addEventListener('DOMContentLoaded',function(){
 <style>
 #tab-bloqueios .blq-crit{background:#0d1017;border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:8px 16px;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #tab-bloqueios .blq-crit strong{color:#f87171}
-#tab-bloqueios .blq-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+#tab-bloqueios .blq-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+#tab-bloqueios .blq-s-ativo{background:rgba(74,222,128,.08);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
 #tab-bloqueios .blq-kpi{background:#0d1321;border:1px solid #111827;border-radius:8px;padding:14px 16px}
 #tab-bloqueios .blq-kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:#4b5563;font-weight:700;margin-bottom:6px}
 #tab-bloqueios .blq-kpi-v{font-size:22px;font-weight:800;color:#fff;line-height:1;letter-spacing:-1px}
@@ -3600,6 +3601,11 @@ document.addEventListener('DOMContentLoaded',function(){
       <div class="blq-kpi-v" style="font-size:13px;letter-spacing:0;padding-top:4px">Envios Extra</div>
       <div class="blq-kpi-s">96 candidatos</div>
     </div>
+    <div class="blq-kpi" style="border-color:rgba(239,68,68,.3)">
+      <div class="blq-kpi-l" style="color:#ef4444">Bloqueados</div>
+      <div class="blq-kpi-v" id="blq-k-blq" style="color:#f87171">0</div>
+      <div class="blq-kpi-s">no período filtrado</div>
+    </div>
   </div>
 
   <!-- GRAFICOS -->
@@ -3650,9 +3656,8 @@ document.addEventListener('DOMContentLoaded',function(){
     <span style="font-size:11px;color:#6b7280">Status</span>
     <select id="blq-status" onchange="blqRender()">
       <option value="">Todos</option>
-      <option value="mon">Monitorado</option>
-      <option value="inv">Em investigacao</option>
-      <option value="blq">Bloqueado</option>
+      <option value="ativo">Ativos</option>
+      <option value="blq">Bloqueados</option>
     </select>
     <input type="number" id="blq-pct" value="0" min="0" max="100" oninput="blqRender()"
       style="width:52px;text-align:center" placeholder="% min">
@@ -3676,6 +3681,7 @@ document.addEventListener('DOMContentLoaded',function(){
           <th onclick="blqSortBy('total')" id="blq-th-total">Total SHPs ↕</th>
           <th class="blq-no-sort">Classificacao</th>
           <th class="blq-no-sort">Meses ativo</th>
+          <th class="blq-no-sort">Ação</th>
           <th class="blq-no-sort">Status</th>
         </tr>
       </thead>
@@ -3771,7 +3777,8 @@ function blqRender() {
     if(de||ate){ var ok=d.meses.some(function(m){return(!de||m>=de)&&(!ate||m<=ate);});if(!ok)return false; }
     if(mlpSel.size && !mlpSel.has(d.mlp||'')) return false;
     if(clsSel.size && !clsSel.has(d.classe))  return false;
-    if(stF && blqGetSt(d.id)!==stF)           return false;
+    if(stF==='ativo' && blqGetSt(d.id)==='blq') return false;
+    if(stF==='blq'   && blqGetSt(d.id)!=='blq') return false;
     if(minPct>0 && d.pct<minPct)              return false;
     if(busca && d.id.indexOf(busca)<0)        return false;
     return true;
@@ -3796,13 +3803,15 @@ function blqRender() {
 
   var inv = rows.filter(function(d){return blqGetSt(d.id)==='inv';}).length;
   var blk = rows.filter(function(d){return blqGetSt(d.id)==='blq';}).length;
+  var kBL=document.getElementById('blq-k-blq');
+  if(kBL) kBL.textContent = blk;
   var ct  = document.getElementById('blq-tbl-ct');
   if(ct) ct.textContent = rows.length+' drivers · '+inv+' em investigacao · '+blk+' bloqueados';
 
   var tbody = document.getElementById('blq-tbody');
   if(!tbody) return;
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:#374151">Nenhum driver encontrado.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:#374151">Nenhum driver encontrado.</td></tr>';
     return;
   }
 
@@ -3832,6 +3841,7 @@ function blqRender() {
       '<td><span class="blq-tag" title="'+(d.classe||'')+'">'+(d.classe||'—')+'</span></td>'+
       '<td style="font-size:10px;color:#6b7280">'+mLbl+'</td>'+
       '<td><span class="blq-badge '+ST_CLS[st]+'" onclick="blqNextSt(\''+d.id+'\')">'+ST_LBL[st]+'</span></td>'+
+      '<td><span class="blq-badge '+(st==='blq'?'blq-s-blq':'blq-s-ativo')+'">'+(st==='blq'?'Bloqueado':'Ativo')+'</span></td>'+
       '</tr>';
 
     var shps = d.shps || [];
@@ -3843,7 +3853,7 @@ function blqRender() {
       var extra = d.total>shps.length ? ' <span style="color:#374151"> · +'+(d.total-shps.length)+' nao exibidos</span>' : '';
       shpRow =
         '<tr class="blq-shp-row" id="blq-shps-'+d.id+'" style="display:none">'+
-        '<td colspan="10"><div class="blq-shp-meta">'+
+        '<td colspan="11"><div class="blq-shp-meta">'+
           '<a href="'+BLQ_DRV+d.id+'" target="_blank" class="blq-drv-link">&#8599; Ver driver no backoffice</a>'+
           '<span style="font-size:10px;color:#4b5563">'+shps.length+' IDs (top BPP)'+extra+'</span>'+
         '</div><div class="blq-shp-list">'+chips+'</div></td></tr>';
