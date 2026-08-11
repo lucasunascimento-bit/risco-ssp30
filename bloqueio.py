@@ -17,6 +17,7 @@ INICIO    = '2026-01-01'
 HTML_OUT  = Path(__file__).parent / 'fraude.html'
 LOG_URL   = 'https://logistics.mercadolibre.com.br/shipments/'
 BO_DRIVER = 'https://shipping-bo.adminml.com/sauron/drivers/driver/'
+ANALISTA  = 'Lucas de Oliveira Nascimento'
 
 # Classificações para contar SHPs de fraude (inclui STOLEN ON ROUTE e LOST ON ROUTE)
 _FC = (
@@ -44,9 +45,13 @@ SELECT
     COUNT(DISTINCT CASE WHEN {_FC} THEN SHIPMENT_ID END)      AS fraud,
     ROUND(SUM(CASE WHEN {_FC_BPP} THEN BPP_CASHOUT_USD ELSE 0 END), 2) AS bpp,
     APPROX_TOP_COUNT(Classification_LM, 1)[OFFSET(0)].value   AS classe,
-    ARRAY_AGG(DISTINCT CASE WHEN {_FC} THEN FORMAT_DATE('%Y-%m', date_bpp) END IGNORE NULLS) AS meses,
+    ARRAY_AGG(DISTINCT CASE WHEN {_FC_BPP} THEN FORMAT_DATE('%Y-%m', date_bpp) END IGNORE NULLS) AS meses,
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN CAST(SHIPMENT_ID AS STRING) END IGNORE NULLS
-        ORDER BY BPP_CASHOUT_USD DESC LIMIT 30)                AS shp_ids_sample
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_ids,
+    ARRAY_AGG(CASE WHEN {_FC_BPP} THEN ROUND(BPP_CASHOUT_USD, 2) END IGNORE NULLS
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_bpps,
+    ARRAY_AGG(CASE WHEN {_FC_BPP} THEN Classification_LM END IGNORE NULLS
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_cls
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
   AND date_bpp >= '{INICIO}'
@@ -60,6 +65,20 @@ ORDER BY bpp DESC
 
 
 def carregar_dados():
+    # Fallback de nomes via _bl_cache.json (Google Sheets)
+    name_lookup = {}
+    try:
+        bl_cache_path = Path(__file__).parent / '_bl_cache.json'
+        bl_cache = json.loads(bl_cache_path.read_text(encoding='utf-8'))
+        for r in bl_cache:
+            did = str(r.get('Driver ID', '') or '').strip()
+            nm  = str(r.get('Nome', '') or '').strip()
+            if did and nm:
+                name_lookup.setdefault(did, nm)
+        print(f'  Nome lookup: {len(name_lookup)} drivers do _bl_cache.json')
+    except Exception as e:
+        print(f'  Aviso name_lookup: {e}')
+
     creds, _ = default()
     client = bigquery.Client(credentials=creds, project='meli-bi-data')
     print(f'Consultando candidatos (BPP >= ${MIN_BPP}, fraud >= {MIN_FRAUD})...')
@@ -70,11 +89,27 @@ def carregar_dados():
         total = int(row['total'])
         fraud = int(row['fraud'])
         pct   = round(fraud / total * 100, 1) if total else 0.0
-        meses = sorted(m for m in (row['meses'] or []) if m)
-        shps  = list(dict.fromkeys(str(s) for s in (row['shp_ids_sample'] or []) if s))[:30]
+        meses    = sorted(m for m in (row['meses'] or []) if m)
+        raw_ids  = [str(s) for s in (row['shp_ids'] or []) if s]
+        raw_bpps = [float(b) for b in (row['shp_bpps'] or []) if b is not None]
+        raw_cls  = [str(c) for c in (row['shp_cls'] or []) if c]
+        seen_ids = set()
+        shps = []
+        for _i, _sid in enumerate(raw_ids):
+            if _sid not in seen_ids:
+                seen_ids.add(_sid)
+                shps.append({
+                    'id':  _sid,
+                    'bpp': raw_bpps[_i] if _i < len(raw_bpps) else 0.0,
+                    'cls': raw_cls[_i]  if _i < len(raw_cls)  else ''
+                })
+                if len(shps) >= 500:
+                    break
+        nome_bq = (row['nome'] or '').strip()
+        nome    = nome_bq or name_lookup.get(str(row['id']), '')
         drivers.append({
             'id':    row['id'],
-            'nome':  row['nome'] or '',
+            'nome':  nome,
             'mlp':   row['mlp'] or '',
             'total': total,
             'fraud': fraud,
@@ -207,6 +242,8 @@ def gerar_tab(drivers):
 #tab-bloqueios .blq-s-inv{{background:rgba(251,191,36,.08);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}}
 #tab-bloqueios .blq-s-blq{{background:rgba(239,68,68,.08);color:#f87171;border:1px solid rgba(239,68,68,.2)}}
 #tab-bloqueios .blq-mlp{{font-size:11px;color:#9ca3af;max-width:130px;overflow:hidden;text-overflow:ellipsis}}
+#tab-bloqueios .blq-btn-pdf{{background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .1s}}
+#tab-bloqueios .blq-btn-pdf:hover{{background:rgba(37,99,235,.22);border-color:#3b82f6;color:#bfdbfe}}
 </style>
 <div style="padding:20px 32px">
 
@@ -329,6 +366,7 @@ def gerar_tab(drivers):
           <th class="blq-no-sort">Meses ativo</th>
           <th class="blq-no-sort">Ação</th>
           <th class="blq-no-sort">Status</th>
+          <th class="blq-no-sort">PDF</th>
         </tr>
       </thead>
       <tbody id="blq-tbody"></tbody>
@@ -338,10 +376,11 @@ def gerar_tab(drivers):
 </div>
 <script>
 (function(){{
-var BLQ_DATA    = {data_json};
-var BLQ_LOG     = '{LOG_URL}';
-var BLQ_DRV     = '{BO_DRIVER}';
-var BLQ_BLOCKED = new Set({blocked_ids_js});
+var BLQ_DATA     = {data_json};
+var BLQ_LOG      = '{LOG_URL}';
+var BLQ_DRV      = '{BO_DRIVER}';
+var BLQ_ANALISTA = '{ANALISTA}';
+var BLQ_BLOCKED  = new Set({blocked_ids_js});
 var _blqSort = 'bpp', _blqDir = -1;
 
 var _blqCMlp = null, _blqCTop = null;
@@ -487,7 +526,7 @@ function blqRender() {{
   var tbody = document.getElementById('blq-tbody');
   if(!tbody) return;
   if(!rows.length){{
-    tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:#374151">Nenhum driver encontrado.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="12" style="text-align:center;padding:40px;color:#374151">Nenhum driver encontrado.</td></tr>';
     return;
   }}
 
@@ -518,18 +557,19 @@ function blqRender() {{
       '<td style="font-size:10px;color:#6b7280">'+mLbl+'</td>'+
       '<td><span class="blq-badge '+ST_CLS[st]+'" onclick="blqNextSt(\\''+d.id+'\\')">'+ST_LBL[st]+'</span></td>'+
       '<td><span class="blq-badge '+(blqGetSt2(d.id)==='blq'?'blq-s-blq':'blq-s-ativo')+'" onclick="blqToggleSt2(\\''+d.id+'\\')">'+( blqGetSt2(d.id)==='blq'?'Bloqueado':'Ativo')+'</span></td>'+
+      '<td><button class="blq-btn-pdf" onclick="blqGerarApresentacao(\\''+d.id+'\\')">&#9998; PDF</button></td>'+
       '</tr>';
 
     var shps = d.shps || [];
     var shpRow = '';
     if(shps.length){{
       var chips = shps.map(function(s){{
-        return '<a href="'+BLQ_LOG+s+'" target="_blank" class="blq-chip">'+s+'</a>';
+        return '<a href="'+BLQ_LOG+s.id+'" target="_blank" class="blq-chip">'+s.id+'</a>';
       }}).join('');
       var extra = d.total>shps.length ? ' <span style="color:#374151"> · +'+(d.total-shps.length)+' nao exibidos</span>' : '';
       shpRow =
         '<tr class="blq-shp-row" id="blq-shps-'+d.id+'" style="display:none">'+
-        '<td colspan="11"><div class="blq-shp-meta">'+
+        '<td colspan="12"><div class="blq-shp-meta">'+
           '<a href="'+BLQ_DRV+d.id+'" target="_blank" class="blq-drv-link">&#8599; Ver driver no backoffice</a>'+
           '<span style="font-size:10px;color:#4b5563">'+shps.length+' IDs (top BPP)'+extra+'</span>'+
         '</div><div class="blq-shp-list">'+chips+'</div></td></tr>';
@@ -577,6 +617,144 @@ window.blqExportCSV = function() {{
   a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
   a.download = 'bloqueios_ssp30.csv';
   a.click();
+}};
+window.blqGerarApresentacao = function(drvId) {{
+  var d = BLQ_DATA.find(function(x){{ return x.id===drvId; }});
+  if(!d) return;
+  var hoje = new Date().toLocaleDateString('pt-BR',{{day:'2-digit',month:'2-digit',year:'numeric'}});
+  var isBloq = blqGetSt2(drvId)==='blq';
+  var nM = d.meses.length;
+  var fmtM = function(m){{
+    try{{ var dt=new Date(m+'-15'); return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('.','').replace(' ','/'); }}catch(e){{ return m; }}
+  }};
+  var periodoLabel = nM ? nM+' mes'+(nM>1?'es':'') : '—';
+  var periodoRange = nM ? fmtM(d.meses[0])+(nM>1?' a '+fmtM(d.meses[nM-1]):'') : '';
+  var shps = d.shps||[];
+  var clsSet={{}};
+  shps.forEach(function(s){{ if(s.cls) clsSet[s.cls]=1; }});
+  var clsKeys=Object.keys(clsSet);
+  var hasLOR=clsKeys.some(function(c){{ return c==='LOST ON ROUTE'; }});
+  var hasFr=clsKeys.some(function(c){{ return c!=='LOST ON ROUTE'&&c!=='STOLEN ON ROUTE'; }});
+  var tipo;
+  if(hasLOR&&hasFr) tipo='LOR + FRAUDE';
+  else if(hasLOR) tipo='LOR (Lost on Route)';
+  else if(d.classe==='PNR C') tipo='PNR (Pendência NR)';
+  else if(d.classe==='EMPTY BOX') tipo='Fraude — Caixa Vazia';
+  else if(d.classe==='STOLEN ON ROUTE') tipo='Furto em Rota';
+  else tipo=d.classe||'Fraude';
+  var bppFmt=function(v){{ return '$ '+v.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}); }};
+  var bppSemMaior=shps.length>0 ? d.bpp-(shps[0].bpp||0) : d.bpp;
+  var clsClr=function(c){{
+    if(!c) return '#374151';
+    if(c.indexOf('FRAUD')>=0||c==='EMPTY BOX') return '#dc2626';
+    if(c==='PNR C') return '#1d4ed8';
+    if(c==='LOST ON ROUTE') return '#c2410c';
+    if(c==='STOLEN ON ROUTE') return '#6d28d9';
+    return '#374151';
+  }};
+  var top=shps;
+  var shpRows=top.map(function(s,i){{
+    var cls=s.cls||d.classe||'';
+    return '<tr class="'+(i%2?'alt':'')+'">'+'<td class="cn">'+(i+1)+'</td>'+'<td style="color:'+clsClr(cls)+'">'+cls+'</td>'+'<td><a href="'+BLQ_LOG+s.id+'" style="color:#1d4ed8;text-decoration:none">'+s.id+'</a></td>'+'<td class="rn">'+bppFmt(s.bpp||0)+'</td></tr>';
+  }}).join('');
+  var stolen=d.fraud-shps.length; var extraShps=stolen>0?stolen+' STOLEN ON ROUTE não listados (sem BPP)':'';
+  var apoLbl=isBloq?'JÁ BLOQUEADO':'APTO PARA BLOQUEIO';
+  var css=[
+    '*{{box-sizing:border-box;margin:0;padding:0}}',
+    'body{{font-family:Arial,sans-serif;background:#fff;color:#111;font-size:12px}}',
+    '.page{{width:210mm;min-height:297mm;padding:16mm 20mm;margin:0 auto;display:flex;flex-direction:column;page-break-after:always}}',
+    '.page:last-child{{page-break-after:auto}}',
+    '.hdr{{background:#FFE600;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;border-radius:5px;margin-bottom:18px}}',
+    '.hdr-l{{font-weight:900;font-size:12px;letter-spacing:1px;color:#111}}',
+    '.hdr-r{{font-size:9px;color:#555}}',
+    '.ttl{{text-align:center;margin-bottom:16px}}',
+    '.ttl h1{{font-size:20px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#111}}',
+    '.ttl h2{{font-size:10px;color:#555;font-weight:400;text-transform:uppercase;letter-spacing:1px;margin-top:3px}}',
+    '.cid{{background:#111;color:#FFE600;font-size:34px;font-weight:900;text-align:center;padding:10px;border-radius:6px;letter-spacing:3px;margin-bottom:16px}}',
+    '.igrid{{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-bottom:14px}}',
+    '.ii{{padding:9px 12px;border-bottom:1px solid #eee}}',
+    '.ii:nth-child(odd){{border-right:1px solid #eee}}',
+    '.ilbl{{font-size:7.5px;text-transform:uppercase;letter-spacing:0.8px;color:#999;font-weight:700}}',
+    '.ival{{font-size:13px;font-weight:700;color:#111;margin-top:2px}}',
+    '.ival.red{{color:#dc2626}}',
+    '.conc{{background:#f0fdf4;border:1.5px solid #16a34a;border-radius:5px;padding:12px 16px;margin-top:auto}}',
+    '.conc .ct{{font-size:12px;font-weight:900;color:#15803d;margin-bottom:3px}}',
+    '.conc .cs{{font-size:10px;color:#166534}}',
+    '.fconf{{font-size:8.5px;color:#bbb;text-align:center;margin-top:12px;border-top:1px solid #eee;padding-top:7px}}',
+    '.evh h2{{font-size:15px;font-weight:900;color:#111}}',
+    '.evh .sub{{font-size:10px;color:#555;margin-top:2px;margin-bottom:10px}}',
+    '.etbl{{width:100%;border-collapse:collapse;margin-bottom:8px}}',
+    '.etbl th{{background:#111;color:#FFE600;font-size:8.5px;text-transform:uppercase;letter-spacing:0.7px;padding:6px 9px;text-align:left}}',
+    '.etbl td{{padding:5px 9px;border-bottom:1px solid #eee;font-size:10.5px}}',
+    '.etbl tr.alt td{{background:#f9fafb}}',
+    '.etbl td.cn{{text-align:center;color:#aaa;width:28px}}',
+    '.etbl td.rn{{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}}',
+    '.efoot{{font-size:9.5px;color:#555;background:#f9fafb;border:1px solid #eee;border-radius:4px;padding:7px 10px;margin-top:4px}}',
+    '.bkpg{{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}}',
+    '.bkpg .lp{{font-size:14px;font-weight:900;letter-spacing:3px;text-transform:uppercase}}',
+    '.bkpg .bar{{background:#FFE600;width:50px;height:3px;margin:10px auto}}',
+    '.bkpg .un{{font-size:10px;color:#555;margin-top:6px}}',
+    '.bkpg .gn{{font-size:9px;color:#999;margin-top:18px;border-top:1px solid #eee;padding-top:12px;width:100%}}',
+    '.pbtn{{position:fixed;bottom:18px;right:18px;background:#111;color:#FFE600;border:none;padding:9px 18px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px;z-index:99;box-shadow:0 4px 12px rgba(0,0,0,.3)}}',
+    '.pbtn:hover{{background:#333}}',
+    '.editavel{{border-bottom:1.5px dashed #bbb;min-width:150px;display:inline-block;color:#999;font-style:italic;cursor:text;padding:0 2px}}',
+    '.editavel:focus{{outline:none;border-color:#3b82f6;color:#111;font-style:normal}}',
+    '.editavel:not(:empty){{color:#111;font-style:normal}}',
+    '.edit-hint{{font-size:8px;color:#f59e0b;display:block;margin-top:2px}}',
+    '@media print{{.pbtn{{display:none}}.page{{width:100%;margin:0}}.edit-hint{{display:none}}.editavel{{border:none;color:#111;font-style:normal}}}}'
+  ].join('');
+  var pg1='<div class="page">'+
+    '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">SSP30 · Guarulhos Mega · Mercado Livre</div></div>'+
+    '<div class="ttl"><h1>Solicitação de Bloqueio</h1><h2>Painel Operacional do Caso</h2></div>'+
+    '<div class="cid"># '+d.id+'</div>'+
+    '<div class="igrid">'+
+      '<div class="ii"><div class="ilbl">Driver</div><div class="ival">'+(d.nome||'<span class="editavel" contenteditable="true" title="Clique para editar"></span><span class="edit-hint">⚠ Nome não encontrado — clique para preencher</span>')+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Transportadora</div><div class="ival">'+(d.mlp||'—')+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Tipo de Ocorrência</div><div class="ival">'+tipo+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Período de Acúmulo</div><div class="ival">'+periodoLabel+(periodoRange?' · '+periodoRange:'')+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Data da Solicitação</div><div class="ival">'+hoje+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Unidade Emissora</div><div class="ival">Guarulhos Mega</div></div>'+
+      '<div class="ii"><div class="ilbl">Pacotes Fraud / Lost</div><div class="ival red">'+d.fraud+' pacotes</div></div>'+
+      '<div class="ii"><div class="ilbl">BPP Total Acumulado</div><div class="ival red">'+bppFmt(d.bpp)+'</div></div>'+
+    '</div>'+
+    '<div class="conc">'+
+      '<div class="ct">✓ Conclusão: '+apoLbl+'</div>'+
+      '<div class="cs">O caso atinge todos os critérios operacionais exigidos pela política interna de segurança.</div>'+
+    '</div>'+
+    '<div class="fconf">CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+  '</div>';
+  var pg2='<div class="page">'+
+    '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">Evidências · Driver '+d.id+'</div></div>'+
+    '<div class="evh"><h2>Evidências — Driver '+d.id+'</h2><div class="sub">'+(d.nome?d.nome+' | ':'<span class="editavel" contenteditable="true" title="Clique para editar">Inserir nome</span> | ')+d.mlp+'</div></div>'+
+    '<table class="etbl">'+
+      '<thead><tr><th class="cn">#</th><th>Classificação</th><th>Shipment ID</th><th class="rn">BPP (USD)</th></tr></thead>'+
+      '<tbody>'+shpRows+'</tbody>'+
+    '</table>'+
+    '<div class="efoot">'+
+      'Critério: <strong>'+d.fraud+' pacotes</strong> · BPP Total: <strong>'+bppFmt(d.bpp)+'</strong>'+
+      (shps.length>0?' · BPP s/ maior: <strong>'+bppFmt(bppSemMaior)+'</strong>':'')+
+      (extraShps?' &nbsp;|&nbsp; '+extraShps:'')+
+      '&nbsp;|&nbsp; <strong>'+apoLbl+'</strong>'+
+    '</div>'+
+    '<div class="fconf">CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+  '</div>';
+  var pg3='<div class="page">'+
+    '<div class="bkpg">'+
+      '<div class="lp">Loss Prevention</div>'+
+      '<div class="bar"></div>'+
+      '<div class="un">Mercado Livre · SSP30 · Guarulhos Mega</div>'+
+      '<div class="gn">Gerado em '+hoje+' &nbsp;|&nbsp; '+BLQ_ANALISTA+'<br><br>CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+    '</div>'+
+  '</div>';
+  var full='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Bloqueio '+d.id+'</title>'+
+    '<style>'+css+'</style></head><body>'+pg1+pg2+pg3+
+    '<button class="pbtn" onclick="window.print()">&#128424; Imprimir / PDF</button>'+
+    '</body></html>';
+  var w=window.open('','_blank','width=1100,height=900,scrollbars=yes');
+  if(!w){{ alert('Permita pop-ups para gerar a apresentação.'); return; }}
+  w.document.write(full);
+  w.document.close();
+  w.focus();
 }};
 window.blqBuildCharts = blqBuildCharts;
 window.blqRender      = blqRender;
@@ -674,13 +852,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.13</span>',
+        '<span class="ver-badge">v4.17</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.13')
+    print(f'Pronto! {mb:.1f} MB — v4.17')
 
 
 if __name__ == '__main__':
