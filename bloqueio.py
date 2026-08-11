@@ -346,6 +346,39 @@ def gerar_tab(drivers, sheet_status=None):
     <span>Status salvo por browser (persiste entre sessões)</span>
   </div>
 
+  <!-- Overview status cards -->
+  <div id="blq-overview" style="display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px 4px;align-items:center">
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
+      <div style="font-size:18px;font-weight:700;color:#f87171" id="blq-ov-blq">0</div>
+      <div style="font-size:10px;color:#9ca3af">Bloqueados</div>
+    </div>
+    <div style="background:rgba(107,114,128,.08);border:1px solid rgba(107,114,128,.25);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
+      <div style="font-size:18px;font-weight:700;color:#6b7280" id="blq-ov-ina">0</div>
+      <div style="font-size:10px;color:#9ca3af">Inativos</div>
+    </div>
+    <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
+      <div style="font-size:18px;font-weight:700;color:#fbbf24" id="blq-ov-inv">0</div>
+      <div style="font-size:10px;color:#9ca3af">Em investigação</div>
+    </div>
+    <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
+      <div style="font-size:18px;font-weight:700;color:#4ade80" id="blq-ov-mon">0</div>
+      <div style="font-size:10px;color:#9ca3af">Monitorados</div>
+    </div>
+    <div style="background:rgba(156,163,175,.06);border:1px solid rgba(156,163,175,.15);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
+      <div style="font-size:18px;font-weight:700;color:#9ca3af" id="blq-ov-ati">0</div>
+      <div style="font-size:10px;color:#9ca3af">Ativos</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280">
+      <span>&#128197; Período:</span>
+      <input type="date" id="blq-cal-de" oninput="blqRender()"
+        style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
+      <span>&#8594;</span>
+      <input type="date" id="blq-cal-ate" oninput="blqRender()"
+        style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
+      <button onclick="document.getElementById('blq-cal-de').value='';document.getElementById('blq-cal-ate').value='';blqRender()"
+        style="background:#1f2937;border:1px solid #374151;border-radius:4px;color:#9ca3af;font-size:10px;padding:2px 7px;cursor:pointer">Limpar</button>
+    </div>
+  </div>
   <!-- KPIs -->
   <div class="blq-kpis" style="margin-bottom:14px">
     <div class="blq-kpi red">
@@ -418,8 +451,11 @@ def gerar_tab(drivers, sheet_status=None):
     <span style="font-size:11px;color:#6b7280">Status</span>
     <select id="blq-status" onchange="blqRender()">
       <option value="">Todos</option>
-      <option value="ativo">Ativos</option>
-      <option value="blq">Bloqueados</option>
+      <option value="ati">Ativo</option>
+      <option value="mon">Monitorado</option>
+      <option value="inv">Em investigação</option>
+      <option value="blq">Bloqueado</option>
+      <option value="ina">Inativo</option>
     </select>
     <input type="number" id="blq-pct" value="0" min="0" max="100" oninput="blqRender()"
       style="width:52px;text-align:center" placeholder="% min">
@@ -547,8 +583,10 @@ function blqMsAll(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(fun
 function blqMsNone(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(function(e){{e.checked=false;}}); blqUpdMsBtn(id); blqRender(); }}
 
 function blqRender() {{
-  var de     = (document.getElementById('pd_de')||{{}}).value||'';
-  var ate    = (document.getElementById('pd_ate')||{{}}).value||'';
+  var calDe  = ((document.getElementById('blq-cal-de')||{{}}).value||'').slice(0,7);
+  var calAte = ((document.getElementById('blq-cal-ate')||{{}}).value||'').slice(0,7);
+  var de     = calDe  || (document.getElementById('pd_de') ||{{}}).value||'';
+  var ate    = calAte || (document.getElementById('pd_ate')||{{}}).value||'';
   var stF    = (document.getElementById('blq-status')||{{}}).value||'';
   var minPct = parseFloat((document.getElementById('blq-pct')||{{}}).value)||0;
   var busca  = ((document.getElementById('blq-busca')||{{}}).value||'').trim();
@@ -559,8 +597,7 @@ function blqRender() {{
     if(de||ate){{ var ok=d.meses.some(function(m){{return(!de||m>=de)&&(!ate||m<=ate);}});if(!ok)return false; }}
     if(mlpSel.size && !mlpSel.has(d.mlp||'')) return false;
     if(clsSel.size && !clsSel.has(d.classe))  return false;
-    if(stF==='ativo' && blqGetSt2(d.id)==='blq') return false;
-    if(stF==='blq'   && blqGetSt2(d.id)!=='blq') return false;
+    if(stF && blqGetSt2(d.id) !== stF) return false;
     if(minPct>0 && d.pct<minPct)              return false;
     if(busca && d.id.indexOf(busca)<0)        return false;
     return true;
@@ -614,6 +651,13 @@ function blqRender() {{
     tbody.innerHTML='<tr><td colspan="12" style="text-align:center;padding:40px;color:#374151">Nenhum driver encontrado.</td></tr>';
     return;
   }}
+
+  // Atualizar overview por status (todos os drivers, não filtrados)
+  var _ov = {{ati:0,mon:0,inv:0,blq:0,ina:0}};
+  BLQ_DATA.forEach(function(d){{ var s=blqGetSt2(d.id); if(_ov[s]!==undefined)_ov[s]++; else _ov.ati++; }});
+  ['ati','mon','inv','blq','ina'].forEach(function(k){{
+    var el=document.getElementById('blq-ov-'+k); if(el) el.textContent=_ov[k];
+  }});
 
   var ST_LBL = {{ati:'Ativo',mon:'Monitorado',inv:'Em investigacao',blq:'Bloqueado',ina:'Inativo'}};
   var ST_CLS = {{ati:'blq-s-ati',mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-blq',ina:'blq-s-ina'}};
