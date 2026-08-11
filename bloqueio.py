@@ -9,15 +9,30 @@ from datetime import datetime
 from pathlib import Path
 from google.cloud import bigquery
 from google.auth import default
+import gspread
 
-MIN_BPP   = 300
-MIN_FRAUD = 6
-FACILITY  = 'Guarulhos Mega'
-INICIO    = '2026-01-01'
-HTML_OUT  = Path(__file__).parent / 'fraude.html'
-LOG_URL   = 'https://logistics.mercadolibre.com.br/shipments/'
-BO_DRIVER = 'https://shipping-bo.adminml.com/sauron/drivers/driver/'
-ANALISTA  = 'Lucas de Oliveira Nascimento'
+MIN_BPP       = 300
+MIN_FRAUD     = 6
+FACILITY      = 'Guarulhos Mega'
+INICIO        = '2026-01-01'
+HTML_OUT      = Path(__file__).parent / 'fraude.html'
+LOG_URL       = 'https://logistics.mercadolibre.com.br/shipments/'
+BO_DRIVER     = 'https://shipping-bo.adminml.com/sauron/drivers/driver/'
+ANALISTA      = 'Lucas de Oliveira Nascimento'
+BLOCK_LIST_ID = '1521Ek2wn8qYLj7g6dh0aBBMmpVYHjCp2hftGKNG9bO0'
+
+# Mapeamento de status da planilha para código JS
+_SHEET_STATUS_MAP = {
+    'Bloqueado':        'blq',
+    'Inativo':          'ina',
+    'Já excluído':      'ina',
+    'Monitorado':       'mon',
+    'Sendo Monitorado': 'mon',
+    'Pausado':          'mon',
+    'Recusado':         'ati',
+    'Desbloqueio':      'ati',
+    'Solicitado':       'inv',
+}
 
 # Classificações para contar SHPs de fraude (inclui STOLEN ON ROUTE e LOST ON ROUTE)
 _FC = (
@@ -65,6 +80,60 @@ ORDER BY bpp DESC
 """
 
 
+def ler_block_list_sheets(creds):
+    """Lê a aba 'Drivers Bloqueados' da Block List e retorna {driver_id: status_code}."""
+    try:
+        gc = gspread.Client(auth=creds)
+        sh = gc.open_by_key(BLOCK_LIST_ID)
+        ws = sh.worksheet('Drivers Bloqueados')
+        rows = ws.get_all_values()
+        if not rows:
+            return {}
+        header = rows[0]
+        col_cad    = header.index('CAD')
+        col_id     = header.index('Driver ID')
+        col_status = header.index('Status')
+        col_data   = header.index('Data Solicitação') if 'Data Solicitação' in header else -1
+
+        from collections import defaultdict
+
+        def parse_dt(s):
+            s = (s or '').strip().replace('//', '/')
+            for fmt in ['%d/%m/%Y', '%d/%m/%y']:
+                try:
+                    return datetime.strptime(s, fmt)
+                except Exception:
+                    pass
+            return datetime.min
+
+        # Coleta todos os registros SSP30 por driver_id
+        records = defaultdict(list)
+        for r in rows[1:]:
+            if len(r) <= col_cad or r[col_cad] != 'SSP30':
+                continue
+            did    = r[col_id].strip()    if len(r) > col_id    else ''
+            status = r[col_status].strip() if len(r) > col_status else ''
+            data   = r[col_data].strip()   if col_data >= 0 and len(r) > col_data else ''
+            if did and status:
+                records[did].append({'status': status, 'dt': parse_dt(data)})
+
+        # Status final = registro mais recente
+        result = {}
+        for did, recs in records.items():
+            recs.sort(key=lambda x: x['dt'], reverse=True)
+            code = _SHEET_STATUS_MAP.get(recs[0]['status'], 'ati')
+            result[did] = code
+
+        n_blq = sum(1 for v in result.values() if v == 'blq')
+        n_ina = sum(1 for v in result.values() if v == 'ina')
+        print(f'  Block list Sheets: {len(result)} drivers SSP30 '
+              f'({n_blq} bloqueados, {n_ina} inativos)')
+        return result
+    except Exception as e:
+        print(f'  Aviso block list Sheets: {e}')
+        return {}
+
+
 def carregar_dados():
     # Fallback de nomes via _bl_cache.json (Google Sheets)
     name_lookup = {}
@@ -80,7 +149,14 @@ def carregar_dados():
     except Exception as e:
         print(f'  Aviso name_lookup: {e}')
 
-    creds, _ = default()
+    creds, _ = default(scopes=[
+        'https://www.googleapis.com/auth/bigquery.readonly',
+        'https://www.googleapis.com/auth/spreadsheets.readonly',
+        'https://www.googleapis.com/auth/drive.readonly',
+    ])
+    print('Lendo block list da planilha...')
+    sheet_status = ler_block_list_sheets(creds)
+
     client = bigquery.Client(credentials=creds, project='meli-bi-data')
     print(f'Consultando candidatos (BPP >= ${MIN_BPP}, fraud >= {MIN_FRAUD})...')
     rows = list(client.query(QUERY).result())
@@ -121,10 +197,10 @@ def carregar_dados():
             'meses': meses,
             'shps':  shps,
         })
-    return drivers
+    return drivers, sheet_status
 
 
-def gerar_tab(drivers):
+def gerar_tab(drivers, sheet_status=None):
     if not drivers:
         return '<div id="tab-bloqueios" class="content"><div style="padding:40px;text-align:center;color:#6b7280">Nenhum candidato encontrado.</div></div>'
 
@@ -188,7 +264,8 @@ def gerar_tab(drivers):
             ))
     except Exception:
         pass
-    blocked_ids_js = json.dumps(blocked_ids)
+    blocked_ids_js   = json.dumps(blocked_ids)
+    sheet_status_js  = json.dumps(sheet_status or {}, ensure_ascii=False)
 
     return f"""<div id="tab-bloqueios" class="content">
 <style>
@@ -240,10 +317,11 @@ def gerar_tab(drivers):
 #tab-bloqueios .blq-tag{{font-size:10px;color:#9ca3af;background:#111827;padding:2px 7px;border-radius:4px;max-width:120px;overflow:hidden;text-overflow:ellipsis;display:inline-block}}
 #tab-bloqueios .blq-badge{{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;cursor:pointer;transition:opacity .1s}}
 #tab-bloqueios .blq-badge:hover{{opacity:.8}}
+#tab-bloqueios .blq-s-ati{{background:rgba(156,163,175,.08);color:#9ca3af;border:1px solid rgba(156,163,175,.2)}}
 #tab-bloqueios .blq-s-mon{{background:rgba(74,222,128,.08);color:#4ade80;border:1px solid rgba(74,222,128,.2)}}
 #tab-bloqueios .blq-s-inv{{background:rgba(251,191,36,.08);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}}
 #tab-bloqueios .blq-s-blq{{background:rgba(239,68,68,.08);color:#f87171;border:1px solid rgba(239,68,68,.2)}}
-#tab-bloqueios .blq-mlp{{font-size:11px;color:#9ca3af;max-width:130px;overflow:hidden;text-overflow:ellipsis}}
+#tab-bloqueios .blq-s-ina{{background:rgba(107,114,128,.08);color:#6b7280;border:1px solid rgba(107,114,128,.3);text-decoration:line-through}}
 #tab-bloqueios .blq-btn-pdf{{background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .1s}}
 #tab-bloqueios .blq-btn-pdf:hover{{background:rgba(37,99,235,.22);border-color:#3b82f6;color:#bfdbfe}}
 </style>
@@ -382,7 +460,8 @@ var BLQ_DATA     = {data_json};
 var BLQ_LOG      = '{LOG_URL}';
 var BLQ_DRV      = '{BO_DRIVER}';
 var BLQ_ANALISTA = '{ANALISTA}';
-var BLQ_BLOCKED  = new Set({blocked_ids_js});
+var BLQ_BLOCKED     = new Set({blocked_ids_js});
+var BLQ_SHEET_STATUS = {sheet_status_js};
 var _blqSort = 'bpp', _blqDir = -1;
 
 var _blqCMlp = null, _blqCTop = null;
@@ -435,12 +514,16 @@ function blqNextSt(id) {{
 function blqGetSt2(id) {{
   try {{
     var s = localStorage.getItem('blq_s2_'+id);
-    return s !== null ? s : (BLQ_BLOCKED.has(id) ? 'blq' : 'ativo');
-  }} catch(e) {{ return BLQ_BLOCKED.has(id) ? 'blq' : 'ativo'; }}
+    if (s !== null) return s;
+  }} catch(e) {{}}
+  if (BLQ_SHEET_STATUS[id]) return BLQ_SHEET_STATUS[id];
+  return BLQ_BLOCKED.has(id) ? 'blq' : 'ati';
 }}
 function blqToggleSt2(id) {{
+  var cycle = ['ati','mon','inv','blq','ina'];
   var cur = blqGetSt2(id);
-  try {{ localStorage.setItem('blq_s2_'+id, cur==='blq'?'ativo':'blq'); }} catch(e) {{}}
+  var next = cycle[(cycle.indexOf(cur)+1) % cycle.length];
+  try {{ localStorage.setItem('blq_s2_'+id, next); }} catch(e) {{}}
   blqRender();
 }}
 function blqSortBy(k) {{
@@ -532,11 +615,14 @@ function blqRender() {{
     return;
   }}
 
-  var ST_LBL = {{mon:'Monitorado',inv:'Em investigacao',blq:'Bloqueado'}};
-  var ST_CLS = {{mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-blq'}};
+  var ST_LBL = {{ati:'Ativo',mon:'Monitorado',inv:'Em investigacao',blq:'Bloqueado',ina:'Inativo'}};
+  var ST_CLS = {{ati:'blq-s-ati',mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-blq',ina:'blq-s-ina'}};
+  var ST2_LBL = {{ati:'Ativo',mon:'Monitorado',inv:'Em invest.',blq:'Bloqueado',ina:'Inativo'}};
+  var ST2_CLS = {{ati:'blq-s-ati',mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-blq',ina:'blq-s-ina'}};
 
   tbody.innerHTML = rows.map(function(d,i){{
     var st      = blqGetSt(d.id);
+    var st2     = blqGetSt2(d.id);
     var pctCol  = d.pct>=50?'#f87171':d.pct>=20?'#fbbf24':'#6b7280';
     var pctW    = d.pct>=50?'700':'400';
     var mLbl    = d.meses.length
@@ -558,7 +644,7 @@ function blqRender() {{
       '<td><span class="blq-tag" title="'+(d.classe||'')+'">'+(d.classe||'—')+'</span></td>'+
       '<td style="font-size:10px;color:#6b7280">'+mLbl+'</td>'+
       '<td><span class="blq-badge '+ST_CLS[st]+'" onclick="blqNextSt(\\''+d.id+'\\')">'+ST_LBL[st]+'</span></td>'+
-      '<td><span class="blq-badge '+(blqGetSt2(d.id)==='blq'?'blq-s-blq':'blq-s-ativo')+'" onclick="blqToggleSt2(\\''+d.id+'\\')">'+( blqGetSt2(d.id)==='blq'?'Bloqueado':'Ativo')+'</span></td>'+
+      '<td><span class="blq-badge '+ST2_CLS[st2]+'" onclick="blqToggleSt2(\\''+d.id+'\\')">'+ ST2_LBL[st2]+'</span></td>'+
       '<td><button class="blq-btn-pdf" onclick="blqGerarApresentacao(\\''+d.id+'\\')">&#9998; PDF</button></td>'+
       '</tr>';
 
@@ -833,10 +919,10 @@ def find_and_replace_tab(content, tab_id, new_html):
 
 
 def main():
-    drivers = carregar_dados()
+    drivers, sheet_status = carregar_dados()
 
     print('Gerando HTML...')
-    tab_html = gerar_tab(drivers)
+    tab_html = gerar_tab(drivers, sheet_status)
 
     print('Lendo fraude.html...')
     html = HTML_OUT.read_text(encoding='utf-8')
@@ -855,13 +941,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.18</span>',
+        '<span class="ver-badge">v4.19</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.18')
+    print(f'Pronto! {mb:.1f} MB — v4.19')
 
 
 if __name__ == '__main__':
