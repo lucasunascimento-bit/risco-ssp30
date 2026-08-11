@@ -26,12 +26,12 @@ _SHEET_STATUS_MAP = {
     'Bloqueado':        'blq',
     'Inativo':          'ina',
     'Já excluído':      'ina',
-    'Monitorado':       'mon',
-    'Sendo Monitorado': 'mon',
-    'Pausado':          'mon',
+    'Monitorado':       'ati',
+    'Sendo Monitorado': 'ati',
+    'Pausado':          'ati',
     'Recusado':         'ati',
     'Desbloqueio':      'ati',
-    'Solicitado':       'inv',
+    'Solicitado':       'ati',
 }
 
 # Classificações para contar SHPs de fraude (inclui STOLEN ON ROUTE e LOST ON ROUTE)
@@ -356,24 +356,16 @@ def gerar_tab(drivers, sheet_status=None):
       <div style="font-size:18px;font-weight:700;color:#6b7280" id="blq-ov-ina">0</div>
       <div style="font-size:10px;color:#9ca3af">Inativos</div>
     </div>
-    <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
-      <div style="font-size:18px;font-weight:700;color:#fbbf24" id="blq-ov-inv">0</div>
-      <div style="font-size:10px;color:#9ca3af">Em investigação</div>
-    </div>
-    <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
-      <div style="font-size:18px;font-weight:700;color:#4ade80" id="blq-ov-mon">0</div>
-      <div style="font-size:10px;color:#9ca3af">Monitorados</div>
-    </div>
     <div style="background:rgba(156,163,175,.06);border:1px solid rgba(156,163,175,.15);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
       <div style="font-size:18px;font-weight:700;color:#9ca3af" id="blq-ov-ati">0</div>
       <div style="font-size:10px;color:#9ca3af">Ativos</div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280">
       <span>&#128197; Período:</span>
-      <input type="date" id="blq-cal-de" oninput="blqRender()"
+      <input type="month" id="blq-cal-de" oninput="blqRender()"
         style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
       <span>&#8594;</span>
-      <input type="date" id="blq-cal-ate" oninput="blqRender()"
+      <input type="month" id="blq-cal-ate" oninput="blqRender()"
         style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
       <button onclick="document.getElementById('blq-cal-de').value='';document.getElementById('blq-cal-ate').value='';blqRender()"
         style="background:#1f2937;border:1px solid #374151;border-radius:4px;color:#9ca3af;font-size:10px;padding:2px 7px;cursor:pointer">Limpar</button>
@@ -452,8 +444,6 @@ def gerar_tab(drivers, sheet_status=None):
     <select id="blq-status" onchange="blqRender()">
       <option value="">Todos</option>
       <option value="ati">Ativo</option>
-      <option value="mon">Monitorado</option>
-      <option value="inv">Em investigação</option>
       <option value="blq">Bloqueado</option>
       <option value="ina">Inativo</option>
     </select>
@@ -548,15 +538,16 @@ function blqNextSt(id) {{
   blqRender();
 }}
 function blqGetSt2(id) {{
+  var valid = {{ati:1,blq:1,ina:1}};
   try {{
     var s = localStorage.getItem('blq_s2_'+id);
-    if (s !== null) return s;
+    if (s !== null) return valid[s] ? s : 'ati';
   }} catch(e) {{}}
-  if (BLQ_SHEET_STATUS[id]) return BLQ_SHEET_STATUS[id];
+  var sh = BLQ_SHEET_STATUS[id]; if (sh) return valid[sh] ? sh : 'ati';
   return BLQ_BLOCKED.has(id) ? 'blq' : 'ati';
 }}
 function blqToggleSt2(id) {{
-  var cycle = ['ati','mon','inv','blq','ina'];
+  var cycle = ['ati','blq','ina'];
   var cur = blqGetSt2(id);
   var next = cycle[(cycle.indexOf(cur)+1) % cycle.length];
   try {{ localStorage.setItem('blq_s2_'+id, next); }} catch(e) {{}}
@@ -583,8 +574,8 @@ function blqMsAll(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(fun
 function blqMsNone(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(function(e){{e.checked=false;}}); blqUpdMsBtn(id); blqRender(); }}
 
 function blqRender() {{
-  var calDe  = ((document.getElementById('blq-cal-de')||{{}}).value||'').slice(0,7);
-  var calAte = ((document.getElementById('blq-cal-ate')||{{}}).value||'').slice(0,7);
+  var calDe  = ((document.getElementById('blq-cal-de')||{{}}).value||'');
+  var calAte = ((document.getElementById('blq-cal-ate')||{{}}).value||'');
   var de     = calDe  || (document.getElementById('pd_de') ||{{}}).value||'';
   var ate    = calAte || (document.getElementById('pd_ate')||{{}}).value||'';
   var stF    = (document.getElementById('blq-status')||{{}}).value||'';
@@ -653,16 +644,16 @@ function blqRender() {{
   }}
 
   // Atualizar overview por status (todos os drivers, não filtrados)
-  var _ov = {{ati:0,mon:0,inv:0,blq:0,ina:0}};
+  var _ov = {{ati:0,blq:0,ina:0}};
   BLQ_DATA.forEach(function(d){{ var s=blqGetSt2(d.id); if(_ov[s]!==undefined)_ov[s]++; else _ov.ati++; }});
-  ['ati','mon','inv','blq','ina'].forEach(function(k){{
+  ['ati','blq','ina'].forEach(function(k){{
     var el=document.getElementById('blq-ov-'+k); if(el) el.textContent=_ov[k];
   }});
 
   var ST_LBL = {{ati:'Ativo',mon:'Monitorado',inv:'Em investigacao',blq:'Bloqueado',ina:'Inativo'}};
   var ST_CLS = {{ati:'blq-s-ati',mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-blq',ina:'blq-s-ina'}};
-  var ST2_LBL = {{ati:'Ativo',mon:'Monitorado',inv:'Em invest.',blq:'Bloqueado',ina:'Inativo'}};
-  var ST2_CLS = {{ati:'blq-s-ati',mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-blq',ina:'blq-s-ina'}};
+  var ST2_LBL = {{ati:'Ativo',blq:'Bloqueado',ina:'Inativo'}};
+  var ST2_CLS = {{ati:'blq-s-ati',blq:'blq-s-blq',ina:'blq-s-ina'}};
 
   tbody.innerHTML = rows.map(function(d,i){{
     var st      = blqGetSt(d.id);
@@ -985,13 +976,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.19</span>',
+        '<span class="ver-badge">v4.20</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.19')
+    print(f'Pronto! {mb:.1f} MB — v4.20')
 
 
 if __name__ == '__main__':
