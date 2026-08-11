@@ -40,6 +40,7 @@ QUERY = f"""
 SELECT
     SAFE_CAST(DRIVER_ID AS STRING)                              AS id,
     IFNULL(MAX(DRIVER_NAME), '')                               AS nome,
+    IFNULL(MAX(PLATE), '')                                     AS placa,
     IFNULL(MAX(MLP), '')                                       AS mlp,
     COUNT(DISTINCT SHIPMENT_ID)                                AS total,
     COUNT(DISTINCT CASE WHEN {_FC} THEN SHIPMENT_ID END)      AS fraud,
@@ -110,6 +111,7 @@ def carregar_dados():
         drivers.append({
             'id':    row['id'],
             'nome':  nome,
+            'placa': (row['placa'] or '').strip(),
             'mlp':   row['mlp'] or '',
             'total': total,
             'fraud': fraud,
@@ -710,6 +712,7 @@ window.blqGerarApresentacao = function(drvId) {{
     '<div class="igrid">'+
       '<div class="ii"><div class="ilbl">Driver</div><div class="ival">'+(d.nome||'<span class="editavel" contenteditable="true" title="Clique para editar"></span><span class="edit-hint">⚠ Nome não encontrado — clique para preencher</span>')+'</div></div>'+
       '<div class="ii"><div class="ilbl">Transportadora</div><div class="ival">'+(d.mlp||'—')+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Placa</div><div class="ival">'+(d.placa||'—')+'</div></div>'+
       '<div class="ii"><div class="ilbl">Tipo de Ocorrência</div><div class="ival">'+tipo+'</div></div>'+
       '<div class="ii"><div class="ilbl">Período de Acúmulo</div><div class="ival">'+periodoLabel+(periodoRange?' · '+periodoRange:'')+'</div></div>'+
       '<div class="ii"><div class="ilbl">Data da Solicitação</div><div class="ival">'+hoje+'</div></div>'+
@@ -852,13 +855,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.17</span>',
+        '<span class="ver-badge">v4.18</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.17')
+    print(f'Pronto! {mb:.1f} MB — v4.18')
 
 
 if __name__ == '__main__':
