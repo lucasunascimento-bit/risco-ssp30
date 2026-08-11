@@ -360,16 +360,6 @@ def gerar_tab(drivers, sheet_status=None):
       <div style="font-size:18px;font-weight:700;color:#9ca3af" id="blq-ov-ati">0</div>
       <div style="font-size:10px;color:#9ca3af">Ativos</div>
     </div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280">
-      <span>&#128197; Período:</span>
-      <input type="month" id="blq-cal-de" oninput="blqRender()"
-        style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
-      <span>&#8594;</span>
-      <input type="month" id="blq-cal-ate" oninput="blqRender()"
-        style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
-      <button onclick="document.getElementById('blq-cal-de').value='';document.getElementById('blq-cal-ate').value='';blqRender()"
-        style="background:#1f2937;border:1px solid #374151;border-radius:4px;color:#9ca3af;font-size:10px;padding:2px 7px;cursor:pointer">Limpar</button>
-    </div>
   </div>
   <!-- KPIs -->
   <div class="blq-kpis" style="margin-bottom:14px">
@@ -574,10 +564,8 @@ function blqMsAll(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(fun
 function blqMsNone(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(function(e){{e.checked=false;}}); blqUpdMsBtn(id); blqRender(); }}
 
 function blqRender() {{
-  var calDe  = ((document.getElementById('blq-cal-de')||{{}}).value||'');
-  var calAte = ((document.getElementById('blq-cal-ate')||{{}}).value||'');
-  var de     = calDe  || (document.getElementById('pd_de') ||{{}}).value||'';
-  var ate    = calAte || (document.getElementById('pd_ate')||{{}}).value||'';
+  var de  = (document.getElementById('pd_de') ||{{}}).value||'';
+  var ate = (document.getElementById('pd_ate')||{{}}).value||'';
   var stF    = (document.getElementById('blq-status')||{{}}).value||'';
   var minPct = parseFloat((document.getElementById('blq-pct')||{{}}).value)||0;
   var busca  = ((document.getElementById('blq-busca')||{{}}).value||'').trim();
@@ -616,7 +604,7 @@ function blqRender() {{
   var kBL = document.getElementById('blq-k-blq');
   if(kBL) kBL.textContent = blk;
   var ct  = document.getElementById('blq-tbl-ct');
-  if(ct) ct.textContent = rows.length+' drivers · '+inv+' em investigacao · '+blk+' bloqueados';
+  if(ct) ct.textContent = rows.length+' drivers · '+inv+' monitorando · '+blk+' bloqueados';
 
   // Atualiza gráficos se já foram construídos
   if(_blqCMlp || _blqCTop) {{
@@ -650,8 +638,8 @@ function blqRender() {{
     var el=document.getElementById('blq-ov-'+k); if(el) el.textContent=_ov[k];
   }});
 
-  var ST_LBL = {{ati:'Ativo',mon:'Monitorado',inv:'Em investigacao',blq:'Bloqueado',ina:'Inativo'}};
-  var ST_CLS = {{ati:'blq-s-ati',mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-blq',ina:'blq-s-ina'}};
+  var ST_LBL = {{mon:'Monitorando',inv:'Em investigação',blq:'Concluído'}};
+  var ST_CLS = {{mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-ati'}};
   var ST2_LBL = {{ati:'Ativo',blq:'Bloqueado',ina:'Inativo'}};
   var ST2_CLS = {{ati:'blq-s-ati',blq:'blq-s-blq',ina:'blq-s-ina'}};
 
@@ -976,13 +964,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.20</span>',
+        '<span class="ver-badge">v4.21</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.20')
+    print(f'Pronto! {mb:.1f} MB — v4.21')
 
 
 if __name__ == '__main__':
