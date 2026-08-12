@@ -774,17 +774,7 @@ def main():
     print('Lendo fraude.html...')
     html = HTML_OUT.read_text(encoding='utf-8')
 
-    # Remove abas antigas (exceto lor-fraud)
-    abas_remover = [
-        'tab-geral', 'tab-acumulo', 'tab-dxp', 'tab-places', 'tab-damaged',
-        'tab-ofensores', 'tab-bloqueios', 'tab-cruzamento',
-        'tab-dcnex', 'tab-tendencia', 'tab-saidas', 'tab-devolucoes',
-        'tab-sellers_ene', 'tab-damaged_ene', 'tab-relatorio',
-    ]
-    for aba in abas_remover:
-        html, ok = find_and_replace_tab(html, aba, f'<div id="{aba}" class="content"><!-- removida --></div>')
-        if ok:
-            print(f'  Limpou {aba}')
+    # sellers.py apenas atualiza tab-sellers; não toca nas demais abas
 
     # Injeta/atualiza aba sellers
     html, ok = find_and_replace_tab(html, 'tab-sellers', tab_html)
