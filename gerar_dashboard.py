@@ -2774,65 +2774,89 @@ def gerar_html(d):
 
 <!-- ===================== ABA: ON ROUTE ===================== -->
 <div id="tab-route" class="content">
-  <div class="cards">
-    <div class="card yellow"><div class="label">Total</div><div class="value">{d["r_total"]}</div></div>
-    <div class="card green"><div class="label">GMV Total</div><div class="value">${d["r_gmv"]:,.0f}</div></div>
-    <div class="card red"><div class="label">Possivel Lost</div><div class="value">{d["r_sit"].get("Possivel Lost",0)}</div></div>
-    <div class="card orange"><div class="label">Procurar Pacote</div><div class="value">{d["r_sit"].get("Procurar Pacote",0)}</div></div>
-    <div class="card blue"><div class="label">CFTV Solicitado</div><div class="value">{d["r_cftv"]}</div></div>
-    <div class="card yellow"><div class="label">Novos Hoje</div><div class="value">{d["r_novos"]}</div></div>
+  {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin:0 0 12px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
+  <div id="rt-kpis" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <span id="rt-subtitle" style="font-size:13px;color:#8899aa"></span>
+    <a href="https://docs.google.com/spreadsheets/d/{PLANILHA_CONTROLE_ID}/edit"
+       target="_blank"
+       style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
+      ✏ Editar na planilha
+    </a>
   </div>
-  <div class="tbl-wrap">
-    {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <span style="font-size:13px;color:#8899aa">{d["r_total"]} casos · USD {d["r_gmv"]:,.2f}</span>
-      <a href="https://docs.google.com/spreadsheets/d/{PLANILHA_CONTROLE_ID}/edit"
-         target="_blank"
-         style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
-        ✏ Editar na planilha
-      </a>
-    </div>
-    <div id="tabulator-route"></div>
-    <script>
-    (function(){{
-      var dataRT = {d['tab_rt_json']};
-      new Tabulator("#tabulator-route", {{
-        data: dataRT,
-        layout: "fitDataStretch",
-        pagination: "local",
-        paginationSize: 30,
-        paginationSizeSelector: [20, 30, 50, 100],
-        movableColumns: true,
-        initialSort: [{{column:"gmv", dir:"desc"}}],
-        rowFormatter: function(row){{
-          var data = row.getData();
-          if(data.entregue) row.getElement().style.opacity = "0.5";
-          if(data.sit && (data.sit.indexOf("Lost") >= 0 || data.sit.indexOf("11 dias") >= 0))
-            row.getElement().style.borderLeft = "3px solid #e05252";
-        }},
-        columns: [
-          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
-            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
-          }}}},
-          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
-          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:110}},
-          {{title:"Ação LP", field:"acao_lp", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
-          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
-          {{title:"Finalização", field:"finalizacao", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
-          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
-            var v = cell.getValue();
-            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
-            return v+'d';
-          }}}},
-          {{title:"CFTV", field:"cftv", width:80}},
-          {{title:"Cobrar OTR", field:"cobrar_otr", width:100}},
-          {{title:"Entrada", field:"entrada", width:100}},
-          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
-        ],
-      }});
-    }})();
-    </script>
-  </div>
+  <div id="rt-list"></div>
+  <script>
+  (function(){{
+    var data = {d['tab_rt_json']};
+
+    function fmtGmv(v){{ return '$' + Number(v).toLocaleString('pt-BR', {{minimumFractionDigits:2, maximumFractionDigits:2}}); }}
+
+    var urgentes   = data.filter(function(r){{ return r.dias_carteira >= 8 && !(r.acao_lp||'').trim(); }});
+    var novos      = data.filter(function(r){{ return r.dias_carteira >= 0 && r.dias_carteira <= 2; }});
+    var novosIds   = novos.map(function(r){{ return r.id; }});
+    var urgentesIds= urgentes.map(function(r){{ return r.id; }});
+    var andamento  = data.filter(function(r){{ return urgentesIds.indexOf(r.id) < 0 && novosIds.indexOf(r.id) < 0; }});
+    var gmvTotal   = data.reduce(function(s,r){{ return s + (r.gmv||0); }}, 0);
+
+    var kpisEl = document.getElementById('rt-kpis');
+    var kpiDefs = [
+      {{val: data.length,    lbl: 'Total ativo',   color: '#64b5f6'}},
+      {{val: fmtGmv(gmvTotal), lbl: 'GMV em risco', color: '#4caf50'}},
+      {{val: urgentes.length, lbl: 'Urgentes',      color: '#ef5350'}},
+      {{val: andamento.length,lbl: 'Em andamento',  color: '#ffb74d'}},
+      {{val: novos.length,    lbl: 'Novos (≤2d)',   color: '#81c784'}},
+    ];
+    kpiDefs.forEach(function(k){{
+      kpisEl.innerHTML += '<div style="background:#1a1a24;border-radius:8px;padding:10px 16px;min-width:100px;border:1px solid #2a2a3a">' +
+        '<div style="font-size:20px;font-weight:700;color:'+k.color+'">'+k.val+'</div>' +
+        '<div style="font-size:11px;color:#777;margin-top:2px">'+k.lbl+'</div></div>';
+    }});
+
+    document.getElementById('rt-subtitle').textContent = data.length + ' casos · USD ' + Number(gmvTotal).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}});
+
+    function makeRow(r){{
+      var dias = r.dias_carteira >= 0 ? r.dias_carteira : '—';
+      var isUrgente = urgentesIds.indexOf(r.id) >= 0;
+      var isNovo = novosIds.indexOf(r.id) >= 0;
+      var dotColor = isUrgente ? '#ef5350' : (isNovo ? '#81c784' : '#ffb74d');
+      var diasColor = r.dias_carteira >= 8 ? '#ef5350' : (r.dias_carteira <= 2 ? '#81c784' : '#ffb74d');
+      var isLost = (r.sit||'').indexOf('Lost') >= 0;
+      var badgeBg = isLost ? 'rgba(239,83,80,.15)' : 'rgba(255,183,77,.12)';
+      var badgeColor = isLost ? '#ef9a9a' : '#ffcc80';
+      var sitLabel = isLost ? 'Poss. Lost' : 'Procurar';
+      var acaoTxt = (r.acao_lp||'').trim() ? r.acao_lp : '— sem ação';
+      var acaoColor = (r.acao_lp||'').trim() ? '#a5d6a7' : '#666';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #1e1e2e;cursor:default" ' +
+        'onmouseover="this.style.background=\'#1a1a24\'" onmouseout="this.style.background=\'transparent\'">' +
+        '<div style="width:7px;height:7px;border-radius:50%;background:'+dotColor+';flex-shrink:0"></div>' +
+        '<div style="font-family:monospace;font-size:12px;color:#64b5f6;width:100px;flex-shrink:0;cursor:pointer" ' +
+          'onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+r.id+'\');this.style.color=\'#a5d6a7\';var t=this;setTimeout(function(){{t.style.color=\'#64b5f6\';}},900)" ' +
+          'title="Clique para copiar">'+r.id+'</div>' +
+        '<div style="font-size:13px;font-weight:600;width:80px;flex-shrink:0">'+fmtGmv(r.gmv)+'</div>' +
+        '<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:'+badgeBg+';color:'+badgeColor+';flex-shrink:0">'+sitLabel+'</span>' +
+        '<span style="font-size:11px;color:'+diasColor+';width:36px;flex-shrink:0;font-weight:'+(r.dias_carteira>=8?'700':'400')+'">'+dias+'d</span>' +
+        '<span style="font-size:11px;color:'+acaoColor+';flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acaoTxt+'</span>' +
+        ((r.cftv||'').toLowerCase()==='sim' ? '<span style="font-size:10px;background:rgba(100,181,246,.15);color:#64b5f6;padding:2px 6px;border-radius:4px;flex-shrink:0">CFTV</span>' : '') +
+        '</div>';
+    }}
+
+    function makeGroup(label, rows, dotColor){{
+      if(!rows.length) return '';
+      var html = '<div style="font-size:10px;font-weight:600;letter-spacing:.8px;color:'+dotColor+';padding:10px 10px 4px;text-transform:uppercase">' +
+        label + ' &nbsp;<span style="font-weight:400;color:#555">' + rows.length + ' caso' + (rows.length>1?'s':'') + '</span></div>';
+      rows.forEach(function(r){{ html += makeRow(r); }});
+      return html;
+    }}
+
+    var listEl = document.getElementById('rt-list');
+    listEl.innerHTML =
+      makeGroup('⚑ Urgentes · sem ação LP · 8d+', urgentes, '#ef5350') +
+      makeGroup('Em andamento', andamento, '#ffb74d') +
+      makeGroup('Novos · ≤ 2 dias', novos, '#81c784');
+
+    if(!data.length) listEl.innerHTML = '<div style="text-align:center;color:#555;padding:40px">Nenhum caso ativo.</div>';
+  }})();
+  </script>
 </div>
 
 <!-- ===================== ABA 3: ON WAY ===================== -->
