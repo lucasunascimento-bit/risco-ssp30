@@ -14,59 +14,73 @@ INICIO   = '2026-01-01'
 HTML_OUT = Path(__file__).parent / 'fraude.html'
 
 # ── Query 1: buyers com fraude OU damaged (LP relevante) ────────────────────
+# CTE pré-deduplica por SHP antes de agregar — evita contar o mesmo pacote N vezes
 Q_BUYERS = f"""
+WITH shps AS (
+  SELECT
+    CUS_NICKNAME_BUY                                                     AS buyer,
+    SHIPMENT_ID,
+    MAX(TIPO_FRAUDE)                                                     AS tipo_fraude,
+    MAX(CLASSIFICATION_LM)                                               AS classification_lm,
+    MAX(TIPO_DAMAGED_LG)                                                 AS tipo_damaged_lg,
+    MAX(DATE_BPP)                                                        AS date_bpp,
+    MAX(BPP_CASHOUT_USD)                                                 AS bpp_cashout_usd
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
+    AND DATE_BPP >= '{INICIO}'
+    AND DATE_BPP <= CURRENT_DATE()
+    AND CUS_NICKNAME_BUY IS NOT NULL
+    AND CUS_NICKNAME_BUY != ''
+  GROUP BY 1, 2
+)
 SELECT
-  CUS_NICKNAME_BUY                                                       AS buyer,
+  buyer,
   COUNT(*)                                                               AS total,
-  ROUND(SUM(IFNULL(BPP_CASHOUT_USD, 0)), 2)                             AS bpp,
-  COUNTIF(TIPO_FRAUDE = 'FRAUDE BUYER')                                  AS n_fraude,
+  ROUND(SUM(IFNULL(bpp_cashout_usd, 0)), 2)                             AS bpp,
+  COUNTIF(tipo_fraude = 'FRAUDE BUYER')                                  AS n_fraude,
   COUNTIF(
-    CLASSIFICATION_LM LIKE 'DAMAGED%'
-    OR TIPO_DAMAGED_LG IN (
+    classification_lm LIKE 'DAMAGED%'
+    OR tipo_damaged_lg IN (
       'DAMAGED','damaged_svc','damaged_on_route','damaged_seller','damaged','SELLER'
     )
   )                                                                      AS n_damaged,
-  MIN(FORMAT_DATE('%Y-%m', DATE_BPP))                                    AS primeiro_mes,
-  MAX(FORMAT_DATE('%Y-%m', DATE_BPP))                                    AS ultimo_mes,
-  COUNT(DISTINCT FORMAT_DATE('%Y-%m', DATE_BPP))                        AS n_meses
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
-  AND DATE_BPP >= '{INICIO}'
-  AND DATE_BPP <= CURRENT_DATE()
-  AND CUS_NICKNAME_BUY IS NOT NULL
-  AND CUS_NICKNAME_BUY != ''
+  MIN(FORMAT_DATE('%Y-%m', date_bpp))                                    AS primeiro_mes,
+  MAX(FORMAT_DATE('%Y-%m', date_bpp))                                    AS ultimo_mes,
+  COUNT(DISTINCT FORMAT_DATE('%Y-%m', date_bpp))                        AS n_meses
+FROM shps
 GROUP BY 1
 HAVING n_fraude > 0 OR n_damaged > 0
 ORDER BY bpp DESC
 """
 
-# ── Query 2: shipments FRAUDE BUYER (todos) ──────────────────────────────────
+# ── Query 2: shipments FRAUDE BUYER (1 linha por SHP) ───────────────────────
 Q_FRAUDE_BUYER = f"""
 SELECT
   CUS_NICKNAME_BUY                                    AS buyer,
   CAST(SHIPMENT_ID AS STRING)                         AS sid,
-  IFNULL(CLASSIFICATION_LM, '')                       AS causa,
-  IFNULL(TIPO_FRAUDE, '')                             AS tf,
-  FORMAT_DATE('%Y-%m', DATE_BPP)                      AS mes,
-  ROUND(IFNULL(BPP_CASHOUT_USD, 0), 2)                AS bpp
+  MAX(IFNULL(CLASSIFICATION_LM, ''))                  AS causa,
+  MAX(IFNULL(TIPO_FRAUDE, ''))                        AS tf,
+  FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                 AS mes,
+  ROUND(MAX(IFNULL(BPP_CASHOUT_USD, 0)), 2)           AS bpp
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
   AND DATE_BPP >= '{INICIO}'
   AND DATE_BPP <= CURRENT_DATE()
   AND CUS_NICKNAME_BUY IS NOT NULL
   AND TIPO_FRAUDE = 'FRAUDE BUYER'
-ORDER BY BPP_CASHOUT_USD DESC
+GROUP BY 1, 2
+ORDER BY bpp DESC
 """
 
-# ── Query 3: shipments damaged com buyer (top 3000 por BPP) ──────────────────
+# ── Query 3: shipments damaged com buyer (1 linha por SHP, top 3000) ─────────
 Q_DAMAGED_BUYER = f"""
 SELECT
   CUS_NICKNAME_BUY                                    AS buyer,
   CAST(SHIPMENT_ID AS STRING)                         AS sid,
-  IFNULL(CLASSIFICATION_LM, '')                       AS causa,
-  IFNULL(TIPO_DAMAGED_LG, '')                         AS td,
-  FORMAT_DATE('%Y-%m', DATE_BPP)                      AS mes,
-  ROUND(IFNULL(BPP_CASHOUT_USD, 0), 2)                AS bpp
+  MAX(IFNULL(CLASSIFICATION_LM, ''))                  AS causa,
+  MAX(IFNULL(TIPO_DAMAGED_LG, ''))                    AS td,
+  FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                 AS mes,
+  ROUND(MAX(IFNULL(BPP_CASHOUT_USD, 0)), 2)           AS bpp
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
   AND DATE_BPP >= '{INICIO}'
@@ -78,7 +92,8 @@ WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
       'DAMAGED','damaged_svc','damaged_on_route','damaged_seller','damaged','SELLER'
     )
   )
-ORDER BY BPP_CASHOUT_USD DESC
+GROUP BY 1, 2
+ORDER BY bpp DESC
 LIMIT 3000
 """
 
