@@ -61,7 +61,7 @@ SELECT
     COUNT(DISTINCT CASE WHEN {_FC} THEN SHIPMENT_ID END)      AS fraud,
     ROUND(SUM(CASE WHEN {_FC_BPP} THEN BPP_CASHOUT_USD ELSE 0 END), 2) AS bpp,
     APPROX_TOP_COUNT(Classification_LM, 1)[OFFSET(0)].value   AS classe,
-    ARRAY_AGG(DISTINCT CASE WHEN {_FC_BPP} THEN FORMAT_DATE('%Y-%m', date_bpp) END IGNORE NULLS) AS meses,
+    ARRAY_AGG(DISTINCT CASE WHEN {_FC_BPP} THEN FORMAT_DATE('%Y-%m-%d', date_bpp) END IGNORE NULLS) AS meses,
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN CAST(SHIPMENT_ID AS STRING) END IGNORE NULLS
         ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_ids,
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN ROUND(BPP_CASHOUT_USD, 2) END IGNORE NULLS
@@ -360,6 +360,16 @@ def gerar_tab(drivers, sheet_status=None):
       <div style="font-size:18px;font-weight:700;color:#9ca3af" id="blq-ov-ati">0</div>
       <div style="font-size:10px;color:#9ca3af">Ativos</div>
     </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280">
+      <span>&#128197; Período:</span>
+      <input type="date" id="blq-cal-de" oninput="blqRender()"
+        style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
+      <span>&#8594;</span>
+      <input type="date" id="blq-cal-ate" oninput="blqRender()"
+        style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
+      <button onclick="document.getElementById('blq-cal-de').value='';document.getElementById('blq-cal-ate').value='';blqRender()"
+        style="background:#1f2937;border:1px solid #374151;border-radius:4px;color:#9ca3af;font-size:10px;padding:2px 7px;cursor:pointer">Limpar</button>
+    </div>
   </div>
   <!-- KPIs -->
   <div class="blq-kpis" style="margin-bottom:14px">
@@ -564,8 +574,17 @@ function blqMsAll(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(fun
 function blqMsNone(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(function(e){{e.checked=false;}}); blqUpdMsBtn(id); blqRender(); }}
 
 function blqRender() {{
-  var de  = (document.getElementById('pd_de') ||{{}}).value||'';
-  var ate = (document.getElementById('pd_ate')||{{}}).value||'';
+  var calDe  = ((document.getElementById('blq-cal-de')||{{}}).value||'');
+  var calAte = ((document.getElementById('blq-cal-ate')||{{}}).value||'');
+  var de, ate;
+  if (calDe || calAte) {{
+    de = calDe; ate = calAte;
+  }} else {{
+    var pdDe  = (document.getElementById('pd_de') ||{{}}).value||'';
+    var pdAte = (document.getElementById('pd_ate')||{{}}).value||'';
+    de  = pdDe  ? pdDe  + '-01' : '';
+    ate = pdAte ? pdAte + '-31' : '';
+  }}
   var stF    = (document.getElementById('blq-status')||{{}}).value||'';
   var minPct = parseFloat((document.getElementById('blq-pct')||{{}}).value)||0;
   var busca  = ((document.getElementById('blq-busca')||{{}}).value||'').trim();
@@ -648,10 +667,11 @@ function blqRender() {{
     var st2     = blqGetSt2(d.id);
     var pctCol  = d.pct>=50?'#f87171':d.pct>=20?'#fbbf24':'#6b7280';
     var pctW    = d.pct>=50?'700':'400';
-    var mLbl    = d.meses.length
-      ? d.meses.slice(-3).map(function(m){{
+    var _uniqMs = d.meses.map(function(m){{return m.slice(0,7);}}).filter(function(v,i,a){{return a.indexOf(v)===i;}});
+    var mLbl    = _uniqMs.length
+      ? _uniqMs.slice(-3).map(function(m){{
           try{{var dt=new Date(m+'-15');return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('. ','/');}}catch(e){{return m;}}
-        }}).join(' · ')+(d.meses.length>3?' +':'')
+        }}).join(' · ')+(_uniqMs.length>3?' +':'')
       : '—';
 
     var mainRow =
@@ -964,13 +984,13 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.21</span>',
+        '<span class="ver-badge">v4.22</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.21')
+    print(f'Pronto! {mb:.1f} MB — v4.22')
 
 
 if __name__ == '__main__':
