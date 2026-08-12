@@ -3064,76 +3064,25 @@ def gerar_html(d):
 {diario_panel_html()}
 <div class="app-body">
 <nav class="sidebar">
-  <div class="sb-item active" data-tab="geral" onclick="showTab('geral',this)">
-    <i data-lucide="bar-chart-2" width="14" height="14" class="ci"></i> Visão Geral
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section-header">Análise de Risco</div>
-  <div class="sb-item" data-tab="acumulo" onclick="showTab('acumulo',this)">
-    <i data-lucide="shield-x" width="14" height="14" class="ci"></i>
-    Acúmulo Bloqueio <span class="sb-badge" id="tab-count-acumulo">{len(d["acumulo_bloqueio"])}</span>
-  </div>
-  <div class="sb-item" data-tab="lor-fraud" onclick="showTab('lor-fraud',this);setTimeout(function(){{if(window.lfRender)window.lfRender();}},80)">
+  <div class="sb-item active" data-tab="lor-fraud" onclick="showTab('lor-fraud',this);setTimeout(function(){{if(window.lfRender)window.lfRender();}},80)">
     <i data-lucide="truck" width="14" height="14" class="ci"></i>
-    LOR+Fraud <span class="sb-badge red" id="tab-count-lor-fraud">{d["driver_lor_fraud"]["total_shps"]}</span>
+    LOR+Fraud <span class="sb-badge red" id="tab-count-lor-fraud">0</span>
   </div>
-  <div class="sb-item" data-tab="dxp" onclick="showTab('dxp',this)">
-    <i data-lucide="map-pin" width="14" height="14" class="ci"></i>
-    Driver × Place <span class="sb-badge" id="tab-count-dxp">{len(d["dxp"])}</span>
-  </div>
-  <div class="sb-item" data-tab="places" onclick="showTab('places',this)">
-    <i data-lucide="building-2" width="14" height="14" class="ci"></i>
-    Places <span class="sb-badge" id="tab-count-places">{d["total_places"]}</span>
-  </div>
-  <div class="sb-item" data-tab="damaged" onclick="showTab('damaged',this)">
-    <i data-lucide="package-x" width="14" height="14" class="ci"></i>
-    Damaged <span class="sb-badge" id="tab-count-damaged">{len(d["damaged"])}</span>
-  </div>
-  <div class="sb-item" data-tab="tendencia" onclick="showTab('tendencia',this)">
-    <i data-lucide="trending-up" width="14" height="14" class="ci"></i>
-    Tendência
-  </div>
-  <div class="sb-item" data-tab="dcnex" onclick="showTab('dcnex',this)">
-    <i data-lucide="warehouse" width="14" height="14" class="ci"></i>
-    DC / NEX <span class="sb-badge red" id="tab-count-dcnex">{d["dc_nex"]["total_pkgs"]}</span>
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section-header">Investigação LP</div>
-  <div class="sb-item" data-tab="saidas" onclick="showTab('saidas',this)">
-    <i data-lucide="repeat-2" width="14" height="14" class="ci"></i>
-    Saídas Múltiplas <span class="sb-badge red" id="tab-count-saidas">0</span>
-  </div>
-  <div class="sb-item" data-tab="devolucoes" onclick="showTab('devolucoes',this)">
-    <i data-lucide="package-open" width="14" height="14" class="ci"></i>
-    Devoluções <span class="sb-badge amber" id="tab-count-devolucoes">0</span>
-  </div>
-  <div class="sb-item" data-tab="sellers_ene" onclick="showTab('sellers_ene',this)">
-    <i data-lucide="store" width="14" height="14" class="ci"></i>
-    Sellers ENE <span class="sb-badge red" id="tab-count-sellers-ene">0</span>
-  </div>
-  <div class="sb-item" data-tab="damaged_ene" onclick="showTab('damaged_ene',this)">
-    <i data-lucide="package-open" width="14" height="14" class="ci"></i>
-    Damaged ENE <span class="sb-badge red" id="tab-count-damaged-ene">0</span>
-  </div>
-  <div class="sb-item" data-tab="ofensores" onclick="showTab('ofensores',this)">
-    <i data-lucide="target" width="14" height="14" class="ci"></i>
-    Ofensores <span class="sb-badge purple">{d["crz"]["total_buyers"]}</span>
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section-header">Block List</div>
   <div class="sb-item" data-tab="bloqueios" onclick="showTab('bloqueios',this)">
     <i data-lucide="shield" width="14" height="14" class="ci"></i>
     Bloqueios <span class="sb-badge green" id="tab-count-bloqueios">{d["bl"]["total"]}</span>
   </div>
-  <div class="sb-item" data-tab="cruzamento" onclick="showTab('cruzamento',this)">
-    <i data-lucide="git-merge" width="14" height="14" class="ci"></i>
-    Cruzamento <span class="sb-badge amber">{d["crz"]["total_pares"]}</span>
+  <div class="sb-item" data-tab="nodos" onclick="showTab('nodos',this);setTimeout(function(){{if(window.buildNodoCharts)window.buildNodoCharts();if(window.filtrarNodos)window.filtrarNodos();}},80)">
+    <i data-lucide="map-pin" width="14" height="14" class="ci"></i>
+    Nodos <span class="sb-badge" id="tab-count-nodos">0</span>
   </div>
-  <div class="sb-divider"></div>
-  <div class="sb-section-header">Relatórios</div>
-  <div class="sb-item" data-tab="relatorio" onclick="showTab('relatorio',this)">
-    <i data-lucide="file-text" width="14" height="14" class="ci"></i>
-    Rel. Semanal
+  <div class="sb-item" data-tab="buyers" onclick="showTab('buyers',this);setTimeout(function(){{if(window.buyAplicar)window.buyAplicar();}},80)">
+    <i data-lucide="user" width="14" height="14" class="ci"></i>
+    Buyers <span class="sb-badge" id="tab-count-buyers">0</span>
+  </div>
+  <div class="sb-item" data-tab="sellers" onclick="showTab('sellers',this);setTimeout(function(){{if(window.selAplicar)window.selAplicar();}},80)">
+    <i data-lucide="store" width="14" height="14" class="ci"></i>
+    Sellers <span class="sb-badge" id="tab-count-sellers">0</span>
   </div>
 </nav>
 <main class="main-content">
@@ -3150,7 +3099,7 @@ def gerar_html(d):
 </div>
 
 <!-- VISÃO GERAL -->
-<div id="tab-geral" class="content active">
+<div id="tab-geral" class="content">
 
   <div class="cards">
     <div class="card c-red">
@@ -3422,6 +3371,8 @@ def gerar_html(d):
 </div>
 
 <script>
+let _periodDe = '', _periodAte = '';
+let _currentTab = 'lor-fraud';
 // Filtro da aba Bloqueios — usa período global _periodDe/_periodAte + Tabulator
 var _tblBloqueios = null;
 function filtrarBloqueios() {{
@@ -3691,7 +3642,7 @@ function showTab(name, el) {{
   _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(e => e.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+  var _t = document.getElementById('tab-' + name); if (!_t) return; _t.classList.add('active');
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
   const bp = document.getElementById('barra-periodo');
@@ -3935,9 +3886,6 @@ const ANNUAL  = {{
   damaged: MONTHLY.reduce((s,m)=>s+m.damaged,0),
   bpp:     MONTHLY.reduce((s,m)=>s+m.bpp,0)
 }};
-let _periodDe = '', _periodAte = '';
-let _currentTab = 'geral';
-
 // Aplica filtro de período apenas na aba indicada
 function applyPeriodoToTab(name) {{
   const filterByMonths = (tblId) => {{

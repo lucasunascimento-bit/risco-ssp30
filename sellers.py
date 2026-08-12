@@ -742,6 +742,24 @@ document.addEventListener('DOMContentLoaded', function(){{
 </div>"""
 
 
+def inject_sellers_sidebar(html):
+    if 'data-tab="sellers"' in html:
+        return html
+    old = '<div class="sb-item" data-tab="bloqueios"'
+    new = (
+        '<div class="sb-item" data-tab="sellers" onclick="showTab(\'sellers\',this);'
+        'setTimeout(function(){if(window.selAplicar)window.selAplicar();},80)">\n'
+        '      <i data-lucide="store" width="14" height="14" class="ci"></i>\n'
+        '      Sellers <span class="sb-badge" id="tab-count-sellers">0</span>\n'
+        '    </div>\n'
+        '    <div class="sb-item" data-tab="bloqueios"'
+    )
+    if old not in html:
+        print('  WARNING: sellers sidebar — anchor data-tab="bloqueios" não encontrado')
+        return html
+    return html.replace(old, new, 1)
+
+
 def find_and_replace_tab(content, tab_id, new_html):
     start = content.find(f'<div id="{tab_id}" class="content">')
     if start == -1:
@@ -774,7 +792,8 @@ def main():
     print('Lendo fraude.html...')
     html = HTML_OUT.read_text(encoding='utf-8')
 
-    # sellers.py apenas atualiza tab-sellers; não toca nas demais abas
+    # Injeta sidebar item de sellers (se ainda não existir)
+    html = inject_sellers_sidebar(html)
 
     # Injeta/atualiza aba sellers
     html, ok = find_and_replace_tab(html, 'tab-sellers', tab_html)
@@ -787,13 +806,6 @@ def main():
             html = html[:ins] + tab_html + '\n' + html[ins:]
             ok = True
     print(f'  tab-sellers {"atualizada" if ok else "ERRO - nao encontrada"}')
-
-    # Bump versao
-    html = re.sub(
-        r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.1</span>',
-        html, count=1
-    )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024

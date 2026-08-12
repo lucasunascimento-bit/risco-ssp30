@@ -820,15 +820,9 @@ def main():
             ok = True
     print(f'  tab-buyers {"atualizada" if ok else "ERRO - nao encontrada"}')
 
-    html = re.sub(
-        r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.2</span>',
-        html, count=1
-    )
-
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
-    print(f'Pronto! {mb:.1f} MB — v4.2')
+    print(f'Pronto! {mb:.1f} MB')
 
 
 if __name__ == '__main__':

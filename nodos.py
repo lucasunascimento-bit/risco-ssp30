@@ -320,7 +320,6 @@ def inject_nodos_sidebar(html):
 
 
 def injetar_no_fraude(tab_html, nodos, tab_id='tab-nodos'):
-    import re
     print(f'Lendo {FRAUDE_HTML}...')
     content = FRAUDE_HTML.read_text(encoding='utf-8')
 
@@ -335,16 +334,10 @@ def injetar_no_fraude(tab_html, nodos, tab_id='tab-nodos'):
             content = content[:ins] + tab_html + '\n' + content[ins:]
             ok = True
 
-    content = re.sub(
-        r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.3</span>',
-        content, count=1
-    )
-
     if ok:
         FRAUDE_HTML.write_text(content, encoding='utf-8')
         mb = FRAUDE_HTML.stat().st_size / 1024 / 1024
-        print(f'  Salvo: {FRAUDE_HTML.name} ({mb:.1f} MB) — v4.3')
+        print(f'  Salvo: {FRAUDE_HTML.name} ({mb:.1f} MB)')
     return ok
 
 
