@@ -2807,17 +2807,19 @@ def gerar_html(d):
     <div id="rt-list" style="background:#161616"></div>
   </div>
   <style>
-  .rt-row{{display:flex;align-items:center;gap:4px;padding:5px 10px;border-bottom:1px solid #1e1e1e;background:#161616;flex-wrap:nowrap;transition:background .1s}}
-  .rt-row:hover{{background:#1b1b1b}}
-  .rt-urg{{background:#190303}}
-  .rt-urg:hover{{background:#200404}}
-  .rt-sel{{-webkit-appearance:none;appearance:none;background:#191919;border:1px solid #2a2a2a;color:#aaa;font-size:11px;height:22px;border-radius:3px;padding:0 5px;outline:none;cursor:pointer;width:130px;flex-shrink:0}}
+  .rt-caso{{padding:6px 12px 8px;border-bottom:1px solid #1e1e1e;background:#161616;transition:background .1s}}
+  .rt-caso:hover{{background:#1b1b1b}}
+  .rt-caso.rt-urg{{background:#190303}}
+  .rt-caso.rt-urg:hover{{background:#200404}}
+  .rt-r1{{display:flex;align-items:center;gap:6px;margin-bottom:5px}}
+  .rt-r2{{display:flex;align-items:center;gap:5px}}
+  .rt-sel{{-webkit-appearance:none;appearance:none;background:#191919;border:1px solid #2a2a2a;color:#aaa;font-size:11px;height:22px;border-radius:3px;padding:0 5px;outline:none;cursor:pointer;width:145px;flex-shrink:0}}
   .rt-sel:focus{{border-color:#FFD700}}
-  .rt-nota{{background:#191919;border:1px solid #2a2a2a;color:#aaa;font-size:11px;height:22px;border-radius:3px;padding:0 6px;outline:none;width:80px;flex-shrink:0}}
+  .rt-nota{{background:#191919;border:1px solid #2a2a2a;color:#aaa;font-size:11px;height:22px;border-radius:3px;padding:0 6px;outline:none;flex:1;min-width:80px}}
   .rt-nota:focus{{border-color:#FFD700}}
   .rt-nota::placeholder{{color:#333}}
-  .rt-xb{{background:#191919;border:1px solid #2a2a2a;color:#666;font-size:11px;height:22px;padding:0 7px;border-radius:3px;cursor:pointer;white-space:nowrap;line-height:22px;flex-shrink:0;transition:background .1s,color .1s,border-color .1s}}
-  .rt-sv{{background:#FFD700;color:#000;border:none;font-size:11px;font-weight:700;height:22px;padding:0 9px;border-radius:3px;cursor:pointer;line-height:22px;white-space:nowrap;flex-shrink:0}}
+  .rt-xb{{background:#191919;border:1px solid #2a2a2a;color:#666;font-size:11px;height:22px;padding:0 8px;border-radius:3px;cursor:pointer;white-space:nowrap;line-height:22px;flex-shrink:0;transition:background .1s,color .1s,border-color .1s}}
+  .rt-sv{{background:#FFD700;color:#000;border:none;font-size:11px;font-weight:700;height:22px;padding:0 10px;border-radius:3px;cursor:pointer;line-height:22px;white-space:nowrap;flex-shrink:0}}
   .rt-sv:hover{{background:#e6c200}}
   .rt-ok{{font-size:11px;color:#81c784;display:none;font-weight:700;flex-shrink:0}}
   .rt-sp{{width:1px;height:14px;background:#2a2a2a;flex-shrink:0;margin:0 2px}}
@@ -2927,41 +2929,46 @@ def gerar_html(d):
       var diasC=r.dias_carteira>=8?'#ef5350':(r.dias_carteira<=2?'#81c784':'#ffb74d');
       var isLost=(r.sit||'').indexOf('Lost')>=0;
 
-      var row=document.createElement('div');
-      row.className='rt-row'+(isUrg?' rt-urg':'');
+      var caso=document.createElement('div');
+      caso.className='rt-caso'+(isUrg?' rt-urg':'');
+
+      /* — linha 1: info — */
+      var r1=document.createElement('div');r1.className='rt-r1';
 
       var dot=document.createElement('div');
       dot.style.cssText='width:7px;height:7px;border-radius:50%;background:'+dotC+';flex-shrink:0';
-      row.appendChild(dot);
+      r1.appendChild(dot);
 
       var shp=document.createElement('div');
       shp.style.cssText='font-family:monospace;font-size:12px;color:#64b5f6;flex-shrink:0;cursor:pointer';
       shp.textContent=r.id; shp.title='Copiar';
       shp.onclick=function(){{navigator.clipboard&&navigator.clipboard.writeText(this.textContent);var t=this;t.style.color='#81c784';setTimeout(function(){{t.style.color='#64b5f6';}},500);}};
-      row.appendChild(shp);
+      r1.appendChild(shp);
 
       var gmvEl=document.createElement('div');
       gmvEl.style.cssText='font-size:12px;font-weight:600;color:#ddd;flex-shrink:0';
       gmvEl.textContent=fmtG(r.gmv);
-      row.appendChild(gmvEl);
+      r1.appendChild(gmvEl);
 
       var sit=document.createElement('span');
       sit.style.cssText='font-size:11px;padding:2px 6px;border-radius:3px;background:'+(isLost?'rgba(239,83,80,.18)':'rgba(255,183,77,.12)')+';color:'+(isLost?'#ef9a9a':'#ffcc80')+';flex-shrink:0';
       sit.textContent=isLost?'Poss.Lost':'Procurar';
-      row.appendChild(sit);
+      r1.appendChild(sit);
 
       var dc=document.createElement('span');
       dc.style.cssText='font-size:11px;font-weight:700;flex-shrink:0;color:'+diasC;
       dc.textContent=(r.dias_carteira>=0?r.dias_carteira:'—')+'d';
-      row.appendChild(dc);
+      r1.appendChild(dc);
 
       if((r.cftv||'').toLowerCase()==='sim'){{
         var cfBadge=document.createElement('span');
         cfBadge.style.cssText='font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(100,181,246,.13);color:#64b5f6;flex-shrink:0';
-        cfBadge.textContent='CFTV'; row.appendChild(cfBadge);
+        cfBadge.textContent='CFTV'; r1.appendChild(cfBadge);
       }}
+      caso.appendChild(r1);
 
-      var sp1=document.createElement('div');sp1.className='rt-sp';row.appendChild(sp1);
+      /* — linha 2: controles — */
+      var row=document.createElement('div');row.className='rt-r2';
 
       var saved=rtGetSaved(r.id);
       var initAcao  = saved ? (saved.acao_lp||r.acao_lp||'')    : (r.acao_lp||'');
@@ -3021,7 +3028,8 @@ def gerar_html(d):
         }}
       }};
       row.appendChild(saveBtn);row.appendChild(okSpan);
-      listEl.appendChild(row);
+      caso.appendChild(row);
+      listEl.appendChild(caso);
     }});
   }})();
   </script>
