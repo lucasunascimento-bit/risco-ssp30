@@ -2143,6 +2143,7 @@ def _tab_json(rows_rt, rows_wy):
             'entrada': r.get('entrada',''),
             'dias_carteira': r.get('dias_carteira',-1),
             'entregue': r.get('entregue', False),
+            'nota': r.get('nota',''),
         }
 
     def _wy(r):
@@ -2774,87 +2775,277 @@ def gerar_html(d):
 
 <!-- ===================== ABA: ON ROUTE ===================== -->
 <div id="tab-route" class="content">
-  {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin:0 0 12px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
-  <div id="rt-kpis" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap"></div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <span id="rt-subtitle" style="font-size:13px;color:#8899aa"></span>
+  {'<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:8px 12px;margin:0 0 14px;font-size:12px;color:#6ee7b7"><strong>✓ ' + str(d["r_devolvidos"]) + ' pacote(s) detectado(s) como DEVOLVIDO</strong> — movidos automaticamente para Histórico como Recuperado.</div>' if d.get("r_devolvidos") else ''}
+  <div id="rt-kpis" style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap"></div>
+  <div style="display:flex;gap:14px;margin-bottom:18px;align-items:flex-start">
+    <div style="flex:1.1;display:flex;flex-direction:column;gap:14px">
+      <div style="border:1px solid #2a2a2a;border-radius:8px;overflow:hidden">
+        <div style="background:#FFD700;color:#000;font-weight:600;padding:6px 12px;font-size:12px">Situação</div>
+        <table id="rt-tbl-sit" style="width:100%;border-collapse:collapse;background:#161616"></table>
+      </div>
+      <div style="border:1px solid #2a2a2a;border-radius:8px;overflow:hidden">
+        <div style="background:#FFD700;color:#000;font-weight:600;padding:6px 12px;font-size:12px">Dias na carteira</div>
+        <table id="rt-tbl-dias" style="width:100%;border-collapse:collapse;background:#161616"></table>
+      </div>
+    </div>
+    <div style="flex:1">
+      <div style="border:1px solid #2a2a2a;border-radius:8px;overflow:hidden">
+        <div style="background:#FFD700;color:#000;font-weight:600;padding:6px 12px;font-size:12px">Distribuição — dias na carteira</div>
+        <div id="rt-chart" style="background:#161616;padding:12px"></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
     <a href="https://docs.google.com/spreadsheets/d/{PLANILHA_CONTROLE_ID}/edit"
        target="_blank"
        style="background:#1a3a5c;color:#5ba3d9;border:1px solid #2a5a8c;padding:5px 14px;border-radius:6px;font-size:12px;text-decoration:none">
       ✏ Editar na planilha
     </a>
   </div>
-  <div id="rt-list"></div>
-  <style>.rt-row{{transition:background .15s}}.rt-row:hover{{background:#1a1a24}}</style>
+  <div style="border:1px solid #2a2a2a;border-radius:8px;overflow:hidden">
+    <div style="background:#FFD700;color:#000;font-weight:600;padding:6px 12px;font-size:12px">Casos individuais — Ação LP · Status · Conclusão · Nota</div>
+    <div id="rt-list" style="background:#161616"></div>
+  </div>
+  <style>
+  .rt-row{{transition:background .12s}}
+  .rt-row:hover{{background:#1c1c1c}}
+  .rt-urg{{background:#160404}}
+  .rt-urg:hover{{background:#1e0606}}
+  .rt-st,.rt-co{{padding:2px 6px;border-radius:3px;font-size:9px;border:1px solid #252525;background:#0d0d0d;color:#444;cursor:pointer;height:22px;white-space:nowrap}}
+  .rt-sel{{background:#0d0d0d;border:1px solid #252525;color:#bbb;padding:2px 5px;border-radius:4px;font-size:10px;height:22px;width:130px;flex-shrink:0;outline:none}}
+  .rt-sel:focus,.rt-nota:focus{{border-color:#FFD700;outline:none}}
+  .rt-nota{{background:#0d0d0d;border:1px solid #252525;color:#bbb;padding:2px 6px;border-radius:4px;font-size:10px;height:22px;flex:1;min-width:60px;outline:none}}
+  .rt-nota::placeholder{{color:#333}}
+  </style>
   <script>
   (function(){{
+    var SCRIPT_URL = '';
     var data = {d['tab_rt_json']};
 
-    function fmtGmv(v){{ return '$' + Number(v).toLocaleString('pt-BR', {{minimumFractionDigits:2, maximumFractionDigits:2}}); }}
+    function fmtG(v){{ return '$' + Math.round(Number(v)||0).toLocaleString('pt-BR'); }}
+    function pct(a,t){{ return t ? (a/t*100).toFixed(1)+'%' : '0%'; }}
 
     var urgentes   = data.filter(function(r){{ return r.dias_carteira >= 8 && !(r.acao_lp||'').trim(); }});
     var novos      = data.filter(function(r){{ return r.dias_carteira >= 0 && r.dias_carteira <= 2; }});
+    var urgIds     = urgentes.map(function(r){{ return r.id; }});
     var novosIds   = novos.map(function(r){{ return r.id; }});
-    var urgentesIds= urgentes.map(function(r){{ return r.id; }});
-    var andamento  = data.filter(function(r){{ return urgentesIds.indexOf(r.id) < 0 && novosIds.indexOf(r.id) < 0; }});
-    var gmvTotal   = data.reduce(function(s,r){{ return s + (r.gmv||0); }}, 0);
+    var andamento  = data.filter(function(r){{ return urgIds.indexOf(r.id)<0 && novosIds.indexOf(r.id)<0; }});
+    var gmvTotal   = data.reduce(function(s,r){{ return s+(r.gmv||0); }},0);
+    var gmvUrg     = urgentes.reduce(function(s,r){{ return s+(r.gmv||0); }},0);
+    var gmvAnd     = andamento.reduce(function(s,r){{ return s+(r.gmv||0); }},0);
+    var gmvNov     = novos.reduce(function(s,r){{ return s+(r.gmv||0); }},0);
 
+    /* ---- KPI cards ---- */
     var kpisEl = document.getElementById('rt-kpis');
-    var kpiDefs = [
-      {{val: data.length,    lbl: 'Total ativo',   color: '#64b5f6'}},
-      {{val: fmtGmv(gmvTotal), lbl: 'GMV em risco', color: '#4caf50'}},
-      {{val: urgentes.length, lbl: 'Urgentes',      color: '#ef5350'}},
-      {{val: andamento.length,lbl: 'Em andamento',  color: '#ffb74d'}},
-      {{val: novos.length,    lbl: 'Novos (≤2d)',   color: '#81c784'}},
-    ];
-    kpiDefs.forEach(function(k){{
-      kpisEl.innerHTML += '<div style="background:#1a1a24;border-radius:8px;padding:10px 16px;min-width:100px;border:1px solid #2a2a3a">' +
-        '<div style="font-size:20px;font-weight:700;color:'+k.color+'">'+k.val+'</div>' +
-        '<div style="font-size:11px;color:#777;margin-top:2px">'+k.lbl+'</div></div>';
+    [
+      {{v:data.length,    l:'Total ativo',  c:'#FFD700'}},
+      {{v:fmtG(gmvTotal), l:'GMV em risco', c:'#4caf50'}},
+      {{v:urgentes.length,l:'Urgentes ≥8d', c:'#ef5350'}},
+      {{v:andamento.length,l:'Em andamento',c:'#ffb74d'}},
+      {{v:novos.length,   l:'Novos ≤2d',   c:'#81c784'}}
+    ].forEach(function(k){{
+      var d2=document.createElement('div');
+      d2.style.cssText='flex:1;background:#161616;border-radius:8px;padding:11px 13px;border:1px solid #2a2a2a;border-top:3px solid '+k.c;
+      d2.innerHTML='<div style="font-size:20px;font-weight:600;margin-bottom:3px;color:'+k.c+'">'+k.v+'</div><div style="font-size:10px;color:#666">'+k.l+'</div>';
+      kpisEl.appendChild(d2);
     }});
 
-    document.getElementById('rt-subtitle').textContent = data.length + ' casos · USD ' + Number(gmvTotal).toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}});
+    /* ---- Tabela Situação ---- */
+    var sitMap={{}};
+    data.forEach(function(r){{
+      var s=r.sit||'Sem situação';
+      if(!sitMap[s]) sitMap[s]={{cnt:0,gmv:0}};
+      sitMap[s].cnt++; sitMap[s].gmv+=(r.gmv||0);
+    }});
+    var sitEl=document.getElementById('rt-tbl-sit');
+    var thS='<tr><td style="background:#1e1e1e;color:#777;font-size:10px;padding:5px 10px;border-bottom:1px solid #252525;text-transform:uppercase">Situação</td><td style="background:#1e1e1e;color:#777;font-size:10px;padding:5px 10px;border-bottom:1px solid #252525;text-align:right;text-transform:uppercase">Qtd</td><td style="background:#1e1e1e;color:#777;font-size:10px;padding:5px 10px;border-bottom:1px solid #252525;text-align:right;text-transform:uppercase">GMV</td><td style="background:#1e1e1e;color:#777;font-size:10px;padding:5px 10px;border-bottom:1px solid #252525;text-align:right;text-transform:uppercase">%</td></tr>';
+    Object.keys(sitMap).forEach(function(s){{
+      var lost=s.indexOf('Lost')>=0;
+      thS+='<tr><td style="padding:7px 10px;border-bottom:1px solid #1e1e1e;color:#ccc;font-size:12px">'+s+'</td><td style="padding:7px 10px;border-bottom:1px solid #1e1e1e;text-align:right;font-size:12px">'+sitMap[s].cnt+'</td><td style="padding:7px 10px;border-bottom:1px solid #1e1e1e;text-align:right;font-size:12px">'+fmtG(sitMap[s].gmv)+'</td><td style="padding:7px 10px;border-bottom:1px solid #1e1e1e;text-align:right;font-size:12px;'+(lost?'color:#ef5350;font-weight:600':'')+'">'+(lost?'<strong>':'')+pct(sitMap[s].cnt,data.length)+(lost?'</strong>':'')+'</td></tr>';
+    }});
+    thS+='<tr><td style="padding:7px 10px;font-weight:600;color:#fff;border-top:1px solid #333;font-size:12px">Total</td><td style="padding:7px 10px;font-weight:600;color:#fff;border-top:1px solid #333;text-align:right;font-size:12px">'+data.length+'</td><td style="padding:7px 10px;font-weight:600;color:#fff;border-top:1px solid #333;text-align:right;font-size:12px">'+fmtG(gmvTotal)+'</td><td style="padding:7px 10px;font-weight:600;color:#fff;border-top:1px solid #333;text-align:right;font-size:12px">100%</td></tr>';
+    sitEl.innerHTML=thS;
 
-    function makeRow(r){{
-      var dias = r.dias_carteira >= 0 ? r.dias_carteira : '—';
-      var isUrgente = urgentesIds.indexOf(r.id) >= 0;
-      var isNovo = novosIds.indexOf(r.id) >= 0;
-      var dotColor = isUrgente ? '#ef5350' : (isNovo ? '#81c784' : '#ffb74d');
-      var diasColor = r.dias_carteira >= 8 ? '#ef5350' : (r.dias_carteira <= 2 ? '#81c784' : '#ffb74d');
-      var isLost = (r.sit||'').indexOf('Lost') >= 0;
-      var badgeBg = isLost ? 'rgba(239,83,80,.15)' : 'rgba(255,183,77,.12)';
-      var badgeColor = isLost ? '#ef9a9a' : '#ffcc80';
-      var sitLabel = isLost ? 'Poss. Lost' : 'Procurar';
-      var acaoTxt = (r.acao_lp||'').trim() ? r.acao_lp : '— sem ação';
-      var acaoColor = (r.acao_lp||'').trim() ? '#a5d6a7' : '#666';
-      return '<div class="rt-row" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #1e1e2e">' +
-        '<div style="width:7px;height:7px;border-radius:50%;background:'+dotColor+';flex-shrink:0"></div>' +
-        '<div style="font-family:monospace;font-size:12px;color:#64b5f6;width:100px;flex-shrink:0;cursor:pointer" ' +
-          'onclick="navigator.clipboard&&navigator.clipboard.writeText(this.textContent)" ' +
-          'title="Clique para copiar">'+r.id+'</div>' +
-        '<div style="font-size:13px;font-weight:600;width:80px;flex-shrink:0">'+fmtGmv(r.gmv)+'</div>' +
-        '<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:'+badgeBg+';color:'+badgeColor+';flex-shrink:0">'+sitLabel+'</span>' +
-        '<span style="font-size:11px;color:'+diasColor+';width:36px;flex-shrink:0;font-weight:'+(r.dias_carteira>=8?'700':'400')+'">'+dias+'d</span>' +
-        '<span style="font-size:11px;color:'+acaoColor+';flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acaoTxt+'</span>' +
-        ((r.cftv||'').toLowerCase()==='sim' ? '<span style="font-size:10px;background:rgba(100,181,246,.15);color:#64b5f6;padding:2px 6px;border-radius:4px;flex-shrink:0">CFTV</span>' : '') +
-        '</div>';
+    /* ---- Tabela Dias na carteira ---- */
+    var diasEl=document.getElementById('rt-tbl-dias');
+    var thD='<tr><td style="background:#1e1e1e;color:#777;font-size:10px;padding:5px 10px;border-bottom:1px solid #252525;text-transform:uppercase">Faixa</td><td style="background:#1e1e1e;color:#777;font-size:10px;padding:5px 10px;border-bottom:1px solid #252525;text-align:right;text-transform:uppercase">Qtd</td><td style="background:#1e1e1e;color:#777;font-size:10px;padding:5px 10px;border-bottom:1px solid #252525;text-align:right;text-transform:uppercase">GMV</td><td style="background:#1e1e1e;color:#777;font-size:10px;padding:5px 10px;border-bottom:1px solid #252525;text-align:right;text-transform:uppercase">%</td></tr>';
+    [
+      {{lbl:'≤ 2d — Novos',    rows:novos,    gmv:gmvNov, c:'#81c784'}},
+      {{lbl:'3–7d — Andamento',rows:andamento, gmv:gmvAnd, c:'#ffb74d'}},
+      {{lbl:'≥ 8d — Urgentes', rows:urgentes,  gmv:gmvUrg, c:'#ef5350'}}
+    ].forEach(function(g){{
+      var isUrg=g.c==='#ef5350';
+      thD+='<tr><td style="padding:7px 10px;border-bottom:1px solid #1e1e1e;color:'+g.c+';font-size:12px">'+g.lbl+'</td><td style="padding:7px 10px;border-bottom:1px solid #1e1e1e;text-align:right;font-size:12px">'+g.rows.length+'</td><td style="padding:7px 10px;border-bottom:1px solid #1e1e1e;text-align:right;font-size:12px">'+fmtG(g.gmv)+'</td><td style="padding:7px 10px;border-bottom:1px solid #1e1e1e;text-align:right;font-size:12px;'+(isUrg?'color:#ef5350;font-weight:600':'')+'">'+(isUrg?'<strong>':'')+pct(g.rows.length,data.length)+(isUrg?'</strong>':'')+'</td></tr>';
+    }});
+    thD+='<tr><td style="padding:7px 10px;font-weight:600;color:#fff;border-top:1px solid #333;font-size:12px">Total</td><td style="padding:7px 10px;font-weight:600;color:#fff;border-top:1px solid #333;text-align:right;font-size:12px">'+data.length+'</td><td style="padding:7px 10px;font-weight:600;color:#fff;border-top:1px solid #333;text-align:right;font-size:12px">'+fmtG(gmvTotal)+'</td><td style="padding:7px 10px;font-weight:600;color:#fff;border-top:1px solid #333;text-align:right;font-size:12px">100%</td></tr>';
+    diasEl.innerHTML=thD;
+
+    /* ---- Gráfico de barras ---- */
+    var daysMap={{}};
+    data.forEach(function(r){{ if(r.dias_carteira>=0) daysMap[r.dias_carteira]=(daysMap[r.dias_carteira]||0)+1; }});
+    var daysArr=Object.keys(daysMap).map(Number).sort(function(a,b){{return a-b;}});
+    var maxCnt=Math.max.apply(null,daysArr.map(function(d3){{return daysMap[d3];}}));
+    var chartEl=document.getElementById('rt-chart');
+    var chartH='';
+    daysArr.forEach(function(d3){{
+      var cnt=daysMap[d3], pw=Math.round(cnt/maxCnt*90);
+      var bg=d3<=2?'#81c784':d3<=7?'#ffb74d':d3<=10?'#ef5350':'#b71c1c';
+      var tc=d3<=7?'#000':'#fff';
+      chartH+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div style="font-size:10px;color:#777;width:26px;text-align:right;flex-shrink:0">'+d3+'d</div><div style="flex:1;height:20px;background:#1e1e1e;border-radius:3px;overflow:hidden"><div style="width:'+pw+'%;height:100%;background:'+bg+';display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:600;color:'+tc+';border-radius:3px;min-width:20px">'+cnt+'</div></div></div>';
+    }});
+    chartEl.innerHTML=chartH||'<div style="color:#555;font-size:11px;padding:20px;text-align:center">Sem dados</div>';
+
+    /* ---- Helpers para botões ---- */
+    function stStyle(btn, selected){{
+      var t=btn.textContent.trim();
+      if(selected){{
+        var map={{'Pendente':'rgba(255,183,77,.15)|#ffb74d','Andando':'rgba(100,181,246,.15)|#64b5f6','Concluído':'rgba(129,199,132,.15)|#81c784'}};
+        var p=(map[t]||'').split('|');
+        btn.style.background=p[0]||''; btn.style.borderColor=p[1]||''; btn.style.color=p[1]||'';
+      }} else {{
+        btn.style.background='#0d0d0d'; btn.style.borderColor='#252525'; btn.style.color='#444';
+      }}
+    }}
+    function coStyle(btn, selected){{
+      var t=btn.textContent.trim();
+      if(selected){{
+        var isBpp=t==='BPP';
+        btn.style.background=isBpp?'rgba(239,83,80,.15)':'rgba(129,199,132,.15)';
+        btn.style.borderColor=isBpp?'#ef5350':'#81c784';
+        btn.style.color=isBpp?'#ef5350':'#81c784';
+      }} else {{
+        btn.style.background='#0d0d0d'; btn.style.borderColor='#252525'; btn.style.color='#444';
+      }}
     }}
 
-    function makeGroup(label, rows, dotColor){{
-      if(!rows.length) return '';
-      var html = '<div style="font-size:10px;font-weight:600;letter-spacing:.8px;color:'+dotColor+';padding:10px 10px 4px;text-transform:uppercase">' +
-        label + ' &nbsp;<span style="font-weight:400;color:#555">' + rows.length + ' caso' + (rows.length>1?'s':'') + '</span></div>';
-      rows.forEach(function(r){{ html += makeRow(r); }});
-      return html;
+    /* ---- Lista de casos ---- */
+    var ACOES=['Solicitado apoio','Investigação em andamento','Solicitado medida'];
+    var sorted=urgentes.concat(andamento).concat(novos);
+    var listEl=document.getElementById('rt-list');
+    if(!sorted.length){{
+      listEl.innerHTML='<div style="text-align:center;color:#555;padding:30px;font-size:12px">Nenhum caso ativo.</div>';
     }}
 
-    var listEl = document.getElementById('rt-list');
-    listEl.innerHTML =
-      makeGroup('⚑ Urgentes · sem ação LP · 8d+', urgentes, '#ef5350') +
-      makeGroup('Em andamento', andamento, '#ffb74d') +
-      makeGroup('Novos · ≤ 2 dias', novos, '#81c784');
+    sorted.forEach(function(r){{
+      var isUrg=urgIds.indexOf(r.id)>=0, isNov=novosIds.indexOf(r.id)>=0;
+      var dotC=isUrg?'#ef5350':(isNov?'#81c784':'#ffb74d');
+      var diasC=r.dias_carteira>=8?'#ef5350':(r.dias_carteira<=2?'#81c784':'#ffb74d');
+      var isLost=(r.sit||'').indexOf('Lost')>=0;
 
-    if(!data.length) listEl.innerHTML = '<div style="text-align:center;color:#555;padding:40px">Nenhum caso ativo.</div>';
+      var row=document.createElement('div');
+      row.className='rt-row'+(isUrg?' rt-urg':'');
+      row.style.cssText='display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid #1e1e1e;min-height:40px';
+
+      var dot=document.createElement('div');
+      dot.style.cssText='width:7px;height:7px;border-radius:50%;background:'+dotC+';flex-shrink:0';
+      row.appendChild(dot);
+
+      var shp=document.createElement('div');
+      shp.style.cssText='font-family:monospace;font-size:10px;color:#64b5f6;width:90px;flex-shrink:0;cursor:pointer';
+      shp.textContent=r.id; shp.title='Clique para copiar';
+      shp.onclick=function(){{ navigator.clipboard&&navigator.clipboard.writeText(this.textContent); }};
+      row.appendChild(shp);
+
+      var gmvEl=document.createElement('div');
+      gmvEl.style.cssText='font-size:11px;font-weight:600;width:54px;flex-shrink:0';
+      gmvEl.textContent=fmtG(r.gmv);
+      row.appendChild(gmvEl);
+
+      var sit=document.createElement('span');
+      sit.style.cssText='font-size:9px;padding:2px 5px;border-radius:3px;background:'+(isLost?'rgba(239,83,80,.2)':'rgba(255,183,77,.12)')+';color:'+(isLost?'#ef9a9a':'#ffcc80')+';flex-shrink:0';
+      sit.textContent=isLost?'Poss.Lost':'Procurar';
+      row.appendChild(sit);
+
+      var dc=document.createElement('span');
+      dc.style.cssText='font-size:10px;font-weight:700;width:22px;flex-shrink:0;color:'+diasC;
+      dc.textContent=(r.dias_carteira>=0?r.dias_carteira:'—')+'d';
+      row.appendChild(dc);
+
+      var div1=document.createElement('div');
+      div1.style.cssText='width:1px;height:18px;background:#252525;flex-shrink:0';
+      row.appendChild(div1);
+
+      var sel=document.createElement('select');
+      sel.className='rt-sel';
+      ['','Solicitado apoio','Investigação em andamento','Solicitado medida'].forEach(function(a){{
+        var opt=document.createElement('option');
+        opt.value=a; opt.textContent=a||'— sem ação';
+        if(a===r.acao_lp) opt.selected=true;
+        sel.appendChild(opt);
+      }});
+      row.appendChild(sel);
+
+      var stDiv=document.createElement('div');
+      stDiv.style.cssText='display:flex;gap:3px;flex-shrink:0';
+      [['Pendente','Pendente'],['Andando','Em andamento'],['Concluído','Concluído']].forEach(function(pair){{
+        var btn=document.createElement('button');
+        btn.className='rt-st'; btn.textContent=pair[0];
+        stStyle(btn, r.status===pair[1]);
+        btn.onclick=function(){{
+          stDiv.querySelectorAll('.rt-st').forEach(function(b){{ stStyle(b,false); }});
+          stStyle(btn,true);
+        }};
+        stDiv.appendChild(btn);
+      }});
+      row.appendChild(stDiv);
+
+      var coDiv=document.createElement('div');
+      coDiv.style.cssText='display:flex;gap:3px;flex-shrink:0';
+      ['BPP','Revertido'].forEach(function(lbl){{
+        var btn=document.createElement('button');
+        btn.className='rt-co'; btn.textContent=lbl;
+        coStyle(btn, r.finalizacao===lbl);
+        btn.onclick=function(){{
+          coDiv.querySelectorAll('.rt-co').forEach(function(b){{ coStyle(b,false); }});
+          coStyle(btn,true);
+        }};
+        coDiv.appendChild(btn);
+      }});
+      row.appendChild(coDiv);
+
+      var nota=document.createElement('input');
+      nota.className='rt-nota'; nota.type='text'; nota.placeholder='Nota...';
+      nota.value=r.nota||'';
+      row.appendChild(nota);
+
+      if((r.cftv||'').toLowerCase()==='sim'){{
+        var cftvBadge=document.createElement('span');
+        cftvBadge.style.cssText='font-size:9px;padding:2px 5px;border-radius:3px;background:rgba(100,181,246,.15);color:#64b5f6;flex-shrink:0';
+        cftvBadge.textContent='CFTV';
+        row.appendChild(cftvBadge);
+      }}
+
+      var saveBtn=document.createElement('button');
+      saveBtn.style.cssText='background:#FFD700;color:#000;border:none;padding:2px 9px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;height:22px;flex-shrink:0';
+      saveBtn.textContent='Salvar';
+      var okSpan=document.createElement('span');
+      okSpan.style.cssText='font-size:10px;color:#81c784;flex-shrink:0;display:none';
+      okSpan.textContent='✓';
+      saveBtn.onclick=function(){{
+        var stSel=''; stDiv.querySelectorAll('.rt-st').forEach(function(b){{
+          if(b.style.color&&b.style.color!=='rgb(68,68,68)'&&b.style.color!=='#444'){{
+            var map={{'Pendente':'Pendente','Andando':'Em andamento','Concluído':'Concluído'}};
+            stSel=map[b.textContent.trim()]||'';
+          }}
+        }});
+        var coSel=''; coDiv.querySelectorAll('.rt-co').forEach(function(b){{
+          if(b.style.color&&b.style.color!=='rgb(68,68,68)'&&b.style.color!=='#444') coSel=b.textContent.trim();
+        }});
+        var payload=JSON.stringify({{shp_id:r.id,acao_lp:sel.value,status:stSel,conclusao:coSel,nota:nota.value}});
+        if(SCRIPT_URL){{
+          fetch(SCRIPT_URL,{{method:'POST',body:payload}}).then(function(){{
+            okSpan.style.display='inline';
+            setTimeout(function(){{okSpan.style.display='none';}},2000);
+          }}).catch(function(){{ okSpan.textContent='✗'; okSpan.style.color='#ef5350'; okSpan.style.display='inline'; setTimeout(function(){{okSpan.style.display='none';okSpan.textContent='✓';okSpan.style.color='#81c784';}},2000); }});
+        }} else {{
+          okSpan.style.display='inline';
+          setTimeout(function(){{okSpan.style.display='none';}},2000);
+        }}
+      }};
+      row.appendChild(saveBtn);
+      row.appendChild(okSpan);
+      listEl.appendChild(row);
+    }});
   }})();
   </script>
 </div>
