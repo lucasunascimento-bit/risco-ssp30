@@ -2807,20 +2807,20 @@ def gerar_html(d):
     <div id="rt-list" style="background:#161616"></div>
   </div>
   <style>
-  .rt-row{{display:flex;align-items:center;gap:4px;padding:4px 9px;border-bottom:1px solid #1e1e1e;background:#161616;flex-wrap:nowrap;transition:background .1s}}
+  .rt-row{{display:flex;align-items:center;gap:5px;padding:5px 10px;border-bottom:1px solid #1e1e1e;background:#161616;flex-wrap:nowrap;transition:background .1s}}
   .rt-row:hover{{background:#1b1b1b}}
   .rt-urg{{background:#190303}}
   .rt-urg:hover{{background:#200404}}
-  .rt-sel{{-webkit-appearance:none;appearance:none;background:#191919;border:1px solid #2a2a2a;color:#888;font-size:7px;height:13px;border-radius:2px;padding:0 3px;outline:none;cursor:pointer;width:90px;flex-shrink:0}}
+  .rt-sel{{-webkit-appearance:none;appearance:none;background:#191919;border:1px solid #2a2a2a;color:#999;font-size:10px;height:18px;border-radius:3px;padding:0 4px;outline:none;cursor:pointer;width:115px;flex-shrink:0}}
   .rt-sel:focus{{border-color:#FFD700}}
-  .rt-nota{{background:#191919;border:1px solid #2a2a2a;color:#888;font-size:7px;height:13px;border-radius:2px;padding:0 4px;outline:none;width:60px;flex-shrink:0}}
+  .rt-nota{{background:#191919;border:1px solid #2a2a2a;color:#999;font-size:10px;height:18px;border-radius:3px;padding:0 5px;outline:none;width:75px;flex-shrink:0}}
   .rt-nota:focus{{border-color:#FFD700}}
-  .rt-nota::placeholder{{color:#2d2d2d}}
-  .rt-xb{{background:#191919;border:1px solid #2a2a2a;color:#555;font-size:7px;height:13px;padding:0 4px;border-radius:2px;cursor:pointer;white-space:nowrap;line-height:13px;flex-shrink:0;transition:background .1s,color .1s,border-color .1s}}
-  .rt-sv{{background:#FFD700;color:#000;border:none;font-size:7px;font-weight:700;height:13px;padding:0 6px;border-radius:2px;cursor:pointer;line-height:13px;white-space:nowrap;flex-shrink:0}}
+  .rt-nota::placeholder{{color:#333}}
+  .rt-xb{{background:#191919;border:1px solid #2a2a2a;color:#555;font-size:10px;height:18px;padding:0 6px;border-radius:3px;cursor:pointer;white-space:nowrap;line-height:18px;flex-shrink:0;transition:background .1s,color .1s,border-color .1s}}
+  .rt-sv{{background:#FFD700;color:#000;border:none;font-size:10px;font-weight:700;height:18px;padding:0 8px;border-radius:3px;cursor:pointer;line-height:18px;white-space:nowrap;flex-shrink:0}}
   .rt-sv:hover{{background:#e6c200}}
-  .rt-ok{{font-size:7px;color:#81c784;display:none;font-weight:700;flex-shrink:0}}
-  .rt-sp{{width:1px;height:10px;background:#2a2a2a;flex-shrink:0;margin:0 2px}}
+  .rt-ok{{font-size:10px;color:#81c784;display:none;font-weight:700;flex-shrink:0}}
+  .rt-sp{{width:1px;height:13px;background:#2a2a2a;flex-shrink:0;margin:0 2px}}
   </style>
   <script>
   (function(){{
@@ -2929,33 +2929,33 @@ def gerar_html(d):
       row.className='rt-row'+(isUrg?' rt-urg':'');
 
       var dot=document.createElement('div');
-      dot.style.cssText='width:5px;height:5px;border-radius:50%;background:'+dotC+';flex-shrink:0';
+      dot.style.cssText='width:6px;height:6px;border-radius:50%;background:'+dotC+';flex-shrink:0';
       row.appendChild(dot);
 
       var shp=document.createElement('div');
-      shp.style.cssText='font-family:monospace;font-size:8px;color:#64b5f6;flex-shrink:0;cursor:pointer';
+      shp.style.cssText='font-family:monospace;font-size:10px;color:#64b5f6;flex-shrink:0;cursor:pointer';
       shp.textContent=r.id; shp.title='Copiar';
       shp.onclick=function(){{navigator.clipboard&&navigator.clipboard.writeText(this.textContent);var t=this;t.style.color='#81c784';setTimeout(function(){{t.style.color='#64b5f6';}},500);}};
       row.appendChild(shp);
 
       var gmvEl=document.createElement('div');
-      gmvEl.style.cssText='font-size:8px;font-weight:600;color:#ddd;flex-shrink:0';
+      gmvEl.style.cssText='font-size:10px;font-weight:600;color:#ddd;flex-shrink:0';
       gmvEl.textContent=fmtG(r.gmv);
       row.appendChild(gmvEl);
 
       var sit=document.createElement('span');
-      sit.style.cssText='font-size:7px;padding:1px 4px;border-radius:2px;background:'+(isLost?'rgba(239,83,80,.18)':'rgba(255,183,77,.12)')+';color:'+(isLost?'#ef9a9a':'#ffcc80')+';flex-shrink:0';
+      sit.style.cssText='font-size:9px;padding:1px 5px;border-radius:2px;background:'+(isLost?'rgba(239,83,80,.18)':'rgba(255,183,77,.12)')+';color:'+(isLost?'#ef9a9a':'#ffcc80')+';flex-shrink:0';
       sit.textContent=isLost?'Poss.Lost':'Procurar';
       row.appendChild(sit);
 
       var dc=document.createElement('span');
-      dc.style.cssText='font-size:7px;font-weight:700;flex-shrink:0;color:'+diasC;
+      dc.style.cssText='font-size:9px;font-weight:700;flex-shrink:0;color:'+diasC;
       dc.textContent=(r.dias_carteira>=0?r.dias_carteira:'—')+'d';
       row.appendChild(dc);
 
       if((r.cftv||'').toLowerCase()==='sim'){{
         var cfBadge=document.createElement('span');
-        cfBadge.style.cssText='font-size:7px;padding:1px 3px;border-radius:2px;background:rgba(100,181,246,.13);color:#64b5f6;flex-shrink:0';
+        cfBadge.style.cssText='font-size:9px;padding:1px 4px;border-radius:2px;background:rgba(100,181,246,.13);color:#64b5f6;flex-shrink:0';
         cfBadge.textContent='CFTV'; row.appendChild(cfBadge);
       }}
 
