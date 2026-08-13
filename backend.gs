@@ -65,6 +65,7 @@ function route(e) {
       case 'diario_obs':         r = diarioObs(body); break;
       case 'diario_extra':       r = diarioExtra(body); break;
       case 'diario_delete_extra':r = diarioDeleteExtra(body); break;
+      case 'save_rt':            r = saveRt(body); break;
       case 'sinistros_rota_info':r = sinistrosRotaInfo(body); break;
       case 'sinistros_add':      r = sinistrosAdd(body); break;
       default: r = { ok: false, error: 'Ação desconhecida: ' + action };
@@ -173,6 +174,24 @@ function moverHistorico(body) {
   ]);
 
   ws.deleteRow(hit.rowIdx);
+  return { ok: true };
+}
+
+function saveRt(body) {
+  const tab   = String(body.tab || 'rt');
+  const shpId = String(body.shp_id || '').trim();
+  const c     = COLS[tab];
+  if (!c) return { ok: false, error: 'tab inválido' };
+
+  const ws  = planilha().getSheetByName(c.aba);
+  const hit = findRow(ws, shpId);
+  if (!hit) return { ok: false, error: `SHP ${shpId} não encontrado` };
+
+  if (body.acao_lp   !== undefined) ws.getRange(hit.rowIdx, c.acao).setValue(body.acao_lp   || '');
+  if (body.status    !== undefined) ws.getRange(hit.rowIdx, c.status).setValue(body.status   || '');
+  if (body.conclusao !== undefined) ws.getRange(hit.rowIdx, c.final).setValue(body.conclusao || '');
+  if (body.nota      !== undefined) ws.getRange(hit.rowIdx, 31).setValue(body.nota           || '');
+
   return { ok: true };
 }
 

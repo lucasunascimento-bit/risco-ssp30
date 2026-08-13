@@ -2826,7 +2826,7 @@ def gerar_html(d):
   </style>
   <script>
   (function(){{
-    var SCRIPT_URL = '';
+    var SCRIPT_URL = 'https://script.google.com/a/macros/mercadolivre.com/s/AKfycbzDZNvFgynVOj3N2ss4MJnirIQi1vYJ6H_fhq0HhbeI-YbKg7URKxn7IqrB0gV9CaVAUg/exec';
     var data = {d['tab_rt_json']};
 
     function fmtG(v){{ return '$' + Math.round(Number(v)||0).toLocaleString('pt-BR'); }}
@@ -3020,7 +3020,7 @@ def gerar_html(d):
         var obj={{acao_lp:sel.value,status:stSel,conclusao:coSel,nota:nota.value}};
         rtSaveLocal(r.id,obj);
         if(SCRIPT_URL){{
-          fetch(SCRIPT_URL,{{method:'POST',body:JSON.stringify(Object.assign({{shp_id:r.id}},obj))}})
+          fetch(SCRIPT_URL,{{method:'POST',body:JSON.stringify(Object.assign({{action:'save_rt',tab:'rt',shp_id:r.id}},obj))}})
             .then(function(){{okSpan.style.color='#81c784';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);}})
             .catch(function(){{okSpan.textContent='✗';okSpan.style.color='#ef5350';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';okSpan.textContent='✓ salvo';okSpan.style.color='#81c784';}},2000);}});
         }} else {{
