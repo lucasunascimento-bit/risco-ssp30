@@ -3023,7 +3023,12 @@ def gerar_html(d):
         var obj={{acao_lp:sel.value,status:stSel,conclusao:coSel,nota:nota.value}};
         rtSaveLocal(r.id,obj);
         if(SCRIPT_URL){{
-          fetch(SCRIPT_URL,{{method:'POST',body:JSON.stringify(Object.assign({{action:'save_rt',tab:'rt',shp_id:r.id}},obj))}})
+          var url=SCRIPT_URL+'?action=save_rt&tab=rt&shp_id='+encodeURIComponent(r.id)
+            +'&acao_lp='+encodeURIComponent(obj.acao_lp)
+            +'&status='+encodeURIComponent(obj.status)
+            +'&conclusao='+encodeURIComponent(obj.conclusao)
+            +'&nota='+encodeURIComponent(obj.nota);
+          fetch(url,{{mode:'no-cors'}})
             .then(function(){{okSpan.style.color='#81c784';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);}})
             .catch(function(){{okSpan.textContent='✗';okSpan.style.color='#ef5350';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';okSpan.textContent='✓ salvo';okSpan.style.color='#81c784';}},2000);}});
         }} else {{
