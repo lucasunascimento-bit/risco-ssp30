@@ -3086,8 +3086,8 @@ def gerar_html(d):
       var listEl=document.getElementById('wy-list');
       var sorted=data.slice().sort(function(a,b){{return (b.gmv||0)-(a.gmv||0);}});
 
-      var urgentes=sorted.filter(function(r){{return (r.sit||'').indexOf('Poss')>=0||(r.sit||'').indexOf('11 dias')>=0;}});
-      var normais =sorted.filter(function(r){{return !((r.sit||'').indexOf('Poss')>=0||(r.sit||'').indexOf('11 dias')>=0);}});
+      var urgentes=sorted.filter(function(r){{return (r.sit||'').indexOf('Poss')>=0||(r.sit||'').indexOf('>= 11')>=0;}});
+      var normais =sorted.filter(function(r){{return !((r.sit||'').indexOf('Poss')>=0||(r.sit||'').indexOf('>= 11')>=0);}});
 
       function secLabel(txt,count){{
         var h=document.createElement('div');
@@ -3099,7 +3099,7 @@ def gerar_html(d):
       function renderGroup(arr,urg){{
         arr.forEach(function(r){{
           var isPL=(r.sit||'').indexOf('Poss')>=0;
-          var is11=(r.sit||'').indexOf('11 dias')>=0;
+          var is11=(r.sit||'').indexOf('>= 11')>=0;
           var dotC=isPL?'#ef5350':(is11?'#ffb74d':'#64b5f6');
 
           var caso=document.createElement('div');
