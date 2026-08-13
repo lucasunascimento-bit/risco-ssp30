@@ -2807,15 +2807,20 @@ def gerar_html(d):
     <div id="rt-list" style="background:#161616"></div>
   </div>
   <style>
-  .rt-row{{transition:background .12s}}
-  .rt-row:hover{{background:#1c1c1c}}
-  .rt-urg{{background:#160404}}
-  .rt-urg:hover{{background:#1e0606}}
-  .rt-st,.rt-co{{padding:2px 6px;border-radius:3px;font-size:9px;border:1px solid #252525;background:#0d0d0d;color:#444;cursor:pointer;height:22px;white-space:nowrap}}
-  .rt-sel{{background:#0d0d0d;border:1px solid #252525;color:#bbb;padding:2px 5px;border-radius:4px;font-size:10px;height:22px;width:130px;flex-shrink:0;outline:none}}
-  .rt-sel:focus,.rt-nota:focus{{border-color:#FFD700;outline:none}}
-  .rt-nota{{background:#0d0d0d;border:1px solid #252525;color:#bbb;padding:2px 6px;border-radius:4px;font-size:10px;height:22px;flex:1;min-width:60px;outline:none}}
-  .rt-nota::placeholder{{color:#333}}
+  .rt-row{{display:flex;align-items:center;gap:4px;padding:4px 9px;border-bottom:1px solid #1e1e1e;background:#161616;flex-wrap:nowrap;transition:background .1s}}
+  .rt-row:hover{{background:#1b1b1b}}
+  .rt-urg{{background:#190303}}
+  .rt-urg:hover{{background:#200404}}
+  .rt-sel{{-webkit-appearance:none;appearance:none;background:#191919;border:1px solid #2a2a2a;color:#888;font-size:7px;height:13px;border-radius:2px;padding:0 3px;outline:none;cursor:pointer;width:90px;flex-shrink:0}}
+  .rt-sel:focus{{border-color:#FFD700}}
+  .rt-nota{{background:#191919;border:1px solid #2a2a2a;color:#888;font-size:7px;height:13px;border-radius:2px;padding:0 4px;outline:none;width:60px;flex-shrink:0}}
+  .rt-nota:focus{{border-color:#FFD700}}
+  .rt-nota::placeholder{{color:#2d2d2d}}
+  .rt-xb{{background:#191919;border:1px solid #2a2a2a;color:#555;font-size:7px;height:13px;padding:0 4px;border-radius:2px;cursor:pointer;white-space:nowrap;line-height:13px;flex-shrink:0;transition:background .1s,color .1s,border-color .1s}}
+  .rt-sv{{background:#FFD700;color:#000;border:none;font-size:7px;font-weight:700;height:13px;padding:0 6px;border-radius:2px;cursor:pointer;line-height:13px;white-space:nowrap;flex-shrink:0}}
+  .rt-sv:hover{{background:#e6c200}}
+  .rt-ok{{font-size:7px;color:#81c784;display:none;font-weight:700;flex-shrink:0}}
+  .rt-sp{{width:1px;height:10px;background:#2a2a2a;flex-shrink:0;margin:0 2px}}
   </style>
   <script>
   (function(){{
@@ -2895,155 +2900,110 @@ def gerar_html(d):
     }});
     chartEl.innerHTML=chartH||'<div style="color:#555;font-size:11px;padding:20px;text-align:center">Sem dados</div>';
 
-    /* ---- Helpers para botões ---- */
-    function stStyle(btn, selected){{
-      var t=btn.textContent.trim();
-      if(selected){{
-        var map={{'Pendente':'rgba(255,183,77,.15)|#ffb74d','Andando':'rgba(100,181,246,.15)|#64b5f6','Concluído':'rgba(129,199,132,.15)|#81c784'}};
-        var p=(map[t]||'').split('|');
-        btn.style.background=p[0]||''; btn.style.borderColor=p[1]||''; btn.style.color=p[1]||'';
-      }} else {{
-        btn.style.background='#0d0d0d'; btn.style.borderColor='#252525'; btn.style.color='#444';
-      }}
-    }}
-    function coStyle(btn, selected){{
-      var t=btn.textContent.trim();
-      if(selected){{
-        var isBpp=t==='BPP';
-        btn.style.background=isBpp?'rgba(239,83,80,.15)':'rgba(129,199,132,.15)';
-        btn.style.borderColor=isBpp?'#ef5350':'#81c784';
-        btn.style.color=isBpp?'#ef5350':'#81c784';
-      }} else {{
-        btn.style.background='#0d0d0d'; btn.style.borderColor='#252525'; btn.style.color='#444';
-      }}
-    }}
+    /* ---- Helpers botões ---- */
+    function stA(b,on){{var m={{'Pendente':'rgba(255,183,77,.22)|#ffb74d','Em andamento':'rgba(100,181,246,.22)|#64b5f6','Concluído':'rgba(129,199,132,.22)|#81c784'}};if(on){{var p=(m[b.dataset.v]||'').split('|');b.style.background=p[0];b.style.borderColor=p[1];b.style.color=p[1];}}else{{b.style.background='#191919';b.style.borderColor='#2a2a2a';b.style.color='#555';}}}}
+    function coA(b,on){{if(on){{var iB=b.textContent==='BPP';b.style.background=iB?'rgba(239,83,80,.22)':'rgba(129,199,132,.22)';b.style.borderColor=iB?'#ef5350':'#81c784';b.style.color=iB?'#ef5350':'#81c784';}}else{{b.style.background='#191919';b.style.borderColor='#2a2a2a';b.style.color='#555';}}}}
 
     /* ---- Lista de casos ---- */
-    var ACOES=['Solicitado apoio','Investigação em andamento','Solicitado medida'];
     var sorted=urgentes.concat(andamento).concat(novos);
     var listEl=document.getElementById('rt-list');
-    if(!sorted.length){{
-      listEl.innerHTML='<div style="text-align:center;color:#555;padding:30px;font-size:12px">Nenhum caso ativo.</div>';
-    }}
+    if(!sorted.length) listEl.innerHTML='<div style="text-align:center;color:#555;padding:24px;font-size:11px">Nenhum caso ativo.</div>';
+    var prevGrp='';
 
     sorted.forEach(function(r){{
       var isUrg=urgIds.indexOf(r.id)>=0, isNov=novosIds.indexOf(r.id)>=0;
+      var grp=isUrg?'u':(isNov?'v':'a');
+      if(grp!==prevGrp){{
+        var gl=document.createElement('div');
+        gl.style.cssText='font-size:8px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:6px 9px 2px;background:#161616';
+        var gc={{'u':{{'t':'⚑ URGENTES · ≥8d sem ação','c':'#ef5350'}},'a':{{'t':'EM ANDAMENTO','c':'#ffb74d'}},'v':{{'t':'NOVOS · ≤2d','c':'#81c784'}}}};
+        gl.style.color=gc[grp].c; gl.textContent=gc[grp].t;
+        listEl.appendChild(gl); prevGrp=grp;
+      }}
+
       var dotC=isUrg?'#ef5350':(isNov?'#81c784':'#ffb74d');
       var diasC=r.dias_carteira>=8?'#ef5350':(r.dias_carteira<=2?'#81c784':'#ffb74d');
       var isLost=(r.sit||'').indexOf('Lost')>=0;
 
       var row=document.createElement('div');
       row.className='rt-row'+(isUrg?' rt-urg':'');
-      row.style.cssText='display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid #1e1e1e;min-height:40px';
 
       var dot=document.createElement('div');
-      dot.style.cssText='width:7px;height:7px;border-radius:50%;background:'+dotC+';flex-shrink:0';
+      dot.style.cssText='width:5px;height:5px;border-radius:50%;background:'+dotC+';flex-shrink:0';
       row.appendChild(dot);
 
       var shp=document.createElement('div');
-      shp.style.cssText='font-family:monospace;font-size:10px;color:#64b5f6;width:90px;flex-shrink:0;cursor:pointer';
-      shp.textContent=r.id; shp.title='Clique para copiar';
-      shp.onclick=function(){{ navigator.clipboard&&navigator.clipboard.writeText(this.textContent); }};
+      shp.style.cssText='font-family:monospace;font-size:8px;color:#64b5f6;flex-shrink:0;cursor:pointer';
+      shp.textContent=r.id; shp.title='Copiar';
+      shp.onclick=function(){{navigator.clipboard&&navigator.clipboard.writeText(this.textContent);var t=this;t.style.color='#81c784';setTimeout(function(){{t.style.color='#64b5f6';}},500);}};
       row.appendChild(shp);
 
       var gmvEl=document.createElement('div');
-      gmvEl.style.cssText='font-size:11px;font-weight:600;width:54px;flex-shrink:0';
+      gmvEl.style.cssText='font-size:8px;font-weight:600;color:#ddd;flex-shrink:0';
       gmvEl.textContent=fmtG(r.gmv);
       row.appendChild(gmvEl);
 
       var sit=document.createElement('span');
-      sit.style.cssText='font-size:9px;padding:2px 5px;border-radius:3px;background:'+(isLost?'rgba(239,83,80,.2)':'rgba(255,183,77,.12)')+';color:'+(isLost?'#ef9a9a':'#ffcc80')+';flex-shrink:0';
+      sit.style.cssText='font-size:7px;padding:1px 4px;border-radius:2px;background:'+(isLost?'rgba(239,83,80,.18)':'rgba(255,183,77,.12)')+';color:'+(isLost?'#ef9a9a':'#ffcc80')+';flex-shrink:0';
       sit.textContent=isLost?'Poss.Lost':'Procurar';
       row.appendChild(sit);
 
       var dc=document.createElement('span');
-      dc.style.cssText='font-size:10px;font-weight:700;width:22px;flex-shrink:0;color:'+diasC;
+      dc.style.cssText='font-size:7px;font-weight:700;flex-shrink:0;color:'+diasC;
       dc.textContent=(r.dias_carteira>=0?r.dias_carteira:'—')+'d';
       row.appendChild(dc);
 
-      var div1=document.createElement('div');
-      div1.style.cssText='width:1px;height:18px;background:#252525;flex-shrink:0';
-      row.appendChild(div1);
+      if((r.cftv||'').toLowerCase()==='sim'){{
+        var cfBadge=document.createElement('span');
+        cfBadge.style.cssText='font-size:7px;padding:1px 3px;border-radius:2px;background:rgba(100,181,246,.13);color:#64b5f6;flex-shrink:0';
+        cfBadge.textContent='CFTV'; row.appendChild(cfBadge);
+      }}
+
+      var sp1=document.createElement('div');sp1.className='rt-sp';row.appendChild(sp1);
 
       var sel=document.createElement('select');
       sel.className='rt-sel';
       ['','Solicitado apoio','Investigação em andamento','Solicitado medida'].forEach(function(a){{
-        var opt=document.createElement('option');
-        opt.value=a; opt.textContent=a||'— sem ação';
-        if(a===r.acao_lp) opt.selected=true;
-        sel.appendChild(opt);
+        var o=document.createElement('option');o.value=a;o.textContent=a||'— sem ação';
+        if(a===r.acao_lp)o.selected=true;sel.appendChild(o);
       }});
       row.appendChild(sel);
 
-      var stDiv=document.createElement('div');
-      stDiv.style.cssText='display:flex;gap:3px;flex-shrink:0';
-      [['Pendente','Pendente'],['Andando','Em andamento'],['Concluído','Concluído']].forEach(function(pair){{
-        var btn=document.createElement('button');
-        btn.className='rt-st'; btn.textContent=pair[0];
-        stStyle(btn, r.status===pair[1]);
-        btn.onclick=function(){{
-          stDiv.querySelectorAll('.rt-st').forEach(function(b){{ stStyle(b,false); }});
-          stStyle(btn,true);
-        }};
-        stDiv.appendChild(btn);
-      }});
-      row.appendChild(stDiv);
-
-      var coDiv=document.createElement('div');
-      coDiv.style.cssText='display:flex;gap:3px;flex-shrink:0';
-      ['BPP','Revertido'].forEach(function(lbl){{
-        var btn=document.createElement('button');
-        btn.className='rt-co'; btn.textContent=lbl;
-        coStyle(btn, r.finalizacao===lbl);
-        btn.onclick=function(){{
-          coDiv.querySelectorAll('.rt-co').forEach(function(b){{ coStyle(b,false); }});
-          coStyle(btn,true);
-        }};
-        coDiv.appendChild(btn);
-      }});
-      row.appendChild(coDiv);
-
       var nota=document.createElement('input');
-      nota.className='rt-nota'; nota.type='text'; nota.placeholder='Nota...';
-      nota.value=r.nota||'';
+      nota.className='rt-nota';nota.type='text';nota.placeholder='Nota...';nota.value=r.nota||'';
       row.appendChild(nota);
 
-      if((r.cftv||'').toLowerCase()==='sim'){{
-        var cftvBadge=document.createElement('span');
-        cftvBadge.style.cssText='font-size:9px;padding:2px 5px;border-radius:3px;background:rgba(100,181,246,.15);color:#64b5f6;flex-shrink:0';
-        cftvBadge.textContent='CFTV';
-        row.appendChild(cftvBadge);
-      }}
+      [['Pendente','Pendente'],['Em andamento','Em andamento'],['Concluído','Concluído']].forEach(function(p){{
+        var b=document.createElement('button');b.className='rt-xb';b.textContent=p[0];b.dataset.v=p[1];
+        stA(b,r.status===p[1]);
+        b.onclick=function(){{row.querySelectorAll('.rt-xb[data-v]').forEach(function(x){{stA(x,false);}});stA(b,true);}};
+        row.appendChild(b);
+      }});
 
-      var saveBtn=document.createElement('button');
-      saveBtn.style.cssText='background:#FFD700;color:#000;border:none;padding:2px 9px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;height:22px;flex-shrink:0';
-      saveBtn.textContent='Salvar';
-      var okSpan=document.createElement('span');
-      okSpan.style.cssText='font-size:10px;color:#81c784;flex-shrink:0;display:none';
-      okSpan.textContent='✓';
+      var sp2=document.createElement('div');sp2.className='rt-sp';row.appendChild(sp2);
+
+      ['BPP','Revertido'].forEach(function(lbl){{
+        var b=document.createElement('button');b.className='rt-xb';b.textContent=lbl;
+        coA(b,r.finalizacao===lbl);
+        b.onclick=function(){{row.querySelectorAll('.rt-xb:not([data-v])').forEach(function(x){{coA(x,false);}});coA(b,true);}};
+        row.appendChild(b);
+      }});
+
+      var okSpan=document.createElement('span');okSpan.className='rt-ok';okSpan.textContent='✓';
+      var saveBtn=document.createElement('button');saveBtn.className='rt-sv';saveBtn.textContent='Salvar';
       saveBtn.onclick=function(){{
-        var stSel=''; stDiv.querySelectorAll('.rt-st').forEach(function(b){{
-          if(b.style.color&&b.style.color!=='rgb(68,68,68)'&&b.style.color!=='#444'){{
-            var map={{'Pendente':'Pendente','Andando':'Em andamento','Concluído':'Concluído'}};
-            stSel=map[b.textContent.trim()]||'';
-          }}
-        }});
-        var coSel=''; coDiv.querySelectorAll('.rt-co').forEach(function(b){{
-          if(b.style.color&&b.style.color!=='rgb(68,68,68)'&&b.style.color!=='#444') coSel=b.textContent.trim();
-        }});
+        var stSel='';row.querySelectorAll('.rt-xb[data-v]').forEach(function(b){{if(b.style.color&&b.style.color!=='rgb(85,85,85)')stSel=b.dataset.v;}});
+        var coSel='';row.querySelectorAll('.rt-xb:not([data-v])').forEach(function(b){{if(b.style.color&&b.style.color!=='rgb(85,85,85)')coSel=b.textContent;}});
         var payload=JSON.stringify({{shp_id:r.id,acao_lp:sel.value,status:stSel,conclusao:coSel,nota:nota.value}});
         if(SCRIPT_URL){{
-          fetch(SCRIPT_URL,{{method:'POST',body:payload}}).then(function(){{
-            okSpan.style.display='inline';
-            setTimeout(function(){{okSpan.style.display='none';}},2000);
-          }}).catch(function(){{ okSpan.textContent='✗'; okSpan.style.color='#ef5350'; okSpan.style.display='inline'; setTimeout(function(){{okSpan.style.display='none';okSpan.textContent='✓';okSpan.style.color='#81c784';}},2000); }});
+          fetch(SCRIPT_URL,{{method:'POST',body:payload}})
+            .then(function(){{okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);}})
+            .catch(function(){{okSpan.textContent='✗';okSpan.style.color='#ef5350';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';okSpan.textContent='✓';okSpan.style.color='#81c784';}},2000);}});
         }} else {{
-          okSpan.style.display='inline';
-          setTimeout(function(){{okSpan.style.display='none';}},2000);
+          okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);
         }}
       }};
-      row.appendChild(saveBtn);
-      row.appendChild(okSpan);
+      row.appendChild(saveBtn);row.appendChild(okSpan);
       listEl.appendChild(row);
     }});
   }})();
