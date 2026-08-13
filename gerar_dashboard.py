@@ -2807,20 +2807,20 @@ def gerar_html(d):
     <div id="rt-list" style="background:#161616"></div>
   </div>
   <style>
-  .rt-row{{display:flex;align-items:center;gap:7px;padding:7px 12px;border-bottom:1px solid #1e1e1e;background:#161616;flex-wrap:nowrap;transition:background .1s}}
+  .rt-row{{display:flex;align-items:center;gap:4px;padding:5px 10px;border-bottom:1px solid #1e1e1e;background:#161616;flex-wrap:nowrap;transition:background .1s}}
   .rt-row:hover{{background:#1b1b1b}}
   .rt-urg{{background:#190303}}
   .rt-urg:hover{{background:#200404}}
-  .rt-sel{{-webkit-appearance:none;appearance:none;background:#191919;border:1px solid #2a2a2a;color:#aaa;font-size:12px;height:24px;border-radius:4px;padding:0 6px;outline:none;cursor:pointer;width:145px;flex-shrink:0}}
+  .rt-sel{{-webkit-appearance:none;appearance:none;background:#191919;border:1px solid #2a2a2a;color:#aaa;font-size:11px;height:22px;border-radius:3px;padding:0 5px;outline:none;cursor:pointer;width:130px;flex-shrink:0}}
   .rt-sel:focus{{border-color:#FFD700}}
-  .rt-nota{{background:#191919;border:1px solid #2a2a2a;color:#aaa;font-size:12px;height:24px;border-radius:4px;padding:0 7px;outline:none;width:90px;flex-shrink:0}}
+  .rt-nota{{background:#191919;border:1px solid #2a2a2a;color:#aaa;font-size:11px;height:22px;border-radius:3px;padding:0 6px;outline:none;width:80px;flex-shrink:0}}
   .rt-nota:focus{{border-color:#FFD700}}
   .rt-nota::placeholder{{color:#333}}
-  .rt-xb{{background:#191919;border:1px solid #2a2a2a;color:#666;font-size:11px;height:24px;padding:0 8px;border-radius:4px;cursor:pointer;white-space:nowrap;line-height:24px;flex-shrink:0;transition:background .1s,color .1s,border-color .1s}}
-  .rt-sv{{background:#FFD700;color:#000;border:none;font-size:11px;font-weight:700;height:24px;padding:0 10px;border-radius:4px;cursor:pointer;line-height:24px;white-space:nowrap;flex-shrink:0}}
+  .rt-xb{{background:#191919;border:1px solid #2a2a2a;color:#666;font-size:11px;height:22px;padding:0 7px;border-radius:3px;cursor:pointer;white-space:nowrap;line-height:22px;flex-shrink:0;transition:background .1s,color .1s,border-color .1s}}
+  .rt-sv{{background:#FFD700;color:#000;border:none;font-size:11px;font-weight:700;height:22px;padding:0 9px;border-radius:3px;cursor:pointer;line-height:22px;white-space:nowrap;flex-shrink:0}}
   .rt-sv:hover{{background:#e6c200}}
   .rt-ok{{font-size:11px;color:#81c784;display:none;font-weight:700;flex-shrink:0}}
-  .rt-sp{{width:1px;height:16px;background:#2a2a2a;flex-shrink:0;margin:0 3px}}
+  .rt-sp{{width:1px;height:14px;background:#2a2a2a;flex-shrink:0;margin:0 2px}}
   </style>
   <script>
   (function(){{
@@ -2901,8 +2901,10 @@ def gerar_html(d):
     chartEl.innerHTML=chartH||'<div style="color:#555;font-size:11px;padding:20px;text-align:center">Sem dados</div>';
 
     /* ---- Helpers botões ---- */
-    function stA(b,on){{var m={{'Pendente':'rgba(255,183,77,.22)|#ffb74d','Em andamento':'rgba(100,181,246,.22)|#64b5f6','Concluído':'rgba(129,199,132,.22)|#81c784'}};if(on){{var p=(m[b.dataset.v]||'').split('|');b.style.background=p[0];b.style.borderColor=p[1];b.style.color=p[1];}}else{{b.style.background='#191919';b.style.borderColor='#2a2a2a';b.style.color='#555';}}}}
-    function coA(b,on){{if(on){{var iB=b.textContent==='BPP';b.style.background=iB?'rgba(239,83,80,.22)':'rgba(129,199,132,.22)';b.style.borderColor=iB?'#ef5350':'#81c784';b.style.color=iB?'#ef5350':'#81c784';}}else{{b.style.background='#191919';b.style.borderColor='#2a2a2a';b.style.color='#555';}}}}
+    function stA(b,on){{var m={{'Pendente':'rgba(255,183,77,.22)|#ffb74d','Em andamento':'rgba(100,181,246,.22)|#64b5f6','Concluído':'rgba(129,199,132,.22)|#81c784'}};if(on){{var p=(m[b.dataset.v]||'').split('|');b.style.background=p[0];b.style.borderColor=p[1];b.style.color=p[1];b.dataset.on='1';}}else{{b.style.background='#191919';b.style.borderColor='#2a2a2a';b.style.color='#666';b.dataset.on='0';}}}}
+    function coA(b,on){{if(on){{var iB=b.textContent==='BPP';b.style.background=iB?'rgba(239,83,80,.22)':'rgba(129,199,132,.22)';b.style.borderColor=iB?'#ef5350':'#81c784';b.style.color=iB?'#ef5350':'#81c784';b.dataset.on='1';}}else{{b.style.background='#191919';b.style.borderColor='#2a2a2a';b.style.color='#666';b.dataset.on='0';}}}}
+    function rtGetSaved(id){{try{{return JSON.parse(localStorage.getItem('rt_'+id)||'null');}}catch(e){{return null;}}}}
+    function rtSaveLocal(id,obj){{try{{localStorage.setItem('rt_'+id,JSON.stringify(obj));}}catch(e){{}}}}
 
     /* ---- Lista de casos ---- */
     var sorted=urgentes.concat(andamento).concat(novos);
@@ -2961,22 +2963,32 @@ def gerar_html(d):
 
       var sp1=document.createElement('div');sp1.className='rt-sp';row.appendChild(sp1);
 
+      var saved=rtGetSaved(r.id);
+      var initAcao  = saved ? (saved.acao_lp||r.acao_lp||'')    : (r.acao_lp||'');
+      var initSt    = saved ? (saved.status||r.status||'')       : (r.status||'');
+      var initFin   = saved ? (saved.conclusao||r.finalizacao||''): (r.finalizacao||'');
+      var initNota  = saved ? (saved.nota||r.nota||'')           : (r.nota||'');
+
       var sel=document.createElement('select');
       sel.className='rt-sel';
       ['','Solicitado apoio','Investigação em andamento','Solicitado medida'].forEach(function(a){{
         var o=document.createElement('option');o.value=a;o.textContent=a||'— sem ação';
-        if(a===r.acao_lp)o.selected=true;sel.appendChild(o);
+        if(a===initAcao)o.selected=true;sel.appendChild(o);
       }});
       row.appendChild(sel);
 
       var nota=document.createElement('input');
-      nota.className='rt-nota';nota.type='text';nota.placeholder='Nota...';nota.value=r.nota||'';
+      nota.className='rt-nota';nota.type='text';nota.placeholder='Nota...';nota.value=initNota;
       row.appendChild(nota);
 
       [['Pendente','Pendente'],['Em andamento','Em andamento'],['Concluído','Concluído']].forEach(function(p){{
         var b=document.createElement('button');b.className='rt-xb';b.textContent=p[0];b.dataset.v=p[1];
-        stA(b,r.status===p[1]);
-        b.onclick=function(){{row.querySelectorAll('.rt-xb[data-v]').forEach(function(x){{stA(x,false);}});stA(b,true);}};
+        stA(b,initSt===p[1]);
+        b.onclick=function(){{
+          var jaAtivo=b.dataset.on==='1';
+          row.querySelectorAll('.rt-xb[data-v]').forEach(function(x){{stA(x,false);}});
+          if(!jaAtivo)stA(b,true);
+        }};
         row.appendChild(b);
       }});
 
@@ -2984,23 +2996,28 @@ def gerar_html(d):
 
       ['BPP','Revertido'].forEach(function(lbl){{
         var b=document.createElement('button');b.className='rt-xb';b.textContent=lbl;
-        coA(b,r.finalizacao===lbl);
-        b.onclick=function(){{row.querySelectorAll('.rt-xb:not([data-v])').forEach(function(x){{coA(x,false);}});coA(b,true);}};
+        coA(b,initFin===lbl);
+        b.onclick=function(){{
+          var jaAtivo=b.dataset.on==='1';
+          row.querySelectorAll('.rt-xb:not([data-v])').forEach(function(x){{coA(x,false);}});
+          if(!jaAtivo)coA(b,true);
+        }};
         row.appendChild(b);
       }});
 
-      var okSpan=document.createElement('span');okSpan.className='rt-ok';okSpan.textContent='✓';
+      var okSpan=document.createElement('span');okSpan.className='rt-ok';okSpan.textContent='✓ salvo';
       var saveBtn=document.createElement('button');saveBtn.className='rt-sv';saveBtn.textContent='Salvar';
       saveBtn.onclick=function(){{
-        var stSel='';row.querySelectorAll('.rt-xb[data-v]').forEach(function(b){{if(b.style.color&&b.style.color!=='rgb(85,85,85)')stSel=b.dataset.v;}});
-        var coSel='';row.querySelectorAll('.rt-xb:not([data-v])').forEach(function(b){{if(b.style.color&&b.style.color!=='rgb(85,85,85)')coSel=b.textContent;}});
-        var payload=JSON.stringify({{shp_id:r.id,acao_lp:sel.value,status:stSel,conclusao:coSel,nota:nota.value}});
+        var stSel='';row.querySelectorAll('.rt-xb[data-v]').forEach(function(b){{if(b.dataset.on==='1')stSel=b.dataset.v;}});
+        var coSel='';row.querySelectorAll('.rt-xb:not([data-v])').forEach(function(b){{if(b.dataset.on==='1')coSel=b.textContent;}});
+        var obj={{acao_lp:sel.value,status:stSel,conclusao:coSel,nota:nota.value}};
+        rtSaveLocal(r.id,obj);
         if(SCRIPT_URL){{
-          fetch(SCRIPT_URL,{{method:'POST',body:payload}})
-            .then(function(){{okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);}})
-            .catch(function(){{okSpan.textContent='✗';okSpan.style.color='#ef5350';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';okSpan.textContent='✓';okSpan.style.color='#81c784';}},2000);}});
+          fetch(SCRIPT_URL,{{method:'POST',body:JSON.stringify(Object.assign({{shp_id:r.id}},obj))}})
+            .then(function(){{okSpan.style.color='#81c784';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);}})
+            .catch(function(){{okSpan.textContent='✗';okSpan.style.color='#ef5350';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';okSpan.textContent='✓ salvo';okSpan.style.color='#81c784';}},2000);}});
         }} else {{
-          okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);
+          okSpan.style.color='#81c784';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);
         }}
       }};
       row.appendChild(saveBtn);row.appendChild(okSpan);
