@@ -2939,10 +2939,13 @@ def gerar_html(d):
       dot.style.cssText='width:7px;height:7px;border-radius:50%;background:'+dotC+';flex-shrink:0';
       r1.appendChild(dot);
 
-      var shp=document.createElement('div');
-      shp.style.cssText='font-family:monospace;font-size:12px;color:#64b5f6;flex-shrink:0;cursor:pointer';
-      shp.textContent=r.id; shp.title='Copiar';
-      shp.onclick=function(){{navigator.clipboard&&navigator.clipboard.writeText(this.textContent);var t=this;t.style.color='#81c784';setTimeout(function(){{t.style.color='#64b5f6';}},500);}};
+      var shp=document.createElement('a');
+      shp.style.cssText='font-family:monospace;font-size:12px;color:#64b5f6;flex-shrink:0;cursor:pointer;text-decoration:none';
+      shp.textContent=r.id;
+      shp.title='Abrir no Logistic';
+      shp.href='https://envios.adminml.com/logistics/package-management/package/'+r.id;
+      shp.target='_blank';
+      shp.rel='noopener noreferrer';
       r1.appendChild(shp);
 
       var gmvEl=document.createElement('div');
