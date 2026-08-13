@@ -2785,6 +2785,7 @@ def gerar_html(d):
     </a>
   </div>
   <div id="rt-list"></div>
+  <style>.rt-row{{transition:background .15s}}.rt-row:hover{{background:#1a1a24}}</style>
   <script>
   (function(){{
     var data = {d['tab_rt_json']};
@@ -2826,11 +2827,10 @@ def gerar_html(d):
       var sitLabel = isLost ? 'Poss. Lost' : 'Procurar';
       var acaoTxt = (r.acao_lp||'').trim() ? r.acao_lp : '— sem ação';
       var acaoColor = (r.acao_lp||'').trim() ? '#a5d6a7' : '#666';
-      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #1e1e2e;cursor:default" ' +
-        'onmouseover="this.style.background=\'#1a1a24\'" onmouseout="this.style.background=\'transparent\'">' +
+      return '<div class="rt-row" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #1e1e2e">' +
         '<div style="width:7px;height:7px;border-radius:50%;background:'+dotColor+';flex-shrink:0"></div>' +
         '<div style="font-family:monospace;font-size:12px;color:#64b5f6;width:100px;flex-shrink:0;cursor:pointer" ' +
-          'onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+r.id+'\');this.style.color=\'#a5d6a7\';var t=this;setTimeout(function(){{t.style.color=\'#64b5f6\';}},900)" ' +
+          'onclick="navigator.clipboard&&navigator.clipboard.writeText(this.textContent)" ' +
           'title="Clique para copiar">'+r.id+'</div>' +
         '<div style="font-size:13px;font-weight:600;width:80px;flex-shrink:0">'+fmtGmv(r.gmv)+'</div>' +
         '<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:'+badgeBg+';color:'+badgeColor+';flex-shrink:0">'+sitLabel+'</span>' +
