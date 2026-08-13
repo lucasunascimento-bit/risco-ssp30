@@ -317,6 +317,7 @@ def processar(rt, wy, hi, descricoes=None, cftv_map=None, entregues=None):
             'acao_lp':       r[22] if len(r) > 22 else '',
             'link_email':    r[23] if len(r) > 23 else '',
             'finalizacao':   r[29] if len(r) > 29 else '',
+            'nota':          r[30] if len(r) > 30 else '',
             'sheet_row':     r[-1] if r else 0,
             'descricao':     descricoes.get(shp_id_wy, ''),
             'entregue':      shp_id_wy in entregues,
@@ -2161,6 +2162,7 @@ def _tab_json(rows_rt, rows_wy):
             'entrada': r.get('entrada',''),
             'dias_carteira': r.get('dias_carteira',-1),
             'entregue': r.get('entregue', False),
+            'nota': r.get('nota',''),
         }
 
     return (
@@ -3064,45 +3066,168 @@ def gerar_html(d):
         ✏ Editar na planilha
       </a>
     </div>
-    <div id="tabulator-way"></div>
+    <div style="background:#111;border-radius:6px;margin-top:8px">
+      <div style="padding:10px 14px;font-size:12px;color:#FFD700;font-weight:600;border-bottom:1px solid #1e1e1e">
+        Casos individuais — Ação LP · Status · Conclusão · Nota
+      </div>
+      <div id="wy-list"></div>
+    </div>
     <script>
     (function(){{
-      var dataWY = {d['tab_wy_json']};
-      new Tabulator("#tabulator-way", {{
-        data: dataWY,
-        layout: "fitDataStretch",
-        pagination: "local",
-        paginationSize: 30,
-        paginationSizeSelector: [20, 30, 50, 100],
-        movableColumns: true,
-        initialSort: [{{column:"gmv", dir:"desc"}}],
-        rowFormatter: function(row){{
-          var data = row.getData();
-          if(data.entregue) row.getElement().style.opacity = "0.5";
-          if(data.sit && (data.sit.indexOf("Lost") >= 0 || data.sit.indexOf("11 dias") >= 0))
-            row.getElement().style.borderLeft = "3px solid #e05252";
-        }},
-        columns: [
-          {{title:"SHP ID", field:"id", headerFilter:"input", width:130, formatter:function(cell){{
-            return '<span style="font-family:monospace;font-size:12px;color:#aac4e0">'+cell.getValue()+'</span>';
-          }}}},
-          {{title:"Situação", field:"sit", headerFilter:"select", headerFilterParams:{{values:true}}, width:160}},
-          {{title:"GMV (USD)", field:"gmv", sorter:"number", formatter:"money", formatterParams:{{precision:2, symbol:"$"}}, width:110}},
-          {{title:"Transportadora", field:"carrier", headerFilter:"input", width:140}},
-          {{title:"Dias OW", field:"dias_ow", width:90}},
-          {{title:"Ação LP", field:"acao_lp", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
-          {{title:"Status", field:"status", headerFilter:"select", headerFilterParams:{{values:true}}, width:140}},
-          {{title:"Finalização", field:"finalizacao", headerFilter:"select", headerFilterParams:{{values:true}}, width:130}},
-          {{title:"Dias Cart.", field:"dias_carteira", sorter:"number", width:90, formatter:function(cell){{
-            var v = cell.getValue();
-            if(v > 7) return '<span style="color:#e05252;font-weight:600">'+v+'d</span>';
-            return v+'d';
-          }}}},
-          {{title:"CFTV", field:"cftv", width:80}},
-          {{title:"Entrada", field:"entrada", width:100}},
-          {{title:"Responsável", field:"resp", headerFilter:"select", headerFilterParams:{{values:true}}, width:150}},
-        ],
-      }});
+      var WY_URL = 'https://script.google.com/a/macros/mercadolivre.com/s/AKfycbzDZNvFgynVOj3N2ss4MJnirIQi1vYJ6H_fhq0HhbeI-YbKg7URKxn7IqrB0gV9CaVAUg/exec';
+      var data = {d['tab_wy_json']};
+
+      function fmtG(v){{ return '$'+Math.round(Number(v)||0).toLocaleString('pt-BR'); }}
+      function stA(b,on){{var m={{'Pendente':'rgba(255,183,77,.22)|#ffb74d','Em andamento':'rgba(100,181,246,.22)|#64b5f6','Concluído':'rgba(129,199,132,.22)|#81c784'}};if(on){{var p=(m[b.dataset.v]||'').split('|');b.style.background=p[0];b.style.borderColor=p[1];b.style.color=p[1];b.dataset.on='1';}}else{{b.style.background='#191919';b.style.borderColor='#2a2a2a';b.style.color='#666';b.dataset.on='0';}}}}
+      function coA(b,on){{if(on){{var iB=b.textContent==='BPP';b.style.background=iB?'rgba(239,83,80,.22)':'rgba(129,199,132,.22)';b.style.borderColor=iB?'#ef5350':'#81c784';b.style.color=iB?'#ef5350':'#81c784';b.dataset.on='1';}}else{{b.style.background='#191919';b.style.borderColor='#2a2a2a';b.style.color='#666';b.dataset.on='0';}}}}
+      function wyGet(id){{try{{return JSON.parse(localStorage.getItem('wy_'+id)||'null');}}catch(e){{return null;}}}}
+      function wySet(id,obj){{try{{localStorage.setItem('wy_'+id,JSON.stringify(obj));}}catch(e){{}}}}
+
+      var listEl=document.getElementById('wy-list');
+      var sorted=data.slice().sort(function(a,b){{return (b.gmv||0)-(a.gmv||0);}});
+
+      var urgentes=sorted.filter(function(r){{return (r.sit||'').indexOf('Poss')>=0||(r.sit||'').indexOf('11 dias')>=0;}});
+      var normais =sorted.filter(function(r){{return !((r.sit||'').indexOf('Poss')>=0||(r.sit||'').indexOf('11 dias')>=0);}});
+
+      function secLabel(txt,count){{
+        var h=document.createElement('div');
+        h.style.cssText='padding:4px 12px;font-size:10px;color:#ef5350;font-weight:700;letter-spacing:.06em;border-bottom:1px solid #1e1e1e;background:#0d0d0d';
+        h.textContent=txt+' — '+count+' CASOS';
+        listEl.appendChild(h);
+      }}
+
+      function renderGroup(arr,urg){{
+        arr.forEach(function(r){{
+          var isPL=(r.sit||'').indexOf('Poss')>=0;
+          var is11=(r.sit||'').indexOf('11 dias')>=0;
+          var dotC=isPL?'#ef5350':(is11?'#ffb74d':'#64b5f6');
+
+          var caso=document.createElement('div');
+          caso.className='rt-caso'+(urg?' rt-urg':'');
+
+          /* linha 1 */
+          var r1=document.createElement('div');r1.className='rt-r1';
+
+          var dot=document.createElement('div');
+          dot.style.cssText='width:7px;height:7px;border-radius:50%;background:'+dotC+';flex-shrink:0';
+          r1.appendChild(dot);
+
+          var shp=document.createElement('a');
+          shp.style.cssText='font-family:monospace;font-size:12px;color:#64b5f6;flex-shrink:0;cursor:pointer;text-decoration:none';
+          shp.textContent=r.id;shp.title='Abrir no Logistic';
+          shp.href='https://envios.adminml.com/logistics/package-management/package/'+r.id;
+          shp.target='_blank';shp.rel='noopener noreferrer';
+          r1.appendChild(shp);
+
+          var gmvEl=document.createElement('div');
+          gmvEl.style.cssText='font-size:12px;font-weight:600;color:#ddd;flex-shrink:0';
+          gmvEl.textContent=fmtG(r.gmv);r1.appendChild(gmvEl);
+
+          var sitBg=isPL?'rgba(239,83,80,.18)':(is11?'rgba(255,183,77,.12)':'rgba(100,181,246,.12)');
+          var sitCl=isPL?'#ef9a9a':(is11?'#ffcc80':'#90caf9');
+          var sit=document.createElement('span');
+          sit.style.cssText='font-size:11px;padding:2px 6px;border-radius:3px;background:'+sitBg+';color:'+sitCl+';flex-shrink:0';
+          sit.textContent=isPL?'Poss.Lost':(is11?'≥11d OW':'<11d OW');
+          r1.appendChild(sit);
+
+          if(r.dias_ow!==undefined&&r.dias_ow!==''&&r.dias_ow!==null){{
+            var dw=document.createElement('span');
+            dw.style.cssText='font-size:11px;font-weight:700;flex-shrink:0;color:'+(is11||isPL?'#ef5350':'#64b5f6');
+            dw.textContent=r.dias_ow+'d OW';r1.appendChild(dw);
+          }}
+
+          if(r.carrier&&r.carrier.trim()&&r.carrier.toLowerCase()!=='none'){{
+            var cr=document.createElement('span');
+            cr.style.cssText='font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(255,183,77,.1);color:#ffcc80;flex-shrink:0';
+            cr.textContent=r.carrier;r1.appendChild(cr);
+          }}
+
+          if((r.cftv||'').toLowerCase()==='sim'){{
+            var cfBadge=document.createElement('span');
+            cfBadge.style.cssText='font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(100,181,246,.13);color:#64b5f6;flex-shrink:0';
+            cfBadge.textContent='CFTV';r1.appendChild(cfBadge);
+          }}
+          caso.appendChild(r1);
+
+          /* linha 2: controles */
+          var row=document.createElement('div');row.className='rt-r2';
+
+          var saved=wyGet(r.id);
+          var initAcao =saved?(saved.acao_lp||r.acao_lp||''):(r.acao_lp||'');
+          var initSt   =saved?(saved.status||r.status||''):(r.status||'');
+          var initFin  =saved?(saved.conclusao||r.finalizacao||''):(r.finalizacao||'');
+          var initNota =saved?(saved.nota||r.nota||''):(r.nota||'');
+
+          var sel=document.createElement('select');sel.className='rt-sel';
+          sel.style.width='180px';
+          ['','Cobrado Origem','Aguardando Retorno da Origem','Escalonado para Supervisão',
+           'Sem Retorno da Origem','Pacote Localizado','Em Investigação','BPP Solicitado'].forEach(function(a){{
+            var o=document.createElement('option');o.value=a;o.textContent=a||'— sem ação';
+            if(a===initAcao)o.selected=true;sel.appendChild(o);
+          }});
+          row.appendChild(sel);
+
+          var nota=document.createElement('input');nota.className='rt-nota';nota.type='text';
+          nota.placeholder='Nota...';nota.value=initNota;
+          row.appendChild(nota);
+
+          ['Pendente','Em andamento','Concluído'].forEach(function(s){{
+            var b=document.createElement('button');b.className='rt-xb';b.dataset.v=s;b.textContent=s;
+            stA(b,s===initSt);
+            b.onclick=function(){{
+              var ja=b.dataset.on==='1';
+              row.querySelectorAll('.rt-xb[data-v]').forEach(function(x){{stA(x,false);}});
+              if(!ja)stA(b,true);
+            }};
+            row.appendChild(b);
+          }});
+
+          var sp=document.createElement('div');sp.className='rt-sp';row.appendChild(sp);
+
+          ['BPP','Revertido'].forEach(function(c){{
+            var b=document.createElement('button');b.className='rt-xb';b.textContent=c;
+            coA(b,c===initFin);
+            b.onclick=function(){{
+              var ja=b.dataset.on==='1';
+              row.querySelectorAll('.rt-xb:not([data-v])').forEach(function(x){{coA(x,false);}});
+              if(!ja)coA(b,true);
+            }};
+            row.appendChild(b);
+          }});
+
+          var okSpan=document.createElement('span');okSpan.className='rt-ok';okSpan.textContent='✓ salvo';
+          var saveBtn=document.createElement('button');saveBtn.className='rt-sv';saveBtn.textContent='Salvar';
+          saveBtn.onclick=function(){{
+            var stSel='';row.querySelectorAll('.rt-xb[data-v]').forEach(function(b){{if(b.dataset.on==='1')stSel=b.dataset.v;}});
+            var coSel='';row.querySelectorAll('.rt-xb:not([data-v])').forEach(function(b){{if(b.dataset.on==='1')coSel=b.textContent;}});
+            var obj={{acao_lp:sel.value,status:stSel,conclusao:coSel,nota:nota.value}};
+            wySet(r.id,obj);
+            if(WY_URL){{
+              var url=WY_URL+'?action=save_rt&tab=wy&shp_id='+encodeURIComponent(r.id)
+                +'&acao_lp='+encodeURIComponent(obj.acao_lp)
+                +'&status='+encodeURIComponent(obj.status)
+                +'&conclusao='+encodeURIComponent(obj.conclusao)
+                +'&nota='+encodeURIComponent(obj.nota);
+              fetch(url,{{mode:'no-cors',credentials:'include'}})
+                .then(function(){{okSpan.style.color='#81c784';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);}})
+                .catch(function(){{okSpan.textContent='✗';okSpan.style.color='#ef5350';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';okSpan.textContent='✓ salvo';okSpan.style.color='#81c784';}},2000);}});
+            }} else {{
+              okSpan.style.color='#81c784';okSpan.style.display='inline';setTimeout(function(){{okSpan.style.display='none';}},2000);
+            }}
+          }};
+          row.appendChild(saveBtn);row.appendChild(okSpan);
+          caso.appendChild(row);
+          listEl.appendChild(caso);
+        }});
+      }}
+
+      if(urgentes.length){{ secLabel('URGENTES — POSS.LOST + ≥11D OW',urgentes.length); renderGroup(urgentes,true); }}
+      if(normais.length){{  secLabel('DEMAIS CASOS',normais.length);                    renderGroup(normais,false); }}
+      if(!sorted.length){{
+        var e=document.createElement('div');
+        e.style.cssText='padding:20px;text-align:center;color:#444;font-size:12px';
+        e.textContent='Nenhum caso ON WAY no momento.';listEl.appendChild(e);
+      }}
     }})();
     </script>
   </div>
