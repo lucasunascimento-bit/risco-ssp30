@@ -14,6 +14,24 @@ import gspread
 MIN_BPP       = 300
 MIN_FRAUD     = 5
 FACILITY      = 'Guarulhos Mega'
+DRIVERS_CACHE = Path(__file__).parent / '_drivers_conhecidos.json'
+
+
+def _carregar_ids_conhecidos():
+    try:
+        return set(json.loads(DRIVERS_CACHE.read_text(encoding='utf-8')).get('ids', []))
+    except Exception:
+        return set()
+
+
+def _salvar_ids_conhecidos(ids):
+    try:
+        DRIVERS_CACHE.write_text(
+            json.dumps({'ids': sorted(ids), 'ts': datetime.now().isoformat()}, ensure_ascii=False),
+            encoding='utf-8'
+        )
+    except Exception as e:
+        print(f'  Aviso: não salvei cache de IDs: {e}')
 HTML_OUT      = Path(__file__).parent / 'fraude.html'
 LOG_URL       = 'https://logistics.mercadolibre.com.br/shipments/'
 BO_DRIVER     = 'https://shipping-bo.adminml.com/sauron/drivers/driver/'
@@ -196,6 +214,15 @@ def carregar_dados():
             'meses': meses,
             'shps':  shps,
         })
+    ids_conhecidos = _carregar_ids_conhecidos()
+    novos = 0
+    for d in drivers:
+        d['is_new'] = str(d['id']) not in ids_conhecidos
+        if d['is_new']:
+            novos += 1
+    if novos:
+        print(f'  {novos} driver(s) NOVO(S) detectado(s)')
+
     return drivers, sheet_status
 
 
@@ -316,6 +343,8 @@ def gerar_tab(drivers, sheet_status=None):
 #tab-bloqueios .blq-tag{{font-size:10px;color:#9ca3af;background:#111827;padding:2px 7px;border-radius:4px;max-width:120px;overflow:hidden;text-overflow:ellipsis;display:inline-block}}
 #tab-bloqueios .blq-badge{{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;cursor:pointer;transition:opacity .1s}}
 #tab-bloqueios .blq-badge:hover{{opacity:.8}}
+#tab-bloqueios .blq-novo{{display:inline-block;font-size:8px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;background:#f59e0b;color:#1a1a1a;letter-spacing:.4px;animation:blq-novo-pulse 1.5s ease-in-out infinite}}
+@keyframes blq-novo-pulse{{0%,100%{{opacity:1;box-shadow:0 0 0 0 rgba(245,158,11,.4)}}50%{{opacity:.75;box-shadow:0 0 0 4px rgba(245,158,11,0)}}}}
 #tab-bloqueios .blq-s-ati{{background:rgba(156,163,175,.08);color:#9ca3af;border:1px solid rgba(156,163,175,.2)}}
 #tab-bloqueios .blq-s-mon{{background:rgba(74,222,128,.08);color:#4ade80;border:1px solid rgba(74,222,128,.2)}}
 #tab-bloqueios .blq-s-inv{{background:rgba(251,191,36,.08);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}}
@@ -672,12 +701,13 @@ function blqRender() {{
           try{{var dt=new Date(m+'-15');return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('. ','/');}}catch(e){{return m;}}
         }}).join(' · ')+(_uniqMs.length>3?' +':'')
       : '—';
+    var novoBadge = d.is_new ? '<span class="blq-novo">NOVO</span>' : '';
 
     var mainRow =
       '<tr class="blq-dr-row">'+
       '<td style="color:#374151;font-size:11px">'+(i+1)+'</td>'+
       '<td style="color:#f87171;font-weight:700">US$ '+d.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'+
-      '<td><button class="blq-did-btn" onclick="blqToggleShps(\\''+d.id+'\\')">'+d.id+
+      '<td><button class="blq-did-btn" onclick="blqToggleShps(\\''+d.id+'\\')">'+d.id+novoBadge+
         '<span class="blq-chv" id="blq-chv-'+d.id+'">&#9660;</span></button></td>'+
       '<td class="blq-mlp" title="'+(d.mlp||'')+'">'+(d.mlp||'—')+'</td>'+
       '<td style="color:#f87171">'+d.fraud+'</td>'+
@@ -989,6 +1019,7 @@ def main():
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
+    _salvar_ids_conhecidos({str(d['id']) for d in drivers})
     print(f'Pronto! {mb:.1f} MB — v4.22')
 
 
