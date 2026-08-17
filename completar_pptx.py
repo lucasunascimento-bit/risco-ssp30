@@ -196,6 +196,7 @@ if __name__ == '__main__':
     pptxs = sorted(PASTA_PPTX.glob('*.pptx'))
     print(f'PPTXs encontrados: {len(pptxs)}')
 
+    import shutil
     ok = 0
     for p in pptxs:
         driver_id = re.search(r'Driver ID (\d+)', p.name)
@@ -203,14 +204,14 @@ if __name__ == '__main__':
             continue
         did = driver_id.group(1)
         n_csv = len(df_driver.get(did, []))
-        if n_csv > ROWS_PER_SLIDE:
+        if n_csv == 0:
+            print(f'Driver {did}: sem dados no CSV → copiando sem modificação')
+            shutil.copy2(str(p), str(PASTA_OUT / p.name))
+        else:
+            # Preenche slides para todos os drivers (garante DATA BPP correta)
             print(f'\n>>> {p.name}')
             processar(p, df_driver, PASTA_OUT)
             ok += 1
-        else:
-            print(f'Driver {did}: {n_csv} SHPs → cabe em 1 slide, copiando sem modificação')
-            import shutil
-            shutil.copy2(str(p), str(PASTA_OUT / p.name))
 
     print(f'\n{"="*60}')
     print(f'Concluído. {ok} PPTXs com continuação. Saída: {PASTA_OUT}')

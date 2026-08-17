@@ -184,8 +184,15 @@ function saveRt(body) {
   if (!c) return { ok: false, error: 'tab inválido' };
 
   const ws  = planilha().getSheetByName(c.aba);
-  const hit = findRow(ws, shpId);
-  if (!hit) return { ok: false, error: `SHP ${shpId} não encontrado` };
+  let hit = findRow(ws, shpId);
+
+  if (!hit) {
+    // ID não existe na aba — cria linha nova com o SHP ID na coluna C
+    const newRow = new Array(32).fill('');
+    newRow[2] = shpId;
+    ws.appendRow(newRow);
+    hit = { rowIdx: ws.getLastRow(), row: newRow };
+  }
 
   if (body.acao_lp   !== undefined) ws.getRange(hit.rowIdx, c.acao).setValue(body.acao_lp   || '');
   if (body.status    !== undefined) ws.getRange(hit.rowIdx, c.status).setValue(body.status   || '');

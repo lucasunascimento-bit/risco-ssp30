@@ -1,6 +1,6 @@
 """
 bloqueio.py v2 — Aba Bloqueios do Dashboard SSP30
-Critério: BPP >= $300 E fraud SHPs >= 6 (desde jan/2026)
+Critério: BPP >= $300 E fraud SHPs >= 5 (janela móvel 90 dias)
 Injeta tab-bloqueios em fraude.html
 """
 
@@ -12,9 +12,8 @@ from google.auth import default
 import gspread
 
 MIN_BPP       = 300
-MIN_FRAUD     = 6
+MIN_FRAUD     = 5
 FACILITY      = 'Guarulhos Mega'
-INICIO        = '2026-01-01'
 HTML_OUT      = Path(__file__).parent / 'fraude.html'
 LOG_URL       = 'https://logistics.mercadolibre.com.br/shipments/'
 BO_DRIVER     = 'https://shipping-bo.adminml.com/sauron/drivers/driver/'
@@ -70,7 +69,7 @@ SELECT
         ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_cls
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
-  AND date_bpp >= '{INICIO}'
+  AND date_bpp >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
   AND date_bpp <= CURRENT_DATE()
   AND DRIVER_ID IS NOT NULL
 GROUP BY 1

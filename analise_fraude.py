@@ -12,7 +12,9 @@ from google.auth import default
 import gspread
 
 FACILITY_NAME  = 'Guarulhos Mega'
-ANO_INICIO     = '2026-01-01'
+ANO_INICIO     = '2026-01-01'        # usado nas tabs anuais (saídas, devolucoes, ENE)
+# Janela 90 dias — alinhado à premissa LP (mínimo 5 pacotes dentro de 90 dias)
+INICIO_90D     = "DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)"
 
 OUTPUT            = os.path.join(os.path.dirname(__file__), 'fraude.html')
 SINISTROS_OUTPUT  = os.path.join(os.path.dirname(__file__), 'sinistros.html')
@@ -29,7 +31,7 @@ SINISTRO_ABA      = 'Eventos SVC'
 # QUERIES
 # ============================================================
 QUERY_DRIVER_SCORE = f"""
--- Score combinado por driver — usa DRIVER_ID direto da tabela (sem join)
+-- Score combinado por driver — janela 90 dias (premissa LP)
 SELECT
     SAFE_CAST(DRIVER_ID AS STRING)                                           AS DRIVER_ID,
     COUNT(DISTINCT SHIPMENT_ID)                                              AS TOTAL_INCIDENTES,
@@ -43,7 +45,7 @@ SELECT
         OR Classification_LM = 'STOLEN ON ROUTE')                           AS FRAUD_CONFIRMADO
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-  AND date_bpp >= '{ANO_INICIO}'
+  AND date_bpp >= {INICIO_90D}
   AND date_bpp <= CURRENT_DATE()
   AND DRIVER_ID IS NOT NULL
 GROUP BY 1
@@ -52,7 +54,7 @@ LIMIT 60
 """
 
 QUERY_DRIVER_SHIPMENTS = f"""
--- Todos os SHP IDs por driver para exibir no dashboard
+-- Todos os SHP IDs por driver para exibir no dashboard — janela 90 dias (premissa LP)
 SELECT
     SAFE_CAST(DRIVER_ID AS STRING)       AS DRIVER_ID,
     IFNULL(DRIVER_NAME, '')              AS DRIVER_NAME,
@@ -64,7 +66,7 @@ SELECT
     FORMAT_DATE('%Y-W%V', date_bpp)      AS SEMANA
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-  AND date_bpp >= '{ANO_INICIO}'
+  AND date_bpp >= {INICIO_90D}
   AND date_bpp <= CURRENT_DATE()
   AND DRIVER_ID IS NOT NULL
 ORDER BY SAFE_CAST(DRIVER_ID AS INT64), BPP_CASHOUT_USD DESC
@@ -80,7 +82,7 @@ WITH fraud_driver AS (
         ROUND(BPP_CASHOUT_USD, 2)           AS BPP_CASHOUT_USD
     FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
     WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-      AND date_bpp >= '{ANO_INICIO}'
+      AND date_bpp >= {INICIO_90D}
       AND date_bpp <= CURRENT_DATE()
       AND DRIVER_ID IS NOT NULL
 )
@@ -104,14 +106,14 @@ LIMIT 80
 """
 
 QUERY_PLACES = f"""
--- Ranking de places por fraudes (LOST + FRAUD apenas)
+-- Ranking de places por fraudes (LOST + FRAUD apenas) — janela 90 dias
 WITH fraudes AS (
     SELECT SAFE_CAST(SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
            Classification_LM,
            ROUND(BPP_CASHOUT_USD, 2) AS BPP_CASHOUT_USD
     FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
     WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-      AND date_bpp >= '{ANO_INICIO}'
+      AND date_bpp >= {INICIO_90D}
       AND date_bpp <= CURRENT_DATE()
       AND Classification_LM IN (
           'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
@@ -201,7 +203,7 @@ fraud_drivers AS (
   SELECT DISTINCT SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
   WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-    AND date_bpp >= '{ANO_INICIO}'
+    AND date_bpp >= {INICIO_90D}
     AND DRIVER_ID IS NOT NULL
 )
 SELECT
@@ -228,12 +230,12 @@ FROM `meli-bi-data.WHOWNER.BT_SHP_LG_SHIPMENTS_ROUTES` r
 LEFT JOIN `meli-bi-data.WHOWNER.LK_SHP_COMPANIES` c
     ON r.SHP_COMPANY_ID = c.SHP_COMPANY_ID
 WHERE r.SHP_LG_FACILITY_ID = 'SSP30'
-  AND DATE(r.SHP_LG_ROUTE_INIT_DATE) >= '{ANO_INICIO}'
+  AND DATE(r.SHP_LG_ROUTE_INIT_DATE) >= {INICIO_90D}
   AND CAST(r.SHP_LG_DRIVER_ID AS STRING) IN (
       SELECT DISTINCT SAFE_CAST(DRIVER_ID AS STRING)
       FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
       WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-        AND date_bpp >= '{ANO_INICIO}'
+        AND date_bpp >= {INICIO_90D}
         AND DRIVER_ID IS NOT NULL
   )
 GROUP BY 1, 2
@@ -268,7 +270,7 @@ JOIN `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` p
     ON CAST(p.SHP_SHIPMENT_ID AS STRING) = CAST(f.SHIPMENT_ID AS STRING)
    AND p.SERVICE_TYPE = 'DO'
 WHERE f.SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-  AND f.date_bpp >= '{ANO_INICIO}'
+  AND f.date_bpp >= {INICIO_90D}
   AND f.date_bpp <= CURRENT_DATE()
   AND f.Classification_LM IN (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
@@ -278,7 +280,7 @@ ORDER BY p.SHP_AGEN_DESC, f.BPP_CASHOUT_USD DESC
 """
 
 QUERY_CRUZAMENTO = f"""
--- Sellers e Buyers ofensores cruzados com drivers de fraude
+-- Sellers e Buyers ofensores cruzados com drivers de fraude — janela 90 dias
 WITH fraudes AS (
   SELECT
     CAST(SHIPMENT_ID AS STRING)    AS SHP_ID,
@@ -286,7 +288,7 @@ WITH fraudes AS (
     Classification_LM              AS CLASSE
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
   WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-    AND date_bpp >= '{ANO_INICIO}'
+    AND date_bpp >= {INICIO_90D}
     AND date_bpp <= CURRENT_DATE()
     AND Classification_LM IN (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
@@ -316,7 +318,7 @@ WITH fraudes AS (
     FORMAT_DATE('%Y-%m', date_bpp) AS MES
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
   WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-    AND date_bpp >= '{ANO_INICIO}'
+    AND date_bpp >= {INICIO_90D}
     AND date_bpp <= CURRENT_DATE()
     AND Classification_LM IN (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
@@ -336,7 +338,7 @@ ORDER BY 1 DESC, 4 DESC
 """
 
 QUERY_DAMAGED = f"""
--- Damaged por driver — usa DRIVER_ID direto da tabela
+-- Damaged por driver — janela 90 dias
 SELECT
     SAFE_CAST(DRIVER_ID AS STRING)                           AS DRIVER_ID,
     COUNT(DISTINCT SHIPMENT_ID)                              AS TOTAL_DAMAGED,
@@ -346,7 +348,7 @@ SELECT
     COUNTIF(Classification_LM = 'DAMAGED ENE')               AS DAMAGED_ENE
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-  AND date_bpp >= '{ANO_INICIO}'
+  AND date_bpp >= {INICIO_90D}
   AND date_bpp <= CURRENT_DATE()
   AND Classification_LM LIKE 'DAMAGED%'
   AND DRIVER_ID IS NOT NULL
@@ -356,7 +358,7 @@ LIMIT 60
 """
 
 QUERY_DC_NEX = f"""
--- Pacotes da SSP30 (Guarulhos Mega) com perda confirmada que passaram por DC/NEX/XPT
+-- Pacotes da SSP30 (Guarulhos Mega) com perda confirmada que passaram por DC/NEX/XPT — 90 dias
 WITH lost_sssp30 AS (
   SELECT
     CAST(SHIPMENT_ID AS STRING)      AS shp_id,
@@ -365,7 +367,7 @@ WITH lost_sssp30 AS (
     FORMAT_DATE('%d/%m/%Y', date_bpp) AS data_bpp
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
   WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-    AND date_bpp >= '{ANO_INICIO}'
+    AND date_bpp >= {INICIO_90D}
     AND date_bpp <= CURRENT_DATE()
     AND Classification_LM IN (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
@@ -380,7 +382,7 @@ dc_nex AS (
     MAX(SHP_DATE_HANDLING_ID)            AS ultima_data
   FROM `meli-bi-data.WHOWNER.BT_SHP_TRACKER_DELAY_CAUSE_DIT`
   WHERE SHP_SITE_ID = 'MLB'
-    AND SHP_DATE_HANDLING_ID >= '{ANO_INICIO}'
+    AND SHP_DATE_HANDLING_ID >= {INICIO_90D}
     AND LM_DESTINATION_FACILITY_TYPE IN ('NEX','DC','XPT')
   GROUP BY 1, 2, 3
 )
@@ -532,8 +534,8 @@ def processar_acumulo_bloqueio(drivers, shp_por_driver, days=90):
             apto, motivo = False, 'Já bloqueado'
         elif dst in STATUS_INATIVO:
             apto, motivo = False, f'Status: {dst}'
-        elif n_pkgs <= 5:
-            apto, motivo = False, f'Apenas {n_pkgs} pacotes (mínimo 6)'
+        elif n_pkgs < 5:
+            apto, motivo = False, f'Apenas {n_pkgs} pacotes (mínimo 5)'
         elif total_bpp <= 300:
             apto, motivo = False, f'Total ${total_bpp:.0f} abaixo de $300'
         elif residual <= 200:
