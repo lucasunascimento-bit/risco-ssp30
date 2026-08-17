@@ -84,7 +84,11 @@ SELECT
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN ROUND(BPP_CASHOUT_USD, 2) END IGNORE NULLS
         ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_bpps,
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN Classification_LM END IGNORE NULLS
-        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_cls
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_cls,
+    ARRAY_AGG(CASE WHEN {_FC_BPP} THEN FORMAT_DATE('%d/%m/%Y', date_bpp) END IGNORE NULLS
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_dates,
+    ARRAY_AGG(CASE WHEN {_FC_BPP} THEN FORMAT_DATE('%Y-W%V', date_bpp) END IGNORE NULLS
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_weeks
 FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
 WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
   AND date_bpp >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
@@ -183,19 +187,23 @@ def carregar_dados():
         total = int(row['total'])
         fraud = int(row['fraud'])
         pct   = round(fraud / total * 100, 1) if total else 0.0
-        meses    = sorted(m for m in (row['meses'] or []) if m)
-        raw_ids  = [str(s) for s in (row['shp_ids'] or []) if s]
-        raw_bpps = [float(b) for b in (row['shp_bpps'] or []) if b is not None]
-        raw_cls  = [str(c) for c in (row['shp_cls'] or []) if c]
+        meses     = sorted(m for m in (row['meses'] or []) if m)
+        raw_ids   = [str(s) for s in (row['shp_ids']   or []) if s]
+        raw_bpps  = [float(b) for b in (row['shp_bpps'] or []) if b is not None]
+        raw_cls   = [str(c) for c in (row['shp_cls']   or []) if c]
+        raw_dates = [str(d) for d in (row['shp_dates'] or []) if d]
+        raw_weeks = [str(w) for w in (row['shp_weeks'] or []) if w]
         seen_ids = set()
         shps = []
         for _i, _sid in enumerate(raw_ids):
             if _sid not in seen_ids:
                 seen_ids.add(_sid)
                 shps.append({
-                    'id':  _sid,
-                    'bpp': raw_bpps[_i] if _i < len(raw_bpps) else 0.0,
-                    'cls': raw_cls[_i]  if _i < len(raw_cls)  else ''
+                    'id':   _sid,
+                    'bpp':  raw_bpps[_i]  if _i < len(raw_bpps)  else 0.0,
+                    'cls':  raw_cls[_i]   if _i < len(raw_cls)   else '',
+                    'date': raw_dates[_i] if _i < len(raw_dates) else '',
+                    'week': raw_weeks[_i] if _i < len(raw_weeks) else '',
                 })
                 if len(shps) >= 500:
                     break
@@ -359,7 +367,7 @@ def gerar_tab(drivers, sheet_status=None):
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div>
       <div style="font-size:16px;font-weight:700;color:#f9fafb">Candidatos a Bloqueio</div>
-      <div style="font-size:11px;color:#6b7280;margin-top:2px">SSP30 · Guarulhos Mega · desde Jan/2026 · atualizado {now}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:2px">SSP30 · Guarulhos Mega · janela 90 dias · atualizado {now}</div>
     </div>
     <button onclick="blqExportCSV()" style="background:#1f2937;color:#9ca3af;border:1px solid #374151;border-radius:6px;padding:5px 14px;font-size:11px;cursor:pointer">⬇ Exportar CSV</button>
   </div>
@@ -783,12 +791,20 @@ window.blqGerarApresentacao = function(drvId) {{
   if(!d) return;
   var hoje = new Date().toLocaleDateString('pt-BR',{{day:'2-digit',month:'2-digit',year:'numeric'}});
   var isBloq = blqGetSt2(drvId)==='blq';
-  var nM = d.meses.length;
+  var st2 = blqGetSt2(drvId);
+  var ST2_LBL_MAP = {{ati:'Ativo',blq:'Bloqueado',ina:'Inativo'}};
+  var driverStatusLbl = ST2_LBL_MAP[st2] || 'Ativo';
   var fmtM = function(m){{
-    try{{ var dt=new Date(m+'-15'); return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('.','').replace(' ','/'); }}catch(e){{ return m; }}
+    try{{
+      var s = m.length===7 ? m+'-01' : m.slice(0,10);
+      var dt = new Date(s+'T12:00:00');
+      return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('.','').replace(' ','/');
+    }}catch(e){{ return m; }}
   }};
+  var _uniqMonths = d.meses.map(function(m){{return m.slice(0,7);}}).filter(function(v,i,a){{return a.indexOf(v)===i;}}).sort();
+  var nM = _uniqMonths.length;
   var periodoLabel = nM ? nM+' mes'+(nM>1?'es':'') : '—';
-  var periodoRange = nM ? fmtM(d.meses[0])+(nM>1?' a '+fmtM(d.meses[nM-1]):'') : '';
+  var periodoRange = nM ? fmtM(_uniqMonths[0])+(nM>1?' a '+fmtM(_uniqMonths[nM-1]):'') : '';
   var shps = d.shps||[];
   var clsSet={{}};
   shps.forEach(function(s){{ if(s.cls) clsSet[s.cls]=1; }});
@@ -815,7 +831,16 @@ window.blqGerarApresentacao = function(drvId) {{
   var top=shps;
   var shpRows=top.map(function(s,i){{
     var cls=s.cls||d.classe||'';
-    return '<tr class="'+(i%2?'alt':'')+'">'+'<td class="cn">'+(i+1)+'</td>'+'<td style="color:'+clsClr(cls)+'">'+cls+'</td>'+'<td><a href="'+BLQ_LOG+s.id+'" style="color:#1d4ed8;text-decoration:none">'+s.id+'</a></td>'+'<td class="rn">'+bppFmt(s.bpp||0)+'</td></tr>';
+    return '<tr class="'+(i%2?'alt':'')+'">'
+      +'<td class="cn">'+(i+1)+'</td>'
+      +'<td style="color:#555;font-size:9.5px;white-space:nowrap">'+(s.week||'—')+'</td>'
+      +'<td style="color:'+clsClr(cls)+'">'+cls+'</td>'
+      +'<td><a href="'+BLQ_LOG+s.id+'" style="color:#1d4ed8;text-decoration:none">'+s.id+'</a></td>'
+      +'<td style="color:#555;font-size:9.5px;white-space:nowrap">'+(s.date||'—')+'</td>'
+      +'<td style="color:#555">'+d.id+'</td>'
+      +'<td style="color:#555;font-size:9px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(d.mlp||'')+'">'+(d.mlp||'—')+'</td>'
+      +'<td style="color:#555">'+driverStatusLbl+'</td>'
+      +'<td class="rn">'+bppFmt(s.bpp||0)+'</td></tr>';
   }}).join('');
   var stolen=d.fraud-shps.length; var extraShps=stolen>0?stolen+' STOLEN ON ROUTE não listados (sem BPP)':'';
   var apoLbl=isBloq?'JÁ BLOQUEADO':'APTO PARA BLOQUEIO';
@@ -888,7 +913,7 @@ window.blqGerarApresentacao = function(drvId) {{
     '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">Evidências · Driver '+d.id+'</div></div>'+
     '<div class="evh"><h2>Evidências — Driver '+d.id+'</h2><div class="sub">'+(d.nome?d.nome+' | ':'<span class="editavel" contenteditable="true" title="Clique para editar">Inserir nome</span> | ')+d.mlp+'</div></div>'+
     '<table class="etbl">'+
-      '<thead><tr><th class="cn">#</th><th>Classificação</th><th>Shipment ID</th><th class="rn">BPP (USD)</th></tr></thead>'+
+      '<thead><tr><th class="cn">#</th><th>Semana</th><th>Classificação</th><th>Shipment ID</th><th>Data BPP</th><th>Driver ID</th><th>MLP</th><th>Status</th><th class="rn">BPP (USD)</th></tr></thead>'+
       '<tbody>'+shpRows+'</tbody>'+
     '</table>'+
     '<div class="efoot">'+
@@ -1013,14 +1038,14 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.22</span>',
+        '<span class="ver-badge">v4.23</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
     _salvar_ids_conhecidos({str(d['id']) for d in drivers})
-    print(f'Pronto! {mb:.1f} MB — v4.22')
+    print(f'Pronto! {mb:.1f} MB — v4.23')
 
 
 if __name__ == '__main__':
