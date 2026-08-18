@@ -253,15 +253,14 @@
 <main class="main-content">
 
 <!-- BARRA DE PERÍODO — oculta na aba Acúmulo -->
-<div id="barra-periodo" style="background:#080d19;border-bottom:1px solid #1f2937;padding:10px 32px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<div id="barra-periodo" style="background:#080d19;border-bottom:1px solid #1f2937;padding:10px 32px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
   <span class="filter-label">Período:</span>
-  <button id="chip-1m"   class="pd-chip" onclick="setChipPeriod(1,this)">1m</button>
-  <button id="chip-3m"   class="pd-chip" onclick="setChipPeriod(3,this)">3m</button>
-  <button id="chip-6m"   class="pd-chip" onclick="setChipPeriod(6,this)">6m</button>
-  <button id="chip-tudo" class="pd-chip" onclick="setChipPeriod(0,this)">Tudo</button>
-  <input type="month" id="pd_de"  style="display:none">
-  <input type="month" id="pd_ate" style="display:none">
-  <span id="pd_label" style="font-size:12px;font-weight:600;color:#60a5fa;margin-left:4px"></span>
+  <span style="font-size:11px;color:#6b7280">De</span>
+  <input type="month" id="pd_de" onchange="setPeriodo()" min="2026-01" max="2026-08" style="max-width:150px">
+  <span style="font-size:11px;color:#6b7280">Até</span>
+  <input type="month" id="pd_ate" onchange="setPeriodo()" min="2026-01" max="2026-08" style="max-width:150px">
+  <button onclick="resetPeriodo()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer">Limpar</button>
+  <span id="pd_label" style="font-size:12px;font-weight:600;color:#60a5fa"></span>
 </div>
 
 <!-- VISÃO GERAL -->
@@ -61018,7 +61017,11 @@ function _updateAllTabCounts() {
 }
 
 function resetPeriodo() {
-  setChipPeriod(0, document.getElementById('chip-tudo'));
+  const first = MONTHLY.length > 0 ? MONTHLY[0].key                   : '';
+  const last  = MONTHLY.length > 0 ? MONTHLY[MONTHLY.length-1].key   : '';
+  document.getElementById('pd_de').value  = first;
+  document.getElementById('pd_ate').value = last;
+  setPeriodo();
 }
 
 function updateCountCards() {
@@ -61075,7 +61078,11 @@ const _crzMes = {"2026-08": {"sellers": [{"id": "480265022", "qtd": 95}, {"id": 
 
 // Inicializa: intervalo completo disponível
 (function() {
-  setChipPeriod(0, document.getElementById('chip-tudo'));
+  const first = MONTHLY.length > 0 ? MONTHLY[0].key                 : '';
+  const last  = MONTHLY.length > 0 ? MONTHLY[MONTHLY.length-1].key : '';
+  document.getElementById('pd_de').value  = first;
+  document.getElementById('pd_ate').value = last;
+  setPeriodo();
 })();
 
 // Ofensores do Período — reage ao filtro global pd_de/pd_ate
