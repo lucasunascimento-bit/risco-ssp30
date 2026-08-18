@@ -32,8 +32,22 @@ SINISTRO_ABA      = 'Eventos SVC'
 # ============================================================
 QUERY_DRIVER_SCORE = f"""
 -- Score combinado por driver — janela 90 dias (premissa LP)
+-- CTE deduplica por (DRIVER_ID, SHIPMENT_ID): tabela tem 1 linha por item dentro do SHP
+WITH shp_dedup AS (
+    SELECT
+        SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID,
+        CAST(SHIPMENT_ID AS STRING)    AS SHIPMENT_ID,
+        Classification_LM,
+        MAX(BPP_CASHOUT_USD)           AS BPP_CASHOUT_USD
+    FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+    WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+      AND date_bpp >= {INICIO_90D}
+      AND date_bpp <= CURRENT_DATE()
+      AND DRIVER_ID IS NOT NULL
+    GROUP BY 1, 2, 3
+)
 SELECT
-    SAFE_CAST(DRIVER_ID AS STRING)                                           AS DRIVER_ID,
+    DRIVER_ID                                                                AS DRIVER_ID,
     COUNT(DISTINCT SHIPMENT_ID)                                              AS TOTAL_INCIDENTES,
     ROUND(SUM(BPP_CASHOUT_USD), 2)                                           AS TOTAL_BPP,
     COUNTIF(Classification_LM IN (
@@ -43,48 +57,58 @@ SELECT
     COUNTIF(Classification_LM LIKE 'DAMAGED%')                              AS TOTAL_DAMAGED,
     COUNTIF(Classification_LM LIKE 'FRAUD%'
         OR Classification_LM = 'STOLEN ON ROUTE')                           AS FRAUD_CONFIRMADO
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-  AND date_bpp >= {INICIO_90D}
-  AND date_bpp <= CURRENT_DATE()
-  AND DRIVER_ID IS NOT NULL
+FROM shp_dedup
 GROUP BY 1
 ORDER BY TOTAL_INCIDENTES DESC
 LIMIT 60
 """
 
 QUERY_DRIVER_SHIPMENTS = f"""
--- Todos os SHP IDs por driver para exibir no dashboard — janela 90 dias (premissa LP)
-SELECT
-    SAFE_CAST(DRIVER_ID AS STRING)       AS DRIVER_ID,
-    IFNULL(DRIVER_NAME, '')              AS DRIVER_NAME,
-    IFNULL(MLP, '')                      AS MLP,
-    CAST(SHIPMENT_ID AS STRING)          AS SHP_ID,
-    Classification_LM                    AS CLASSIFICACAO,
-    ROUND(BPP_CASHOUT_USD, 2)            AS BPP,
-    FORMAT_DATE('%d/%m/%Y', date_bpp)    AS DATA,
-    FORMAT_DATE('%Y-W%V', date_bpp)      AS SEMANA
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-  AND date_bpp >= {INICIO_90D}
-  AND date_bpp <= CURRENT_DATE()
-  AND DRIVER_ID IS NOT NULL
-ORDER BY SAFE_CAST(DRIVER_ID AS INT64), BPP_CASHOUT_USD DESC
-"""
-
-QUERY_DRIVER_PLACE = f"""
--- Driver x Place — usa DRIVER_ID direto (sem join com checkpoints)
-WITH fraud_driver AS (
+-- Todos os SHP IDs por driver — janela 90 dias (premissa LP)
+-- CTE deduplica por (DRIVER_ID, SHIPMENT_ID, Classification_LM, date_bpp)
+WITH shp_dedup AS (
     SELECT
         SAFE_CAST(DRIVER_ID AS STRING)      AS DRIVER_ID,
-        SAFE_CAST(SHIPMENT_ID AS STRING)    AS SHP_SHIPMENT_ID,
-        Classification_LM,
-        ROUND(BPP_CASHOUT_USD, 2)           AS BPP_CASHOUT_USD
+        CAST(SHIPMENT_ID AS STRING)         AS SHP_ID,
+        Classification_LM                   AS CLASSIFICACAO,
+        date_bpp,
+        MAX(IFNULL(DRIVER_NAME, ''))        AS DRIVER_NAME,
+        MAX(IFNULL(MLP, ''))               AS MLP,
+        MAX(BPP_CASHOUT_USD)               AS BPP
     FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
     WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
       AND date_bpp >= {INICIO_90D}
       AND date_bpp <= CURRENT_DATE()
       AND DRIVER_ID IS NOT NULL
+    GROUP BY 1, 2, 3, 4
+)
+SELECT
+    DRIVER_ID,
+    DRIVER_NAME,
+    MLP,
+    SHP_ID,
+    CLASSIFICACAO,
+    ROUND(BPP, 2)                           AS BPP,
+    FORMAT_DATE('%d/%m/%Y', date_bpp)       AS DATA,
+    FORMAT_DATE('%Y-W%V', date_bpp)         AS SEMANA
+FROM shp_dedup
+ORDER BY SAFE_CAST(DRIVER_ID AS INT64), BPP DESC
+"""
+
+QUERY_DRIVER_PLACE = f"""
+-- Driver x Place — deduplica por (DRIVER_ID, SHIPMENT_ID) para BPP correto
+WITH fraud_driver AS (
+    SELECT
+        SAFE_CAST(DRIVER_ID AS STRING)      AS DRIVER_ID,
+        SAFE_CAST(SHIPMENT_ID AS STRING)    AS SHP_SHIPMENT_ID,
+        Classification_LM,
+        MAX(BPP_CASHOUT_USD)               AS BPP_CASHOUT_USD
+    FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+    WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+      AND date_bpp >= {INICIO_90D}
+      AND date_bpp <= CURRENT_DATE()
+      AND DRIVER_ID IS NOT NULL
+    GROUP BY 1, 2, 3
 )
 SELECT
     fd.DRIVER_ID,
@@ -106,11 +130,11 @@ LIMIT 80
 """
 
 QUERY_PLACES = f"""
--- Ranking de places por fraudes (LOST + FRAUD apenas) — janela 90 dias
+-- Ranking de places por fraudes (LOST + FRAUD) — janela 90 dias — deduplica por SHP
 WITH fraudes AS (
     SELECT SAFE_CAST(SHIPMENT_ID AS STRING) AS SHP_SHIPMENT_ID,
            Classification_LM,
-           ROUND(BPP_CASHOUT_USD, 2) AS BPP_CASHOUT_USD
+           MAX(BPP_CASHOUT_USD) AS BPP_CASHOUT_USD
     FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
     WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
       AND date_bpp >= {INICIO_90D}
@@ -119,6 +143,7 @@ WITH fraudes AS (
           'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
           'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
           'STOLEN ON ROUTE','PNR C')
+    GROUP BY 1, 2
 )
 SELECT
     p.SHP_AGENCY_ID,
@@ -257,25 +282,36 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY DRIVER_ID ORDER BY CREATED_AT DESC) = 1
 
 QUERY_PLACE_SHIPMENTS = f"""
 -- SHP IDs por place (LOST + FRAUD apenas)
+WITH shp_dedup AS (
+  -- deduplica por SHP (DM_LP tem 1 linha por item/produto)
+  SELECT
+    CAST(SHIPMENT_ID AS STRING)      AS SHIPMENT_ID,
+    SAFE_CAST(DRIVER_ID AS STRING)   AS DRIVER_ID,
+    Classification_LM,
+    MAX(BPP_CASHOUT_USD)             AS BPP_CASHOUT_USD,
+    MAX(date_bpp)                    AS date_bpp
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+    AND date_bpp >= {INICIO_90D}
+    AND date_bpp <= CURRENT_DATE()
+    AND Classification_LM IN (
+        'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
+        'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
+        'STOLEN ON ROUTE','PNR C')
+  GROUP BY CAST(SHIPMENT_ID AS STRING), SAFE_CAST(DRIVER_ID AS STRING), Classification_LM
+)
 SELECT
     p.SHP_AGENCY_ID                                                                    AS AGENCY_ID,
     REGEXP_REPLACE(p.SHP_AGEN_DESC, r'Ag[êe]ncia Mercado Livre - ', '')               AS PLACE_NOME,
-    CAST(f.SHIPMENT_ID AS STRING)                                                       AS SHP_ID,
-    SAFE_CAST(f.DRIVER_ID AS STRING)                                                    AS DRIVER_ID,
+    f.SHIPMENT_ID                                                                       AS SHP_ID,
+    f.DRIVER_ID                                                                         AS DRIVER_ID,
     f.Classification_LM                                                                 AS CLASSIFICACAO,
     ROUND(f.BPP_CASHOUT_USD, 2)                                                         AS BPP,
     FORMAT_DATE('%d/%m/%Y', f.date_bpp)                                                 AS DATA
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` f
+FROM shp_dedup f
 JOIN `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` p
-    ON CAST(p.SHP_SHIPMENT_ID AS STRING) = CAST(f.SHIPMENT_ID AS STRING)
+    ON CAST(p.SHP_SHIPMENT_ID AS STRING) = f.SHIPMENT_ID
    AND p.SERVICE_TYPE = 'DO'
-WHERE f.SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-  AND f.date_bpp >= {INICIO_90D}
-  AND f.date_bpp <= CURRENT_DATE()
-  AND f.Classification_LM IN (
-      'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
-      'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
-      'STOLEN ON ROUTE','PNR C')
 ORDER BY p.SHP_AGEN_DESC, f.BPP_CASHOUT_USD DESC
 """
 
@@ -339,19 +375,29 @@ ORDER BY 1 DESC, 4 DESC
 
 QUERY_DAMAGED = f"""
 -- Damaged por driver — janela 90 dias
+WITH shp_dedup AS (
+  -- deduplica por SHP (DM_LP tem 1 linha por item/produto)
+  SELECT
+    SAFE_CAST(DRIVER_ID AS STRING)   AS DRIVER_ID,
+    CAST(SHIPMENT_ID AS STRING)      AS SHIPMENT_ID,
+    Classification_LM,
+    MAX(BPP_CASHOUT_USD)             AS BPP_CASHOUT_USD
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
+    AND date_bpp >= {INICIO_90D}
+    AND date_bpp <= CURRENT_DATE()
+    AND Classification_LM LIKE 'DAMAGED%'
+    AND DRIVER_ID IS NOT NULL
+  GROUP BY SAFE_CAST(DRIVER_ID AS STRING), CAST(SHIPMENT_ID AS STRING), Classification_LM
+)
 SELECT
-    SAFE_CAST(DRIVER_ID AS STRING)                           AS DRIVER_ID,
+    DRIVER_ID,
     COUNT(DISTINCT SHIPMENT_ID)                              AS TOTAL_DAMAGED,
     ROUND(SUM(BPP_CASHOUT_USD), 2)                           AS TOTAL_BPP,
     COUNTIF(Classification_LM = 'DAMAGED ON ROUTE')          AS DAMAGED_ON_ROUTE,
     COUNTIF(Classification_LM = 'DAMAGED AT STATION')        AS DAMAGED_AT_STATION,
     COUNTIF(Classification_LM = 'DAMAGED ENE')               AS DAMAGED_ENE
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
-  AND date_bpp >= {INICIO_90D}
-  AND date_bpp <= CURRENT_DATE()
-  AND Classification_LM LIKE 'DAMAGED%'
-  AND DRIVER_ID IS NOT NULL
+FROM shp_dedup
 GROUP BY 1
 ORDER BY TOTAL_DAMAGED DESC
 LIMIT 60
@@ -359,12 +405,13 @@ LIMIT 60
 
 QUERY_DC_NEX = f"""
 -- Pacotes da SSP30 (Guarulhos Mega) com perda confirmada que passaram por DC/NEX/XPT — 90 dias
-WITH lost_sssp30 AS (
+WITH shp_dedup AS (
+  -- deduplica por SHP (DM_LP tem 1 linha por item/produto)
   SELECT
-    CAST(SHIPMENT_ID AS STRING)      AS shp_id,
-    ROUND(BPP_CASHOUT_USD, 2)        AS bpp,
-    Classification_LM                AS classificacao,
-    FORMAT_DATE('%d/%m/%Y', date_bpp) AS data_bpp
+    CAST(SHIPMENT_ID AS STRING)       AS shp_id,
+    Classification_LM                 AS classificacao,
+    MAX(BPP_CASHOUT_USD)              AS BPP_CASHOUT_USD,
+    MAX(date_bpp)                     AS date_bpp
   FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
   WHERE SHP_LG_FACILITY_NAME = '{FACILITY_NAME}'
     AND date_bpp >= {INICIO_90D}
@@ -373,6 +420,15 @@ WITH lost_sssp30 AS (
       'LOST ON ROUTE','LOST ON WAY','LOST AT STATION','LOST ENE',
       'FRAUD ON ROUTE','FRAUD AT STATION','FRAUD ENE',
       'STOLEN ON ROUTE')
+  GROUP BY CAST(SHIPMENT_ID AS STRING), Classification_LM
+),
+lost_sssp30 AS (
+  SELECT
+    shp_id,
+    ROUND(BPP_CASHOUT_USD, 2)         AS bpp,
+    classificacao,
+    FORMAT_DATE('%d/%m/%Y', date_bpp) AS data_bpp
+  FROM shp_dedup
 ),
 dc_nex AS (
   SELECT

@@ -69,31 +69,47 @@ _FC_BPP = (
 )
 
 QUERY = f"""
+-- CTE deduplica por (DRIVER_ID, SHIPMENT_ID) antes de agregar
+-- DM_LP_MELI_OPTIMIZADO tem 1 linha por item/produto dentro do SHP
+-- MAX(BPP_CASHOUT_USD) pega o valor SHP-level (repetido igual em todas as linhas do mesmo SHP)
+WITH shp_dedup AS (
+    SELECT
+        SAFE_CAST(DRIVER_ID AS STRING) AS DRIVER_ID,
+        CAST(SHIPMENT_ID AS STRING)    AS SHIPMENT_ID,
+        Classification_LM,
+        date_bpp,
+        MAX(DRIVER_NAME)       AS DRIVER_NAME,
+        MAX(PLATE)             AS PLATE,
+        MAX(MLP)               AS MLP,
+        MAX(BPP_CASHOUT_USD)   AS BPP_CASHOUT_USD
+    FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+    WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
+      AND date_bpp >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+      AND date_bpp <= CURRENT_DATE()
+      AND DRIVER_ID IS NOT NULL
+    GROUP BY 1, 2, 3, 4
+)
 SELECT
-    SAFE_CAST(DRIVER_ID AS STRING)                              AS id,
-    IFNULL(MAX(DRIVER_NAME), '')                               AS nome,
-    IFNULL(MAX(PLATE), '')                                     AS placa,
-    IFNULL(MAX(MLP), '')                                       AS mlp,
-    COUNT(DISTINCT SHIPMENT_ID)                                AS total,
-    COUNT(DISTINCT CASE WHEN {_FC} THEN SHIPMENT_ID END)      AS fraud,
+    DRIVER_ID                                                  AS id,
+    IFNULL(MAX(DRIVER_NAME), '')                              AS nome,
+    IFNULL(MAX(PLATE), '')                                    AS placa,
+    IFNULL(MAX(MLP), '')                                      AS mlp,
+    COUNT(DISTINCT SHIPMENT_ID)                               AS total,
+    COUNT(DISTINCT CASE WHEN {_FC} THEN SHIPMENT_ID END)     AS fraud,
     ROUND(SUM(CASE WHEN {_FC_BPP} THEN BPP_CASHOUT_USD ELSE 0 END), 2) AS bpp,
-    APPROX_TOP_COUNT(Classification_LM, 1)[OFFSET(0)].value   AS classe,
+    APPROX_TOP_COUNT(Classification_LM, 1)[OFFSET(0)].value  AS classe,
     ARRAY_AGG(DISTINCT CASE WHEN {_FC_BPP} THEN FORMAT_DATE('%Y-%m-%d', date_bpp) END IGNORE NULLS) AS meses,
-    ARRAY_AGG(CASE WHEN {_FC_BPP} THEN CAST(SHIPMENT_ID AS STRING) END IGNORE NULLS
-        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_ids,
+    ARRAY_AGG(CASE WHEN {_FC_BPP} THEN SHIPMENT_ID END IGNORE NULLS
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)              AS shp_ids,
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN ROUND(BPP_CASHOUT_USD, 2) END IGNORE NULLS
-        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_bpps,
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)              AS shp_bpps,
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN Classification_LM END IGNORE NULLS
-        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_cls,
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)              AS shp_cls,
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN FORMAT_DATE('%d/%m/%Y', date_bpp) END IGNORE NULLS
-        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_dates,
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)              AS shp_dates,
     ARRAY_AGG(CASE WHEN {_FC_BPP} THEN FORMAT_DATE('%Y-W%V', date_bpp) END IGNORE NULLS
-        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)               AS shp_weeks
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
-  AND date_bpp >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-  AND date_bpp <= CURRENT_DATE()
-  AND DRIVER_ID IS NOT NULL
+        ORDER BY BPP_CASHOUT_USD DESC LIMIT 500)              AS shp_weeks
+FROM shp_dedup
 GROUP BY 1
 HAVING ROUND(SUM(BPP_CASHOUT_USD), 2) >= {MIN_BPP}
    AND COUNT(DISTINCT CASE WHEN {_FC} THEN SHIPMENT_ID END) >= {MIN_FRAUD}
