@@ -259,6 +259,7 @@
   <input type="month" id="pd_de" onchange="setPeriodo()" min="2026-01" max="2026-08" style="max-width:150px">
   <span style="font-size:11px;color:#6b7280">Até</span>
   <input type="month" id="pd_ate" onchange="setPeriodo()" min="2026-01" max="2026-08" style="max-width:150px">
+  <button onclick="set3mPeriodo()" style="background:#1e3a5f;color:#93c5fd;border:1px solid #3b82f6;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer;font-weight:600">3m</button>
   <button onclick="resetPeriodo()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer">Limpar</button>
   <span id="pd_label" style="font-size:12px;font-weight:600;color:#60a5fa"></span>
 </div>
@@ -60952,6 +60953,22 @@ function setChipPeriod(months, chipEl) {
     var y = parseInt(last.substring(0,4)), m = parseInt(last.substring(5,7));
     m -= (months - 1);
     while (m <= 0) { m += 12; y--; }
+    var cand = y + '-' + String(m).padStart(2,'0');
+    de = cand < first ? first : cand;
+  }
+  document.getElementById('pd_de').value  = de;
+  document.getElementById('pd_ate').value = last;
+  setPeriodo();
+}
+
+function set3mPeriodo() {
+  const last  = MONTHLY.length > 0 ? MONTHLY[MONTHLY.length-1].key : '';
+  const first = MONTHLY.length > 0 ? MONTHLY[0].key : '';
+  var de = first;
+  if (last) {
+    var y = parseInt(last.substring(0,4)), m = parseInt(last.substring(5,7));
+    m -= 2;
+    if (m <= 0) { m += 12; y--; }
     var cand = y + '-' + String(m).padStart(2,'0');
     de = cand < first ? first : cand;
   }
