@@ -33,7 +33,7 @@ def _salvar_ids_conhecidos(ids):
     except Exception as e:
         print(f'  Aviso: não salvei cache de IDs: {e}')
 HTML_OUT      = Path(__file__).parent / 'fraude.html'
-LOG_URL       = 'https://logistics.mercadolibre.com.br/shipments/'
+LOG_URL       = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/'
 BO_DRIVER     = 'https://shipping-bo.adminml.com/sauron/drivers/driver/'
 ANALISTA      = 'Lucas de Oliveira Nascimento'
 BLOCK_LIST_ID = '1521Ek2wn8qYLj7g6dh0aBBMmpVYHjCp2hftGKNG9bO0'
