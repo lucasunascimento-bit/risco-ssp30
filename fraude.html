@@ -60838,7 +60838,7 @@ function applyPeriodoToTab(name) {
   else if (name === 'dxp')        { _filterTblByPeriod(_tblDxp); }
   else if (name === 'places')     { _filterTblByPeriod(_tblPlaces); }
   else if (name === 'damaged')    { _applyDamagedFilters(); }
-  else if (name === 'bloqueios')  { filtrarBloqueios(); if(window.pvFilter) pvFilter(); }
+  else if (name === 'bloqueios')  { filtrarBloqueios(); try { blqRender(); } catch(e) {} if(window.pvFilter) pvFilter(); }
   else if (name === 'tendencia')  { renderTendencia(); }
   else if (name === 'ofensores')  { try { renderOfensores(); } catch(e) {} }
   else if (name === 'cruzamento') { renderCrzMes(); }
