@@ -922,7 +922,7 @@ window.selGerarRelatorioSeller = function(nick, tipo){{
   if(!nick){{ alert('Selecione um seller no gráfico ou na busca primeiro.'); return; }}
   var s = SEL_DATA.find(function(x){{ return x.n === nick; }});
   if(!s) return;
-  var fonte = tipo === 'damaged' ? SHP_DAMAGE : SHP_FRAUDE;
+  var fonte = tipo === 'damaged' ? _damages : _fraudes;
   var itens = fonte.filter(function(x){{ return x.n === nick; }}).sort(function(a,b){{ return b.b - a.b; }});
   if(!itens.length){{ alert('Nenhum shipment encontrado para este seller.'); return; }}
   var hoje = new Date().toLocaleDateString('pt-BR',{{day:'2-digit',month:'2-digit',year:'numeric'}});
