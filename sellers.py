@@ -14,6 +14,7 @@ INICIO   = '2026-01-01'
 HTML_OUT = Path(__file__).parent / 'fraude.html'
 LOG_URL  = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/'
 ANALISTA = 'Lucas de Oliveira Nascimento'
+CANCEL_THRESHOLD = 20.0  # % cancelamento (60d) considerado "alto" por padrão
 
 # ── Query 1: sellers agregados (todos) ──────────────────────────────────────
 # CTE pré-deduplica por SHP antes de agregar
@@ -50,12 +51,51 @@ SELECT
       'DAMAGED','damaged_svc','damaged_on_route','damaged_seller','damaged','SELLER'
     )
   )                                                                     AS n_damaged,
+  COUNTIF(classification_lm = 'PNR C')                                 AS n_pnr,
+  COUNTIF(classification_lm = 'EMPTY BOX')                             AS n_empty,
   MIN(FORMAT_DATE('%Y-%m', date_bpp))                                  AS primeiro_mes,
   MAX(FORMAT_DATE('%Y-%m', date_bpp))                                  AS ultimo_mes,
   COUNT(DISTINCT FORMAT_DATE('%Y-%m', date_bpp))                       AS n_meses
 FROM shps
 GROUP BY 1, 2
 ORDER BY bpp DESC
+"""
+
+# ── Query 4: taxa de cancelamento por seller (60 dias, via BT_SHP_SHIPMENTS) ─
+# DM_LP_MELI_OPTIMIZADO não tem status de pedido — mapeia nickname -> seller_id
+# numérico (SHP_SENDER_ID) via SHIPMENT_ID, depois calcula cancelamento 60d.
+# Filtro de partição em SHP_DATE_CREATED_ID é obrigatório (senão escaneia a
+# tabela inteira — testado: 924s sem filtro vs poucos minutos com filtro).
+Q_CANCELAMENTO = f"""
+WITH seller_map AS (
+  SELECT
+    lp.CUS_NICKNAME_SEL AS nickname,
+    s.SHP_SENDER_ID      AS seller_id,
+    COUNT(*)              AS n
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO` lp
+  INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` s
+    ON CAST(s.SHP_SHIPMENT_ID AS STRING) = lp.SHIPMENT_ID
+    AND s.SHP_DATE_CREATED_ID >= '{INICIO}'
+  WHERE lp.SHP_LG_FACILITY_NAME = '{FACILITY}'
+    AND lp.DATE_BPP >= '{INICIO}'
+    AND lp.CUS_NICKNAME_SEL IS NOT NULL
+  GROUP BY 1, 2
+),
+seller_best AS (
+  SELECT nickname, seller_id FROM (
+    SELECT nickname, seller_id, ROW_NUMBER() OVER (PARTITION BY nickname ORDER BY n DESC) AS rn
+    FROM seller_map
+  ) WHERE rn = 1
+)
+SELECT
+  sb.nickname                                       AS seller,
+  COUNT(*)                                           AS total_60d,
+  COUNTIF(s.SHP_STATUS_ID = 'cancelled')             AS cancel_60d
+FROM seller_best sb
+INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` s
+  ON s.SHP_SENDER_ID = sb.seller_id
+  AND s.SHP_DATE_CREATED_ID >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)
+GROUP BY 1
 """
 
 # ── Query 2: shipments de fraude seller (1 linha por SHP) ───────────────────
@@ -118,11 +158,30 @@ def carregar():
             'g': float(r['gmv'] or 0),
             'f': int(r['n_fraude']),
             'd': int(r['n_damaged']),
+            'pnr': int(r['n_pnr']),
+            'eb': int(r['n_empty']),
             'p': r['primeiro_mes'] or '',
             'u': r['ultimo_mes'] or '',
             'm': int(r['n_meses']),
         })
     print(f'  {len(sellers):,} sellers')
+
+    print('Consultando taxa de cancelamento (60 dias)...')
+    cancel_map = {}
+    for r in client.query(Q_CANCELAMENTO).result():
+        total_60d  = int(r['total_60d'])
+        cancel_60d = int(r['cancel_60d'])
+        cancel_map[r['seller']] = {
+            't60': total_60d,
+            'c60': cancel_60d,
+            'pc':  round(cancel_60d / total_60d * 100, 1) if total_60d else 0.0,
+        }
+    print(f'  {len(cancel_map):,} sellers com dado de cancelamento')
+    for s in sellers:
+        cm = cancel_map.get(s['n'])
+        s['t60'] = cm['t60'] if cm else 0
+        s['c60'] = cm['c60'] if cm else 0
+        s['pc']  = cm['pc']  if cm else 0.0
 
     print('Consultando shipments de fraude...')
     shps_fraude = []
@@ -153,14 +212,18 @@ def carregar():
     return sellers, shps_fraude, shps_damaged
 
 
+PNR_EB_MIN_RECORRENCIA = 2  # 1 incidente isolado nao e padrao (validado em caso real 2026-08-20)
+
+
 def static_kpis(sellers, shps_fraude, shps_damaged):
     total_bpp = sum(s['b'] for s in sellers)
     untrusted = [s for s in sellers if s['r'] in ('SELLER NOT TRUSTED', 'BOTH NOT TRUSTED')]
     suspeitos = [
         s for s in sellers
-        if s['r'] in ('SELLER NOT TRUSTED', 'BOTH NOT TRUSTED')
-        or (s['f'] > 0 and s['m'] <= 2)
-        or (s['t'] > 0 and s['f'] / s['t'] > 0.3)
+        if s['f'] > 0
+        or s['pnr'] >= PNR_EB_MIN_RECORRENCIA
+        or s['eb'] >= PNR_EB_MIN_RECORRENCIA
+        or s['pc'] >= CANCEL_THRESHOLD
     ]
     return {
         'sellers':     len(sellers),
@@ -379,7 +442,15 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
   <!-- SUSPEITOS -->
   <div id="selc-suspeitos" style="display:none">
     <div style="background:#1a0a00;border:1px solid #78350f;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#d97706">
-      <b>Criterios de suspeicao:</b> Reputacao "NOT TRUSTED" <b>OU</b> seller com fraude em menos de 2 meses de historico <b>OU</b> mais de 30% dos SHPs sao fraude
+      <b>Sinais de suspeicao (qualquer um marca o seller):</b>
+      Historico fraudulento (Fraude Seller &gt; 0)
+      <b> · </b> Pacote divergente (PNR C &ge; {PNR_EB_MIN_RECORRENCIA} casos — 1 caso isolado nao conta)
+      <b> · </b> Caixa vazia (Empty Box &ge; {PNR_EB_MIN_RECORRENCIA} casos)
+      <b> · </b> Alta taxa de cancelamento (&ge;
+      <input id="sel-susp-cancel-min" type="number" value="{CANCEL_THRESHOLD:.0f}" min="0" max="100"
+        onchange="selSuspFiltrar()"
+        style="width:44px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:1px 4px;font-size:11px;text-align:center">
+      % em 60 dias)
     </div>
 
     <!-- Overview status cards -->
@@ -427,12 +498,11 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
             <tr>
               <th style="padding:6px 8px;text-align:left;color:#4b5563;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">#</th>
               <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Seller</th>
-              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Reputacao</th>
               <th style="padding:6px 8px;text-align:center;color:#e5e7eb;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Total SHPs</th>
-              <th style="padding:6px 8px;text-align:center;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Fraudes</th>
-              <th style="padding:6px 8px;text-align:center;color:#a78bfa;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Damaged</th>
-              <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Meses</th>
-              <th style="padding:6px 8px;text-align:left;color:#f97316;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Motivo</th>
+              <th style="padding:6px 8px;text-align:center;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Historico Fraudulento</th>
+              <th style="padding:6px 8px;text-align:center;color:#f472b6;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Pacote Divergente (PNR C)</th>
+              <th style="padding:6px 8px;text-align:center;color:#a78bfa;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Caixa Vazia</th>
+              <th style="padding:6px 8px;text-align:center;color:#fb923c;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">% Cancelamento (60d)</th>
               <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
               <th style="padding:6px 8px;text-align:left;color:#9ca3af;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Status</th>
               <th style="padding:6px 8px;text-align:left;color:#93c5fd;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">PDF</th>
@@ -491,18 +561,15 @@ function mkChart(id, labels, data, color, onClick){{
   }});
 }}
 
-function isSuspeito(s){{
-  return s.r === 'SELLER NOT TRUSTED' || s.r === 'BOTH NOT TRUSTED'
-    || (s.f > 0 && s.m <= 2)
-    || (s.t > 0 && s.f / s.t >= 0.3);
+function selCancelMin(){{
+  var v = parseFloat((document.getElementById('sel-susp-cancel-min') || {{}}).value);
+  return isNaN(v) ? {CANCEL_THRESHOLD} : v;
 }}
 
-function motivoSusp(s){{
-  var m = [];
-  if(s.r === 'SELLER NOT TRUSTED' || s.r === 'BOTH NOT TRUSTED') m.push('Not Trusted');
-  if(s.f > 0 && s.m <= 2) m.push('Fraude em '+s.m+' mes(es)');
-  if(s.t > 0 && s.f / s.t >= 0.3) m.push((s.f/s.t*100).toFixed(0)+'% fraude');
-  return m.join(' | ') || '-';
+var PNR_EB_MIN = {PNR_EB_MIN_RECORRENCIA};
+
+function isSuspeito(s){{
+  return s.f > 0 || s.pnr >= PNR_EB_MIN || s.eb >= PNR_EB_MIN || s.pc >= selCancelMin();
 }}
 
 // ── Fluxo de solicitação de bloqueio (status persistido no browser) ────────
@@ -688,19 +755,21 @@ function renderSuspTbody(lista){{
   var ST_LBL = {{ati:'Ativo',sol:'Solicitado',blq:'Bloqueado'}};
   var ST_CLR = {{ati:'#9ca3af',sol:'#fbbf24',blq:'#f87171'}};
   var ST_BG  = {{ati:'rgba(156,163,175,.1)',sol:'rgba(251,191,36,.12)',blq:'rgba(239,68,68,.12)'}};
+  var cancelMin = selCancelMin();
+  var sinalCls = function(v, min){{ return v >= (min||1) ? 'color:#f87171;font-weight:700' : 'color:#374151'; }};
   el.innerHTML = filtrado.map(function(s, i){{
     var sel = _selSusp === s.n;
     var hl = sel ? 'background:#1a0a00;border-left:3px solid #f97316;' : 'border-left:3px solid transparent;';
     var st = selGetSt(s.n);
+    var pcCls = s.pc >= cancelMin ? 'color:#f87171;font-weight:700' : 'color:#6b7280';
     return '<tr style="border-bottom:1px solid #0a0f1e;'+hl+'">'
       + '<td style="padding:4px 8px;color:#374151;font-size:9px">'+(i+1)+'</td>'
       + '<td style="padding:4px 8px;color:#60a5fa;font-size:10px;font-weight:700;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+s.n+'">'+s.n+'</td>'
-      + '<td style="padding:4px 8px">'+repBadge(s.r)+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.t+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;color:#fbbf24">'+s.f+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;color:#a78bfa">'+s.d+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;color:#4b5563">'+s.m+'</td>'
-      + '<td style="padding:4px 8px;color:#f97316;font-size:10px">'+motivoSusp(s)+'</td>'
+      + '<td style="padding:4px 8px;text-align:center;'+sinalCls(s.f, 1)+'">'+s.f+'</td>'
+      + '<td style="padding:4px 8px;text-align:center;'+sinalCls(s.pnr, PNR_EB_MIN)+'">'+s.pnr+'</td>'
+      + '<td style="padding:4px 8px;text-align:center;'+sinalCls(s.eb, PNR_EB_MIN)+'">'+s.eb+'</td>'
+      + '<td style="padding:4px 8px;text-align:center;'+pcCls+'" title="'+s.c60+' de '+s.t60+' SHPs (60d)">'+s.pc.toFixed(1)+'%</td>'
       + '<td style="padding:4px 8px;text-align:right;color:#f87171;font-size:10px">$'+s.b.toFixed(0)+'</td>'
       + '<td style="padding:4px 8px"><span onclick="selToggleSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+ST_CLR[st]+';background:'+ST_BG[st]+'">'+ST_LBL[st]+'</span></td>'
       + '<td style="padding:4px 8px"><button onclick="selGerarApresentacao(\\''+s.n+'\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button></td>'
@@ -737,7 +806,12 @@ window.selGerarApresentacao = function(nick){{
       +'<td><a href="'+LOG_URL+e.s+'" style="color:#1d4ed8;text-decoration:none">'+e.s+'</a></td>'
       +'<td class="rn">'+bppFmt(e.b||0)+'</td></tr>';
   }}).join('');
-  var motivo = motivoSusp(s);
+  var motivoParts = [];
+  if(s.f > 0)              motivoParts.push(s.f+' fraude(s)');
+  if(s.pnr >= PNR_EB_MIN)   motivoParts.push(s.pnr+' pacote(s) divergente(s) (PNR C)');
+  if(s.eb >= PNR_EB_MIN)    motivoParts.push(s.eb+' caixa(s) vazia(s)');
+  if(s.pc >= selCancelMin()) motivoParts.push(s.pc.toFixed(1)+'% cancelamento (60d)');
+  var motivo = motivoParts.join(' | ') || '—';
   var css=[
     '*{{box-sizing:border-box;margin:0;padding:0}}',
     'body{{font-family:Arial,sans-serif;background:#fff;color:#111;font-size:12px}}',
@@ -900,8 +974,8 @@ window.selLimpar = function(){{
 }};
 
 window.selExportCSV = function(){{
-  var rows = [['Seller','Reputacao','Total','Damaged','Fraude','Meses','BPP USD','GMV USD','Status Solicitacao']];
-  _sellers.forEach(function(s){{ rows.push([s.n, s.r, s.t, s.d, s.f, s.m, s.b, s.g, selGetSt(s.n)]); }});
+  var rows = [['Seller','Reputacao','Total','Damaged','Fraude','PNR C (Divergente)','Empty Box','% Cancelamento 60d','Meses','BPP USD','GMV USD','Status Solicitacao']];
+  _sellers.forEach(function(s){{ rows.push([s.n, s.r, s.t, s.d, s.f, s.pnr, s.eb, s.pc, s.m, s.b, s.g, selGetSt(s.n)]); }});
   var csv = rows.map(function(r){{
     return r.map(function(v){{ return '"' + String(v).replace(/"/g, '""') + '"'; }}).join(',');
   }}).join('\\n');
