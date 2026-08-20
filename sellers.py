@@ -981,7 +981,7 @@ window.selGerarRelatorioSeller = function(nick, tipo){{
   var extra = itens.length > 200 ? ' <span style="color:#999">· +'+(itens.length-200)+' não exibidos (top BPP)</span>' : '';
   var pg1 = '<div class="page">'+
     '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">SSP30 · Guarulhos Mega · Mercado Livre</div></div>'+
-    '<div class="ttl"><h1>Relatório de investigação — seller</h1><h2>Encaminhado para análise do time de fraude</h2></div>'+
+    '<div class="ttl"><h1>Relatório de investigação — seller</h1></div>'+
     '<div class="cid">'+s.n+'</div>'+
     '<div class="igrid">'+
       '<div class="ii"><div class="ilbl">Total SHPs '+tipoLbl+'</div><div class="ival red">'+itens.length+' pacotes</div></div>'+
