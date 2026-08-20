@@ -12,6 +12,8 @@ from google.auth import default
 FACILITY = 'Guarulhos Mega'
 INICIO   = '2026-01-01'
 HTML_OUT = Path(__file__).parent / 'fraude.html'
+LOG_URL  = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/'
+ANALISTA = 'Lucas de Oliveira Nascimento'
 
 # ── Query 1: sellers agregados (todos) ──────────────────────────────────────
 # CTE pré-deduplica por SHP antes de agregar
@@ -379,18 +381,44 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
     <div style="background:#1a0a00;border:1px solid #78350f;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#d97706">
       <b>Criterios de suspeicao:</b> Reputacao "NOT TRUSTED" <b>OU</b> seller com fraude em menos de 2 meses de historico <b>OU</b> mais de 30% dos SHPs sao fraude
     </div>
+
+    <!-- Overview status cards -->
+    <div id="sel-susp-overview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+      <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
+        <div style="font-size:18px;font-weight:700;color:#f87171" id="sel-susp-ov-blq">0</div>
+        <div style="font-size:10px;color:#9ca3af">Bloqueados</div>
+      </div>
+      <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
+        <div style="font-size:18px;font-weight:700;color:#fbbf24" id="sel-susp-ov-sol">0</div>
+        <div style="font-size:10px;color:#9ca3af">Solicitados</div>
+      </div>
+      <div style="background:rgba(156,163,175,.06);border:1px solid rgba(156,163,175,.15);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
+        <div style="font-size:18px;font-weight:700;color:#9ca3af" id="sel-susp-ov-ati">0</div>
+        <div style="font-size:10px;color:#9ca3af">Ativos</div>
+      </div>
+    </div>
+
     <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px;margin-bottom:14px">
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Top 10 Suspeitos - BPP <span style="font-weight:400;color:#374151">clique para filtrar</span></div>
       <div style="position:relative;height:220px"><canvas id="sel-cht-susp"></canvas></div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
       <div>
         <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Sellers Suspeitos</span>
         <span id="sel-susp-count" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
       </div>
-      <input id="sel-susp-busca" type="text" placeholder="Buscar seller..."
-        oninput="selSuspFiltrar()"
-        style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="sel-susp-status" onchange="selSuspFiltrar()"
+          style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 8px;font-size:11px">
+          <option value="">Status: Todos</option>
+          <option value="ati">Ativo</option>
+          <option value="sol">Solicitado</option>
+          <option value="blq">Bloqueado</option>
+        </select>
+        <input id="sel-susp-busca" type="text" placeholder="Buscar seller..."
+          oninput="selSuspFiltrar()"
+          style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
+      </div>
     </div>
     <div style="border:1px solid #78350f;border-radius:8px;overflow:hidden">
       <div style="overflow-y:auto;max-height:360px;background:#060a14">
@@ -406,6 +434,8 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
               <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Meses</th>
               <th style="padding:6px 8px;text-align:left;color:#f97316;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Motivo</th>
               <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
+              <th style="padding:6px 8px;text-align:left;color:#9ca3af;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Status</th>
+              <th style="padding:6px 8px;text-align:left;color:#93c5fd;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">PDF</th>
             </tr>
           </thead>
           <tbody id="sel-susp-tbody"></tbody>
@@ -420,7 +450,8 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
 var SEL_DATA   = {sellers_json};
 var SHP_FRAUDE = {fraude_json};
 var SHP_DAMAGE = {damaged_json};
-var LOG_URL    = 'https://logistics.mercadolibre.com.br/shipments/';
+var LOG_URL    = '{LOG_URL}';
+var SEL_ANALISTA = '{ANALISTA}';
 
 var _abaAtual = 'historico';
 var _selSel   = null;
@@ -473,6 +504,35 @@ function motivoSusp(s){{
   if(s.t > 0 && s.f / s.t >= 0.3) m.push((s.f/s.t*100).toFixed(0)+'% fraude');
   return m.join(' | ') || '-';
 }}
+
+// ── Fluxo de solicitação de bloqueio (status persistido no browser) ────────
+function selGetSt(nick){{
+  var valid = {{ati:1,sol:1,blq:1}};
+  try {{
+    var s = localStorage.getItem('sel_st_'+nick);
+    if (s !== null) return valid[s] ? s : 'ati';
+  }} catch(e) {{}}
+  return 'ati';
+}}
+function selToggleSt(nick){{
+  var cycle = ['ati','sol','blq'];
+  var cur = selGetSt(nick);
+  var next = cycle[(cycle.indexOf(cur)+1) % cycle.length];
+  try {{ localStorage.setItem('sel_st_'+nick, next); }} catch(e) {{}}
+  var susp = _sellers.filter(isSuspeito).sort(function(a,b){{return b.b - a.b;}});
+  renderSuspTbody(susp);
+  selUpdSuspOverview();
+}}
+function selUpdSuspOverview(){{
+  var all = SEL_DATA.filter(isSuspeito);
+  var ov = {{ati:0,sol:0,blq:0}};
+  all.forEach(function(s){{ var st = selGetSt(s.n); if(ov[st]!==undefined) ov[st]++; else ov.ati++; }});
+  ['ati','sol','blq'].forEach(function(k){{
+    var el = document.getElementById('sel-susp-ov-'+k); if(el) el.textContent = ov[k];
+  }});
+}}
+window.selGetSt = selGetSt;
+window.selToggleSt = selToggleSt;
 
 // HISTORICO
 function renderHistCharts(){{
@@ -617,13 +677,21 @@ function renderSuspCharts(lista){{
 
 function renderSuspTbody(lista){{
   var q = _qSusp.toLowerCase();
-  var filtrado = lista.filter(function(s){{return !q || s.n.toLowerCase().indexOf(q) >= 0;}});
+  var stF = (document.getElementById('sel-susp-status') || {{}}).value || '';
+  var filtrado = lista.filter(function(s){{
+    if (stF && selGetSt(s.n) !== stF) return false;
+    return !q || s.n.toLowerCase().indexOf(q) >= 0;
+  }});
   var ct = document.getElementById('sel-susp-count');
   if(ct) ct.textContent = '(' + filtrado.length.toLocaleString('pt-BR') + ' sellers)';
   var el = document.getElementById('sel-susp-tbody'); if(!el) return;
+  var ST_LBL = {{ati:'Ativo',sol:'Solicitado',blq:'Bloqueado'}};
+  var ST_CLR = {{ati:'#9ca3af',sol:'#fbbf24',blq:'#f87171'}};
+  var ST_BG  = {{ati:'rgba(156,163,175,.1)',sol:'rgba(251,191,36,.12)',blq:'rgba(239,68,68,.12)'}};
   el.innerHTML = filtrado.map(function(s, i){{
     var sel = _selSusp === s.n;
     var hl = sel ? 'background:#1a0a00;border-left:3px solid #f97316;' : 'border-left:3px solid transparent;';
+    var st = selGetSt(s.n);
     return '<tr style="border-bottom:1px solid #0a0f1e;'+hl+'">'
       + '<td style="padding:4px 8px;color:#374151;font-size:9px">'+(i+1)+'</td>'
       + '<td style="padding:4px 8px;color:#60a5fa;font-size:10px;font-weight:700;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+s.n+'">'+s.n+'</td>'
@@ -634,6 +702,8 @@ function renderSuspTbody(lista){{
       + '<td style="padding:4px 8px;text-align:center;color:#4b5563">'+s.m+'</td>'
       + '<td style="padding:4px 8px;color:#f97316;font-size:10px">'+motivoSusp(s)+'</td>'
       + '<td style="padding:4px 8px;text-align:right;color:#f87171;font-size:10px">$'+s.b.toFixed(0)+'</td>'
+      + '<td style="padding:4px 8px"><span onclick="selToggleSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+ST_CLR[st]+';background:'+ST_BG[st]+'">'+ST_LBL[st]+'</span></td>'
+      + '<td style="padding:4px 8px"><button onclick="selGerarApresentacao(\\''+s.n+'\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button></td>'
       + '</tr>';
   }}).join('');
 }}
@@ -642,6 +712,120 @@ window.selSuspFiltrar = function(){{
   _qSusp = (document.getElementById('sel-susp-busca') || {{}}).value || '';
   var susp = _sellers.filter(isSuspeito).sort(function(a,b){{return b.b - a.b;}});
   renderSuspTbody(susp);
+  selUpdSuspOverview();
+}};
+
+window.selGerarApresentacao = function(nick){{
+  var s = SEL_DATA.find(function(x){{ return x.n === nick; }});
+  if(!s) return;
+  var hoje = new Date().toLocaleDateString('pt-BR',{{day:'2-digit',month:'2-digit',year:'numeric'}});
+  var st = selGetSt(nick);
+  var ST_LBL_MAP = {{ati:'Ativo',sol:'Solicitado',blq:'Bloqueado'}};
+  var stLbl = ST_LBL_MAP[st] || 'Ativo';
+  var isBloq = st === 'blq';
+  var bppFmt = function(v){{ return '$ '+v.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}); }};
+  var evid = SHP_FRAUDE.filter(function(x){{ return x.n === nick; }})
+    .concat(SHP_DAMAGE.filter(function(x){{ return x.n === nick; }}))
+    .sort(function(a,b){{ return b.b - a.b; }})
+    .slice(0, 200);
+  var evRows = evid.map(function(e,i){{
+    var causa = e.tf || e.td || e.c || '';
+    return '<tr class="'+(i%2?'alt':'')+'">'
+      +'<td class="cn">'+(i+1)+'</td>'
+      +'<td style="color:#555;font-size:9.5px;white-space:nowrap">'+(e.mes||'—')+'</td>'
+      +'<td>'+causa+'</td>'
+      +'<td><a href="'+LOG_URL+e.s+'" style="color:#1d4ed8;text-decoration:none">'+e.s+'</a></td>'
+      +'<td class="rn">'+bppFmt(e.b||0)+'</td></tr>';
+  }}).join('');
+  var motivo = motivoSusp(s);
+  var css=[
+    '*{{box-sizing:border-box;margin:0;padding:0}}',
+    'body{{font-family:Arial,sans-serif;background:#fff;color:#111;font-size:12px}}',
+    '.page{{width:210mm;min-height:297mm;padding:16mm 20mm;margin:0 auto;display:flex;flex-direction:column;page-break-after:always}}',
+    '.page:last-child{{page-break-after:auto}}',
+    '.hdr{{background:#FFE600;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;border-radius:5px;margin-bottom:18px}}',
+    '.hdr-l{{font-weight:900;font-size:12px;letter-spacing:1px;color:#111}}',
+    '.hdr-r{{font-size:9px;color:#555}}',
+    '.ttl{{text-align:center;margin-bottom:16px}}',
+    '.ttl h1{{font-size:20px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#111}}',
+    '.ttl h2{{font-size:10px;color:#555;font-weight:400;text-transform:uppercase;letter-spacing:1px;margin-top:3px}}',
+    '.cid{{background:#111;color:#FFE600;font-size:22px;font-weight:900;text-align:center;padding:10px;border-radius:6px;letter-spacing:1px;margin-bottom:16px;word-break:break-all}}',
+    '.igrid{{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-bottom:14px}}',
+    '.ii{{padding:9px 12px;border-bottom:1px solid #eee}}',
+    '.ii:nth-child(odd){{border-right:1px solid #eee}}',
+    '.ilbl{{font-size:7.5px;text-transform:uppercase;letter-spacing:0.8px;color:#999;font-weight:700}}',
+    '.ival{{font-size:13px;font-weight:700;color:#111;margin-top:2px}}',
+    '.ival.red{{color:#dc2626}}',
+    '.conc{{background:#f0fdf4;border:1.5px solid #16a34a;border-radius:5px;padding:12px 16px;margin-top:auto}}',
+    '.conc .ct{{font-size:12px;font-weight:900;color:#15803d;margin-bottom:3px}}',
+    '.conc .cs{{font-size:10px;color:#166534}}',
+    '.fconf{{font-size:8.5px;color:#bbb;text-align:center;margin-top:12px;border-top:1px solid #eee;padding-top:7px}}',
+    '.evh h2{{font-size:15px;font-weight:900;color:#111}}',
+    '.evh .sub{{font-size:10px;color:#555;margin-top:2px;margin-bottom:10px}}',
+    '.etbl{{width:100%;border-collapse:collapse;margin-bottom:8px}}',
+    '.etbl th{{background:#111;color:#FFE600;font-size:8.5px;text-transform:uppercase;letter-spacing:0.7px;padding:6px 9px;text-align:left}}',
+    '.etbl td{{padding:5px 9px;border-bottom:1px solid #eee;font-size:10.5px}}',
+    '.etbl tr.alt td{{background:#f9fafb}}',
+    '.etbl td.cn{{text-align:center;color:#aaa;width:28px}}',
+    '.etbl td.rn{{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}}',
+    '.efoot{{font-size:9.5px;color:#555;background:#f9fafb;border:1px solid #eee;border-radius:4px;padding:7px 10px;margin-top:4px}}',
+    '.bkpg{{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}}',
+    '.bkpg .lp{{font-size:14px;font-weight:900;letter-spacing:3px;text-transform:uppercase}}',
+    '.bkpg .bar{{background:#FFE600;width:50px;height:3px;margin:10px auto}}',
+    '.bkpg .un{{font-size:10px;color:#555;margin-top:6px}}',
+    '.bkpg .gn{{font-size:9px;color:#999;margin-top:18px;border-top:1px solid #eee;padding-top:12px;width:100%}}',
+    '.pbtn{{position:fixed;bottom:18px;right:18px;background:#111;color:#FFE600;border:none;padding:9px 18px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px;z-index:99;box-shadow:0 4px 12px rgba(0,0,0,.3)}}',
+    '.pbtn:hover{{background:#333}}',
+    '@media print{{.pbtn{{display:none}}.page{{width:100%;margin:0}}}}'
+  ].join('');
+  var pg1='<div class="page">'+
+    '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">SSP30 · Guarulhos Mega · Mercado Livre</div></div>'+
+    '<div class="ttl"><h1>Solicitação de Bloqueio — Seller</h1><h2>Painel Operacional do Caso</h2></div>'+
+    '<div class="cid">'+s.n+'</div>'+
+    '<div class="igrid">'+
+      '<div class="ii"><div class="ilbl">Seller</div><div class="ival">'+s.n+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Reputacao</div><div class="ival">'+s.r+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Total SHPs</div><div class="ival">'+s.t+'</div></div>'+
+      '<div class="ii"><div class="ilbl">GMV Total</div><div class="ival">'+bppFmt(s.g)+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Motivo</div><div class="ival" style="font-size:11px">'+motivo+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Data da Solicitação</div><div class="ival">'+hoje+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Unidade Emissora</div><div class="ival">Guarulhos Mega</div></div>'+
+      '<div class="ii"><div class="ilbl">Fraude / Damaged SHPs</div><div class="ival red">'+s.f+' / '+s.d+'</div></div>'+
+      '<div class="ii"><div class="ilbl">BPP Total Acumulado</div><div class="ival red">'+bppFmt(s.b)+'</div></div>'+
+    '</div>'+
+    '<div class="conc">'+
+      '<div class="ct">✓ Conclusão: '+(isBloq?'JÁ BLOQUEADO':'APTO PARA SOLICITAÇÃO')+'</div>'+
+      '<div class="cs">O caso atinge os critérios de suspeição definidos pela política interna de Loss Prevention.</div>'+
+    '</div>'+
+    '<div class="fconf">CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+  '</div>';
+  var pg2='<div class="page">'+
+    '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">Evidências · Seller '+s.n+'</div></div>'+
+    '<div class="evh"><h2>Evidências — Seller '+s.n+'</h2><div class="sub">Reputação: '+s.r+'</div></div>'+
+    '<table class="etbl">'+
+      '<thead><tr><th class="cn">#</th><th>Mês</th><th>Causa</th><th>Shipment ID</th><th class="rn">BPP (USD)</th></tr></thead>'+
+      '<tbody>'+evRows+'</tbody>'+
+    '</table>'+
+    '<div class="efoot">Fraude SHPs: <strong>'+s.f+'</strong> · Damaged SHPs: <strong>'+s.d+'</strong> · BPP Total: <strong>'+bppFmt(s.b)+'</strong> &nbsp;|&nbsp; <strong>'+stLbl+'</strong></div>'+
+    '<div class="fconf">CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+  '</div>';
+  var pg3='<div class="page">'+
+    '<div class="bkpg">'+
+      '<div class="lp">Loss Prevention</div>'+
+      '<div class="bar"></div>'+
+      '<div class="un">Mercado Livre · SSP30 · Guarulhos Mega</div>'+
+      '<div class="gn">Gerado em '+hoje+' &nbsp;|&nbsp; '+SEL_ANALISTA+'<br><br>CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+    '</div>'+
+  '</div>';
+  var full='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Bloqueio '+s.n+'</title>'+
+    '<style>'+css+'</style></head><body>'+pg1+pg2+pg3+
+    '<button class="pbtn" onclick="window.print()">&#128424; Imprimir / PDF</button>'+
+    '</body></html>';
+  var w=window.open('','_blank','width=1100,height=900,scrollbars=yes');
+  if(!w){{ alert('Permita pop-ups para gerar a apresentação.'); return; }}
+  w.document.write(full);
+  w.document.close();
+  w.focus();
 }};
 
 // PERIODO E KPIs
@@ -688,7 +872,7 @@ function renderAbas(){{
     renderFrCharts(); renderFrTbody();
   }} else if(_abaAtual === 'suspeitos'){{
     var susp = _sellers.filter(isSuspeito).sort(function(a,b){{return b.b - a.b;}});
-    renderSuspCharts(susp); renderSuspTbody(susp);
+    renderSuspCharts(susp); renderSuspTbody(susp); selUpdSuspOverview();
   }}
 }}
 
@@ -716,8 +900,8 @@ window.selLimpar = function(){{
 }};
 
 window.selExportCSV = function(){{
-  var rows = [['Seller','Reputacao','Total','Damaged','Fraude','Meses','BPP USD','GMV USD']];
-  _sellers.forEach(function(s){{ rows.push([s.n, s.r, s.t, s.d, s.f, s.m, s.b, s.g]); }});
+  var rows = [['Seller','Reputacao','Total','Damaged','Fraude','Meses','BPP USD','GMV USD','Status Solicitacao']];
+  _sellers.forEach(function(s){{ rows.push([s.n, s.r, s.t, s.d, s.f, s.m, s.b, s.g, selGetSt(s.n)]); }});
   var csv = rows.map(function(r){{
     return r.map(function(v){{ return '"' + String(v).replace(/"/g, '""') + '"'; }}).join(',');
   }}).join('\\n');
@@ -734,6 +918,7 @@ document.addEventListener('click', function(e){{
 
 document.addEventListener('DOMContentLoaded', function(){{
   selAplicar();
+  selUpdSuspOverview();
   var badge = document.getElementById('tab-count-sellers');
   if(badge) badge.textContent = SEL_DATA.length;
 }});
