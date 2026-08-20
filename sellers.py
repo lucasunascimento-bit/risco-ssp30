@@ -937,12 +937,12 @@ window.selGerarRelatorioSeller = function(nick, tipo){{
   var causaLbl = causaTop ? causaTop[0] : tipoLbl;
   var evRows = itens.slice(0, 200).map(function(e,i){{
     var causa = (tipo==='damaged'? e.td : e.tf) || e.c || '';
-    var motivo = '<div style="font-weight:700;color:#111;margin-bottom:2px">'+causa+'</div>'
-      +'<div style="color:#999;font-size:9px">Claim ID: '+(e.cl||'—')+' · '+(e.mes||'—')+' · motivo pendente (BT_CLA_CLAIM)</div>';
     return '<tr class="'+(i%2?'alt':'')+'">'
       +'<td class="cn">'+(i+1)+'</td>'
+      +'<td style="color:#555;font-size:9.5px;white-space:nowrap">'+(e.mes||'—')+'</td>'
       +'<td><a href="'+LOG_URL+e.s+'" style="color:#1d4ed8;text-decoration:none">'+e.s+'</a></td>'
-      +'<td>'+motivo+'</td>'
+      +'<td>'+causa+'</td>'
+      +'<td style="font-family:monospace;font-size:9.5px;color:#555">'+(e.cl||'—')+'</td>'
       +'<td class="rn">'+bppFmt(e.b||0)+'</td></tr>';
   }}).join('');
   var css=[
@@ -999,12 +999,12 @@ window.selGerarRelatorioSeller = function(nick, tipo){{
   '</div>';
   var pg2 = '<div class="page">'+
     '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">Evidências · Seller '+s.n+'</div></div>'+
-    '<div style="margin-bottom:10px"><div style="font-size:15px;font-weight:900;color:#111">Evidências — com motivo da reclamação (amostra)</div></div>'+
+    '<div style="margin-bottom:10px"><div style="font-size:15px;font-weight:900;color:#111">Evidências — '+tipoLbl+' (amostra)</div></div>'+
     '<table class="etbl">'+
-      '<thead><tr><th class="cn">#</th><th>Shipment ID</th><th>Motivo da reclamação</th><th class="rn">BPP</th></tr></thead>'+
+      '<thead><tr><th class="cn">#</th><th>Mês</th><th>Shipment ID</th><th>Causa</th><th>Claim ID</th><th class="rn">BPP</th></tr></thead>'+
       '<tbody>'+evRows+'</tbody>'+
     '</table>'+
-    '<div style="font-size:9px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:4px;padding:6px 10px;margin-bottom:8px">Coluna "Motivo da reclamação" depende de acesso ao BT_CLA_CLAIM (Shield) — Claim ID já disponível, texto do motivo pendente</div>'+
+    '<div style="font-size:9px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:4px;padding:6px 10px;margin-bottom:8px">Motivo detalhado da reclamação (texto do comprador) depende de acesso ao BT_CLA_CLAIM (Shield) — por ora, use o Claim ID para consulta manual</div>'+
     '<div class="efoot">'+tipoLbl+' SHPs: <strong>'+itens.length+'</strong>'+extra+' · BPP Total: <strong>'+bppFmt(totalBpp)+'</strong></div>'+
     '<div class="fconf">CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
   '</div>';
