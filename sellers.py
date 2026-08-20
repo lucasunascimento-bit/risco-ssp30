@@ -375,9 +375,12 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
         <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Shipments Damaged</span>
         <span id="sel-dmg-header" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
       </div>
-      <input id="sel-dmg-busca" type="text" placeholder="Buscar seller ou SHP..."
-        oninput="selDmgFiltrar()"
-        style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="sel-dmg-report-btn" onclick="selGerarRelatorioSeller(_selSel,'damaged')" style="display:none;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128196; Gerar relatório</button>
+        <input id="sel-dmg-busca" type="text" placeholder="Buscar seller ou SHP..."
+          oninput="selDmgFiltrar()"
+          style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
+      </div>
     </div>
     <div style="border:1px solid #1f2937;border-radius:8px;overflow:hidden">
       <div style="overflow-y:auto;max-height:360px;background:#060a14">
@@ -416,9 +419,12 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
         <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Shipments Fraude Seller</span>
         <span id="sel-fr-header" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
       </div>
-      <input id="sel-fr-busca" type="text" placeholder="Buscar seller ou SHP..."
-        oninput="selFrFiltrar()"
-        style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="sel-fr-report-btn" onclick="selGerarRelatorioSeller(_selSel,'fraude')" style="display:none;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128196; Gerar relatório</button>
+        <input id="sel-fr-busca" type="text" placeholder="Buscar seller ou SHP..."
+          oninput="selFrFiltrar()"
+          style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
+      </div>
     </div>
     <div style="border:1px solid #1f2937;border-radius:8px;overflow:hidden">
       <div style="overflow-y:auto;max-height:360px;background:#060a14">
@@ -676,6 +682,8 @@ function renderDmgTbody(){{
     : '- ' + filtrado.length.toLocaleString('pt-BR') + ' shipments (top 3000 por BPP)';
   var note = document.getElementById('sel-dmg-note');
   if(note) note.textContent = filtrado.length > 2000 ? 'Mostrando 2.000 primeiros. Filtre por seller para ver todos.' : '';
+  var btn = document.getElementById('sel-dmg-report-btn');
+  if(btn) btn.style.display = _selSel ? '' : 'none';
   var el = document.getElementById('sel-dmg-tbody'); if(!el) return;
   el.innerHTML = filtrado.slice(0, 2000).map(function(s){{
     return '<tr style="border-bottom:1px solid #080c18">'
@@ -716,6 +724,8 @@ function renderFrTbody(){{
   if(hdr) hdr.textContent = _selSel
     ? '- ' + _selSel + ' (' + filtrado.length + ' SHPs)'
     : '- ' + filtrado.length.toLocaleString('pt-BR') + ' shipments';
+  var btn = document.getElementById('sel-fr-report-btn');
+  if(btn) btn.style.display = _selSel ? '' : 'none';
   var el = document.getElementById('sel-fr-tbody'); if(!el) return;
   el.innerHTML = filtrado.map(function(s){{
     return '<tr style="border-bottom:1px solid #080c18">'
@@ -900,6 +910,107 @@ window.selGerarApresentacao = function(nick){{
   w.document.write(full);
   w.document.close();
   w.focus();
+}};
+
+// Relatório de investigação — usado nas abas Fraudes e Damaged
+// (neutro: "encaminhado para investigação", não implica bloqueio)
+window.selGerarRelatorioSeller = function(nick, tipo){{
+  if(!nick){{ alert('Selecione um seller no gráfico ou na busca primeiro.'); return; }}
+  var s = SEL_DATA.find(function(x){{ return x.n === nick; }});
+  if(!s) return;
+  var fonte = tipo === 'damaged' ? SHP_DAMAGE : SHP_FRAUDE;
+  var itens = fonte.filter(function(x){{ return x.n === nick; }}).sort(function(a,b){{ return b.b - a.b; }});
+  if(!itens.length){{ alert('Nenhum shipment encontrado para este seller.'); return; }}
+  var hoje = new Date().toLocaleDateString('pt-BR',{{day:'2-digit',month:'2-digit',year:'numeric'}});
+  var bppFmt = function(v){{ return '$ '+v.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}); }};
+  var totalBpp = itens.reduce(function(a,e){{ return a+(e.b||0); }}, 0);
+  var meses = itens.map(function(e){{ return e.mes; }}).filter(Boolean).sort();
+  var periodo = meses.length ? meses[0]+' a '+meses[meses.length-1] : '—';
+  var tipoLbl = tipo === 'damaged' ? 'Damaged' : 'Fraude Seller';
+  var causaCnt = {{}};
+  itens.forEach(function(e){{ var c = (tipo==='damaged'? e.td : e.tf) || 'Outro'; causaCnt[c]=(causaCnt[c]||0)+1; }});
+  var causaTop = Object.entries(causaCnt).sort(function(a,b){{return b[1]-a[1];}})[0];
+  var causaLbl = causaTop ? causaTop[0] : tipoLbl;
+  var evRows = itens.slice(0, 200).map(function(e,i){{
+    var causa = (tipo==='damaged'? e.td : e.tf) || e.c || '';
+    return '<tr class="'+(i%2?'alt':'')+'">'
+      +'<td class="cn">'+(i+1)+'</td>'
+      +'<td style="color:#555;font-size:9.5px;white-space:nowrap">'+(e.mes||'—')+'</td>'
+      +'<td><a href="'+LOG_URL+e.s+'" style="color:#1d4ed8;text-decoration:none">'+e.s+'</a></td>'
+      +'<td>'+causa+'</td>'
+      +'<td class="rn">'+bppFmt(e.b||0)+'</td></tr>';
+  }}).join('');
+  var css=[
+    '*{{box-sizing:border-box;margin:0;padding:0}}',
+    'body{{font-family:Arial,sans-serif;background:#fff;color:#111;font-size:12px}}',
+    '.page{{width:210mm;min-height:297mm;padding:16mm 20mm;margin:0 auto;display:flex;flex-direction:column;page-break-after:always}}',
+    '.page:last-child{{page-break-after:auto}}',
+    '.hdr{{background:#FFE600;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;border-radius:5px;margin-bottom:18px}}',
+    '.hdr-l{{font-weight:900;font-size:12px;letter-spacing:1px;color:#111}}',
+    '.hdr-r{{font-size:9px;color:#555}}',
+    '.ttl{{text-align:center;margin-bottom:16px}}',
+    '.ttl h1{{font-size:19px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#111}}',
+    '.ttl h2{{font-size:10px;color:#555;font-weight:400;text-transform:uppercase;letter-spacing:1px;margin-top:3px}}',
+    '.cid{{background:#111;color:#FFE600;font-size:20px;font-weight:900;text-align:center;padding:10px;border-radius:6px;margin-bottom:16px;word-break:break-all}}',
+    '.igrid{{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-bottom:14px}}',
+    '.ii{{padding:9px 12px;border-bottom:1px solid #eee}}',
+    '.ii:nth-child(odd){{border-right:1px solid #eee}}',
+    '.ilbl{{font-size:7.5px;text-transform:uppercase;letter-spacing:0.8px;color:#999;font-weight:700}}',
+    '.ival{{font-size:13px;font-weight:700;color:#111;margin-top:2px}}',
+    '.ival.red{{color:#dc2626}}',
+    '.conc{{background:#eff6ff;border:1.5px solid #93c5fd;border-radius:5px;padding:12px 16px;margin-top:auto}}',
+    '.conc .ct{{font-size:12px;font-weight:900;color:#1d4ed8;margin-bottom:3px}}',
+    '.conc .cs{{font-size:10px;color:#1e3a5f}}',
+    '.fconf{{font-size:8.5px;color:#bbb;text-align:center;margin-top:12px;border-top:1px solid #eee;padding-top:7px}}',
+    '.etbl{{width:100%;border-collapse:collapse;margin-bottom:8px}}',
+    '.etbl th{{background:#111;color:#FFE600;font-size:8.5px;text-transform:uppercase;letter-spacing:0.7px;padding:6px 9px;text-align:left}}',
+    '.etbl td{{padding:5px 9px;border-bottom:1px solid #eee;font-size:10.5px}}',
+    '.etbl tr.alt td{{background:#f9fafb}}',
+    '.etbl td.cn{{text-align:center;color:#aaa;width:28px}}',
+    '.etbl td.rn{{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}}',
+    '.efoot{{font-size:9.5px;color:#555;background:#f9fafb;border:1px solid #eee;border-radius:4px;padding:7px 10px;margin-top:4px}}',
+    '.pbtn{{position:fixed;bottom:18px;right:18px;background:#111;color:#FFE600;border:none;padding:9px 18px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px;z-index:99;box-shadow:0 4px 12px rgba(0,0,0,.3)}}',
+    '.pbtn:hover{{background:#333}}',
+    '@media print{{.pbtn{{display:none}}.page{{width:100%;margin:0}}}}'
+  ].join('');
+  var extra = itens.length > 200 ? ' <span style="color:#999">· +'+(itens.length-200)+' não exibidos (top BPP)</span>' : '';
+  var pg1 = '<div class="page">'+
+    '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">SSP30 · Guarulhos Mega · Mercado Livre</div></div>'+
+    '<div class="ttl"><h1>Relatório de investigação — seller</h1><h2>Encaminhado para análise do time de fraude</h2></div>'+
+    '<div class="cid">'+s.n+'</div>'+
+    '<div class="igrid">'+
+      '<div class="ii"><div class="ilbl">Total SHPs '+tipoLbl+'</div><div class="ival red">'+itens.length+' pacotes</div></div>'+
+      '<div class="ii"><div class="ilbl">BPP total exposto</div><div class="ival red">'+bppFmt(totalBpp)+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Tipo predominante</div><div class="ival">'+causaLbl+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Período do histórico</div><div class="ival">'+periodo+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Unidade</div><div class="ival">Guarulhos Mega</div></div>'+
+      '<div class="ii"><div class="ilbl">Data do relatório</div><div class="ival">'+hoje+'</div></div>'+
+    '</div>'+
+    '<div class="conc">'+
+      '<div class="ct">Encaminhado para investigação</div>'+
+      '<div class="cs">Volume e concentração de '+tipoLbl.toLowerCase()+' acima do padrão identificados nesta unidade. Solicitamos análise do time responsável.</div>'+
+    '</div>'+
+    '<div class="fconf">CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+  '</div>';
+  var pg2 = '<div class="page">'+
+    '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">Evidências · Seller '+s.n+'</div></div>'+
+    '<div style="margin-bottom:10px"><div style="font-size:15px;font-weight:900;color:#111">Evidências — '+tipoLbl+' (amostra)</div></div>'+
+    '<table class="etbl">'+
+      '<thead><tr><th class="cn">#</th><th>Mês</th><th>Shipment ID</th><th>Causa</th><th class="rn">BPP (USD)</th></tr></thead>'+
+      '<tbody>'+evRows+'</tbody>'+
+    '</table>'+
+    '<div class="efoot">'+tipoLbl+' SHPs: <strong>'+itens.length+'</strong>'+extra+' · BPP Total: <strong>'+bppFmt(totalBpp)+'</strong></div>'+
+    '<div class="fconf">CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+  '</div>';
+  var full='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório '+s.n+'</title>'+
+    '<style>'+css+'</style></head><body>'+pg1+pg2+
+    '<button class="pbtn" onclick="window.print()">&#128424; Imprimir / PDF</button>'+
+    '</body></html>';
+  var w2=window.open('','_blank','width=1100,height=900,scrollbars=yes');
+  if(!w2){{ alert('Permita pop-ups para gerar o relatório.'); return; }}
+  w2.document.write(full);
+  w2.document.close();
+  w2.focus();
 }};
 
 // PERIODO E KPIs
