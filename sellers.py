@@ -376,7 +376,7 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
         <span id="sel-dmg-header" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button id="sel-dmg-report-btn" onclick="selGerarRelatorioSeller(_selSel,'damaged')" style="display:none;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128196; Gerar relatório</button>
+        <button id="sel-dmg-report-btn" onclick="selGerarRelatorioDamaged()" style="display:none;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128196; Gerar relatório</button>
         <input id="sel-dmg-busca" type="text" placeholder="Buscar seller ou SHP..."
           oninput="selDmgFiltrar()"
           style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
@@ -420,7 +420,7 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
         <span id="sel-fr-header" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button id="sel-fr-report-btn" onclick="selGerarRelatorioSeller(_selSel,'fraude')" style="display:none;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128196; Gerar relatório</button>
+        <button id="sel-fr-report-btn" onclick="selGerarRelatorioFraude()" style="display:none;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128196; Gerar relatório</button>
         <input id="sel-fr-busca" type="text" placeholder="Buscar seller ou SHP..."
           oninput="selFrFiltrar()"
           style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
@@ -1012,6 +1012,9 @@ window.selGerarRelatorioSeller = function(nick, tipo){{
   w2.document.close();
   w2.focus();
 }};
+// Wrappers para os botões (onclick roda no escopo global; _selSel é interno ao closure)
+window.selGerarRelatorioFraude  = function(){{ selGerarRelatorioSeller(_selSel, 'fraude'); }};
+window.selGerarRelatorioDamaged = function(){{ selGerarRelatorioSeller(_selSel, 'damaged'); }};
 
 // PERIODO E KPIs
 function updKPIs(){{
