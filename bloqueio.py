@@ -171,6 +171,36 @@ def ler_block_list_sheets(creds):
         return {}
 
 
+def buscar_dc_kangu(client, driver_ids):
+    """Busca o nó/DC dominante (SHP_NODE_ID) dos drivers da Agências Kangu.
+    Só retorna quando o valor tem formato de DC de verdade (ex: BRDSP0200),
+    não um código de loja/agência de coleta (que tem underscore no ID)."""
+    if not driver_ids:
+        return {}
+    query = """
+    SELECT
+      SAFE_CAST(ROUTE.SHP_LG_DRIVER_ID AS STRING) AS driver_id,
+      SHP_NODE_ID,
+      COUNT(*) AS n
+    FROM `meli-bi-data.WHOWNER.BT_LP_NODES`
+    WHERE SAFE_CAST(ROUTE.SHP_LG_DRIVER_ID AS STRING) IN UNNEST(@driver_ids)
+      AND DATE_BPP >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+      AND REGEXP_CONTAINS(IFNULL(SHP_NODE_ID, ''), r'^BR[A-Z]{2,5}[0-9]{2,6}$')
+    GROUP BY 1, 2
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[bigquery.ArrayQueryParameter('driver_ids', 'STRING', driver_ids)]
+    )
+    counts = {}
+    for row in client.query(query, job_config=job_config).result():
+        counts.setdefault(row['driver_id'], {})[row['SHP_NODE_ID']] = row['n']
+    dc_map = {}
+    for did, nodes in counts.items():
+        top = max(nodes.items(), key=lambda kv: kv[1])
+        dc_map[did] = top[0]
+    return dc_map
+
+
 def carregar_dados():
     # Fallback de nomes via _bl_cache.json (Google Sheets)
     name_lookup = {}
@@ -238,6 +268,15 @@ def carregar_dados():
             'meses': meses,
             'shps':  shps,
         })
+
+    kangu_ids = [str(d['id']) for d in drivers if 'kangu' in d['mlp'].lower()]
+    print(f'Consultando nó/DC para {len(kangu_ids)} driver(s) da Agências Kangu...')
+    dc_map = buscar_dc_kangu(client, kangu_ids)
+    for d in drivers:
+        d['dc'] = dc_map.get(str(d['id']), '')
+    if dc_map:
+        print(f'  {len(dc_map)} driver(s) com DC identificado')
+
     ids_conhecidos = _carregar_ids_conhecidos()
     novos = 0
     for d in drivers:
@@ -582,6 +621,9 @@ function blqBuildCharts(){{
 function blqGetSt(id) {{
   try {{ return localStorage.getItem('blq_vg_'+id) || 'mon'; }} catch(e) {{ return 'mon'; }}
 }}
+function blqMlpLabel(d) {{
+  return (d.mlp||'—') + (d.dc ? ' (DC '+d.dc+')' : '');
+}}
 function blqNextSt(id) {{
   var cycle = ['mon','inv','blq'];
   var cur; try {{ cur = localStorage.getItem('blq_vg_'+id) || 'mon'; }} catch(e) {{ cur = 'mon'; }}
@@ -733,7 +775,7 @@ function blqRender() {{
       '<td style="color:#f87171;font-weight:700">US$ '+d.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'+
       '<td><button class="blq-did-btn" onclick="blqToggleShps(\\''+d.id+'\\')">'+d.id+novoBadge+
         '<span class="blq-chv" id="blq-chv-'+d.id+'">&#9660;</span></button></td>'+
-      '<td class="blq-mlp" title="'+(d.mlp||'')+'">'+(d.mlp||'—')+'</td>'+
+      '<td class="blq-mlp" title="'+(d.mlp||'')+'">'+blqMlpLabel(d)+'</td>'+
       '<td style="color:#f87171">'+d.fraud+'</td>'+
       '<td style="color:'+pctCol+';font-weight:'+pctW+'">'+d.pct.toFixed(1)+'%</td>'+
       '<td>'+d.total+'</td>'+
@@ -913,7 +955,7 @@ window.blqGerarApresentacao = function(drvId) {{
     '<div class="cid"># '+d.id+'</div>'+
     '<div class="igrid">'+
       '<div class="ii"><div class="ilbl">Driver</div><div class="ival">'+(d.nome||'<span class="editavel" contenteditable="true" title="Clique para editar"></span><span class="edit-hint">⚠ Nome não encontrado — clique para preencher</span>')+'</div></div>'+
-      '<div class="ii"><div class="ilbl">Transportadora</div><div class="ival">'+(d.mlp||'—')+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Transportadora</div><div class="ival">'+blqMlpLabel(d)+'</div></div>'+
       '<div class="ii"><div class="ilbl">Placa</div><div class="ival">'+(d.placa||'—')+'</div></div>'+
       '<div class="ii"><div class="ilbl">Tipo de Ocorrência</div><div class="ival">'+tipo+'</div></div>'+
       '<div class="ii"><div class="ilbl">Período de Acúmulo</div><div class="ival">'+periodoLabel+(periodoRange?' · '+periodoRange:'')+'</div></div>'+
