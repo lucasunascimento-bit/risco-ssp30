@@ -817,7 +817,10 @@ window.blqGerarApresentacao = function(drvId) {{
       return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('.','').replace(' ','/');
     }}catch(e){{ return m; }}
   }};
-  var _uniqMonths = d.meses.map(function(m){{return m.slice(0,7);}}).filter(function(v,i,a){{return a.indexOf(v)===i;}}).sort();
+  var _uniqMonthsAll = d.meses.map(function(m){{return m.slice(0,7);}}).filter(function(v,i,a){{return a.indexOf(v)===i;}}).sort();
+  // Janela é de 90 dias (~3 meses), mas pode tocar 4 meses-calendário na borda (ex: 25/mai a 23/ago).
+  // Nunca exibir mais de 3 meses no período — evita dar pretexto para negar o bloqueio.
+  var _uniqMonths = _uniqMonthsAll.slice(-3);
   var nM = _uniqMonths.length;
   var periodoLabel = nM ? nM+' mes'+(nM>1?'es':'') : '—';
   var periodoRange = nM ? fmtM(_uniqMonths[0])+(nM>1?' a '+fmtM(_uniqMonths[nM-1]):'') : '';
