@@ -89,13 +89,14 @@ seller_best AS (
 )
 SELECT
   sb.nickname                                       AS seller,
+  sb.seller_id                                       AS seller_id,
   COUNT(*)                                           AS total_60d,
   COUNTIF(s.SHP_STATUS_ID = 'cancelled')             AS cancel_60d
 FROM seller_best sb
 INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` s
   ON s.SHP_SENDER_ID = sb.seller_id
   AND s.SHP_DATE_CREATED_ID >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)
-GROUP BY 1
+GROUP BY 1, 2
 """
 
 # ── Query 2: shipments de fraude seller (1 linha por SHP) ───────────────────
@@ -177,6 +178,7 @@ def carregar():
             't60': total_60d,
             'c60': cancel_60d,
             'pc':  round(cancel_60d / total_60d * 100, 1) if total_60d else 0.0,
+            'sid': str(r['seller_id']) if r['seller_id'] is not None else '',
         }
     print(f'  {len(cancel_map):,} sellers com dado de cancelamento')
     for s in sellers:
@@ -184,6 +186,7 @@ def carregar():
         s['t60'] = cm['t60'] if cm else 0
         s['c60'] = cm['c60'] if cm else 0
         s['pc']  = cm['pc']  if cm else 0.0
+        s['sid'] = cm['sid'] if cm else ''
 
     print('Consultando shipments de fraude...')
     shps_fraude = []
@@ -542,6 +545,13 @@ var _sellers  = SEL_DATA;
 var _fraudes  = SHP_FRAUDE;
 var _damages  = SHP_DAMAGE;
 
+var SEL_ID_MAP = {{}};
+SEL_DATA.forEach(function(s){{ if(s.sid) SEL_ID_MAP[s.n] = s.sid; }});
+function selIdSuffix(nick){{
+  var sid = SEL_ID_MAP[nick];
+  return sid ? ' <span style="color:#4b5563;font-weight:400">(ID '+sid+')</span>' : '';
+}}
+
 function repBadge(r){{
   var cfg = {{
     'TRUSTED':           {{c:'#34d399',bg:'rgba(52,211,153,.12)'}},
@@ -691,7 +701,7 @@ function renderDmgTbody(){{
   var el = document.getElementById('sel-dmg-tbody'); if(!el) return;
   el.innerHTML = filtrado.slice(0, 2000).map(function(s){{
     return '<tr style="border-bottom:1px solid #080c18">'
-      + '<td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="https://www.mercadolivre.com.br/loja/'+s.n+'" target="_blank" style="color:#60a5fa;font-size:10px;font-weight:600;text-decoration:none" title="'+s.n+'">'+s.n+'</a></td>'
+      + '<td style="padding:4px 8px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="https://www.mercadolivre.com.br/loja/'+s.n+'" target="_blank" style="color:#60a5fa;font-size:10px;font-weight:600;text-decoration:none" title="'+s.n+'">'+s.n+'</a>'+selIdSuffix(s.n)+'</td>'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
       + '<td style="padding:4px 8px;font-size:10px;color:#a78bfa">'+s.c+'</td>'
       + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.td+'</td>'
@@ -733,7 +743,7 @@ function renderFrTbody(){{
   var el = document.getElementById('sel-fr-tbody'); if(!el) return;
   el.innerHTML = filtrado.map(function(s){{
     return '<tr style="border-bottom:1px solid #080c18">'
-      + '<td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="https://www.mercadolivre.com.br/loja/'+s.n+'" target="_blank" style="color:#60a5fa;font-size:10px;font-weight:600;text-decoration:none" title="'+s.n+'">'+s.n+'</a></td>'
+      + '<td style="padding:4px 8px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="https://www.mercadolivre.com.br/loja/'+s.n+'" target="_blank" style="color:#60a5fa;font-size:10px;font-weight:600;text-decoration:none" title="'+s.n+'">'+s.n+'</a>'+selIdSuffix(s.n)+'</td>'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
       + '<td style="padding:4px 8px;font-size:10px;color:#fbbf24;font-weight:600">'+s.tf+'</td>'
       + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.c+'</td>'
@@ -778,7 +788,7 @@ function renderSuspTbody(lista){{
     var pcCls = s.pc >= cancelMin ? 'color:#f87171;font-weight:700' : 'color:#6b7280';
     return '<tr style="border-bottom:1px solid #0a0f1e;'+hl+'">'
       + '<td style="padding:4px 8px;color:#374151;font-size:9px">'+(i+1)+'</td>'
-      + '<td style="padding:4px 8px;color:#60a5fa;font-size:10px;font-weight:700;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+s.n+'">'+s.n+'</td>'
+      + '<td style="padding:4px 8px;color:#60a5fa;font-size:10px;font-weight:700;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+s.n+'">'+s.n+selIdSuffix(s.n)+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.t+'</td>'
       + '<td style="padding:4px 8px;text-align:center;'+sinalCls(s.f, 1)+'">'+s.f+'</td>'
       + '<td style="padding:4px 8px;text-align:center;'+sinalCls(s.pnr, PNR_EB_MIN)+'">'+s.pnr+'</td>'
