@@ -38,9 +38,12 @@ WITH shps AS (
     AND CUS_NICKNAME_SEL != ''
   GROUP BY 1, 2, 3
 )
+-- Agrupado por mês (não só por seller) para o filtro de período conseguir
+-- recalcular os totais por sub-período em vez de mostrar sempre o acumulado.
 SELECT
   seller,
   reputacao,
+  FORMAT_DATE('%Y-%m', date_bpp)                                       AS mes,
   COUNT(*)                                                              AS total,
   ROUND(SUM(IFNULL(bpp_cashout_usd, 0)), 2)                            AS bpp,
   ROUND(SUM(IFNULL(totalgmv, 0)), 2)                                   AS gmv,
@@ -52,13 +55,10 @@ SELECT
     )
   )                                                                     AS n_damaged,
   COUNTIF(classification_lm = 'PNR C')                                 AS n_pnr,
-  COUNTIF(classification_lm = 'EMPTY BOX')                             AS n_empty,
-  MIN(FORMAT_DATE('%Y-%m', date_bpp))                                  AS primeiro_mes,
-  MAX(FORMAT_DATE('%Y-%m', date_bpp))                                  AS ultimo_mes,
-  COUNT(DISTINCT FORMAT_DATE('%Y-%m', date_bpp))                       AS n_meses
+  COUNTIF(classification_lm = 'EMPTY BOX')                             AS n_empty
 FROM shps
-GROUP BY 1, 2
-ORDER BY bpp DESC
+GROUP BY 1, 2, 3
+ORDER BY seller, mes
 """
 
 # ── Query 4: taxa de cancelamento por seller (60 dias, via BT_SHP_SHIPMENTS) ─
@@ -150,22 +150,41 @@ def carregar():
     creds, _ = default()
     client = bigquery.Client(credentials=creds, project='meli-bi-data')
 
-    print('Consultando sellers agregados...')
-    sellers = []
+    print('Consultando sellers agregados (por mês)...')
+    sellers_raw = {}
     for r in client.query(Q_SELLERS).result():
-        sellers.append({
-            'n': r['seller'],
-            'r': r['reputacao'],
-            't': int(r['total']),
-            'b': float(r['bpp'] or 0),
-            'g': float(r['gmv'] or 0),
-            'f': int(r['n_fraude']),
-            'd': int(r['n_damaged']),
+        key = r['seller']
+        if key not in sellers_raw:
+            sellers_raw[key] = {'r': r['reputacao'], 'md': []}
+        sellers_raw[key]['md'].append({
+            'mes': r['mes'],
+            't':   int(r['total']),
+            'b':   float(r['bpp'] or 0),
+            'g':   float(r['gmv'] or 0),
+            'f':   int(r['n_fraude']),
+            'd':   int(r['n_damaged']),
             'pnr': int(r['n_pnr']),
-            'eb': int(r['n_empty']),
-            'p': r['primeiro_mes'] or '',
-            'u': r['ultimo_mes'] or '',
-            'm': int(r['n_meses']),
+            'eb':  int(r['n_empty']),
+        })
+
+    sellers = []
+    for key, obj in sellers_raw.items():
+        md = sorted(obj['md'], key=lambda x: x['mes'])
+        meses_list = [m['mes'] for m in md]
+        sellers.append({
+            'n':   key,
+            'r':   obj['r'],
+            't':   sum(m['t'] for m in md),
+            'b':   sum(m['b'] for m in md),
+            'g':   sum(m['g'] for m in md),
+            'f':   sum(m['f'] for m in md),
+            'd':   sum(m['d'] for m in md),
+            'pnr': sum(m['pnr'] for m in md),
+            'eb':  sum(m['eb'] for m in md),
+            'p':   meses_list[0] if meses_list else '',
+            'u':   meses_list[-1] if meses_list else '',
+            'm':   len(meses_list),
+            'md':  md,
         })
     print(f'  {len(sellers):,} sellers')
 
@@ -187,6 +206,7 @@ def carregar():
         s['c60'] = cm['c60'] if cm else 0
         s['pc']  = cm['pc']  if cm else 0.0
         s['sid'] = cm['sid'] if cm else ''
+        s['vd']  = (s['t60'] - s['c60']) if cm else 0  # vendas efetivas (60d) — total menos cancelados
 
     print('Consultando shipments de fraude...')
     shps_fraude = []
@@ -516,6 +536,7 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
               <th style="padding:6px 8px;text-align:center;color:#f472b6;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Pacote Divergente (PNR C)</th>
               <th style="padding:6px 8px;text-align:center;color:#a78bfa;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Caixa Vazia</th>
               <th style="padding:6px 8px;text-align:center;color:#fb923c;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">% Cancelamento (60d)</th>
+              <th style="padding:6px 8px;text-align:center;color:#4ade80;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Vendas Efetivas (60d)</th>
               <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
               <th style="padding:6px 8px;text-align:left;color:#9ca3af;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Status</th>
               <th style="padding:6px 8px;text-align:left;color:#93c5fd;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">PDF</th>
@@ -794,6 +815,7 @@ function renderSuspTbody(lista){{
       + '<td style="padding:4px 8px;text-align:center;'+sinalCls(s.pnr, PNR_EB_MIN)+'">'+s.pnr+'</td>'
       + '<td style="padding:4px 8px;text-align:center;'+sinalCls(s.eb, PNR_EB_MIN)+'">'+s.eb+'</td>'
       + '<td style="padding:4px 8px;text-align:center;'+pcCls+'" title="'+s.c60+' de '+s.t60+' SHPs (60d)">'+s.pc.toFixed(1)+'%</td>'
+      + '<td style="padding:4px 8px;text-align:center;color:#4ade80" title="Fraude/Vendas: '+(s.vd>0?(s.f/s.vd*100).toFixed(2):'—')+'%">'+s.vd.toLocaleString('pt-BR')+'</td>'
       + '<td style="padding:4px 8px;text-align:right;color:#f87171;font-size:10px">$'+s.b.toFixed(0)+'</td>'
       + '<td style="padding:4px 8px"><span onclick="selToggleSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+ST_CLR[st]+';background:'+ST_BG[st]+'">'+ST_LBL[st]+'</span></td>'
       + '<td style="padding:4px 8px"><button onclick="selGerarApresentacao(\\''+s.n+'\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button></td>'
@@ -889,6 +911,7 @@ window.selGerarApresentacao = function(nick){{
       '<div class="ii"><div class="ilbl">Data da Solicitação</div><div class="ival">'+hoje+'</div></div>'+
       '<div class="ii"><div class="ilbl">Unidade Emissora</div><div class="ival">Guarulhos Mega</div></div>'+
       '<div class="ii"><div class="ilbl">Fraude / Damaged SHPs</div><div class="ival red">'+s.f+' / '+s.d+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Vendas Efetivas (60d)</div><div class="ival">'+s.vd.toLocaleString('pt-BR')+'</div></div>'+
       '<div class="ii"><div class="ilbl">BPP Total Acumulado</div><div class="ival red">'+bppFmt(s.b)+'</div></div>'+
     '</div>'+
     '<div class="conc">'+
@@ -1046,6 +1069,17 @@ function updKPIs(){{
   el('sel-k-suspeitos', susp.toLocaleString('pt-BR'));
 }}
 
+// Recalcula t/b/g/f/d/pnr/eb do seller somando só os meses dentro do período
+// filtrado (em vez de usar o acumulado jan-ago inteiro) — isso é o que faz o
+// filtro de período funcionar de verdade nas abas Historico e Suspeitos.
+function _somaPeriodo(s, pDe, pAte){{
+  if(!pDe && !pAte) return s;
+  var md = (s.md||[]).filter(function(m){{ return (!pDe||m.mes>=pDe) && (!pAte||m.mes<=pAte); }});
+  var t=0,b=0,g=0,f=0,d=0,pnr=0,eb=0;
+  md.forEach(function(m){{ t+=m.t; b+=m.b; g+=m.g; f+=m.f; d+=m.d; pnr+=m.pnr; eb+=m.eb; }});
+  return Object.assign({{}}, s, {{t:t, b:b, g:g, f:f, d:d, pnr:pnr, eb:eb, m: md.length}});
+}}
+
 function selAplicar(){{
   var pDe  = (document.getElementById('sel-de')  || {{}}).value || '';
   var pAte = (document.getElementById('sel-ate') || {{}}).value || '';
@@ -1054,7 +1088,7 @@ function selAplicar(){{
 
   _sellers = SEL_DATA.filter(function(s){{
     return (!pDe || s.u >= pDe) && (!pAte || s.p <= pAte);
-  }});
+  }}).map(function(s){{ return _somaPeriodo(s, pDe, pAte); }});
   _fraudes = SHP_FRAUDE.filter(function(s){{
     return (!pDe || s.mes >= pDe) && (!pAte || s.mes <= pAte);
   }});
@@ -1104,8 +1138,8 @@ window.selLimpar = function(){{
 }};
 
 window.selExportCSV = function(){{
-  var rows = [['Seller','Reputacao','Total','Damaged','Fraude','PNR C (Divergente)','Empty Box','% Cancelamento 60d','Meses','BPP USD','GMV USD','Status Solicitacao']];
-  _sellers.forEach(function(s){{ rows.push([s.n, s.r, s.t, s.d, s.f, s.pnr, s.eb, s.pc, s.m, s.b, s.g, selGetSt(s.n)]); }});
+  var rows = [['Seller','Reputacao','Total','Damaged','Fraude','PNR C (Divergente)','Empty Box','% Cancelamento 60d','Vendas Efetivas 60d','Meses','BPP USD','GMV USD','Status Solicitacao']];
+  _sellers.forEach(function(s){{ rows.push([s.n, s.r, s.t, s.d, s.f, s.pnr, s.eb, s.pc, s.vd, s.m, s.b, s.g, selGetSt(s.n)]); }});
   var csv = rows.map(function(r){{
     return r.map(function(v){{ return '"' + String(v).replace(/"/g, '""') + '"'; }}).join(',');
   }}).join('\\n');
