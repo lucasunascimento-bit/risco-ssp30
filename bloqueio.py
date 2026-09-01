@@ -360,7 +360,13 @@ def gerar_tab(drivers, sheet_status=None):
 <style>
 #tab-bloqueios .blq-crit{{background:#0d1017;border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:8px 16px;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:8px;flex-wrap:wrap}}
 #tab-bloqueios .blq-crit strong{{color:#f87171}}
-#tab-bloqueios .blq-kpis{{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}}
+#tab-bloqueios .blq-kpis{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}}
+#tab-bloqueios .blq-vis-row{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}}
+#tab-bloqueios .blq-vis-box{{background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px;text-align:center}}
+#tab-bloqueios .blq-vis-box.amb{{border-color:rgba(251,191,36,.35)}}
+#tab-bloqueios .blq-vis-l{{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin-bottom:4px}}
+#tab-bloqueios .blq-vis-box.amb .blq-vis-l{{color:#fbbf24}}
+#tab-bloqueios .blq-gauge-v{{font-size:20px;font-weight:700;color:#fbbf24;margin-top:-58px}}
 #tab-bloqueios .blq-s-ativo{{background:rgba(74,222,128,.08);color:#4ade80;border:1px solid rgba(74,222,128,.2)}}
 #tab-bloqueios .blq-kpi{{background:#0d1321;border:1px solid #111827;border-radius:8px;padding:14px 16px}}
 #tab-bloqueios .blq-kpi-l{{font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:#4b5563;font-weight:700;margin-bottom:6px}}
@@ -479,20 +485,23 @@ def gerar_tab(drivers, sheet_status=None):
       <div class="blq-kpi-v" id="blq-k-fraud">{total_fraud:,}</div>
       <div class="blq-kpi-s">pacotes comprometidos</div>
     </div>
-    <div class="blq-kpi amb">
-      <div class="blq-kpi-l">Média % Fraude</div>
-      <div class="blq-kpi-v">{avg_pct}%</div>
-      <div class="blq-kpi-s">dos SHPs por driver</div>
-    </div>
     <div class="blq-kpi blu">
       <div class="blq-kpi-l">Top Transportadora</div>
       <div class="blq-kpi-v" style="font-size:13px;letter-spacing:0;padding-top:4px">{top_mlp_short}</div>
       <div class="blq-kpi-s">{top_mlp_n} candidatos</div>
     </div>
-    <div class="blq-kpi" style="border-color:rgba(239,68,68,.3)">
-      <div class="blq-kpi-l" style="color:#ef4444">Bloqueados</div>
-      <div class="blq-kpi-v" id="blq-k-blq" style="color:#f87171">0</div>
-      <div class="blq-kpi-s">no período filtrado</div>
+  </div>
+
+  <!-- GAUGE + ANEL DE STATUS -->
+  <div class="blq-vis-row">
+    <div class="blq-vis-box amb">
+      <div class="blq-vis-l">Média % Fraude</div>
+      <div style="position:relative;height:110px"><canvas id="blqGaugeFraude"></canvas></div>
+      <div class="blq-gauge-v" id="blq-gauge-v">{avg_pct}%</div>
+    </div>
+    <div class="blq-vis-box">
+      <div class="blq-vis-l">Status dos Candidatos</div>
+      <div style="position:relative;height:110px"><canvas id="blqDonutStatus"></canvas></div>
     </div>
   </div>
 
@@ -581,7 +590,34 @@ var BLQ_BLOCKED     = new Set({blocked_ids_js});
 var BLQ_SHEET_STATUS = {sheet_status_js};
 var _blqSort = 'bpp', _blqDir = -1;
 
-var _blqCMlp = null, _blqCTop = null;
+var _blqCMlp = null, _blqCTop = null, _blqGauge = null, _blqDonut = null;
+
+function blqBuildGaugeDonut(avgPct, ov){{
+  var eG = document.getElementById('blqGaugeFraude');
+  var eD = document.getElementById('blqDonutStatus');
+  if(eG){{
+    if(_blqGauge){{ try{{_blqGauge.destroy();}}catch(ee){{}} _blqGauge=null; }}
+    try{{
+      _blqGauge = new Chart(eG, {{
+        type:'doughnut',
+        data:{{datasets:[{{data:[avgPct, Math.max(0,100-avgPct)],backgroundColor:['#fbbf24','#1c1f26'],borderWidth:0}}]}},
+        options:{{rotation:-90,circumference:180,cutout:'76%',responsive:true,maintainAspectRatio:false,
+          plugins:{{legend:{{display:false}},tooltip:{{enabled:false}}}}}}
+      }});
+    }}catch(ee){{console.error('blqGauge:',ee);}}
+  }}
+  if(eD){{
+    if(_blqDonut){{ try{{_blqDonut.destroy();}}catch(ee){{}} _blqDonut=null; }}
+    try{{
+      _blqDonut = new Chart(eD, {{
+        type:'doughnut',
+        data:{{labels:['Bloqueados','Ativos','Inativos'],datasets:[{{data:[ov.blq||0,ov.ati||0,ov.ina||0],backgroundColor:['#ef4444','#22d3ee','#374151'],borderWidth:0}}]}},
+        options:{{responsive:true,maintainAspectRatio:false,cutout:'55%',
+          plugins:{{legend:{{position:'bottom',labels:{{color:'#9ca3af',font:{{size:9}},boxWidth:8,padding:6}}}}}}}}
+      }});
+    }}catch(ee){{console.error('blqDonut:',ee);}}
+  }}
+}}
 
 function blqBuildCharts(){{
   var eMlp = document.getElementById('blqCMlp');
@@ -616,6 +652,9 @@ function blqBuildCharts(){{
       }});
     }}catch(ee){{console.error('blqCTop:',ee);}}
   }}
+  var _ovInit = {{ati:0,blq:0,ina:0}};
+  BLQ_DATA.forEach(function(d){{ var s=blqGetSt2(d.id); if(_ovInit[s]!==undefined)_ovInit[s]++; else _ovInit.ati++; }});
+  blqBuildGaugeDonut({avg_pct}, _ovInit);
 }}
 
 function blqGetSt(id) {{
@@ -750,6 +789,11 @@ function blqRender() {{
   ['ati','blq','ina'].forEach(function(k){{
     var el=document.getElementById('blq-ov-'+k); if(el) el.textContent=_ov[k];
   }});
+  var avgPct = rows.length ? Math.round((rows.reduce(function(s,d){{return s+d.pct;}},0)/rows.length)*10)/10 : 0;
+  var gv = document.getElementById('blq-gauge-v'); if(gv) gv.textContent = avgPct+'%';
+  if(_blqGauge || _blqDonut) {{
+    blqBuildGaugeDonut(avgPct, _ov);
+  }}
 
   var ST_LBL = {{mon:'Monitorando',inv:'Em investigação',blq:'Concluído'}};
   var ST_CLS = {{mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-ati'}};
