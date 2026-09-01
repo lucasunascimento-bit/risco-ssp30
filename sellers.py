@@ -486,25 +486,21 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
       % em 60 dias)
     </div>
 
-    <!-- Overview status cards -->
-    <div id="sel-susp-overview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
-      <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
-        <div style="font-size:18px;font-weight:700;color:#f87171" id="sel-susp-ov-blq">0</div>
-        <div style="font-size:10px;color:#9ca3af">Bloqueados</div>
+    <!-- Gauge + Anel de Status + Top 10 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px;margin-bottom:14px">
+      <div style="background:#0d1321;border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:12px 14px;text-align:center">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#fbbf24;margin-bottom:4px">Média % Cancelamento (60d)</div>
+        <div style="position:relative;height:170px"><canvas id="sel-susp-gauge"></canvas></div>
+        <div id="sel-susp-gauge-v" style="font-size:20px;font-weight:700;color:#fbbf24;margin-top:-84px">0%</div>
       </div>
-      <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
-        <div style="font-size:18px;font-weight:700;color:#fbbf24" id="sel-susp-ov-sol">0</div>
-        <div style="font-size:10px;color:#9ca3af">Solicitados</div>
+      <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px;text-align:center">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:4px">Status</div>
+        <div style="position:relative;height:170px"><canvas id="sel-susp-donut"></canvas></div>
       </div>
-      <div style="background:rgba(156,163,175,.06);border:1px solid rgba(156,163,175,.15);border-radius:6px;padding:7px 14px;text-align:center;min-width:80px">
-        <div style="font-size:18px;font-weight:700;color:#9ca3af" id="sel-susp-ov-ati">0</div>
-        <div style="font-size:10px;color:#9ca3af">Ativos</div>
+      <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Top 10 Suspeitos - BPP <span style="font-weight:400;color:#374151">clique para filtrar</span></div>
+        <div style="position:relative;height:170px"><canvas id="sel-cht-susp"></canvas></div>
       </div>
-    </div>
-
-    <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px;margin-bottom:14px">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Top 10 Suspeitos - BPP <span style="font-weight:400;color:#374151">clique para filtrar</span></div>
-      <div style="position:relative;height:220px"><canvas id="sel-cht-susp"></canvas></div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
       <div>
@@ -560,6 +556,7 @@ var SEL_ANALISTA = '{ANALISTA}';
 var _abaAtual = 'historico';
 var _selSel   = null;
 var _selSusp  = null;
+var _selSuspGauge = null, _selSuspDonut = null;
 var _qHist='', _qDmg='', _qFr='', _qSusp='';
 
 var _sellers  = SEL_DATA;
@@ -584,6 +581,19 @@ function repBadge(r){{
   return '<span style="color:'+s.c+';background:'+s.bg+';border-radius:4px;padding:1px 7px;font-size:9px;font-weight:600;white-space:nowrap">'+r+'</span>';
 }}
 
+var DONUT_PALETTE = ['#f87171','#fbbf24','#a78bfa','#38bdf8','#4ade80','#f472b6','#fb923c','#94a3b8'];
+function mkDonut(id, labels, data){{
+  var cv = document.getElementById(id); if(!cv) return null;
+  var ex = Chart.getChart(cv); if(ex) ex.destroy();
+  return new Chart(cv, {{
+    type: 'doughnut',
+    data: {{labels: labels, datasets: [{{data: data, backgroundColor: DONUT_PALETTE.slice(0, labels.length), borderWidth: 0}}]}},
+    options: {{
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: {{legend: {{position:'bottom', labels:{{color:'#9ca3af', font:{{size:9}}, boxWidth:8, padding:6}}}}}}
+    }}
+  }});
+}}
 function mkChart(id, labels, data, color, onClick){{
   var cv = document.getElementById(id); if(!cv) return null;
   var ex = Chart.getChart(cv); if(ex) ex.destroy();
@@ -635,9 +645,33 @@ function selUpdSuspOverview(){{
   var all = SEL_DATA.filter(isSuspeito);
   var ov = {{ati:0,sol:0,blq:0}};
   all.forEach(function(s){{ var st = selGetSt(s.n); if(ov[st]!==undefined) ov[st]++; else ov.ati++; }});
-  ['ati','sol','blq'].forEach(function(k){{
-    var el = document.getElementById('sel-susp-ov-'+k); if(el) el.textContent = ov[k];
-  }});
+  var avgPc = all.length ? Math.round((all.reduce(function(s,x){{return s+x.pc;}},0)/all.length)*10)/10 : 0;
+  var gv = document.getElementById('sel-susp-gauge-v'); if(gv) gv.textContent = avgPc+'%';
+
+  var eG = document.getElementById('sel-susp-gauge');
+  if(eG){{
+    if(_selSuspGauge){{ try{{_selSuspGauge.destroy();}}catch(ee){{}} _selSuspGauge=null; }}
+    try{{
+      _selSuspGauge = new Chart(eG, {{
+        type:'doughnut',
+        data:{{datasets:[{{data:[avgPc, Math.max(0,100-avgPc)],backgroundColor:['#fbbf24','#1c1f26'],borderWidth:0}}]}},
+        options:{{rotation:-90,circumference:180,cutout:'76%',responsive:true,maintainAspectRatio:false,
+          plugins:{{legend:{{display:false}},tooltip:{{enabled:false}}}}}}
+      }});
+    }}catch(ee){{console.error('selSuspGauge:',ee);}}
+  }}
+  var eD = document.getElementById('sel-susp-donut');
+  if(eD){{
+    if(_selSuspDonut){{ try{{_selSuspDonut.destroy();}}catch(ee){{}} _selSuspDonut=null; }}
+    try{{
+      _selSuspDonut = new Chart(eD, {{
+        type:'doughnut',
+        data:{{labels:['Ativo','Solicitado','Bloqueado'],datasets:[{{data:[ov.ati,ov.sol,ov.blq],backgroundColor:['#9ca3af','#fbbf24','#f87171'],borderWidth:0}}]}},
+        options:{{responsive:true,maintainAspectRatio:false,cutout:'55%',
+          plugins:{{legend:{{position:'bottom',labels:{{color:'#9ca3af',font:{{size:9}},boxWidth:8,padding:6}}}}}}}}
+      }});
+    }}catch(ee){{console.error('selSuspDonut:',ee);}}
+  }}
 }}
 window.selGetSt = selGetSt;
 window.selToggleSt = selToggleSt;
@@ -704,7 +738,7 @@ function renderDmgCharts(){{
   var byT = {{}};
   _damages.forEach(function(s){{ var k = s.td || s.c || 'Outro'; byT[k] = (byT[k] || 0) + 1; }});
   var topT = Object.entries(byT).sort(function(a,b){{return b[1]-a[1];}}).slice(0,8);
-  mkChart('sel-cht-dmg-tipo', topT.map(function(x){{return x[0];}}), topT.map(function(x){{return x[1];}}), '#6366f1', null);
+  mkDonut('sel-cht-dmg-tipo', topT.map(function(x){{return x[0];}}), topT.map(function(x){{return x[1];}}));
 }}
 
 function renderDmgTbody(){{
@@ -748,7 +782,7 @@ function renderFrCharts(){{
   var byT = {{}};
   _fraudes.forEach(function(s){{ var k = s.tf || 'Outro'; byT[k] = (byT[k] || 0) + 1; }});
   var topT = Object.entries(byT).sort(function(a,b){{return b[1]-a[1];}}).slice(0,6);
-  mkChart('sel-cht-fr-tipo', topT.map(function(x){{return x[0];}}), topT.map(function(x){{return x[1];}}), '#fbbf24', null);
+  mkDonut('sel-cht-fr-tipo', topT.map(function(x){{return x[0];}}), topT.map(function(x){{return x[1];}}));
 }}
 
 function renderFrTbody(){{
