@@ -3704,7 +3704,7 @@ function showTab(name, el) {{
   el.classList.add('active');
   history.replaceState(null,'','#'+name);
   const bp = document.getElementById('barra-periodo');
-  const _noPeriod = ['acumulo','relatorio','dcnex','sellers_ene','saidas','devolucoes'];
+  const _noPeriod = ['acumulo','relatorio','dcnex','sellers_ene','saidas','devolucoes','bloqueios','sellers'];
   if (bp) bp.style.display = _noPeriod.includes(name) ? 'none' : 'flex';
   applyPeriodoToTab(name);
   if (name === 'bloqueios') {{ initBlCharts(); if (window.blqBuildCharts) window.blqBuildCharts(); if (window.blqRender) window.blqRender(); }}
