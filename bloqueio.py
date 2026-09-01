@@ -1080,6 +1080,8 @@ window.blqGerarApresentacao = function(drvId) {{
 }};
 window.blqBuildCharts = blqBuildCharts;
 window.blqRender      = blqRender;
+window.blqSetPeriodChip = blqSetPeriodChip;
+window.blqCustomPeriod  = blqCustomPeriod;
 
 // Período da aba Bloqueios agora é independente da barra global do topo
 // (controle próprio com atalhos 7d/30d/90d/Tudo — ver blqSetPeriodChip/blqCustomPeriod).
