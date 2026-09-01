@@ -457,15 +457,25 @@ def gerar_tab(drivers, sheet_status=None):
       <div style="font-size:18px;font-weight:700;color:#9ca3af" id="blq-ov-ati">0</div>
       <div style="font-size:10px;color:#9ca3af">Ativos</div>
     </div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280">
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:#6b7280;flex-wrap:wrap">
       <span>&#128197; Período:</span>
-      <input type="date" id="blq-cal-de" oninput="blqRender()"
+      <div style="display:flex;gap:2px;background:#080d19;border-radius:6px;padding:2px">
+        <button class="blq-period-chip" data-days="7" onclick="blqSetPeriodChip(7)"
+          style="padding:4px 9px;font-size:10px;color:#6b7280;border-radius:4px;cursor:pointer;background:transparent;border:none">7d</button>
+        <button class="blq-period-chip" data-days="30" onclick="blqSetPeriodChip(30)"
+          style="padding:4px 9px;font-size:10px;color:#6b7280;border-radius:4px;cursor:pointer;background:transparent;border:none">30d</button>
+        <button class="blq-period-chip" data-days="90" onclick="blqSetPeriodChip(90)"
+          style="padding:4px 9px;font-size:10px;color:#6b7280;border-radius:4px;cursor:pointer;background:transparent;border:none">90d</button>
+        <button class="blq-period-chip active" data-days="0" onclick="blqSetPeriodChip(0)"
+          style="padding:4px 9px;font-size:10px;color:#04303a;background:#22d3ee;border-radius:4px;cursor:pointer;border:none;font-weight:700">Tudo</button>
+      </div>
+      <span style="color:#1f2937">|</span>
+      <input type="date" id="blq-cal-de" oninput="blqCustomPeriod()"
         style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
       <span>&#8594;</span>
-      <input type="date" id="blq-cal-ate" oninput="blqRender()"
+      <input type="date" id="blq-cal-ate" oninput="blqCustomPeriod()"
         style="background:#111827;border:1px solid #1f2937;border-radius:4px;color:#e2e8f0;font-size:11px;padding:3px 6px;cursor:pointer">
-      <button onclick="document.getElementById('blq-cal-de').value='';document.getElementById('blq-cal-ate').value='';blqRender()"
-        style="background:#1f2937;border:1px solid #374151;border-radius:4px;color:#9ca3af;font-size:10px;padding:2px 7px;cursor:pointer">Limpar</button>
+      <span id="blq-period-label" style="font-size:10px;color:#22d3ee"></span>
     </div>
   </div>
   <!-- KPIs -->
@@ -706,18 +716,39 @@ function blqUpdMsBtn(id) {{
 function blqMsAll(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(function(e){{e.checked=true;}}); blqUpdMsBtn(id); blqRender(); }}
 function blqMsNone(id) {{ document.querySelectorAll('.blq-ms-cb-'+id).forEach(function(e){{e.checked=false;}}); blqUpdMsBtn(id); blqRender(); }}
 
-function blqRender() {{
-  var calDe  = ((document.getElementById('blq-cal-de')||{{}}).value||'');
-  var calAte = ((document.getElementById('blq-cal-ate')||{{}}).value||'');
-  var de, ate;
-  if (calDe || calAte) {{
-    de = calDe; ate = calAte;
+function blqSetPeriodChip(days) {{
+  var deEl = document.getElementById('blq-cal-de');
+  var ateEl = document.getElementById('blq-cal-ate');
+  if (!deEl || !ateEl) return;
+  if (days === 0) {{
+    deEl.value = ''; ateEl.value = '';
   }} else {{
-    var pdDe  = (document.getElementById('pd_de') ||{{}}).value||'';
-    var pdAte = (document.getElementById('pd_ate')||{{}}).value||'';
-    de  = pdDe  ? pdDe  + '-01' : '';
-    ate = pdAte ? pdAte + '-31' : '';
+    var today = new Date();
+    var from = new Date(today);
+    from.setDate(from.getDate() - days);
+    ateEl.value = today.toISOString().slice(0, 10);
+    deEl.value = from.toISOString().slice(0, 10);
   }}
+  document.querySelectorAll('.blq-period-chip').forEach(function(b) {{
+    var isActive = b.dataset.days == days;
+    b.classList.toggle('active', isActive);
+    b.style.background = isActive ? '#22d3ee' : 'transparent';
+    b.style.color = isActive ? '#04303a' : '#6b7280';
+    b.style.fontWeight = isActive ? '700' : '400';
+  }});
+  blqRender();
+}}
+function blqCustomPeriod() {{
+  document.querySelectorAll('.blq-period-chip').forEach(function(b) {{
+    b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#6b7280'; b.style.fontWeight = '400';
+  }});
+  blqRender();
+}}
+function blqRender() {{
+  var de  = ((document.getElementById('blq-cal-de')||{{}}).value||'');
+  var ate = ((document.getElementById('blq-cal-ate')||{{}}).value||'');
+  var lbl = document.getElementById('blq-period-label');
+  if (lbl) lbl.textContent = (de || ate) ? (de||'início') + ' → ' + (ate||'hoje') : '';
   var stF    = (document.getElementById('blq-status')||{{}}).value||'';
   var minPct = parseFloat((document.getElementById('blq-pct')||{{}}).value)||0;
   var busca  = ((document.getElementById('blq-busca')||{{}}).value||'').trim();
@@ -1050,20 +1081,8 @@ window.blqGerarApresentacao = function(drvId) {{
 window.blqBuildCharts = blqBuildCharts;
 window.blqRender      = blqRender;
 
-// Intercepta setPeriodo para chamar blqRender automaticamente
-(function() {{
-  var _orig = window.setPeriodo;
-  window.setPeriodo = function() {{
-    if (_orig) _orig.apply(window, arguments);
-    try {{ blqRender(); }} catch(e) {{}}
-  }};
-  // Também intercepta resetPeriodo
-  var _origR = window.resetPeriodo;
-  window.resetPeriodo = function() {{
-    if (_origR) _origR.apply(window, arguments);
-    try {{ blqRender(); }} catch(e) {{}}
-  }};
-}})();
+// Período da aba Bloqueios agora é independente da barra global do topo
+// (controle próprio com atalhos 7d/30d/90d/Tudo — ver blqSetPeriodChip/blqCustomPeriod).
 
 // Badge: set synchronously + DOMContentLoaded (belt-and-suspenders)
 (function() {{ var b=document.getElementById('tab-count-bloqueios'); if(b) b.textContent=BLQ_DATA.length; }})();
