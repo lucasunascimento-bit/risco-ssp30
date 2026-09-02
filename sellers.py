@@ -930,13 +930,15 @@ function selUpdFrOverview(){{
         options:{{rotation:-90,circumference:180,cutout:'76%',responsive:true,maintainAspectRatio:false,
           plugins:{{legend:{{display:false}},tooltip:{{enabled:false}}}}}}
       }});
+      requestAnimationFrame(function(){{ if(_selFrGauge) _selFrGauge.resize(); }});
     }}catch(ee){{console.error('selFrGauge:',ee);}}
   }}
 
   var byPad = {{}};
   _fraudes.forEach(function(s){{ var k = s.pad || 'Outro'; byPad[k] = (byPad[k] || 0) + 1; }});
   var padOrd = ['Avaria / Dano na devolucao','Caixa vazia / PNR','Outro'].filter(function(k){{return byPad[k];}});
-  mkDonut('sel-cht-fr-tipo', padOrd, padOrd.map(function(k){{return byPad[k];}}));
+  var _frPadChart = mkDonut('sel-cht-fr-tipo', padOrd, padOrd.map(function(k){{return byPad[k];}}));
+  if(_frPadChart) requestAnimationFrame(function(){{ _frPadChart.resize(); }});
 }}
 
 function renderFrOfensores(){{
