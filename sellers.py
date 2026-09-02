@@ -15,6 +15,24 @@ HTML_OUT = Path(__file__).parent / 'fraude.html'
 LOG_URL  = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/'
 ANALISTA = 'Lucas de Oliveira Nascimento'
 CANCEL_THRESHOLD = 20.0  # % cancelamento (60d) considerado "alto" por padrão
+FRAUDE_SELLERS_CACHE = Path(__file__).parent / '_fraude_sellers_conhecidos.json'
+
+
+def _carregar_sellers_fraude_conhecidos():
+    try:
+        return set(json.loads(FRAUDE_SELLERS_CACHE.read_text(encoding='utf-8')).get('nicks', []))
+    except Exception:
+        return set()
+
+
+def _salvar_sellers_fraude_conhecidos(nicks):
+    try:
+        FRAUDE_SELLERS_CACHE.write_text(
+            json.dumps({'nicks': sorted(nicks), 'ts': datetime.now().isoformat()}, ensure_ascii=False),
+            encoding='utf-8'
+        )
+    except Exception as e:
+        print(f'  Aviso: não salvei cache de sellers fraude conhecidos: {e}')
 
 # ── Query 1: sellers agregados (todos) ──────────────────────────────────────
 # CTE pré-deduplica por SHP antes de agregar
@@ -240,6 +258,14 @@ def carregar():
             'b': float(r['bpp']),
         })
     print(f'  {len(shps_fraude):,} SHPs fraude')
+
+    nicks_fraude = {s['n'] for s in shps_fraude}
+    nicks_conhecidos = _carregar_sellers_fraude_conhecidos()
+    novos = nicks_fraude - nicks_conhecidos
+    for s in shps_fraude:
+        s['novo'] = s['n'] in novos
+    print(f'  {len(novos)} seller(s) NOVO(S) na fraude detectado(s)')
+    _salvar_sellers_fraude_conhecidos(nicks_fraude)
 
     print('Consultando shipments de damaged...')
     shps_damaged = []
@@ -489,7 +515,7 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div>
         <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Sellers ofensores</span>
-        <span style="font-size:10px;color:#374151;margin-left:6px">ordenado por BPP · clique na linha pra ver os shipments abaixo</span>
+        <span style="font-size:10px;color:#374151;margin-left:6px">ordenado por score (clique nos cabeçalhos pra mudar) · clique na linha pra ver os shipments abaixo</span>
         <span id="sel-fr-ofens-header" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
       </div>
       <input id="sel-fr-busca" type="text" placeholder="Buscar seller ou SHP..."
@@ -501,11 +527,12 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
         <table style="width:100%;border-collapse:collapse;font-size:11px">
           <thead style="position:sticky;top:0;z-index:2;background:#0d1321">
             <tr>
-              <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Seller</th>
-              <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Qtd</th>
+              <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="selFrSort('n')">Seller <span id="sel-fr-sort-n"></span></th>
+              <th style="padding:6px 8px;text-align:center;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" title="Probabilidade de fraude: taxa vs vendas + recorrencia + volume" onclick="selFrSort('score')">Score <span id="sel-fr-sort-score"></span></th>
+              <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="selFrSort('qtd')">Qtd <span id="sel-fr-sort-qtd"></span></th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Padrao predominante</th>
-              <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
-              <th style="padding:6px 8px;text-align:center;color:#4ade80;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">% Vendas</th>
+              <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="selFrSort('b')">BPP <span id="sel-fr-sort-b"></span></th>
+              <th style="padding:6px 8px;text-align:center;color:#4ade80;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="selFrSort('pvd')">% Vendas <span id="sel-fr-sort-pvd"></span></th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Status</th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Ação / nota LP</th>
               <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">PDF</th>
@@ -877,25 +904,56 @@ window.selFrSelecionar = function(nick){{
   renderFrOfensores();
 }};
 
+// Ordenacao da tabela de ofensores — score (probabilidade de fraude) por
+// padrao, mas o analista pode trocar clicando no cabecalho da coluna.
+var _selFrSortKey = 'score';
+var _selFrSortDir = -1;
+window.selFrSort = function(key){{
+  if(_selFrSortKey === key) _selFrSortDir = -_selFrSortDir;
+  else {{ _selFrSortKey = key; _selFrSortDir = key === 'n' ? 1 : -1; }}
+  renderFrOfensores();
+}};
+
 function _selFrAgg(){{
   var byS = {{}};
   _fraudes.forEach(function(s){{
-    if(!byS[s.n]) byS[s.n] = {{n:0, b:0, pads:{{}}}};
+    if(!byS[s.n]) byS[s.n] = {{n:0, b:0, pads:{{}}, meses:{{}}, novo:false}};
     byS[s.n].n++;
     byS[s.n].b += (s.b||0);
+    byS[s.n].meses[s.mes] = true;
+    if(s.novo) byS[s.n].novo = true;
     var k = s.pad || 'Outro';
     byS[s.n].pads[k] = (byS[s.n].pads[k]||0) + 1;
   }});
-  return Object.keys(byS).map(function(nick){{
+  var lista = Object.keys(byS).map(function(nick){{
     var o = byS[nick];
     var padTop = Object.entries(o.pads).sort(function(a,b){{return b[1]-a[1];}})[0];
     var vd = SEL_VD_MAP[nick];
+    var pvd = vd > 0 ? (o.n/vd*100) : null;
+    var nMeses = Object.keys(o.meses).length;
+    // Score = sinal de probabilidade (taxa de fraude sobre vendas reais) +
+    // recorrencia + um piso de materialidade (qtd/BPP), pra nao deixar um
+    // seller de $70 com base de vendas minuscula (ex: 1 venda efetiva) ficar
+    // na frente de quem tem $3.000 e dezenas de casos so por causa da % —
+    // quando a venda efetiva (60d) e muito baixa (<10), o % vira ruido
+    // (denominador pequeno), entao seu peso e reduzido.
+    var pvdConfiavel = vd >= 10;
+    var pvdScore = Math.min(pvd||0, 100) * (pvdConfiavel ? 1 : 0.3);
+    var score = pvdScore + (nMeses>=2 ? 20 : 0) + Math.min(o.n, 15) + Math.min(o.b/300, 15);
     return {{
       n: nick, qtd: o.n, b: o.b,
       pad: padTop ? padTop[0] : 'Outro',
-      pvd: vd > 0 ? (o.n/vd*100) : null,
+      pvd: pvd, meses: nMeses, score: Math.round(score*10)/10,
+      novo: o.novo,
     }};
-  }}).sort(function(a,b){{return b.b-a.b;}});
+  }});
+  var key = _selFrSortKey, dir = _selFrSortDir;
+  lista.sort(function(a,b){{
+    if(key === 'n') return a.n.localeCompare(b.n) * dir;
+    var av = a[key]==null ? -1 : a[key], bv = b[key]==null ? -1 : b[key];
+    return (av-bv) * dir;
+  }});
+  return lista;
 }}
 
 function selUpdFrOverview(){{
@@ -947,6 +1005,10 @@ function renderFrOfensores(){{
   if(q) lista = lista.filter(function(s){{return s.n.toLowerCase().indexOf(q)>=0;}});
   var hdr = document.getElementById('sel-fr-ofens-header');
   if(hdr) hdr.textContent = '- ' + lista.length.toLocaleString('pt-BR') + ' sellers';
+  ['n','score','qtd','b','pvd'].forEach(function(k){{
+    var e = document.getElementById('sel-fr-sort-'+k);
+    if(e) e.textContent = (_selFrSortKey===k) ? (_selFrSortDir===1?'▲':'▼') : '';
+  }});
   var el = document.getElementById('sel-fr-ofens-tbody'); if(!el) return;
   el.innerHTML = lista.map(function(s){{
     var sel = _selSel === s.n;
@@ -954,8 +1016,11 @@ function renderFrOfensores(){{
     var st = selGetFrSt(s.n);
     var padCls = s.pad === 'Avaria / Dano na devolucao' ? 'color:#f87171' : (s.pad === 'Caixa vazia / PNR' ? 'color:#fbbf24' : 'color:#a78bfa');
     var nota = selGetFrNota(s.n);
+    var scoreCls = s.score >= 40 ? 'color:#f87171;font-weight:700' : (s.score >= 20 ? 'color:#fbbf24;font-weight:700' : 'color:#6b7280');
+    var novoBadge = s.novo ? '<span style="display:inline-block;font-size:8px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;background:#fbbf24;color:#1a1a1a;letter-spacing:.4px">NOVO</span>' : '';
     return '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="selFrSelecionar(\\''+s.n+'\\')">'
-      + '<td style="padding:4px 8px;color:#60a5fa;font-weight:700;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+s.n+'">'+s.n+selIdSuffix(s.n)+'</td>'
+      + '<td style="padding:4px 8px;color:#60a5fa;font-weight:700;max-width:190px;white-space:nowrap"><span style="display:inline-block;max-width:'+(s.novo?'135px':'175px')+';overflow:hidden;text-overflow:ellipsis;vertical-align:middle" title="'+s.n+'">'+s.n+selIdSuffix(s.n)+'</span>'+novoBadge+'</td>'
+      + '<td style="padding:4px 8px;text-align:center;'+scoreCls+'" title="'+s.meses+' mes(es) com fraude no periodo">'+s.score+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.qtd+'</td>'
       + '<td style="padding:4px 8px;font-size:10px;'+padCls+'">'+s.pad+'</td>'
       + '<td style="padding:4px 8px;text-align:right;color:#f87171">$'+s.b.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
