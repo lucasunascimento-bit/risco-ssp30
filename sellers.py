@@ -159,7 +159,6 @@ WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
   )
 GROUP BY 1, 2
 ORDER BY bpp DESC
-LIMIT 3000
 """
 
 
@@ -463,28 +462,57 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
   <!-- FRAUDES -->
   <div id="selc-fraudes" style="display:none">
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-      <div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:8px 16px;flex:1;min-width:170px;text-align:center">
+      <div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:8px 16px;flex:1;min-width:150px;text-align:center">
         <div id="sel-fr-recorrentes" style="font-size:20px;font-weight:700;color:#f87171">0</div>
         <div style="font-size:9px;color:#6b7280;margin-top:2px">Sellers recorrentes (2+ meses c/ fraude no periodo)</div>
       </div>
-      <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:8px 16px;flex:1;min-width:170px;text-align:center">
+      <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:8px 16px;flex:1;min-width:150px;text-align:center">
         <div id="sel-fr-bppmedio" style="font-size:20px;font-weight:700;color:#38bdf8">US$ 0</div>
         <div style="font-size:9px;color:#6b7280;margin-top:2px">BPP medio por shipment fraudado</div>
       </div>
+      <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:8px 16px;flex:1;min-width:150px;text-align:center">
+        <div id="sel-fr-distintos" style="font-size:20px;font-weight:700;color:#e5e7eb">0</div>
+        <div style="font-size:9px;color:#6b7280;margin-top:2px">Sellers distintos com fraude no periodo</div>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px;margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       <div style="background:#0d1321;border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:12px 14px;text-align:center">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#fbbf24;margin-bottom:4px">% Fraude vs Vendas Efetivas <span style="font-weight:400;text-transform:none;color:#4b5563">(aprox., base 60d)</span></div>
-        <div style="position:relative;height:170px"><canvas id="sel-fr-gauge"></canvas></div>
-        <div id="sel-fr-gauge-v" style="font-size:20px;font-weight:700;color:#fbbf24;margin-top:-84px">0%</div>
+        <div style="position:relative;height:150px"><canvas id="sel-fr-gauge"></canvas></div>
+        <div id="sel-fr-gauge-v" style="font-size:20px;font-weight:700;color:#fbbf24;margin-top:-74px">0%</div>
       </div>
       <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Padrão de Fraude <span style="font-weight:400;color:#374151">(causa BPP)</span></div>
-        <div style="position:relative;height:170px"><canvas id="sel-cht-fr-tipo"></canvas></div>
+        <div style="position:relative;height:150px"><canvas id="sel-cht-fr-tipo"></canvas></div>
       </div>
-      <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Top 10 Sellers - Fraudes <span style="font-weight:400;color:#374151">clique para filtrar</span></div>
-        <div style="position:relative;height:170px"><canvas id="sel-cht-fr-rank"></canvas></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div>
+        <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Sellers ofensores</span>
+        <span style="font-size:10px;color:#374151;margin-left:6px">ordenado por BPP · clique na linha pra ver os shipments abaixo</span>
+        <span id="sel-fr-ofens-header" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
+      </div>
+      <input id="sel-fr-busca" type="text" placeholder="Buscar seller ou SHP..."
+        oninput="selFrFiltrar()"
+        style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
+    </div>
+    <div style="border:1px solid #1f2937;border-radius:8px;overflow:hidden;margin-bottom:14px">
+      <div style="overflow-y:auto;max-height:320px;background:#060a14">
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead style="position:sticky;top:0;z-index:2;background:#0d1321">
+            <tr>
+              <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Seller</th>
+              <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Qtd</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Padrao predominante</th>
+              <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
+              <th style="padding:6px 8px;text-align:center;color:#4ade80;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">% Vendas</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Status</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Ação / nota LP</th>
+              <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">PDF</th>
+            </tr>
+          </thead>
+          <tbody id="sel-fr-ofens-tbody"></tbody>
+        </table>
       </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -494,9 +522,6 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <button id="sel-fr-report-btn" onclick="selGerarRelatorioFraude()" style="display:none;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128196; Gerar relatório</button>
-        <input id="sel-fr-busca" type="text" placeholder="Buscar seller ou SHP..."
-          oninput="selFrFiltrar()"
-          style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
       </div>
     </div>
     <div style="border:1px solid #1f2937;border-radius:8px;overflow:hidden">
@@ -820,13 +845,57 @@ window.selDmgFiltrar = function(){{
 
 // FRAUDES
 var _selFrGauge = null;
-function renderFrCharts(){{
+
+// ── Status de investigacao do seller (persistido no browser, so p/ Fraudes) ─
+var FR_ST_CYCLE = ['ati','inv','enc','res'];
+var FR_ST_LBL = {{ati:'Ativo',inv:'Em investigacao',enc:'Encaminhado',res:'Resolvido'}};
+var FR_ST_CLR = {{ati:'#9ca3af',inv:'#fbbf24',enc:'#f87171',res:'#4ade80'}};
+var FR_ST_BG  = {{ati:'rgba(156,163,175,.1)',inv:'rgba(251,191,36,.12)',enc:'rgba(239,68,68,.12)',res:'rgba(74,222,128,.12)'}};
+function selGetFrSt(nick){{
+  try {{
+    var s = localStorage.getItem('selfr_st_'+nick);
+    if (s !== null) return FR_ST_LBL[s] ? s : 'ati';
+  }} catch(e) {{}}
+  return 'ati';
+}}
+function selToggleFrSt(nick){{
+  var cur = selGetFrSt(nick);
+  var next = FR_ST_CYCLE[(FR_ST_CYCLE.indexOf(cur)+1) % FR_ST_CYCLE.length];
+  try {{ localStorage.setItem('selfr_st_'+nick, next); }} catch(e) {{}}
+  renderFrOfensores();
+}}
+function selGetFrNota(nick){{
+  try {{ return localStorage.getItem('selfr_nota_'+nick) || ''; }} catch(e) {{ return ''; }}
+}}
+window.selSetFrNota = function(nick, val){{
+  try {{ localStorage.setItem('selfr_nota_'+nick, val); }} catch(e) {{}}
+}};
+window.selToggleFrSt = selToggleFrSt;
+window.selFrSelecionar = function(nick){{
+  _selSel = (_selSel === nick) ? null : nick;
+  renderFrTbody();
+  renderFrOfensores();
+}};
+
+function _selFrAgg(){{
   var byS = {{}};
-  _fraudes.forEach(function(s){{ byS[s.n] = (byS[s.n] || 0) + 1; }});
-  var top10 = Object.entries(byS).sort(function(a,b){{return b[1]-a[1];}}).slice(0,10);
-  var nicks = top10.map(function(x){{return x[0];}});
-  mkChart('sel-cht-fr-rank', nicks, top10.map(function(x){{return x[1];}}), '#ef4444',
-    function(e,els){{if(els.length){{_selSel=nicks[els[0].index];renderFrTbody();}}}});
+  _fraudes.forEach(function(s){{
+    if(!byS[s.n]) byS[s.n] = {{n:0, b:0, pads:{{}}}};
+    byS[s.n].n++;
+    byS[s.n].b += (s.b||0);
+    var k = s.pad || 'Outro';
+    byS[s.n].pads[k] = (byS[s.n].pads[k]||0) + 1;
+  }});
+  return Object.keys(byS).map(function(nick){{
+    var o = byS[nick];
+    var padTop = Object.entries(o.pads).sort(function(a,b){{return b[1]-a[1];}})[0];
+    var vd = SEL_VD_MAP[nick];
+    return {{
+      n: nick, qtd: o.n, b: o.b,
+      pad: padTop ? padTop[0] : 'Outro',
+      pvd: vd > 0 ? (o.n/vd*100) : null,
+    }};
+  }}).sort(function(a,b){{return b.b-a.b;}});
 }}
 
 function selUpdFrOverview(){{
@@ -848,6 +917,7 @@ function selUpdFrOverview(){{
 
   var rc = document.getElementById('sel-fr-recorrentes'); if(rc) rc.textContent = recorrentes.toLocaleString('pt-BR');
   var bm = document.getElementById('sel-fr-bppmedio'); if(bm) bm.textContent = 'US$ ' + bppMedio.toLocaleString('pt-BR', {{minimumFractionDigits:2,maximumFractionDigits:2}});
+  var ds = document.getElementById('sel-fr-distintos'); if(ds) ds.textContent = nomes.length.toLocaleString('pt-BR');
 
   var gv = document.getElementById('sel-fr-gauge-v'); if(gv) gv.textContent = avgPc+'%';
   var eG = document.getElementById('sel-fr-gauge');
@@ -869,13 +939,39 @@ function selUpdFrOverview(){{
   mkDonut('sel-cht-fr-tipo', padOrd, padOrd.map(function(k){{return byPad[k];}}));
 }}
 
+function renderFrOfensores(){{
+  var q = _qFr.toLowerCase();
+  var lista = _selFrAgg();
+  if(q) lista = lista.filter(function(s){{return s.n.toLowerCase().indexOf(q)>=0;}});
+  var hdr = document.getElementById('sel-fr-ofens-header');
+  if(hdr) hdr.textContent = '- ' + lista.length.toLocaleString('pt-BR') + ' sellers';
+  var el = document.getElementById('sel-fr-ofens-tbody'); if(!el) return;
+  el.innerHTML = lista.map(function(s){{
+    var sel = _selSel === s.n;
+    var hl = sel ? 'background:#1a0a00;border-left:3px solid #f97316;' : 'border-left:3px solid transparent;';
+    var st = selGetFrSt(s.n);
+    var padCls = s.pad === 'Avaria / Dano na devolucao' ? 'color:#f87171' : (s.pad === 'Caixa vazia / PNR' ? 'color:#fbbf24' : 'color:#a78bfa');
+    var nota = selGetFrNota(s.n);
+    return '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="selFrSelecionar(\\''+s.n+'\\')">'
+      + '<td style="padding:4px 8px;color:#60a5fa;font-weight:700;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+s.n+'">'+s.n+selIdSuffix(s.n)+'</td>'
+      + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.qtd+'</td>'
+      + '<td style="padding:4px 8px;font-size:10px;'+padCls+'">'+s.pad+'</td>'
+      + '<td style="padding:4px 8px;text-align:right;color:#f87171">$'+s.b.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
+      + '<td style="padding:4px 8px;text-align:center;color:#4ade80" title="'+s.qtd+' fraude(s) de '+(SEL_VD_MAP[s.n]||0)+' vendas efetivas (60d)">'+(s.pvd!==null?s.pvd.toFixed(1)+'%':'—')+'</td>'
+      + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><span onclick="selToggleFrSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+FR_ST_CLR[st]+';background:'+FR_ST_BG[st]+'">'+FR_ST_LBL[st]+'</span></td>'
+      + '<td style="padding:2px 8px" onclick="event.stopPropagation()"><input type="text" value="'+nota.replace(/"/g,'&quot;')+'" placeholder="ex: ticket Jira #..." onchange="selSetFrNota(\\''+s.n+'\\',this.value)" style="width:100%;background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:4px;padding:3px 6px;font-size:10px"></td>'
+      + '<td style="padding:4px 8px;text-align:center" onclick="event.stopPropagation()"><button onclick="selGerarRelatorioSeller(\\''+s.n+'\\',\\'fraude\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button></td>'
+      + '</tr>';
+  }}).join('');
+}}
+
 function renderFrTbody(){{
   var q = _qFr.toLowerCase();
   var base = _selSel ? _fraudes.filter(function(s){{return s.n === _selSel;}}) : _fraudes;
   var filtrado = q ? base.filter(function(s){{return s.n.toLowerCase().indexOf(q)>=0||s.s.indexOf(q)>=0;}}) : base;
   var hdr = document.getElementById('sel-fr-header');
-  if(hdr) hdr.textContent = _selSel
-    ? '- ' + _selSel + ' (' + filtrado.length + ' SHPs)'
+  if(hdr) hdr.innerHTML = _selSel
+    ? '- ' + _selSel + ' (' + filtrado.length + ' SHPs) <span onclick="selFrSelecionar(\\''+_selSel+'\\')" style="cursor:pointer;color:#60a5fa;margin-left:6px">&times; limpar selecao</span>'
     : '- ' + filtrado.length.toLocaleString('pt-BR') + ' shipments';
   var btn = document.getElementById('sel-fr-report-btn');
   if(btn) btn.style.display = _selSel ? '' : 'none';
@@ -894,6 +990,7 @@ function renderFrTbody(){{
 
 window.selFrFiltrar = function(){{
   _qFr = (document.getElementById('sel-fr-busca') || {{}}).value || '';
+  renderFrOfensores();
   renderFrTbody();
 }};
 
@@ -1254,7 +1351,7 @@ function renderAbas(){{
   }} else if(_abaAtual === 'damaged'){{
     renderDmgCharts(); renderDmgTbody();
   }} else if(_abaAtual === 'fraudes'){{
-    renderFrCharts(); renderFrTbody(); selUpdFrOverview();
+    renderFrOfensores(); renderFrTbody(); selUpdFrOverview();
   }} else if(_abaAtual === 'suspeitos'){{
     var susp = _sellers.filter(isSuspeito).sort(function(a,b){{return b.b - a.b;}});
     renderSuspCharts(susp); renderSuspTbody(susp); selUpdSuspOverview();
