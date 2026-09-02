@@ -100,11 +100,14 @@ GROUP BY 1, 2
 """
 
 # ── Query 2: shipments de fraude seller (1 linha por SHP) ───────────────────
+# CAUSA_BPP entra pra classificar o padrao de fraude (avaria na devolucao vs
+# caixa vazia/PNR na entrega) — ver _classifica_padrao_fraude().
 Q_FRAUDE = f"""
 SELECT
   CUS_NICKNAME_SEL                                   AS seller,
   CAST(SHIPMENT_ID AS STRING)                        AS sid,
   MAX(IFNULL(CLASSIFICATION_LM, ''))                 AS causa,
+  MAX(IFNULL(CAUSA_BPP, ''))                         AS causa_bpp,
   MAX(IFNULL(TIPO_FRAUDE, ''))                       AS tf,
   MAX(CLAIM_ID)                                      AS claim_id,
   FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                AS mes,
@@ -118,6 +121,20 @@ WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
 GROUP BY 1, 2
 ORDER BY bpp DESC
 """
+
+def _classifica_padrao_fraude(causa_bpp):
+    """Agrupa CAUSA_BPP em 2 padroes de investigacao + Outro:
+    - Avaria/Dano na devolucao: seller alega receber o produto de volta danificado
+      (tentativa de ser ressarcido pela malha do ML)
+    - Caixa vazia / PNR: destinatario nao recebeu o produto ou recebeu algo
+      divergente na entrega original (indicio de fraude na entrega)
+    """
+    cb = (causa_bpp or '').lower()
+    if 'caja vacia' in cb or 'pnr' in cb:
+        return 'Caixa vazia / PNR'
+    if 'damaged' in cb or 'problemas con el producto' in cb:
+        return 'Avaria / Dano na devolucao'
+    return 'Outro'
 
 # ── Query 3: shipments de damaged com seller (1 linha por SHP, top 3000) ────
 Q_DAMAGED = f"""
@@ -211,10 +228,13 @@ def carregar():
     print('Consultando shipments de fraude...')
     shps_fraude = []
     for r in client.query(Q_FRAUDE).result():
+        causa_bpp = r['causa_bpp'] or ''
         shps_fraude.append({
             'n': r['seller'],
             's': r['sid'],
             'c': r['causa'],
+            'cb': causa_bpp,
+            'pad': _classifica_padrao_fraude(causa_bpp),
             'tf': r['tf'],
             'cl': r['claim_id'] or '',
             'mes': r['mes'],
@@ -283,10 +303,21 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
   <!-- PERÍODO -->
   <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;background:#0d1321;border:1px solid #1f2937;border-radius:8px;padding:10px 16px">
     <span style="font-size:11px;color:#6b7280;font-weight:600">Período:</span>
-    <input id="sel-de" type="month" onchange="selAplicar()"
+    <div style="display:flex;gap:2px;background:#080d19;border-radius:6px;padding:2px">
+      <button class="sel-period-chip" data-months="1" onclick="selSetPeriodChip(1)"
+        style="padding:4px 9px;font-size:10px;color:#6b7280;border-radius:4px;cursor:pointer;background:transparent;border:none">1m</button>
+      <button class="sel-period-chip" data-months="3" onclick="selSetPeriodChip(3)"
+        style="padding:4px 9px;font-size:10px;color:#6b7280;border-radius:4px;cursor:pointer;background:transparent;border:none">3m</button>
+      <button class="sel-period-chip" data-months="6" onclick="selSetPeriodChip(6)"
+        style="padding:4px 9px;font-size:10px;color:#6b7280;border-radius:4px;cursor:pointer;background:transparent;border:none">6m</button>
+      <button class="sel-period-chip active" data-months="0" onclick="selSetPeriodChip(0)"
+        style="padding:4px 9px;font-size:10px;color:#04303a;background:#22d3ee;border-radius:4px;cursor:pointer;border:none;font-weight:700">Tudo</button>
+    </div>
+    <span style="color:#1f2937">|</span>
+    <input id="sel-de" type="month" onchange="selCustomPeriod()"
       style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 8px;font-size:11px">
     <span style="font-size:11px;color:#4b5563">até</span>
-    <input id="sel-ate" type="month" onchange="selAplicar()"
+    <input id="sel-ate" type="month" onchange="selCustomPeriod()"
       style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 8px;font-size:11px">
     <button onclick="selLimpar()" style="background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:10px;cursor:pointer">Limpar</button>
     <span id="sel-periodo-label" style="font-size:10px;color:#38bdf8;margin-left:4px"></span>
@@ -431,14 +462,29 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
 
   <!-- FRAUDES -->
   <div id="selc-fraudes" style="display:none">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Top 10 Sellers - Fraudes <span style="font-weight:400;color:#374151">clique para filtrar</span></div>
-        <div style="position:relative;height:240px"><canvas id="sel-cht-fr-rank"></canvas></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:8px 16px;flex:1;min-width:170px;text-align:center">
+        <div id="sel-fr-recorrentes" style="font-size:20px;font-weight:700;color:#f87171">0</div>
+        <div style="font-size:9px;color:#6b7280;margin-top:2px">Sellers recorrentes (2+ meses c/ fraude no periodo)</div>
+      </div>
+      <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:8px 16px;flex:1;min-width:170px;text-align:center">
+        <div id="sel-fr-bppmedio" style="font-size:20px;font-weight:700;color:#38bdf8">US$ 0</div>
+        <div style="font-size:9px;color:#6b7280;margin-top:2px">BPP medio por shipment fraudado</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px;margin-bottom:14px">
+      <div style="background:#0d1321;border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:12px 14px;text-align:center">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#fbbf24;margin-bottom:4px">% Fraude vs Vendas Efetivas <span style="font-weight:400;text-transform:none;color:#4b5563">(aprox., base 60d)</span></div>
+        <div style="position:relative;height:170px"><canvas id="sel-fr-gauge"></canvas></div>
+        <div id="sel-fr-gauge-v" style="font-size:20px;font-weight:700;color:#fbbf24;margin-top:-84px">0%</div>
       </div>
       <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Tipos de Fraude Seller</div>
-        <div style="position:relative;height:240px"><canvas id="sel-cht-fr-tipo"></canvas></div>
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Padrão de Fraude <span style="font-weight:400;color:#374151">(causa BPP)</span></div>
+        <div style="position:relative;height:170px"><canvas id="sel-cht-fr-tipo"></canvas></div>
+      </div>
+      <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Top 10 Sellers - Fraudes <span style="font-weight:400;color:#374151">clique para filtrar</span></div>
+        <div style="position:relative;height:170px"><canvas id="sel-cht-fr-rank"></canvas></div>
       </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -461,7 +507,7 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
               <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Seller</th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Shipment ID</th>
               <th style="padding:6px 8px;text-align:left;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Tipo Fraude</th>
-              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Classificacao</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Causa BPP</th>
               <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Mes</th>
               <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
             </tr>
@@ -564,7 +610,8 @@ var _fraudes  = SHP_FRAUDE;
 var _damages  = SHP_DAMAGE;
 
 var SEL_ID_MAP = {{}};
-SEL_DATA.forEach(function(s){{ if(s.sid) SEL_ID_MAP[s.n] = s.sid; }});
+var SEL_VD_MAP = {{}};
+SEL_DATA.forEach(function(s){{ if(s.sid) SEL_ID_MAP[s.n] = s.sid; SEL_VD_MAP[s.n] = s.vd; }});
 function selIdSuffix(nick){{
   var sid = SEL_ID_MAP[nick];
   return sid ? ' <span style="color:#4b5563;font-weight:400">(ID '+sid+')</span>' : '';
@@ -772,6 +819,7 @@ window.selDmgFiltrar = function(){{
 }};
 
 // FRAUDES
+var _selFrGauge = null;
 function renderFrCharts(){{
   var byS = {{}};
   _fraudes.forEach(function(s){{ byS[s.n] = (byS[s.n] || 0) + 1; }});
@@ -779,10 +827,46 @@ function renderFrCharts(){{
   var nicks = top10.map(function(x){{return x[0];}});
   mkChart('sel-cht-fr-rank', nicks, top10.map(function(x){{return x[1];}}), '#ef4444',
     function(e,els){{if(els.length){{_selSel=nicks[els[0].index];renderFrTbody();}}}});
-  var byT = {{}};
-  _fraudes.forEach(function(s){{ var k = s.tf || 'Outro'; byT[k] = (byT[k] || 0) + 1; }});
-  var topT = Object.entries(byT).sort(function(a,b){{return b[1]-a[1];}}).slice(0,6);
-  mkDonut('sel-cht-fr-tipo', topT.map(function(x){{return x[0];}}), topT.map(function(x){{return x[1];}}));
+}}
+
+function selUpdFrOverview(){{
+  var bySeller = {{}};
+  _fraudes.forEach(function(s){{
+    if(!bySeller[s.n]) bySeller[s.n] = {{n:0, meses:{{}}}};
+    bySeller[s.n].n++;
+    bySeller[s.n].meses[s.mes] = true;
+  }});
+  var nomes = Object.keys(bySeller);
+  var pcts = [];
+  nomes.forEach(function(nick){{
+    var vd = SEL_VD_MAP[nick];
+    if(vd > 0) pcts.push(bySeller[nick].n / vd * 100);
+  }});
+  var avgPc = pcts.length ? Math.round((pcts.reduce(function(a,b){{return a+b;}},0)/pcts.length)*10)/10 : 0;
+  var recorrentes = nomes.filter(function(nick){{ return Object.keys(bySeller[nick].meses).length >= 2; }}).length;
+  var bppMedio = _fraudes.length ? (_fraudes.reduce(function(s,x){{return s+x.b;}},0)/_fraudes.length) : 0;
+
+  var rc = document.getElementById('sel-fr-recorrentes'); if(rc) rc.textContent = recorrentes.toLocaleString('pt-BR');
+  var bm = document.getElementById('sel-fr-bppmedio'); if(bm) bm.textContent = 'US$ ' + bppMedio.toLocaleString('pt-BR', {{minimumFractionDigits:2,maximumFractionDigits:2}});
+
+  var gv = document.getElementById('sel-fr-gauge-v'); if(gv) gv.textContent = avgPc+'%';
+  var eG = document.getElementById('sel-fr-gauge');
+  if(eG){{
+    if(_selFrGauge){{ try{{_selFrGauge.destroy();}}catch(ee){{}} _selFrGauge=null; }}
+    try{{
+      _selFrGauge = new Chart(eG, {{
+        type:'doughnut',
+        data:{{datasets:[{{data:[avgPc, Math.max(0,100-avgPc)],backgroundColor:['#fbbf24','#1c1f26'],borderWidth:0}}]}},
+        options:{{rotation:-90,circumference:180,cutout:'76%',responsive:true,maintainAspectRatio:false,
+          plugins:{{legend:{{display:false}},tooltip:{{enabled:false}}}}}}
+      }});
+    }}catch(ee){{console.error('selFrGauge:',ee);}}
+  }}
+
+  var byPad = {{}};
+  _fraudes.forEach(function(s){{ var k = s.pad || 'Outro'; byPad[k] = (byPad[k] || 0) + 1; }});
+  var padOrd = ['Avaria / Dano na devolucao','Caixa vazia / PNR','Outro'].filter(function(k){{return byPad[k];}});
+  mkDonut('sel-cht-fr-tipo', padOrd, padOrd.map(function(k){{return byPad[k];}}));
 }}
 
 function renderFrTbody(){{
@@ -801,7 +885,7 @@ function renderFrTbody(){{
       + '<td style="padding:4px 8px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="https://www.mercadolivre.com.br/loja/'+s.n+'" target="_blank" style="color:#60a5fa;font-size:10px;font-weight:600;text-decoration:none" title="'+s.n+'">'+s.n+'</a>'+selIdSuffix(s.n)+'</td>'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
       + '<td style="padding:4px 8px;font-size:10px;color:#fbbf24;font-weight:600">'+s.tf+'</td>'
-      + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.c+'</td>'
+      + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+(s.cb||'—')+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#4b5563;font-size:10px">'+s.mes+'</td>'
       + '<td style="padding:4px 8px;text-align:right;color:#f87171;font-size:10px">$'+s.b.toFixed(2)+'</td>'
       + '</tr>';
@@ -999,11 +1083,11 @@ window.selGerarRelatorioSeller = function(nick, tipo){{
   var periodo = meses.length ? meses[0]+' a '+meses[meses.length-1] : '—';
   var tipoLbl = tipo === 'damaged' ? 'Damaged' : 'Fraude Seller';
   var causaCnt = {{}};
-  itens.forEach(function(e){{ var c = (tipo==='damaged'? e.td : e.tf) || 'Outro'; causaCnt[c]=(causaCnt[c]||0)+1; }});
+  itens.forEach(function(e){{ var c = (tipo==='damaged'? e.td : e.cb) || 'Outro'; causaCnt[c]=(causaCnt[c]||0)+1; }});
   var causaTop = Object.entries(causaCnt).sort(function(a,b){{return b[1]-a[1];}})[0];
   var causaLbl = causaTop ? causaTop[0] : tipoLbl;
   var evRows = itens.slice(0, 200).map(function(e,i){{
-    var causa = (tipo==='damaged'? e.td : e.tf) || e.c || '';
+    var causa = (tipo==='damaged'? e.td : e.cb) || e.tf || e.c || '';
     return '<tr class="'+(i%2?'alt':'')+'">'
       +'<td class="cn">'+(i+1)+'</td>'
       +'<td style="color:#555;font-size:9.5px;white-space:nowrap">'+(e.mes||'—')+'</td>'
@@ -1114,6 +1198,35 @@ function _somaPeriodo(s, pDe, pAte){{
   return Object.assign({{}}, s, {{t:t, b:b, g:g, f:f, d:d, pnr:pnr, eb:eb, m: md.length}});
 }}
 
+function selSetPeriodChip(months){{
+  var deEl = document.getElementById('sel-de');
+  var ateEl = document.getElementById('sel-ate');
+  if(!deEl || !ateEl) return;
+  if(months === 0){{
+    deEl.value = ''; ateEl.value = '';
+  }} else {{
+    var now = new Date();
+    var ateY = now.getFullYear(), ateM = now.getMonth()+1;
+    var d = new Date(now.getFullYear(), now.getMonth() - (months-1), 1);
+    var deY = d.getFullYear(), deM = d.getMonth()+1;
+    ateEl.value = ateY + '-' + String(ateM).padStart(2,'0');
+    deEl.value  = deY  + '-' + String(deM).padStart(2,'0');
+  }}
+  document.querySelectorAll('.sel-period-chip').forEach(function(b) {{
+    var isActive = b.dataset.months == months;
+    b.classList.toggle('active', isActive);
+    b.style.background = isActive ? '#22d3ee' : 'transparent';
+    b.style.color = isActive ? '#04303a' : '#6b7280';
+    b.style.fontWeight = isActive ? '700' : '400';
+  }});
+  selAplicar();
+}}
+function selCustomPeriod(){{
+  document.querySelectorAll('.sel-period-chip').forEach(function(b) {{
+    b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#6b7280'; b.style.fontWeight = '400';
+  }});
+  selAplicar();
+}}
 function selAplicar(){{
   var pDe  = (document.getElementById('sel-de')  || {{}}).value || '';
   var pAte = (document.getElementById('sel-ate') || {{}}).value || '';
@@ -1141,7 +1254,7 @@ function renderAbas(){{
   }} else if(_abaAtual === 'damaged'){{
     renderDmgCharts(); renderDmgTbody();
   }} else if(_abaAtual === 'fraudes'){{
-    renderFrCharts(); renderFrTbody();
+    renderFrCharts(); renderFrTbody(); selUpdFrOverview();
   }} else if(_abaAtual === 'suspeitos'){{
     var susp = _sellers.filter(isSuspeito).sort(function(a,b){{return b.b - a.b;}});
     renderSuspCharts(susp); renderSuspTbody(susp); selUpdSuspOverview();
@@ -1166,9 +1279,11 @@ window.selTab = function(aba){{
 }};
 
 window.selAplicar = selAplicar;
+window.selSetPeriodChip = selSetPeriodChip;
+window.selCustomPeriod  = selCustomPeriod;
 window.selLimpar = function(){{
   ['sel-de','sel-ate'].forEach(function(id){{ var e = document.getElementById(id); if(e) e.value = ''; }});
-  selAplicar();
+  selSetPeriodChip(0);
 }};
 
 window.selExportCSV = function(){{
