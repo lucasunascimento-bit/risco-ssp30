@@ -534,7 +534,7 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
               <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="selFrSort('b')">BPP <span id="sel-fr-sort-b"></span></th>
               <th style="padding:6px 8px;text-align:center;color:#4ade80;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="selFrSort('pvd')">% Vendas <span id="sel-fr-sort-pvd"></span></th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Status</th>
-              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Ação / nota LP</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Acompanhamento</th>
               <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">PDF</th>
             </tr>
           </thead>
@@ -891,12 +891,52 @@ function selToggleFrSt(nick){{
   try {{ localStorage.setItem('selfr_st_'+nick, next); }} catch(e) {{}}
   renderFrOfensores();
 }}
-function selGetFrNota(nick){{
-  try {{ return localStorage.getItem('selfr_nota_'+nick) || ''; }} catch(e) {{ return ''; }}
+// ── Acompanhamento (historico de acoes, substitui a nota unica) ────────────
+var _selFrHistOpen = null;
+function selGetFrHist(nick){{
+  try {{
+    var raw = localStorage.getItem('selfr_hist_'+nick);
+    if (raw) return JSON.parse(raw);
+    var legacy = localStorage.getItem('selfr_nota_'+nick);
+    if (legacy) return [{{ts: new Date().toISOString(), text: legacy}}];
+  }} catch(e) {{}}
+  return [];
 }}
-window.selSetFrNota = function(nick, val){{
-  try {{ localStorage.setItem('selfr_nota_'+nick, val); }} catch(e) {{}}
+function _selSaveFrHist(nick, hist){{
+  try {{ localStorage.setItem('selfr_hist_'+nick, JSON.stringify(hist)); }} catch(e) {{}}
+}}
+window.selToggleFrHist = function(nick){{
+  _selFrHistOpen = (_selFrHistOpen === nick) ? null : nick;
+  renderFrOfensores();
 }};
+window.selAddFrHist = function(nick){{
+  var el = document.getElementById('selfr-hist-input-'+nick);
+  if(!el) return;
+  var text = el.value.trim();
+  if(!text) return;
+  var hist = selGetFrHist(nick);
+  hist.push({{ts: new Date().toISOString(), text: text}});
+  _selSaveFrHist(nick, hist);
+  renderFrOfensores();
+}};
+function _selFrHistPanelHtml(nick){{
+  var hist = selGetFrHist(nick);
+  var items = hist.map(function(h){{
+    var d = new Date(h.ts);
+    var ds = isNaN(d) ? '' : d.toLocaleString('pt-BR',{{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}});
+    return '<div style="display:flex;gap:10px;margin-bottom:8px">'
+      + '<div style="width:6px;display:flex;flex-direction:column;align-items:center"><div style="width:6px;height:6px;border-radius:50%;background:#38bdf8;margin-top:4px"></div></div>'
+      + '<div style="flex:1"><div style="font-size:9px;color:#4b5563">'+ds+'</div><div style="font-size:11px;color:#e5e7eb">'+String(h.text).replace(/</g,'&lt;')+'</div></div>'
+      + '</div>';
+  }}).join('');
+  return '<div style="background:#0a0f1e;border-top:1px solid #1f2937;border-bottom:1px solid #1f2937;padding:12px 20px">'
+    + '<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:8px">Historico — '+nick+'</div>'
+    + (items || '<div style="font-size:10px;color:#374151;margin-bottom:8px">Nenhum registro ainda.</div>')
+    + '<div style="display:flex;gap:6px;margin-top:4px">'
+    + '<input id="selfr-hist-input-'+nick+'" type="text" placeholder="Adicionar novo registro..." onkeydown="if(event.key===\\'Enter\\'){{selAddFrHist(\\''+nick+'\\');}}" style="flex:1;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:6px 10px;font-size:11px">'
+    + '<button onclick="selAddFrHist(\\''+nick+'\\')" style="background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.4);color:#93c5fd;font-size:11px;padding:6px 14px;border-radius:5px;cursor:pointer;font-family:inherit">+ Adicionar</button>'
+    + '</div></div>';
+}}
 window.selToggleFrSt = selToggleFrSt;
 window.selFrSelecionar = function(nick){{
   _selSel = (_selSel === nick) ? null : nick;
@@ -1015,10 +1055,13 @@ function renderFrOfensores(){{
     var hl = sel ? 'background:#1a0a00;border-left:3px solid #f97316;' : 'border-left:3px solid transparent;';
     var st = selGetFrSt(s.n);
     var padCls = s.pad === 'Avaria / Dano na devolucao' ? 'color:#f87171' : (s.pad === 'Caixa vazia / PNR' ? 'color:#fbbf24' : 'color:#a78bfa');
-    var nota = selGetFrNota(s.n);
+    var hist = selGetFrHist(s.n);
+    var histOpen = _selFrHistOpen === s.n;
+    var histStyle = hist.length ? 'background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;' : 'background:#1f2937;border:1px solid #374151;color:#6b7280;';
+    var histLabel = hist.length ? (hist.length + ' registro' + (hist.length>1?'s':'')) : 'sem registros';
     var scoreCls = s.score >= 40 ? 'color:#f87171;font-weight:700' : (s.score >= 20 ? 'color:#fbbf24;font-weight:700' : 'color:#6b7280');
     var novoBadge = s.novo ? '<span style="display:inline-block;font-size:8px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;background:#fbbf24;color:#1a1a1a;letter-spacing:.4px">NOVO</span>' : '';
-    return '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="selFrSelecionar(\\''+s.n+'\\')">'
+    var row = '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="selFrSelecionar(\\''+s.n+'\\')">'
       + '<td style="padding:4px 8px;color:#60a5fa;font-weight:700;max-width:190px;white-space:nowrap"><span style="display:inline-block;max-width:'+(s.novo?'135px':'175px')+';overflow:hidden;text-overflow:ellipsis;vertical-align:middle" title="'+s.n+'">'+s.n+selIdSuffix(s.n)+'</span>'+novoBadge+'</td>'
       + '<td style="padding:4px 8px;text-align:center;'+scoreCls+'" title="'+s.meses+' mes(es) com fraude no periodo">'+s.score+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.qtd+'</td>'
@@ -1026,9 +1069,13 @@ function renderFrOfensores(){{
       + '<td style="padding:4px 8px;text-align:right;color:#f87171">$'+s.b.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#4ade80" title="'+s.qtd+' fraude(s) de '+(SEL_VD_MAP[s.n]||0)+' vendas efetivas (60d)">'+(s.pvd!==null?s.pvd.toFixed(1)+'%':'—')+'</td>'
       + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><span onclick="selToggleFrSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+FR_ST_CLR[st]+';background:'+FR_ST_BG[st]+'">'+FR_ST_LBL[st]+'</span></td>'
-      + '<td style="padding:2px 8px" onclick="event.stopPropagation()"><input type="text" value="'+nota.replace(/"/g,'&quot;')+'" placeholder="ex: ticket Jira #..." onchange="selSetFrNota(\\''+s.n+'\\',this.value)" style="width:100%;background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:4px;padding:3px 6px;font-size:10px"></td>'
+      + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><button onclick="selToggleFrHist(\\''+s.n+'\\')" style="'+histStyle+'font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128337; '+histLabel+' '+(histOpen?'▲':'▼')+'</button></td>'
       + '<td style="padding:4px 8px;text-align:center" onclick="event.stopPropagation()"><button onclick="selGerarRelatorioSeller(\\''+s.n+'\\',\\'fraude\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button></td>'
       + '</tr>';
+    if(histOpen){{
+      row += '<tr onclick="event.stopPropagation()" style="cursor:default"><td colspan="9" style="padding:0">'+_selFrHistPanelHtml(s.n)+'</td></tr>';
+    }}
+    return row;
   }}).join('');
 }}
 
