@@ -596,7 +596,7 @@ var BUY_DATA    = {buyers_json};
 var SHP_FRAUDE  = {fraude_json};
 var SHP_DAMAGE  = {damaged_json};
 var COMPRAS_DATA = {compras_json};
-var LOG_URL    = 'https://logistics.mercadolibre.com.br/shipments/';
+var LOG_URL    = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/';
 
 var _abaAtual = 'historico';
 var _buySel   = null;
