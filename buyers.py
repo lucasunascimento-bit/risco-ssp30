@@ -117,6 +117,7 @@ SELECT
   CUS_NICKNAME_BUY                                    AS buyer,
   CAST(SHIPMENT_ID AS STRING)                         AS sid,
   MAX(IFNULL(CLASSIFICATION_LM, ''))                  AS causa,
+  MAX(IFNULL(CAUSA_BPP, ''))                          AS causa_bpp,
   MAX(IFNULL(TIPO_FRAUDE, ''))                        AS tf,
   FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                 AS mes,
   ROUND(MAX(IFNULL(BPP_CASHOUT_USD, 0)), 2)           AS bpp
@@ -136,6 +137,7 @@ SELECT
   CUS_NICKNAME_BUY                                    AS buyer,
   CAST(SHIPMENT_ID AS STRING)                         AS sid,
   MAX(IFNULL(CLASSIFICATION_LM, ''))                  AS causa,
+  MAX(IFNULL(CAUSA_BPP, ''))                          AS causa_bpp,
   MAX(IFNULL(TIPO_DAMAGED_LG, ''))                    AS td,
   FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                 AS mes,
   ROUND(MAX(IFNULL(BPP_CASHOUT_USD, 0)), 2)           AS bpp
@@ -241,6 +243,7 @@ def carregar():
             'n': r['buyer'],
             's': r['sid'],
             'c': r['causa'],
+            'cb': r['causa_bpp'] or '',
             'tf': r['tf'],
             'mes': r['mes'],
             'b': float(r['bpp']),
@@ -262,6 +265,7 @@ def carregar():
             'n': r['buyer'],
             's': r['sid'],
             'c': r['causa'],
+            'cb': r['causa_bpp'] or '',
             'td': r['td'],
             'mes': r['mes'],
             'b': float(r['bpp']),
@@ -515,6 +519,7 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
               <th style="padding:6px 8px;text-align:right;color:#4ade80;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="buyFrSort('v365')" title="Valor comprado nos ultimos 365 dias (USD)">Valor 365d <span id="buy-fr-sort-v365"></span></th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Status</th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Acompanhamento</th>
+              <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">PDF</th>
             </tr>
           </thead>
           <tbody id="buy-fr-ofens-tbody"></tbody>
@@ -530,6 +535,7 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
         <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Shipments Fraude Buyer</span>
         <span id="buy-fr-header" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
       </div>
+      <button id="buy-fr-report-btn" onclick="buyGerarRelatorioFraude()" style="display:none;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128196; Gerar relatório</button>
     </div>
     <div style="border:1px solid #1f2937;border-radius:8px;overflow:hidden">
       <div style="overflow-y:auto;max-height:360px;background:#060a14">
@@ -691,10 +697,10 @@ function renderHistShpPanel(){{
   if(!_buySel){{ panel.style.display='none'; return; }}
   var shps = [];
   SHP_FRAUDE.filter(function(s){{return s.n === _buySel;}}).forEach(function(s){{
-    shps.push({{sid:s.s, tipo:'FRAUDE', sub:s.tf, causa:s.c, mes:s.mes, bpp:s.b}});
+    shps.push({{sid:s.s, tipo:'FRAUDE', sub:s.tf, causa:(s.cb||s.c), mes:s.mes, bpp:s.b}});
   }});
   SHP_DAMAGE.filter(function(s){{return s.n === _buySel;}}).forEach(function(s){{
-    shps.push({{sid:s.s, tipo:'DAMAGED', sub:s.td, causa:s.c, mes:s.mes, bpp:s.b}});
+    shps.push({{sid:s.s, tipo:'DAMAGED', sub:s.td, causa:(s.cb||s.c), mes:s.mes, bpp:s.b}});
   }});
   shps.sort(function(a,b){{return b.bpp - a.bpp;}});
   if(title) title.textContent = _buySel + ' — ' + shps.length + ' SHPs (Fraude + Damaged)';
@@ -759,7 +765,7 @@ function renderDmgTbody(){{
     return '<tr style="border-bottom:1px solid #080c18">'
       + '<td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#60a5fa;font-size:10px;font-weight:600" title="'+s.n+'">'+s.n+'</td>'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
-      + '<td style="padding:4px 8px;font-size:10px;color:#a78bfa">'+s.c+'</td>'
+      + '<td style="padding:4px 8px;font-size:10px;color:#a78bfa">'+(s.cb||s.c)+'</td>'
       + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.td+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#4b5563;font-size:10px">'+s.mes+'</td>'
       + '<td style="padding:4px 8px;text-align:right;color:#f87171;font-size:10px">$'+s.b.toFixed(2)+'</td>'
@@ -879,7 +885,7 @@ function _buyFrAgg(){{
     var bfull = buyByNick[nick];
     var dQtd = bfull ? bfull.d : 0;
     return {{
-      n: nick, qtd: o.qtd, b: o.b, novo: o.novo,
+      n: nick, qtd: o.qtd, b: o.b, novo: o.novo, d: dQtd,
       t365: hist.t365, v365: hist.v365, t14: hist.t14, v14: hist.v14,
       score: _buyScore(o.qtd, dQtd, hist),
       sinal: _buySinal(o.qtd, dQtd, hist),
@@ -945,12 +951,17 @@ function renderFrOfensores(){{
       + '<td style="padding:4px 8px;text-align:right;color:#4ade80">$'+s.v365.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
       + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><span onclick="buyToggleFrSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+FR_ST_CLR[st]+';background:'+FR_ST_BG[st]+'">'+FR_ST_LBL[st]+'</span></td>'
       + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><button onclick="buyToggleFrHist(\\''+s.n+'\\')" style="'+histStyle+'font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128337; '+histLabel+' '+(histOpen?'▲':'▼')+'</button></td>'
+      + '<td style="padding:4px 8px;text-align:center" onclick="event.stopPropagation()">'+(
+          s.qtd > 0 ? '<button onclick="buyGerarRelatorioBuyer(\\''+s.n+'\\',\\'fraude\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button>'
+          : (s.d > 0 ? '<button onclick="buyGerarRelatorioBuyer(\\''+s.n+'\\',\\'damaged\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button>'
+          : '<span style="color:#374151;font-size:10px">—</span>')
+        )+'</td>'
       + '</tr>';
     if(histOpen){{
-      row += '<tr onclick="event.stopPropagation()" style="cursor:default"><td colspan="9" style="padding:0">'+_buyFrHistPanelHtml(s.n)+'</td></tr>';
+      row += '<tr onclick="event.stopPropagation()" style="cursor:default"><td colspan="10" style="padding:0">'+_buyFrHistPanelHtml(s.n)+'</td></tr>';
     }}
     return row;
-  }}).join('') + (truncado ? '<tr><td colspan="9" style="padding:8px;text-align:center;color:#374151;font-size:10px">Mostrando 500 de '+lista.length.toLocaleString('pt-BR')+' (ordenado por '+_buyFrSortKey+'). Use a busca ou ordene por outra coluna pra refinar.</td></tr>' : '');
+  }}).join('') + (truncado ? '<tr><td colspan="10" style="padding:8px;text-align:center;color:#374151;font-size:10px">Mostrando 500 de '+lista.length.toLocaleString('pt-BR')+' (ordenado por '+_buyFrSortKey+'). Use a busca ou ordene por outra coluna pra refinar.</td></tr>' : '');
 }}
 
 window.buyFrSelecionar = function(nick){{
@@ -967,13 +978,15 @@ function renderFrTbody(){{
   if(hdr) hdr.innerHTML = _buySel
     ? '- ' + _buySel + ' (' + filtrado.length + ' SHPs) <span onclick="buyFrSelecionar(\\''+_buySel+'\\')" style="cursor:pointer;color:#60a5fa;margin-left:6px">&times; limpar selecao</span>'
     : '- ' + filtrado.length.toLocaleString('pt-BR') + ' shipments';
+  var btn = document.getElementById('buy-fr-report-btn');
+  if(btn) btn.style.display = _buySel ? '' : 'none';
   var el = document.getElementById('buy-fr-tbody'); if(!el) return;
   el.innerHTML = filtrado.map(function(s){{
     return '<tr style="border-bottom:1px solid #080c18">'
       + '<td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#60a5fa;font-size:10px;font-weight:600" title="'+s.n+'">'+s.n+buyIdSuffix(s.n)+'</td>'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
       + '<td style="padding:4px 8px;font-size:10px;color:#fbbf24;font-weight:600">'+s.tf+'</td>'
-      + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.c+'</td>'
+      + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+(s.cb||s.c)+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#4b5563;font-size:10px">'+s.mes+'</td>'
       + '<td style="padding:4px 8px;text-align:right;color:#f87171;font-size:10px">$'+s.b.toFixed(2)+'</td>'
       + '</tr>';
@@ -985,6 +998,111 @@ window.buyFrFiltrar = function(){{
   renderFrOfensores();
   renderFrTbody();
 }};
+
+// ── Relatorio de investigacao — buyer (mesmo modelo usado em Sellers) ──────
+window.buyGerarRelatorioBuyer = function(nick, tipo){{
+  if(!nick){{ alert('Selecione um buyer na tabela primeiro.'); return; }}
+  var fonte = tipo === 'damaged' ? _damages : _fraudes;
+  var itens = fonte.filter(function(x){{ return x.n === nick; }}).sort(function(a,b){{ return b.b - a.b; }});
+  if(!itens.length){{ alert('Nenhum shipment encontrado para este buyer.'); return; }}
+  var hoje = new Date().toLocaleDateString('pt-BR',{{day:'2-digit',month:'2-digit',year:'numeric'}});
+  var bppFmt = function(v){{ return '$ '+v.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}}); }};
+  var totalBpp = itens.reduce(function(a,e){{ return a+(e.b||0); }}, 0);
+  var meses = itens.map(function(e){{ return e.mes; }}).filter(Boolean).sort();
+  var periodo = meses.length ? meses[0]+' a '+meses[meses.length-1] : '—';
+  var tipoLbl = tipo === 'damaged' ? 'Damaged' : 'Fraude Buyer';
+  var hist = BUY_HIST_MAP[nick] || {{t365:0,v365:0,t14:0,v14:0}};
+  var bid = BUY_ID_MAP[nick] || '—';
+  var causaCnt = {{}};
+  itens.forEach(function(e){{ var c = (e.cb || e.td || e.c) || 'Outro'; causaCnt[c]=(causaCnt[c]||0)+1; }});
+  var causaTop = Object.entries(causaCnt).sort(function(a,b){{return b[1]-a[1];}})[0];
+  var causaLbl = causaTop ? causaTop[0] : tipoLbl;
+  var evRows = itens.slice(0, 200).map(function(e,i){{
+    var causa = (e.cb || e.td || e.tf || e.c) || '';
+    return '<tr class="'+(i%2?'alt':'')+'">'
+      +'<td class="cn">'+(i+1)+'</td>'
+      +'<td style="color:#555;font-size:9.5px;white-space:nowrap">'+(e.mes||'—')+'</td>'
+      +'<td><a href="'+LOG_URL+e.s+'" style="color:#1d4ed8;text-decoration:none">'+e.s+'</a></td>'
+      +'<td>'+causa+'</td>'
+      +'<td class="rn">'+bppFmt(e.b||0)+'</td></tr>';
+  }}).join('');
+  var css=[
+    '*{{box-sizing:border-box;margin:0;padding:0}}',
+    'body{{font-family:Arial,sans-serif;background:#fff;color:#111;font-size:12px}}',
+    '.page{{width:210mm;min-height:297mm;padding:16mm 20mm;margin:0 auto;display:flex;flex-direction:column;page-break-after:always}}',
+    '.page:last-child{{page-break-after:auto}}',
+    '.hdr{{background:#FFE600;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;border-radius:5px;margin-bottom:18px}}',
+    '.hdr-l{{font-weight:900;font-size:12px;letter-spacing:1px;color:#111}}',
+    '.hdr-r{{font-size:9px;color:#555}}',
+    '.ttl{{text-align:center;margin-bottom:16px}}',
+    '.ttl h1{{font-size:19px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#111}}',
+    '.cid{{background:#111;color:#FFE600;font-size:20px;font-weight:900;text-align:center;padding:10px;border-radius:6px;margin-bottom:6px;word-break:break-all}}',
+    '.cid2{{text-align:center;font-size:11px;color:#666;margin-bottom:16px}}',
+    '.igrid{{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-bottom:14px}}',
+    '.ii{{padding:9px 12px;border-bottom:1px solid #eee}}',
+    '.ii:nth-child(odd){{border-right:1px solid #eee}}',
+    '.ilbl{{font-size:7.5px;text-transform:uppercase;letter-spacing:0.8px;color:#999;font-weight:700}}',
+    '.ival{{font-size:13px;font-weight:700;color:#111;margin-top:2px}}',
+    '.ival.red{{color:#dc2626}}',
+    '.conc{{background:#eff6ff;border:1.5px solid #93c5fd;border-radius:5px;padding:12px 16px;margin-top:auto}}',
+    '.conc .ct{{font-size:12px;font-weight:900;color:#1d4ed8;margin-bottom:3px}}',
+    '.conc .cs{{font-size:10px;color:#1e3a5f}}',
+    '.fconf{{font-size:8.5px;color:#bbb;text-align:center;margin-top:12px;border-top:1px solid #eee;padding-top:7px}}',
+    '.etbl{{width:100%;border-collapse:collapse;margin-bottom:8px}}',
+    '.etbl th{{background:#111;color:#FFE600;font-size:8.5px;text-transform:uppercase;letter-spacing:0.7px;padding:6px 9px;text-align:left}}',
+    '.etbl td{{padding:5px 9px;border-bottom:1px solid #eee;font-size:10.5px}}',
+    '.etbl tr.alt td{{background:#f9fafb}}',
+    '.etbl td.cn{{text-align:center;color:#aaa;width:28px}}',
+    '.etbl td.rn{{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}}',
+    '.efoot{{font-size:9.5px;color:#555;background:#f9fafb;border:1px solid #eee;border-radius:4px;padding:7px 10px;margin-top:4px}}',
+    '.pbtn{{position:fixed;bottom:18px;right:18px;background:#111;color:#FFE600;border:none;padding:9px 18px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px;z-index:99;box-shadow:0 4px 12px rgba(0,0,0,.3)}}',
+    '.pbtn:hover{{background:#333}}',
+    '@media print{{.pbtn{{display:none}}.page{{width:100%;margin:0}}}}'
+  ].join('');
+  var extra = itens.length > 200 ? ' <span style="color:#999">· +'+(itens.length-200)+' não exibidos (top BPP)</span>' : '';
+  var pg1 = '<div class="page">'+
+    '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">SSP30 · Guarulhos Mega · Mercado Livre</div></div>'+
+    '<div class="ttl"><h1>Relatório de investigação — buyer</h1></div>'+
+    '<div class="cid">'+nick+'</div>'+
+    '<div class="cid2">ID '+bid+'</div>'+
+    '<div class="igrid">'+
+      '<div class="ii"><div class="ilbl">Total SHPs '+tipoLbl+'</div><div class="ival red">'+itens.length+' pacotes</div></div>'+
+      '<div class="ii"><div class="ilbl">BPP total exposto</div><div class="ival red">'+bppFmt(totalBpp)+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Causa predominante</div><div class="ival">'+causaLbl+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Período do histórico</div><div class="ival">'+periodo+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Pedidos 365d (fora LP)</div><div class="ival">'+hist.t365+' pacotes</div></div>'+
+      '<div class="ii"><div class="ilbl">Valor comprado 365d</div><div class="ival">'+bppFmt(hist.v365)+'</div></div>'+
+      '<div class="ii"><div class="ilbl">Unidade</div><div class="ival">Guarulhos Mega</div></div>'+
+      '<div class="ii"><div class="ilbl">Data do relatório</div><div class="ival">'+hoje+'</div></div>'+
+    '</div>'+
+    '<div class="conc">'+
+      '<div class="ct">Encaminhado para investigação</div>'+
+      '<div class="cs">Volume e concentração de '+tipoLbl.toLowerCase()+' acima do padrão identificados nesta unidade. Solicitamos análise do time responsável.</div>'+
+    '</div>'+
+    '<div class="fconf">CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+  '</div>';
+  var pg2 = '<div class="page">'+
+    '<div class="hdr"><div class="hdr-l">LOSS PREVENTION</div><div class="hdr-r">Evidências · Buyer '+nick+'</div></div>'+
+    '<div style="margin-bottom:10px"><div style="font-size:15px;font-weight:900;color:#111">Evidências — '+tipoLbl+' (amostra)</div></div>'+
+    '<table class="etbl">'+
+      '<thead><tr><th class="cn">#</th><th>Mês</th><th>Shipment ID</th><th>Causa</th><th class="rn">BPP</th></tr></thead>'+
+      '<tbody>'+evRows+'</tbody>'+
+    '</table>'+
+    '<div class="efoot">'+tipoLbl+' SHPs: <strong>'+itens.length+'</strong>'+extra+' · BPP Total: <strong>'+bppFmt(totalBpp)+'</strong></div>'+
+    '<div class="fconf">CONFIDENCIAL — Uso Interno — Loss Prevention SSP30</div>'+
+  '</div>';
+  var full='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório '+nick+'</title>'+
+    '<style>'+css+'</style></head><body>'+pg1+pg2+
+    '<button class="pbtn" onclick="window.print()">&#128424; Imprimir / PDF</button>'+
+    '</body></html>';
+  var w2=window.open('','_blank','width=1100,height=900,scrollbars=yes');
+  if(!w2){{ alert('Permita pop-ups para gerar o relatório.'); return; }}
+  w2.document.write(full);
+  w2.document.close();
+  w2.focus();
+}};
+window.buyGerarRelatorioFraude = function(){{ buyGerarRelatorioBuyer(_buySel, 'fraude'); }};
+window.buyGerarRelatorioDamaged = function(){{ buyGerarRelatorioBuyer(_buySel, 'damaged'); }};
 
 // SUSPEITOS
 function renderSuspCharts(lista){{
