@@ -114,46 +114,62 @@ GROUP BY 1, 2
 # ── Query 2: shipments FRAUDE BUYER (1 linha por SHP) ───────────────────────
 Q_FRAUDE_BUYER = f"""
 SELECT
-  CUS_NICKNAME_BUY                                    AS buyer,
-  CAST(SHIPMENT_ID AS STRING)                         AS sid,
-  MAX(IFNULL(CLASSIFICATION_LM, ''))                  AS causa,
-  MAX(IFNULL(CAUSA_BPP, ''))                          AS causa_bpp,
-  MAX(IFNULL(TIPO_FRAUDE, ''))                        AS tf,
-  FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                 AS mes,
-  ROUND(MAX(IFNULL(BPP_CASHOUT_USD, 0)), 2)           AS bpp
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
-  AND DATE_BPP >= '{INICIO}'
-  AND DATE_BPP <= CURRENT_DATE()
-  AND CUS_NICKNAME_BUY IS NOT NULL
-  AND TIPO_FRAUDE = 'FRAUDE BUYER'
-GROUP BY 1, 2
-ORDER BY bpp DESC
+  f.buyer, f.sid, f.causa, f.causa_bpp, f.tf, f.mes, f.bpp,
+  (SELECT SHP_ITEM_DESC FROM UNNEST(s.ITEMS) LIMIT 1) AS item_desc
+FROM (
+  SELECT
+    CUS_NICKNAME_BUY                                    AS buyer,
+    CAST(SHIPMENT_ID AS STRING)                         AS sid,
+    MAX(IFNULL(CLASSIFICATION_LM, ''))                  AS causa,
+    MAX(IFNULL(CAUSA_BPP, ''))                          AS causa_bpp,
+    MAX(IFNULL(TIPO_FRAUDE, ''))                        AS tf,
+    FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                 AS mes,
+    ROUND(MAX(IFNULL(BPP_CASHOUT_USD, 0)), 2)           AS bpp
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
+    AND DATE_BPP >= '{INICIO}'
+    AND DATE_BPP <= CURRENT_DATE()
+    AND CUS_NICKNAME_BUY IS NOT NULL
+    AND TIPO_FRAUDE = 'FRAUDE BUYER'
+  GROUP BY 1, 2
+) f
+LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` s
+  ON s.SHP_SHIPMENT_ID = CAST(f.sid AS INT64)
+  AND s.SHP_DATE_CREATED_ID >= DATE_SUB(DATE('{INICIO}'), INTERVAL 30 DAY)
+ORDER BY f.bpp DESC
 """
 
 # ── Query 3: shipments damaged com buyer (1 linha por SHP, top 3000) ─────────
 Q_DAMAGED_BUYER = f"""
 SELECT
-  CUS_NICKNAME_BUY                                    AS buyer,
-  CAST(SHIPMENT_ID AS STRING)                         AS sid,
-  MAX(IFNULL(CLASSIFICATION_LM, ''))                  AS causa,
-  MAX(IFNULL(CAUSA_BPP, ''))                          AS causa_bpp,
-  MAX(IFNULL(TIPO_DAMAGED_LG, ''))                    AS td,
-  FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                 AS mes,
-  ROUND(MAX(IFNULL(BPP_CASHOUT_USD, 0)), 2)           AS bpp
-FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
-  AND DATE_BPP >= '{INICIO}'
-  AND DATE_BPP <= CURRENT_DATE()
-  AND CUS_NICKNAME_BUY IS NOT NULL
-  AND (
-    CLASSIFICATION_LM LIKE 'DAMAGED%'
-    OR TIPO_DAMAGED_LG IN (
-      'DAMAGED','damaged_svc','damaged_on_route','damaged_seller','damaged','SELLER'
+  f.buyer, f.sid, f.causa, f.causa_bpp, f.td, f.mes, f.bpp,
+  (SELECT SHP_ITEM_DESC FROM UNNEST(s.ITEMS) LIMIT 1) AS item_desc
+FROM (
+  SELECT
+    CUS_NICKNAME_BUY                                    AS buyer,
+    CAST(SHIPMENT_ID AS STRING)                         AS sid,
+    MAX(IFNULL(CLASSIFICATION_LM, ''))                  AS causa,
+    MAX(IFNULL(CAUSA_BPP, ''))                          AS causa_bpp,
+    MAX(IFNULL(TIPO_DAMAGED_LG, ''))                    AS td,
+    FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                 AS mes,
+    ROUND(MAX(IFNULL(BPP_CASHOUT_USD, 0)), 2)           AS bpp
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
+    AND DATE_BPP >= '{INICIO}'
+    AND DATE_BPP <= CURRENT_DATE()
+    AND CUS_NICKNAME_BUY IS NOT NULL
+    AND (
+      CLASSIFICATION_LM LIKE 'DAMAGED%'
+      OR TIPO_DAMAGED_LG IN (
+        'DAMAGED','damaged_svc','damaged_on_route','damaged_seller','damaged','SELLER'
+      )
     )
-  )
-GROUP BY 1, 2
-ORDER BY bpp DESC
+  GROUP BY 1, 2
+) f
+LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` s
+  ON s.SHP_SHIPMENT_ID = CAST(f.sid AS INT64)
+  AND s.SHP_DATE_CREATED_ID >= DATE_SUB(DATE('{INICIO}'), INTERVAL 30 DAY)
+ORDER BY f.bpp DESC
 """
 
 
@@ -161,9 +177,19 @@ def carregar():
     creds, _ = default()
     client = bigquery.Client(credentials=creds, project='meli-bi-data')
 
-    print('Consultando buyers agregados (por mes)...')
+    # As 4 queries sao independentes entre si (nenhuma usa resultado da outra
+    # como parametro) — dispara todas de uma vez e so espera o resultado
+    # depois, em vez de rodar uma atras da outra. Corta o tempo total pra
+    # perto do tempo da mais lenta (compras, ~7min) em vez da soma de todas.
+    print('Disparando as 4 queries em paralelo (buyers, compras, fraude, damaged)...')
+    job_buyers  = client.query(Q_BUYERS)
+    job_compras = client.query(Q_COMPRAS_BUYER)
+    job_fraude  = client.query(Q_FRAUDE_BUYER)
+    job_damaged = client.query(Q_DAMAGED_BUYER)
+
+    print('Aguardando buyers agregados (por mes)...')
     buyers_raw = {}
-    for r in client.query(Q_BUYERS).result():
+    for r in job_buyers.result():
         key = r['buyer']
         if key not in buyers_raw:
             buyers_raw[key] = {'n': key, 'md': []}
@@ -199,7 +225,7 @@ def carregar():
 
     print('Consultando historico de compras (365d + 14d)...')
     compras_map = {}
-    for r in client.query(Q_COMPRAS_BUYER).result():
+    for r in job_compras.result():
         compras_map[r['buyer']] = {
             't365': int(r['total_365d']),
             'v365': float(r['valor_365d'] or 0),
@@ -238,7 +264,7 @@ def carregar():
 
     print('Consultando shipments FRAUDE BUYER...')
     shps_fraude = []
-    for r in client.query(Q_FRAUDE_BUYER).result():
+    for r in job_fraude.result():
         shps_fraude.append({
             'n': r['buyer'],
             's': r['sid'],
@@ -247,6 +273,7 @@ def carregar():
             'tf': r['tf'],
             'mes': r['mes'],
             'b': float(r['bpp']),
+            'desc': r['item_desc'] or '',
         })
     print(f'  {len(shps_fraude):,} SHPs fraude buyer')
 
@@ -260,7 +287,7 @@ def carregar():
 
     print('Consultando shipments damaged...')
     shps_damaged = []
-    for r in client.query(Q_DAMAGED_BUYER).result():
+    for r in job_damaged.result():
         shps_damaged.append({
             'n': r['buyer'],
             's': r['sid'],
@@ -269,6 +296,7 @@ def carregar():
             'td': r['td'],
             'mes': r['mes'],
             'b': float(r['bpp']),
+            'desc': r['item_desc'] or '',
         })
     print(f'  {len(shps_damaged):,} SHPs damaged')
 
@@ -427,6 +455,7 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
             <tr>
               <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Shipment ID</th>
               <th style="padding:6px 8px;text-align:left;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Tipo</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Descricao</th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Classificacao</th>
               <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Mes</th>
               <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
@@ -466,6 +495,7 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
             <tr>
               <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Buyer</th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Shipment ID</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Descricao</th>
               <th style="padding:6px 8px;text-align:left;color:#a78bfa;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Classificacao</th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Tipo Damaged</th>
               <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Mes</th>
@@ -544,6 +574,7 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
             <tr>
               <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Buyer</th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Shipment ID</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Descricao</th>
               <th style="padding:6px 8px;text-align:left;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Tipo Fraude</th>
               <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Classificacao</th>
               <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Mes</th>
@@ -697,10 +728,10 @@ function renderHistShpPanel(){{
   if(!_buySel){{ panel.style.display='none'; return; }}
   var shps = [];
   SHP_FRAUDE.filter(function(s){{return s.n === _buySel;}}).forEach(function(s){{
-    shps.push({{sid:s.s, tipo:'FRAUDE', sub:s.tf, causa:(s.cb||s.c), mes:s.mes, bpp:s.b}});
+    shps.push({{sid:s.s, tipo:'FRAUDE', sub:s.tf, causa:(s.cb||s.c), desc:(s.desc||'—'), mes:s.mes, bpp:s.b}});
   }});
   SHP_DAMAGE.filter(function(s){{return s.n === _buySel;}}).forEach(function(s){{
-    shps.push({{sid:s.s, tipo:'DAMAGED', sub:s.td, causa:(s.cb||s.c), mes:s.mes, bpp:s.b}});
+    shps.push({{sid:s.s, tipo:'DAMAGED', sub:s.td, causa:(s.cb||s.c), desc:(s.desc||'—'), mes:s.mes, bpp:s.b}});
   }});
   shps.sort(function(a,b){{return b.bpp - a.bpp;}});
   if(title) title.textContent = _buySel + ' — ' + shps.length + ' SHPs (Fraude + Damaged)';
@@ -709,6 +740,7 @@ function renderHistShpPanel(){{
     return '<tr style="border-bottom:1px solid #080c18">'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.sid+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.sid+'</a></td>'
       + '<td style="padding:4px 8px;font-size:9px;font-weight:700;color:'+cor+'">'+s.tipo+'</td>'
+      + '<td style="padding:4px 8px;color:#9ca3af;font-size:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+s.desc+'">'+s.desc+'</td>'
       + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.causa+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#4b5563;font-size:10px">'+s.mes+'</td>'
       + '<td style="padding:4px 8px;text-align:right;color:#f87171;font-size:10px">$'+s.bpp.toFixed(2)+'</td>'
@@ -765,6 +797,7 @@ function renderDmgTbody(){{
     return '<tr style="border-bottom:1px solid #080c18">'
       + '<td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#60a5fa;font-size:10px;font-weight:600" title="'+s.n+'">'+s.n+'</td>'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
+      + '<td style="padding:4px 8px;color:#9ca3af;font-size:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(s.desc||'')+'">'+(s.desc||'—')+'</td>'
       + '<td style="padding:4px 8px;font-size:10px;color:#a78bfa">'+(s.cb||s.c)+'</td>'
       + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.td+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#4b5563;font-size:10px">'+s.mes+'</td>'
@@ -985,6 +1018,7 @@ function renderFrTbody(){{
     return '<tr style="border-bottom:1px solid #080c18">'
       + '<td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#60a5fa;font-size:10px;font-weight:600" title="'+s.n+'">'+s.n+buyIdSuffix(s.n)+'</td>'
       + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
+      + '<td style="padding:4px 8px;color:#9ca3af;font-size:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(s.desc||'')+'">'+(s.desc||'—')+'</td>'
       + '<td style="padding:4px 8px;font-size:10px;color:#fbbf24;font-weight:600">'+s.tf+'</td>'
       + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+(s.cb||s.c)+'</td>'
       + '<td style="padding:4px 8px;text-align:center;color:#4b5563;font-size:10px">'+s.mes+'</td>'
