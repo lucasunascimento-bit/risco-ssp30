@@ -140,7 +140,7 @@ def gerar_tab_html(nodos):
   </div>
 
   <div style="font-size:10px;color:#6b7280;background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:8px 12px;margin-bottom:14px">
-    Um mesmo shipment pode passar por mais de um nó (ex: um NEX e depois um Place de entrega) — os valores de BPP/SHPs são por nó e não devem ser somados entre tipos diferentes.
+    Todos os nós abaixo têm ligação direta com o SSP30 — só entram na lista os que receberam ao menos um shipment que saiu do SSP30/Guarulhos Mega. Estados fora de SP são o destino final do comprador (Place/Pickup), não é erro. Um mesmo shipment pode passar por mais de um nó (ex: um NEX e depois um Place de entrega) — os valores de BPP/SHPs são por nó e não devem ser somados entre tipos diferentes.
   </div>
 
   <!-- KPIs -->
