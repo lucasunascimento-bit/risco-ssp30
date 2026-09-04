@@ -48,6 +48,7 @@ WITH shp_dedup AS (
 SELECT
   p.SHP_AGENCY_ID                                             AS place_id,
   p.SERVICE_TYPE                                              AS tipo,
+  f.mes                                                       AS mes,
   MAX(p.SHP_AGEN_DESC)                                        AS nome,
   MAX(p.SHP_AGEN_NODE_ID)                                     AS node_id,
   MAX(p.SHP_AGEN_STATE_NAME)                                  AS estado,
@@ -64,13 +65,12 @@ SELECT
   COUNTIF(f.classe = 'PNR C')                                 AS pnr_shps,
   ROUND(SUM(IF(f.classe = 'PNR C', f.bpp, 0)), 2)             AS pnr_bpp,
   APPROX_TOP_COUNT(f.classe, 1)[OFFSET(0)].value              AS classe_principal,
-  ARRAY_AGG(DISTINCT f.mes IGNORE NULLS)                      AS meses,
   ARRAY_AGG(CAST(p.SHP_SHIPMENT_ID AS STRING)
       ORDER BY f.bpp DESC LIMIT 20)                           AS shp_sample
 FROM `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` p
 INNER JOIN shp_dedup f ON CAST(p.SHP_SHIPMENT_ID AS STRING) = f.sid
 WHERE p.SERVICE_TYPE IN ('DO','NEX','DC','PU','XPT')
-GROUP BY 1, 2
+GROUP BY 1, 2, 3
 ORDER BY bpp DESC
 """
 
@@ -185,49 +185,87 @@ def carregar_dados():
             'gmv':          float(row['gmv'] or 0),
         })
 
-    nodos = []
+    # Agrupa as linhas mensais em (place_id, tipo) -> breakdown por mes
+    grouped = {}
     for row in rows:
-        meses = sorted(m for m in (row['meses'] or []) if m)
-        shps  = list(dict.fromkeys(str(s) for s in (row['shp_sample'] or []) if s))[:20]
-        total = int(row['total_shps'])
-        fraud = int(row['fraud_shps'])
-        dmg   = int(row['damaged_shps'])
-        pct_fraud = round(fraud / total * 100, 1) if total else 0.0
         tipo = row['tipo'] or ''
         place_id = row['place_id'] or ''
         key = (place_id, tipo)
-        empty_box_qtd = int(row['empty_box_shps'])
-        pnr_qtd       = int(row['pnr_shps'])
+        g = grouped.setdefault(key, {
+            'nome': '', 'node_id': '', 'estado': '', 'cidade': '',
+            'classe_counts': {}, 'md': [], 'shps': [],
+        })
+        if row['nome']:     g['nome']    = row['nome']
+        if row['node_id']:  g['node_id'] = row['node_id']
+        if row['estado']:   g['estado']  = row['estado']
+        if row['cidade']:   g['cidade']  = row['cidade']
+        classe = row['classe_principal'] or ''
+        total_m = int(row['total_shps'])
+        if classe:
+            g['classe_counts'][classe] = g['classe_counts'].get(classe, 0) + total_m
+        g['md'].append({
+            'mes': row['mes'] or '',
+            't':   total_m,
+            'b':   float(row['bpp'] or 0),
+            'f':   int(row['fraud_shps']),
+            'd':   int(row['damaged_shps']),
+            'eb':  int(row['empty_box_shps']),
+            'ebb': float(row['empty_box_bpp'] or 0),
+            'pnr': int(row['pnr_shps']),
+            'pnrb': float(row['pnr_bpp'] or 0),
+            'drv': int(row['drivers']),
+            'sel': int(row['sellers']),
+            'buy': int(row['buyers']),
+        })
+        for s in (row['shp_sample'] or []):
+            if s: g['shps'].append(str(s))
+
+    nodos = []
+    for (place_id, tipo), g in grouped.items():
+        md = sorted(g['md'], key=lambda m: m['mes'])
+        total = sum(m['t'] for m in md)
+        bpp   = round(sum(m['b'] for m in md), 2)
+        fraud = sum(m['f'] for m in md)
+        dmg   = sum(m['d'] for m in md)
+        empty_box_qtd = sum(m['eb'] for m in md)
+        empty_box_bpp = round(sum(m['ebb'] for m in md), 2)
+        pnr_qtd = sum(m['pnr'] for m in md)
+        pnr_bpp = round(sum(m['pnrb'] for m in md), 2)
+        pct_fraud = round(fraud / total * 100, 1) if total else 0.0
+        classe_principal = max(g['classe_counts'].items(), key=lambda x: x[1])[0] if g['classe_counts'] else ''
+        shps = list(dict.fromkeys(g['shps']))[:20]
+        key = (place_id, tipo)
         parados_lista = parados_por_nodo.get(key, [])
         parados_qtd   = len(parados_lista)
         parados_gmv   = round(sum(p['gmv'] for p in parados_lista), 2)
 
         nodos.append({
-            'nodo':          row['nome'] or place_id or 'Não Identificado',
-            'node_id':       row['node_id'] or '',
+            'nodo':          g['nome'] or place_id or 'Não Identificado',
+            'node_id':       g['node_id'],
             'place_id':      place_id,
             'tipo':          tipo,
             'tipo_lbl':      TIPO_LBL.get(tipo, tipo),
             'total':         total,
-            'drivers':       int(row['drivers']),
-            'sellers':       int(row['sellers']),
-            'buyers':        int(row['buyers']),
-            'bpp':           float(row['bpp'] or 0),
-            'classe':        row['classe_principal'] or '',
+            'drivers':       sum(m['drv'] for m in md),
+            'sellers':       sum(m['sel'] for m in md),
+            'buyers':        sum(m['buy'] for m in md),
+            'bpp':           bpp,
+            'classe':        classe_principal,
             'fraud':         fraud,
             'damaged':       dmg,
             'pct_fraud':     pct_fraud,
             'empty_box_qtd': empty_box_qtd,
-            'empty_box_bpp': float(row['empty_box_bpp'] or 0),
+            'empty_box_bpp': empty_box_bpp,
             'pnr_qtd':       pnr_qtd,
-            'pnr_bpp':       float(row['pnr_bpp'] or 0),
+            'pnr_bpp':       pnr_bpp,
             'parados_qtd':   parados_qtd,
             'parados_gmv':   parados_gmv,
-            'score':         _score(fraud, float(row['bpp'] or 0), empty_box_qtd, pnr_qtd, parados_qtd, pct_fraud),
-            'estado':        row['estado'] or '',
-            'cidade':        row['cidade'] or '',
-            'meses':         meses,
+            'score':         _score(fraud, bpp, empty_box_qtd, pnr_qtd, parados_qtd, pct_fraud),
+            'estado':        g['estado'],
+            'cidade':        g['cidade'],
+            'meses':         [m['mes'] for m in md if m['mes']],
             'shps':          shps,
+            'md':            md,
         })
 
     return nodos, evidencias, parados_por_nodo
@@ -284,6 +322,16 @@ def gerar_tab_html(nodos, evidencias, parados_por_nodo):
       style="background:transparent;border:none;border-bottom:2px solid transparent;color:#9ca3af;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer">Nodos Ofensores</button>
   </div>
 
+  <!-- Periodo (afeta as duas sub-abas) -->
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="font-size:11px;color:#9ca3af;font-weight:500;margin-right:4px">Período:</span>
+    <button class="lf-btn" data-p="1m" onclick="nodPeriodo('1m',this)">1m</button>
+    <button class="lf-btn" data-p="3m" onclick="nodPeriodo('3m',this)">3m</button>
+    <button class="lf-btn" data-p="6m" onclick="nodPeriodo('6m',this)">6m</button>
+    <button class="lf-btn lf-active" data-p="all" onclick="nodPeriodo('all',this)">Tudo</button>
+    <span style="font-size:9px;color:#4b5563">Pacotes parados não têm data — sempre mostram o estado atual, independente do período</span>
+  </div>
+
   <!-- VIEW: TODOS -->
   <div id="nod-view-todos">
 
@@ -294,15 +342,15 @@ def gerar_tab_html(nodos, evidencias, parados_por_nodo):
       <div style="font-size:10px;color:#6b7280;margin-top:2px">Nodos (place x tipo)</div>
     </div>
     <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:12px 20px;flex:1;min-width:110px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#e5e7eb">{total_shps:,}</div>
+      <div id="nod-kpi-shps" style="font-size:22px;font-weight:700;color:#e5e7eb">{total_shps:,}</div>
       <div style="font-size:10px;color:#6b7280;margin-top:2px">SHPs Totais</div>
     </div>
     <div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:12px 20px;flex:1;min-width:110px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#f87171">US$ {total_bpp:,.0f}</div>
+      <div id="nod-kpi-bpp" style="font-size:22px;font-weight:700;color:#f87171">US$ {total_bpp:,.0f}</div>
       <div style="font-size:10px;color:#6b7280;margin-top:2px">BPP Total</div>
     </div>
     <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:12px 20px;flex:1;min-width:110px;text-align:center">
-      <div style="font-size:22px;font-weight:700;color:#fbbf24">{total_fraud:,}</div>
+      <div id="nod-kpi-fraud" style="font-size:22px;font-weight:700;color:#fbbf24">{total_fraud:,}</div>
       <div style="font-size:10px;color:#6b7280;margin-top:2px">SHPs Fraude</div>
     </div>
   </div>
@@ -368,20 +416,20 @@ def gerar_tab_html(nodos, evidencias, parados_por_nodo):
   <div id="nod-view-ofensores" style="display:none">
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
       <div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
-        <div style="font-size:22px;font-weight:700;color:#f87171">{total_fraud:,}</div>
+        <div id="nod-of-kpi-fraud" style="font-size:22px;font-weight:700;color:#f87171">{total_fraud:,}</div>
         <div style="font-size:10px;color:#6b7280;margin-top:2px">SHPs Fraude Confirmada</div>
       </div>
       <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
-        <div style="font-size:22px;font-weight:700;color:#a78bfa">{total_empty:,}</div>
+        <div id="nod-of-kpi-empty" style="font-size:22px;font-weight:700;color:#a78bfa">{total_empty:,}</div>
         <div style="font-size:10px;color:#6b7280;margin-top:2px">SHPs Empty Box</div>
       </div>
       <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
-        <div style="font-size:22px;font-weight:700;color:#fbbf24">{total_pnr:,}</div>
+        <div id="nod-of-kpi-pnr" style="font-size:22px;font-weight:700;color:#fbbf24">{total_pnr:,}</div>
         <div style="font-size:10px;color:#6b7280;margin-top:2px">SHPs PNR</div>
       </div>
       <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
-        <div style="font-size:22px;font-weight:700;color:#60a5fa">{total_parados:,}</div>
-        <div style="font-size:10px;color:#6b7280;margin-top:2px">Pacotes Parados (&gt;= {DIAS_PARADO_MIN}d ou vencidos)</div>
+        <div id="nod-of-kpi-parados" style="font-size:22px;font-weight:700;color:#60a5fa">{total_parados:,}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px">Pacotes Parados (&gt;= {DIAS_PARADO_MIN}d ou vencidos, não filtra por período)</div>
       </div>
     </div>
 
@@ -453,6 +501,54 @@ var TIPO_CLR={{DO:'#34d399',NEX:'#60a5fa',DC:'#a78bfa',PU:'#fbbf24',XPT:'#f472b6
 var _nodOfQ='';
 var _nodOfSortKey='score', _nodOfSortDir=-1;
 var _nodOfSel=null;
+var _nodPeriod='all';
+
+function _nodPeriodRange(p){{
+  if(p==='all') return {{de:null, ate:null}};
+  var hoje=new Date();
+  var meses=p==='1m'?1:(p==='3m'?3:6);
+  var de=new Date(hoje.getFullYear(), hoje.getMonth()-meses, hoje.getDate());
+  return {{de:de, ate:hoje}};
+}}
+
+function _nodScore(fraud,bpp,eb,pnr,parados,pct){{
+  var s=Math.min(fraud,20)+Math.min(bpp/300,20)+Math.min(eb*3,15)+Math.min(pnr*2,15)+Math.min(parados*2,15)+(pct>20?15:0);
+  return Math.round(s*10)/10;
+}}
+
+function _nodApplyPeriodo(n, de, ate){{
+  var parados=n.parados_qtd||0;
+  if(!de) return n;
+  var t=0,b=0,f=0,d=0,eb=0,ebb=0,pnr=0,pnrb=0;
+  (n.md||[]).forEach(function(m){{
+    var p=(m.mes||'').split('-');
+    var dt=p.length>=2?new Date(+p[0],+p[1]-1,1):null;
+    if(dt && dt>=de && dt<=ate){{ t+=m.t;b+=m.b;f+=m.f;d+=m.d;eb+=m.eb;ebb+=m.ebb;pnr+=m.pnr;pnrb+=m.pnrb; }}
+  }});
+  var pct=t?Math.round(f/t*1000)/10:0;
+  var out=Object.assign({{}}, n, {{
+    total:t, bpp:Math.round(b*100)/100, fraud:f, damaged:d,
+    empty_box_qtd:eb, empty_box_bpp:Math.round(ebb*100)/100,
+    pnr_qtd:pnr, pnr_bpp:Math.round(pnrb*100)/100,
+    pct_fraud:pct, score:_nodScore(f,b,eb,pnr,parados,pct),
+  }});
+  return out;
+}}
+
+function _nodDadosPeriodo(){{
+  var rng=_nodPeriodRange(_nodPeriod);
+  if(!rng.de) return NODOS_DATA;
+  return NODOS_DATA.map(function(n){{ return _nodApplyPeriodo(n, rng.de, rng.ate); }});
+}}
+
+window.nodPeriodo=function(p, btn){{
+  _nodPeriod=p;
+  document.querySelectorAll('#tab-nodos .lf-btn').forEach(function(b){{ b.classList.remove('lf-active'); }});
+  if(btn) btn.classList.add('lf-active');
+  filtrarNodos();
+  nodRenderOfensores();
+  if(_nodOfSel) nodRenderEvidencia();
+}};
 
 function buildNodoCharts(){{
   var eB=document.getElementById('nodChtBpp');
@@ -484,10 +580,18 @@ function buildNodoCharts(){{
 }}
 
 function filtrarNodos(){{
+  var todosPeriodo=_nodDadosPeriodo();
+  var kShps=document.getElementById('nod-kpi-shps');
+  var kBpp=document.getElementById('nod-kpi-bpp');
+  var kFraud=document.getElementById('nod-kpi-fraud');
+  if(kShps) kShps.textContent=todosPeriodo.reduce(function(s,n){{return s+n.total;}},0).toLocaleString('pt-BR');
+  if(kBpp) kBpp.textContent='US$ '+Math.round(todosPeriodo.reduce(function(s,n){{return s+n.bpp;}},0)).toLocaleString('pt-BR');
+  if(kFraud) kFraud.textContent=todosPeriodo.reduce(function(s,n){{return s+n.fraud;}},0).toLocaleString('pt-BR');
+
   var q=((document.getElementById('nod-busca')||{{}}).value||'').toLowerCase().trim();
   var tp=(document.getElementById('nod-tipo')||{{}}).value||'';
   var fl=(document.getElementById('nod-filtro')||{{}}).value||'';
-  var dados=NODOS_DATA.filter(function(n){{
+  var dados=todosPeriodo.filter(function(n){{
     var okQ=!q||n.nodo.toLowerCase().indexOf(q)>=0||n.estado.toLowerCase().indexOf(q)>=0||n.cidade.toLowerCase().indexOf(q)>=0||(n.node_id||'').toLowerCase().indexOf(q)>=0||(n.place_id||'').toLowerCase().indexOf(q)>=0;
     var okT=!tp||n.tipo===tp;
     var okF=!fl||(fl==='fraud'&&n.fraud>0)||(fl==='top_bpp'&&n.bpp>1000);
@@ -543,7 +647,7 @@ window.nodMostrarSub=function(nome,btn){{
 }};
 
 function _nodOfensoresLista(){{
-  return NODOS_DATA.filter(function(n){{
+  return _nodDadosPeriodo().filter(function(n){{
     return n.fraud>0||n.empty_box_qtd>0||n.pnr_qtd>0||n.parados_qtd>0;
   }});
 }}
@@ -560,6 +664,16 @@ window.nodOfFiltrar=function(){{
 }};
 
 function nodRenderOfensores(){{
+  var todosPeriodo=_nodDadosPeriodo();
+  var kFraud=document.getElementById('nod-of-kpi-fraud');
+  var kEmpty=document.getElementById('nod-of-kpi-empty');
+  var kPnr=document.getElementById('nod-of-kpi-pnr');
+  var kParados=document.getElementById('nod-of-kpi-parados');
+  if(kFraud) kFraud.textContent=todosPeriodo.reduce(function(s,n){{return s+n.fraud;}},0).toLocaleString('pt-BR');
+  if(kEmpty) kEmpty.textContent=todosPeriodo.reduce(function(s,n){{return s+n.empty_box_qtd;}},0).toLocaleString('pt-BR');
+  if(kPnr) kPnr.textContent=todosPeriodo.reduce(function(s,n){{return s+n.pnr_qtd;}},0).toLocaleString('pt-BR');
+  if(kParados) kParados.textContent=todosPeriodo.reduce(function(s,n){{return s+n.parados_qtd;}},0).toLocaleString('pt-BR');
+
   var q=_nodOfQ.toLowerCase();
   var lista=_nodOfensoresLista();
   if(q) lista=lista.filter(function(n){{return n.nodo.toLowerCase().indexOf(q)>=0;}});
@@ -608,7 +722,16 @@ function nodRenderEvidencia(){{
     el.innerHTML='';
     return;
   }}
-  var ev=(NOD_EV_DATA[_nodOfSel]||[]).map(function(e){{
+  var rng=_nodPeriodRange(_nodPeriod);
+  var evBase=NOD_EV_DATA[_nodOfSel]||[];
+  if(rng.de){{
+    evBase=evBase.filter(function(e){{
+      var p=(e.mes||'').split('-');
+      var dt=p.length>=2?new Date(+p[0],+p[1]-1,1):null;
+      return dt && dt>=rng.de && dt<=rng.ate;
+    }});
+  }}
+  var ev=evBase.map(function(e){{
     return {{tipo:e.classe==='EMPTY BOX'?'Empty Box':'PNR', sid:e.sid, info:e.causa, extra:e.mes, valor:e.bpp}};
   }});
   var parados=(NOD_PARADOS_DATA[_nodOfSel]||[]).map(function(p){{
