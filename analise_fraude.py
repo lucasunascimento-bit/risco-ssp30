@@ -3391,9 +3391,14 @@ def gerar_html(d):
     document.getElementById('gst-kpi-casos').textContent = totalCasos.toLocaleString('pt-BR');
     document.getElementById('gst-kpi-pct').textContent   = pctFraud.toFixed(1)+'%';
 
+    var nodosBpp = 0, nodosFraud = 0;
+    if (nodosOk) {{
+      window.NODOS_DATA.forEach(function(n){{ nodosBpp += (n.bpp||0); nodosFraud += (n.fraud||0); }});
+    }}
+
     var areas = [
       {{label:'Drivers', tab:'bloqueios', total: drvList.length, sub: drvAtivos.toLocaleString('pt-BR')+' no período', bpp: drvBpp, extra: drvBlocked+' bloqueados'}},
-      {{label:'Nodos',   tab:'nodos',     total: nodosOk ? window.NODOS_DATA.length : null, sub: nodosOk ? 'no período' : 'em construção', bpp: nodosOk ? 0 : null, extra: ''}},
+      {{label:'Nodos',   tab:'nodos',     total: nodosOk ? window.NODOS_DATA.length : null, sub: nodosOk ? 'places/NEX/DC (total, não soma c/ outras áreas)' : 'em construção', bpp: nodosOk ? nodosBpp : null, extra: nodosOk ? (nodosFraud.toLocaleString('pt-BR')+' SHPs fraude') : ''}},
       {{label:'Buyers',  tab:'buyers',    total: buyList.length, sub: buyAtivos.toLocaleString('pt-BR')+' no período', bpp: buyBpp, extra: buyFraudConf+' fraude confirmada'}},
       {{label:'Sellers', tab:'sellers',   total: selList.length, sub: selAtivos.toLocaleString('pt-BR')+' no período', bpp: selBpp, extra: selFraudConf+' fraude confirmada'}}
     ];
