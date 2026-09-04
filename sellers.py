@@ -512,6 +512,29 @@ def gerar_tab(sellers, shps_fraude, shps_damaged, kpis):
         <div style="position:relative;height:150px"><canvas id="sel-cht-fr-tipo"></canvas></div>
       </div>
     </div>
+    <div id="sel-fr-meus-box" style="display:none;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Meus acompanhamentos <span id="sel-fr-meus-count" style="font-size:10px;color:#4b5563;text-transform:none;font-weight:400"></span></div>
+      <div style="border:1px solid rgba(34,211,238,.3);border-radius:8px;overflow:hidden">
+        <div style="overflow-y:auto;max-height:220px;background:#060a14">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead style="position:sticky;top:0;z-index:2;background:#0d1321">
+              <tr>
+                <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Seller</th>
+                <th style="padding:6px 8px;text-align:center;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Score</th>
+                <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Qtd</th>
+                <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Padrao predominante</th>
+                <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
+                <th style="padding:6px 8px;text-align:center;color:#4ade80;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">% Vendas</th>
+                <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Status</th>
+                <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Acompanhamento</th>
+                <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">PDF</th>
+              </tr>
+            </thead>
+            <tbody id="sel-fr-meus-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div>
         <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Sellers ofensores</span>
@@ -1039,6 +1062,34 @@ function selUpdFrOverview(){{
   if(_frPadChart) requestAnimationFrame(function(){{ _frPadChart.resize(); }});
 }}
 
+function _selFrRowHtml(s){{
+  var sel = _selSel === s.n;
+  var hl = sel ? 'background:#1a0a00;border-left:3px solid #f97316;' : 'border-left:3px solid transparent;';
+  var st = selGetFrSt(s.n);
+  var padCls = s.pad === 'Avaria / Dano na devolucao' ? 'color:#f87171' : (s.pad === 'Caixa vazia / PNR' ? 'color:#fbbf24' : 'color:#a78bfa');
+  var hist = selGetFrHist(s.n);
+  var histOpen = _selFrHistOpen === s.n;
+  var histStyle = hist.length ? 'background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;' : 'background:#1f2937;border:1px solid #374151;color:#6b7280;';
+  var histLabel = hist.length ? (hist.length + ' registro' + (hist.length>1?'s':'')) : 'sem registros';
+  var scoreCls = s.score >= 40 ? 'color:#f87171;font-weight:700' : (s.score >= 20 ? 'color:#fbbf24;font-weight:700' : 'color:#6b7280');
+  var novoBadge = s.novo ? '<span style="display:inline-block;font-size:8px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;background:#fbbf24;color:#1a1a1a;letter-spacing:.4px">NOVO</span>' : '';
+  var row = '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="selFrSelecionar(\\''+s.n+'\\')">'
+    + '<td style="padding:4px 8px;color:#60a5fa;font-weight:700;max-width:190px;white-space:nowrap"><span style="display:inline-block;max-width:'+(s.novo?'135px':'175px')+';overflow:hidden;text-overflow:ellipsis;vertical-align:middle" title="'+s.n+'">'+s.n+selIdSuffix(s.n)+'</span>'+novoBadge+'</td>'
+    + '<td style="padding:4px 8px;text-align:center;'+scoreCls+'" title="'+s.meses+' mes(es) com fraude no periodo">'+s.score+'</td>'
+    + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.qtd+'</td>'
+    + '<td style="padding:4px 8px;font-size:10px;'+padCls+'">'+s.pad+'</td>'
+    + '<td style="padding:4px 8px;text-align:right;color:#f87171">$'+s.b.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
+    + '<td style="padding:4px 8px;text-align:center;color:#4ade80" title="'+s.qtd+' fraude(s) de '+(SEL_VD_MAP[s.n]||0)+' vendas efetivas (60d)">'+(s.pvd!==null?s.pvd.toFixed(1)+'%':'—')+'</td>'
+    + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><span onclick="selToggleFrSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+FR_ST_CLR[st]+';background:'+FR_ST_BG[st]+'">'+FR_ST_LBL[st]+'</span></td>'
+    + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><button onclick="selToggleFrHist(\\''+s.n+'\\')" style="'+histStyle+'font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128337; '+histLabel+' '+(histOpen?'▲':'▼')+'</button></td>'
+    + '<td style="padding:4px 8px;text-align:center" onclick="event.stopPropagation()"><button onclick="selGerarRelatorioSeller(\\''+s.n+'\\',\\'fraude\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button></td>'
+    + '</tr>';
+  if(histOpen){{
+    row += '<tr onclick="event.stopPropagation()" style="cursor:default"><td colspan="9" style="padding:0">'+_selFrHistPanelHtml(s.n)+'</td></tr>';
+  }}
+  return row;
+}}
+
 function renderFrOfensores(){{
   var q = _qFr.toLowerCase();
   var lista = _selFrAgg();
@@ -1049,34 +1100,17 @@ function renderFrOfensores(){{
     var e = document.getElementById('sel-fr-sort-'+k);
     if(e) e.textContent = (_selFrSortKey===k) ? (_selFrSortDir===1?'▲':'▼') : '';
   }});
+
+  var meus = lista.filter(function(s){{ return selGetFrSt(s.n) !== 'ati'; }});
+  var meusBox = document.getElementById('sel-fr-meus-box');
+  var meusEl  = document.getElementById('sel-fr-meus-tbody');
+  if(meusBox) meusBox.style.display = meus.length ? '' : 'none';
+  var meusCnt = document.getElementById('sel-fr-meus-count');
+  if(meusCnt) meusCnt.textContent = meus.length ? ('- '+meus.length.toLocaleString('pt-BR')+' seller(s) com acompanhamento') : '';
+  if(meusEl) meusEl.innerHTML = meus.map(_selFrRowHtml).join('');
+
   var el = document.getElementById('sel-fr-ofens-tbody'); if(!el) return;
-  el.innerHTML = lista.map(function(s){{
-    var sel = _selSel === s.n;
-    var hl = sel ? 'background:#1a0a00;border-left:3px solid #f97316;' : 'border-left:3px solid transparent;';
-    var st = selGetFrSt(s.n);
-    var padCls = s.pad === 'Avaria / Dano na devolucao' ? 'color:#f87171' : (s.pad === 'Caixa vazia / PNR' ? 'color:#fbbf24' : 'color:#a78bfa');
-    var hist = selGetFrHist(s.n);
-    var histOpen = _selFrHistOpen === s.n;
-    var histStyle = hist.length ? 'background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;' : 'background:#1f2937;border:1px solid #374151;color:#6b7280;';
-    var histLabel = hist.length ? (hist.length + ' registro' + (hist.length>1?'s':'')) : 'sem registros';
-    var scoreCls = s.score >= 40 ? 'color:#f87171;font-weight:700' : (s.score >= 20 ? 'color:#fbbf24;font-weight:700' : 'color:#6b7280');
-    var novoBadge = s.novo ? '<span style="display:inline-block;font-size:8px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;background:#fbbf24;color:#1a1a1a;letter-spacing:.4px">NOVO</span>' : '';
-    var row = '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="selFrSelecionar(\\''+s.n+'\\')">'
-      + '<td style="padding:4px 8px;color:#60a5fa;font-weight:700;max-width:190px;white-space:nowrap"><span style="display:inline-block;max-width:'+(s.novo?'135px':'175px')+';overflow:hidden;text-overflow:ellipsis;vertical-align:middle" title="'+s.n+'">'+s.n+selIdSuffix(s.n)+'</span>'+novoBadge+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;'+scoreCls+'" title="'+s.meses+' mes(es) com fraude no periodo">'+s.score+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.qtd+'</td>'
-      + '<td style="padding:4px 8px;font-size:10px;'+padCls+'">'+s.pad+'</td>'
-      + '<td style="padding:4px 8px;text-align:right;color:#f87171">$'+s.b.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;color:#4ade80" title="'+s.qtd+' fraude(s) de '+(SEL_VD_MAP[s.n]||0)+' vendas efetivas (60d)">'+(s.pvd!==null?s.pvd.toFixed(1)+'%':'—')+'</td>'
-      + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><span onclick="selToggleFrSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+FR_ST_CLR[st]+';background:'+FR_ST_BG[st]+'">'+FR_ST_LBL[st]+'</span></td>'
-      + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><button onclick="selToggleFrHist(\\''+s.n+'\\')" style="'+histStyle+'font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128337; '+histLabel+' '+(histOpen?'▲':'▼')+'</button></td>'
-      + '<td style="padding:4px 8px;text-align:center" onclick="event.stopPropagation()"><button onclick="selGerarRelatorioSeller(\\''+s.n+'\\',\\'fraude\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button></td>'
-      + '</tr>';
-    if(histOpen){{
-      row += '<tr onclick="event.stopPropagation()" style="cursor:default"><td colspan="9" style="padding:0">'+_selFrHistPanelHtml(s.n)+'</td></tr>';
-    }}
-    return row;
-  }}).join('');
+  el.innerHTML = lista.map(_selFrRowHtml).join('');
 }}
 
 function renderFrTbody(){{

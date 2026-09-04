@@ -529,6 +529,30 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
         <div style="font-size:9px;color:#6b7280;margin-top:2px">Pico recente de compras</div>
       </div>
     </div>
+    <div id="buy-fr-meus-box" style="display:none;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Meus acompanhamentos <span id="buy-fr-meus-count" style="font-size:10px;color:#4b5563;text-transform:none;font-weight:400"></span></div>
+      <div style="border:1px solid rgba(34,211,238,.3);border-radius:8px;overflow:hidden">
+        <div style="overflow-y:auto;max-height:220px;background:#060a14">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead style="position:sticky;top:0;z-index:2;background:#0d1321">
+              <tr>
+                <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Buyer</th>
+                <th style="padding:6px 8px;text-align:center;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Score</th>
+                <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Qtd Fraude</th>
+                <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Sinal predominante</th>
+                <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
+                <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Pedidos 365d</th>
+                <th style="padding:6px 8px;text-align:right;color:#4ade80;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Valor 365d</th>
+                <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Status</th>
+                <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Acompanhamento</th>
+                <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">PDF</th>
+              </tr>
+            </thead>
+            <tbody id="buy-fr-meus-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div>
         <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Buyers ofensores</span>
@@ -964,41 +988,51 @@ function renderFrOfensores(){{
   var elN = document.getElementById('buy-fr-novoalto'); if(elN) elN.textContent = fNovo.toLocaleString('pt-BR');
   var elP = document.getElementById('buy-fr-pico'); if(elP) elP.textContent = fPico.toLocaleString('pt-BR');
 
+  var meus = lista.filter(function(s){{ return buyGetFrSt(s.n) !== 'ati'; }});
+  var meusBox = document.getElementById('buy-fr-meus-box');
+  var meusEl  = document.getElementById('buy-fr-meus-tbody');
+  if(meusBox) meusBox.style.display = meus.length ? '' : 'none';
+  var meusCnt = document.getElementById('buy-fr-meus-count');
+  if(meusCnt) meusCnt.textContent = meus.length ? ('- '+meus.length.toLocaleString('pt-BR')+' buyer(s) com acompanhamento') : '';
+  if(meusEl) meusEl.innerHTML = meus.slice(0, 500).map(_buyFrRowHtml).join('');
+
   var el = document.getElementById('buy-fr-ofens-tbody'); if(!el) return;
   var truncado = lista.length > 500;
   var listaRender = truncado ? lista.slice(0, 500) : lista;
-  el.innerHTML = listaRender.map(function(s){{
-    var sel = _buySel === s.n;
-    var hl = sel ? 'background:#0f2040;border-left:3px solid #38bdf8;' : 'border-left:3px solid transparent;';
-    var st = buyGetFrSt(s.n);
-    var sinalCls = s.sinal === 'Fraude confirmada' ? 'color:#f87171' : (s.sinal === 'Novo + alto valor' ? 'color:#fbbf24' : (s.sinal === 'Pico recente de compras' ? 'color:#a78bfa' : 'color:#6b7280'));
-    var scoreCls = s.score >= 40 ? 'color:#f87171;font-weight:700' : (s.score >= 20 ? 'color:#fbbf24;font-weight:700' : 'color:#6b7280');
-    var novoBadge = s.novo ? '<span style="display:inline-block;font-size:8px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;background:#fbbf24;color:#1a1a1a;letter-spacing:.4px">NOVO</span>' : '';
-    var histOpen = _buyFrHistOpen === s.n;
-    var hist = buyGetFrHist(s.n);
-    var histStyle = hist.length ? 'background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;' : 'background:#1f2937;border:1px solid #374151;color:#6b7280;';
-    var histLabel = hist.length ? (hist.length + ' registro' + (hist.length>1?'s':'')) : 'sem registros';
-    var row = '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="buyFrSelecionar(\\''+s.n+'\\')">'
-      + '<td style="padding:4px 8px;color:#60a5fa;font-weight:700;max-width:190px;white-space:nowrap"><span style="display:inline-block;max-width:'+(s.novo?'135px':'175px')+';overflow:hidden;text-overflow:ellipsis;vertical-align:middle" title="'+s.n+'">'+s.n+buyIdSuffix(s.n)+'</span>'+novoBadge+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;'+scoreCls+'">'+s.score+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.qtd+'</td>'
-      + '<td style="padding:4px 8px;font-size:10px;'+sinalCls+'">'+s.sinal+'</td>'
-      + '<td style="padding:4px 8px;text-align:right;color:#f87171">$'+s.b.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;color:#9ca3af">'+s.t365+'</td>'
-      + '<td style="padding:4px 8px;text-align:right;color:#4ade80">$'+s.v365.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
-      + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><span onclick="buyToggleFrSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+FR_ST_CLR[st]+';background:'+FR_ST_BG[st]+'">'+FR_ST_LBL[st]+'</span></td>'
-      + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><button onclick="buyToggleFrHist(\\''+s.n+'\\')" style="'+histStyle+'font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128337; '+histLabel+' '+(histOpen?'▲':'▼')+'</button></td>'
-      + '<td style="padding:4px 8px;text-align:center" onclick="event.stopPropagation()">'+(
-          s.qtd > 0 ? '<button onclick="buyGerarRelatorioBuyer(\\''+s.n+'\\',\\'fraude\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button>'
-          : (s.d > 0 ? '<button onclick="buyGerarRelatorioBuyer(\\''+s.n+'\\',\\'damaged\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button>'
-          : '<span style="color:#374151;font-size:10px">—</span>')
-        )+'</td>'
-      + '</tr>';
-    if(histOpen){{
-      row += '<tr onclick="event.stopPropagation()" style="cursor:default"><td colspan="10" style="padding:0">'+_buyFrHistPanelHtml(s.n)+'</td></tr>';
-    }}
-    return row;
-  }}).join('') + (truncado ? '<tr><td colspan="10" style="padding:8px;text-align:center;color:#374151;font-size:10px">Mostrando 500 de '+lista.length.toLocaleString('pt-BR')+' (ordenado por '+_buyFrSortKey+'). Use a busca ou ordene por outra coluna pra refinar.</td></tr>' : '');
+  el.innerHTML = listaRender.map(_buyFrRowHtml).join('') + (truncado ? '<tr><td colspan="10" style="padding:8px;text-align:center;color:#374151;font-size:10px">Mostrando 500 de '+lista.length.toLocaleString('pt-BR')+' (ordenado por '+_buyFrSortKey+'). Use a busca ou ordene por outra coluna pra refinar.</td></tr>' : '');
+}}
+
+function _buyFrRowHtml(s){{
+  var sel = _buySel === s.n;
+  var hl = sel ? 'background:#0f2040;border-left:3px solid #38bdf8;' : 'border-left:3px solid transparent;';
+  var st = buyGetFrSt(s.n);
+  var sinalCls = s.sinal === 'Fraude confirmada' ? 'color:#f87171' : (s.sinal === 'Novo + alto valor' ? 'color:#fbbf24' : (s.sinal === 'Pico recente de compras' ? 'color:#a78bfa' : 'color:#6b7280'));
+  var scoreCls = s.score >= 40 ? 'color:#f87171;font-weight:700' : (s.score >= 20 ? 'color:#fbbf24;font-weight:700' : 'color:#6b7280');
+  var novoBadge = s.novo ? '<span style="display:inline-block;font-size:8px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;background:#fbbf24;color:#1a1a1a;letter-spacing:.4px">NOVO</span>' : '';
+  var histOpen = _buyFrHistOpen === s.n;
+  var hist = buyGetFrHist(s.n);
+  var histStyle = hist.length ? 'background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);color:#93c5fd;' : 'background:#1f2937;border:1px solid #374151;color:#6b7280;';
+  var histLabel = hist.length ? (hist.length + ' registro' + (hist.length>1?'s':'')) : 'sem registros';
+  var row = '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="buyFrSelecionar(\\''+s.n+'\\')">'
+    + '<td style="padding:4px 8px;color:#60a5fa;font-weight:700;max-width:190px;white-space:nowrap"><span style="display:inline-block;max-width:'+(s.novo?'135px':'175px')+';overflow:hidden;text-overflow:ellipsis;vertical-align:middle" title="'+s.n+'">'+s.n+buyIdSuffix(s.n)+'</span>'+novoBadge+'</td>'
+    + '<td style="padding:4px 8px;text-align:center;'+scoreCls+'">'+s.score+'</td>'
+    + '<td style="padding:4px 8px;text-align:center;color:#e5e7eb;font-weight:700">'+s.qtd+'</td>'
+    + '<td style="padding:4px 8px;font-size:10px;'+sinalCls+'">'+s.sinal+'</td>'
+    + '<td style="padding:4px 8px;text-align:right;color:#f87171">$'+s.b.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
+    + '<td style="padding:4px 8px;text-align:center;color:#9ca3af">'+s.t365+'</td>'
+    + '<td style="padding:4px 8px;text-align:right;color:#4ade80">$'+s.v365.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
+    + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><span onclick="buyToggleFrSt(\\''+s.n+'\\')" style="cursor:pointer;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;color:'+FR_ST_CLR[st]+';background:'+FR_ST_BG[st]+'">'+FR_ST_LBL[st]+'</span></td>'
+    + '<td style="padding:4px 8px" onclick="event.stopPropagation()"><button onclick="buyToggleFrHist(\\''+s.n+'\\')" style="'+histStyle+'font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap">&#128337; '+histLabel+' '+(histOpen?'▲':'▼')+'</button></td>'
+    + '<td style="padding:4px 8px;text-align:center" onclick="event.stopPropagation()">'+(
+        s.qtd > 0 ? '<button onclick="buyGerarRelatorioBuyer(\\''+s.n+'\\',\\'fraude\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button>'
+        : (s.d > 0 ? '<button onclick="buyGerarRelatorioBuyer(\\''+s.n+'\\',\\'damaged\\')" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);color:#93c5fd;font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:inherit">&#9998; PDF</button>'
+        : '<span style="color:#374151;font-size:10px">—</span>')
+      )+'</td>'
+    + '</tr>';
+  if(histOpen){{
+    row += '<tr onclick="event.stopPropagation()" style="cursor:default"><td colspan="10" style="padding:0">'+_buyFrHistPanelHtml(s.n)+'</td></tr>';
+  }}
+  return row;
 }}
 
 window.buyFrSelecionar = function(nick){{
