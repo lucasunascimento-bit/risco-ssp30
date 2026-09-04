@@ -3284,14 +3284,23 @@ def gerar_html(d):
   <div class="box"><div class="bt">Status dos casos — Sellers + Buyers ofensores</div><div id="gst-status-sb"></div></div>
   <div class="box"><div class="bt">Status dos candidatos — Drivers</div><div id="gst-status-drv"></div></div>
 </div>
-<div class="box">
+<div class="box" style="margin-bottom:14px">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
     <div class="bt" style="margin-bottom:0">Atividade da semana — casos tratados (últimos 7 dias)</div>
-    <div id="gst-week-total" style="font-size:15px;font-weight:800;color:#22d3ee">0</div>
+    <div id="gst-week-total" style="font-size:16px;font-weight:800;color:#22d3ee">0</div>
   </div>
   <div id="gst-week-chart" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:60px;margin-bottom:8px"></div>
   <div id="gst-week-labels" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:10px"></div>
   <div id="gst-week-breakdown" style="display:flex;gap:16px;border-top:1px solid #1f2937;padding-top:8px;flex-wrap:wrap"></div>
+</div>
+<div class="tbl-wrap">
+  <div class="tbl-title">Casos tratados na semana <span id="gst-week-list-label" style="font-weight:400;font-size:11px;color:#6b7280"></span></div>
+  <div class="tbl-scroll">
+    <table class="tbl">
+      <thead><tr><th>Data</th><th>Área</th><th>Nome</th><th>Ação</th><th style="text-align:center">Efetivo</th></tr></thead>
+      <tbody id="gst-week-list"></tbody>
+    </table>
+  </div>
 </div>
 <script>
 (function(){{
@@ -3391,14 +3400,14 @@ def gerar_html(d):
     document.getElementById('gst-area-cards').innerHTML = areas.map(function(a){{
       var valTotal = a.total === null ? '—' : a.total.toLocaleString('pt-BR');
       var valBpp   = a.bpp   === null ? '—' : fmtMoney(a.bpp)+' BPP';
-      return '<div style="background:#0b1120;border:1px solid #1f2937;border-radius:6px;padding:12px;cursor:pointer" '
+      return '<div style="background:#0b1120;border:1px solid #1f2937;border-radius:6px;padding:14px;cursor:pointer" '
         +'onclick="var el=document.querySelector(\'.sb-item[data-tab=&quot;'+a.tab+'&quot;]\'); if(el) el.click();">'
-        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22d3ee"></span>'
-        +'<span style="font-size:11px;font-weight:700;color:#e5e7eb">'+a.label+'</span></div>'
-        +'<div style="font-size:18px;font-weight:800;color:#f3f4f6">'+valTotal+'</div>'
-        +'<div style="font-size:9px;color:#6b7280;margin-bottom:6px">'+a.sub+'</div>'
-        +'<div style="font-size:12px;font-weight:700;color:#f87171">'+valBpp+'</div>'
-        +(a.extra ? '<div style="font-size:9px;color:#fbbf24">'+a.extra+'</div>' : '')
+        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:9px"><span style="width:7px;height:7px;border-radius:50%;background:#22d3ee"></span>'
+        +'<span style="font-size:14px;font-weight:700;color:#e5e7eb">'+a.label+'</span></div>'
+        +'<div style="font-size:21px;font-weight:800;color:#f3f4f6">'+valTotal+'</div>'
+        +'<div style="font-size:11px;color:#9ca3af;margin-bottom:7px">'+a.sub+'</div>'
+        +'<div style="font-size:14px;font-weight:700;color:#f87171">'+valBpp+'</div>'
+        +(a.extra ? '<div style="font-size:11px;color:#fbbf24;margin-top:2px">'+a.extra+'</div>' : '')
         +'</div>';
     }}).join('');
 
@@ -3410,10 +3419,10 @@ def gerar_html(d):
     var sbTotal = sbCnt.ati+sbCnt.inv+sbCnt.enc+sbCnt.res;
     document.getElementById('gst-status-sb').innerHTML = ['ati','inv','enc','res'].map(function(k){{
       var pct = sbTotal ? (sbCnt[k]/sbTotal*100) : 0;
-      return '<div style="display:grid;grid-template-columns:110px 1fr 50px;align-items:center;gap:8px;margin-bottom:7px">'
-        +'<span style="font-size:10px;color:'+FR_CLR[k]+'">&#9679; '+FR_LBL[k]+'</span>'
-        +'<div style="background:#1f2937;border-radius:3px;height:7px"><div style="background:'+FR_CLR[k]+';height:7px;border-radius:3px;width:'+pct+'%"></div></div>'
-        +'<span style="font-size:10px;color:#e5e7eb;text-align:right">'+sbCnt[k].toLocaleString('pt-BR')+'</span></div>';
+      return '<div style="display:grid;grid-template-columns:130px 1fr 50px;align-items:center;gap:8px;margin-bottom:9px">'
+        +'<span style="font-size:12px;color:'+FR_CLR[k]+'">&#9679; '+FR_LBL[k]+'</span>'
+        +'<div style="background:#1f2937;border-radius:3px;height:8px"><div style="background:'+FR_CLR[k]+';height:8px;border-radius:3px;width:'+pct+'%"></div></div>'
+        +'<span style="font-size:12px;color:#e5e7eb;text-align:right;font-weight:600">'+sbCnt[k].toLocaleString('pt-BR')+'</span></div>';
     }}).join('');
 
     var DR_LBL = {{ati:'Ativo',blq:'Bloqueado',ina:'Inativo'}};
@@ -3427,21 +3436,25 @@ def gerar_html(d):
     var drTotal = drCnt.ati+drCnt.blq+drCnt.ina;
     document.getElementById('gst-status-drv').innerHTML = ['ati','blq','ina'].map(function(k){{
       var pct = drTotal ? (drCnt[k]/drTotal*100) : 0;
-      return '<div style="display:grid;grid-template-columns:80px 1fr 50px;align-items:center;gap:8px;margin-bottom:7px">'
-        +'<span style="font-size:10px;color:'+DR_CLR[k]+'">&#9679; '+DR_LBL[k]+'</span>'
-        +'<div style="background:#1f2937;border-radius:3px;height:7px"><div style="background:'+DR_CLR[k]+';height:7px;border-radius:3px;width:'+pct+'%"></div></div>'
-        +'<span style="font-size:10px;color:#e5e7eb;text-align:right">'+drCnt[k].toLocaleString('pt-BR')+'</span></div>';
+      return '<div style="display:grid;grid-template-columns:100px 1fr 50px;align-items:center;gap:8px;margin-bottom:9px">'
+        +'<span style="font-size:12px;color:'+DR_CLR[k]+'">&#9679; '+DR_LBL[k]+'</span>'
+        +'<div style="background:#1f2937;border-radius:3px;height:8px"><div style="background:'+DR_CLR[k]+';height:8px;border-radius:3px;width:'+pct+'%"></div></div>'
+        +'<span style="font-size:12px;color:#e5e7eb;text-align:right;font-weight:600">'+drCnt[k].toLocaleString('pt-BR')+'</span></div>';
     }}).join('');
 
     var hoje = new Date();
     var d0 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()-6);
     var diasArr = [0,1,2,3,4,5,6].map(function(i){{ var dd=new Date(d0); dd.setDate(d0.getDate()+i); return dd; }});
     var diasCnt = [0,0,0,0,0,0,0];
-    var totSemana=0, efetivoSemana=0, bySel=0, byBuy=0, byDrv=0;
+    var bySel=0, byBuy=0, byDrv=0;
+    var weekEvents = [];
 
     function _idxDia(dt) {{
       var idx = Math.floor((dt - d0) / 86400000);
       return (idx >= 0 && idx <= 6) ? idx : -1;
+    }}
+    function _fmtData(dt) {{
+      return dt.toLocaleDateString('pt-BR',{{day:'2-digit',month:'2-digit'}})+' '+dt.toLocaleTimeString('pt-BR',{{hour:'2-digit',minute:'2-digit'}});
     }}
 
     selList.forEach(function(s){{
@@ -3450,11 +3463,12 @@ def gerar_html(d):
       if (!raw) return;
       var hist; try {{ hist = JSON.parse(raw); }} catch(e) {{ hist = []; }}
       var st = _stGet('selfr_st_', s.n, FR_LBL);
+      var efetivo = st === 'res';
       (hist||[]).forEach(function(h){{
         var dt = new Date(h.ts); var idx = _idxDia(dt);
         if (idx < 0) return;
-        diasCnt[idx]++; totSemana++; bySel++;
-        if (st === 'res') {{ efetivoSemana++; }}
+        diasCnt[idx]++; bySel++;
+        weekEvents.push({{ts: dt, area: 'Seller', nome: s.n, acao: h.text || ('Status: '+FR_LBL[st]), efetivo: efetivo}});
       }});
     }});
     buyList.forEach(function(s){{
@@ -3463,11 +3477,12 @@ def gerar_html(d):
       if (!raw) return;
       var hist; try {{ hist = JSON.parse(raw); }} catch(e) {{ hist = []; }}
       var st = _stGet('buyfr_st_', s.n, FR_LBL);
+      var efetivo = st === 'res';
       (hist||[]).forEach(function(h){{
         var dt = new Date(h.ts); var idx = _idxDia(dt);
         if (idx < 0) return;
-        diasCnt[idx]++; totSemana++; byBuy++;
-        if (st === 'res') {{ efetivoSemana++; }}
+        diasCnt[idx]++; byBuy++;
+        weekEvents.push({{ts: dt, area: 'Buyer', nome: s.n, acao: h.text || ('Status: '+FR_LBL[st]), efetivo: efetivo}});
       }});
     }});
     drvList.forEach(function(d){{
@@ -3475,9 +3490,14 @@ def gerar_html(d):
       if (!ts) return;
       var dt = new Date(ts); var idx = _idxDia(dt);
       if (idx < 0) return;
-      diasCnt[idx]++; totSemana++; byDrv++;
-      if ((typeof window.blqGetSt2==='function' ? window.blqGetSt2(d.id) : '') === 'blq') {{ efetivoSemana++; }}
+      diasCnt[idx]++; byDrv++;
+      var stD = (typeof window.blqGetSt2==='function' ? window.blqGetSt2(d.id) : 'ati');
+      weekEvents.push({{ts: dt, area: 'Driver', nome: (d.nome || d.id), acao: 'Status: '+(DR_LBL[stD]||stD), efetivo: stD==='blq'}});
     }});
+
+    weekEvents.sort(function(a,b){{ return b.ts - a.ts; }});
+    var totSemana = weekEvents.length;
+    var efetivoSemana = weekEvents.filter(function(e){{ return e.efetivo; }}).length;
 
     document.getElementById('gst-week-total').textContent =
       totSemana.toLocaleString('pt-BR') + ' tratados · ' + efetivoSemana.toLocaleString('pt-BR') + ' efetivos';
@@ -3489,12 +3509,26 @@ def gerar_html(d):
     }}).join('');
     var diasLbl = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
     document.getElementById('gst-week-labels').innerHTML = diasArr.map(function(dd){{
-      return '<span style="font-size:8px;color:#6b7280;text-align:center">'+diasLbl[dd.getDay()]+'</span>';
+      return '<span style="font-size:10px;color:#9ca3af;text-align:center">'+diasLbl[dd.getDay()]+'</span>';
     }}).join('');
     document.getElementById('gst-week-breakdown').innerHTML =
-      '<div style="font-size:10px;color:#9ca3af">Sellers <strong style="color:#e5e7eb">'+bySel+'</strong></div>'
-      +'<div style="font-size:10px;color:#9ca3af">Buyers <strong style="color:#e5e7eb">'+byBuy+'</strong></div>'
-      +'<div style="font-size:10px;color:#9ca3af">Drivers <strong style="color:#e5e7eb">'+byDrv+'</strong> <span style="color:#4b5563">(a partir de agora)</span></div>';
+      '<div style="font-size:12px;color:#9ca3af">Sellers <strong style="color:#e5e7eb">'+bySel+'</strong></div>'
+      +'<div style="font-size:12px;color:#9ca3af">Buyers <strong style="color:#e5e7eb">'+byBuy+'</strong></div>'
+      +'<div style="font-size:12px;color:#9ca3af">Drivers <strong style="color:#e5e7eb">'+byDrv+'</strong> <span style="color:#6b7280">(a partir de agora)</span></div>';
+
+    var listLbl = document.getElementById('gst-week-list-label');
+    var listRows = weekEvents.slice(0, 200);
+    if (listLbl) listLbl.textContent = totSemana ? ('· '+totSemana.toLocaleString('pt-BR')+' caso(s)'+(totSemana>200?' (top 200)':'')) : '· nenhum caso tratado nos últimos 7 dias';
+    document.getElementById('gst-week-list').innerHTML = listRows.length ? listRows.map(function(e){{
+      var areaClr = e.area==='Driver' ? '#93c5fd' : (e.area==='Buyer' ? '#c4b5fd' : '#fbbf24');
+      return '<tr>'
+        +'<td style="color:#9ca3af;font-size:11px;white-space:nowrap">'+_fmtData(e.ts)+'</td>'
+        +'<td><span style="font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;background:rgba(255,255,255,.06);color:'+areaClr+'">'+e.area+'</span></td>'
+        +'<td style="font-weight:600;color:#e5e7eb">'+e.nome+'</td>'
+        +'<td style="color:#d1d5db;font-size:12px">'+e.acao+'</td>'
+        +'<td style="text-align:center">'+(e.efetivo ? '<span style="color:#4ade80;font-weight:700">&#10003;</span>' : '<span style="color:#4b5563">—</span>')+'</td>'
+        +'</tr>';
+    }}).join('') : '<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:14px">Nenhum caso tratado nos últimos 7 dias</td></tr>';
   }};
 
   setTimeout(function(){{
@@ -3825,7 +3859,7 @@ const DXP_DATA    = {j([{**r, 'months': r.get('months', [])} for r in d.get('dxp
 const PLACES_DATA = {j(d.get('places', []))};
 const BL_DATA     = {j([{k: v for k, v in r.items() if k != 'historico'} for r in d['bl']['rows']])};
 
-const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','damaged_ene','ofensores','bloqueios','cruzamento','relatorio'];
+const ALL_TABS = ['geral','acumulo','dxp','places','damaged','tendencia','dcnex','saidas','devolucoes','sellers_ene','damaged_ene','ofensores','bloqueios','cruzamento','relatorio','gestao','nodos','buyers','sellers'];
 function showTab(name, el) {{
   _currentTab = name;
   document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
@@ -3848,11 +3882,19 @@ function showTab(name, el) {{
 function _handleHashNav(delay) {{
   const raw = window.location.hash.replace('#','');
   const parts = raw.split('__');
-  const tabName = parts[0];
+  const tabName = ALL_TABS.includes(parts[0]) ? parts[0] : 'gestao';
   const driverId = parts[1] || null;
-  if (!ALL_TABS.includes(tabName)) return;
   const el = document.querySelector(`.sb-item[data-tab="${{tabName}}"]`);
   if (el) showTab(tabName, el);
+  setTimeout(() => {{
+    if (tabName === 'gestao'    && window.gstRender)       window.gstRender();
+    if (tabName === 'bloqueios' && window.blqBuildCharts)  window.blqBuildCharts();
+    if (tabName === 'bloqueios' && window.blqRender)       window.blqRender();
+    if (tabName === 'nodos'     && window.buildNodoCharts) window.buildNodoCharts();
+    if (tabName === 'nodos'     && window.filtrarNodos)    window.filtrarNodos();
+    if (tabName === 'buyers'    && window.buyAplicar)      window.buyAplicar();
+    if (tabName === 'sellers'   && window.selAplicar)      window.selAplicar();
+  }}, 150);
   if (!driverId) return;
   setTimeout(() => {{
     const detail = document.getElementById('acbl_' + driverId);
