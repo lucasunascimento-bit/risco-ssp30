@@ -1168,14 +1168,14 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.30</span>',
+        '<span class="ver-badge">v4.31</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
     _salvar_ids_conhecidos({str(d['id']) for d in drivers})
-    print(f'Pronto! {mb:.1f} MB — v4.30')
+    print(f'Pronto! {mb:.1f} MB — v4.31')
 
 
 if __name__ == '__main__':

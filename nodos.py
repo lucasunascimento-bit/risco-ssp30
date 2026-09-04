@@ -1,6 +1,7 @@
 """
 nodos.py — Análise de Nodos (Places/NEX/DC/PU/XPT) para o Dashboard de Fraude SSP30.
-Consulta BT_SHP_PLACES_AND_NODES + DM_LP_MELI_OPTIMIZADO e injeta tab-nodos em fraude.html.
+Consulta BT_SHP_PLACES_AND_NODES + DM_LP_MELI_OPTIMIZADO + LK_SHP_MISSING_MANAGEMENT_PACKAGES
+e injeta tab-nodos em fraude.html.
 Uso: python nodos.py
 """
 
@@ -11,9 +12,12 @@ from pathlib import Path
 from google.cloud import bigquery
 from google.auth import default
 
-FACILITY    = 'Guarulhos Mega'
-INICIO      = '2026-01-01'
-FRAUDE_HTML = Path(__file__).parent / 'fraude.html'
+FACILITY       = 'Guarulhos Mega'
+FACILITY_ID    = 'SSP30'
+INICIO         = '2026-01-01'
+DIAS_PARADO_MIN = 7
+FRAUDE_HTML    = Path(__file__).parent / 'fraude.html'
+LOG_URL        = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/'
 
 _FC = (
     "Classification_LM LIKE 'FRAUD%' "
@@ -22,6 +26,7 @@ _FC = (
     "OR Classification_LM = 'EMPTY BOX'"
 )
 
+# ── Query 1: agregado por nodo (place x tipo) ───────────────────────────────
 QUERY = f"""
 WITH shp_dedup AS (
   SELECT
@@ -54,6 +59,10 @@ SELECT
   ROUND(SUM(f.bpp), 2)                                        AS bpp,
   COUNTIF(f.is_fraud)                                         AS fraud_shps,
   COUNTIF(f.is_damaged)                                       AS damaged_shps,
+  COUNTIF(f.classe = 'EMPTY BOX')                             AS empty_box_shps,
+  ROUND(SUM(IF(f.classe = 'EMPTY BOX', f.bpp, 0)), 2)         AS empty_box_bpp,
+  COUNTIF(f.classe = 'PNR C')                                 AS pnr_shps,
+  ROUND(SUM(IF(f.classe = 'PNR C', f.bpp, 0)), 2)             AS pnr_bpp,
   APPROX_TOP_COUNT(f.classe, 1)[OFFSET(0)].value              AS classe_principal,
   ARRAY_AGG(DISTINCT f.mes IGNORE NULLS)                      AS meses,
   ARRAY_AGG(CAST(p.SHP_SHIPMENT_ID AS STRING)
@@ -65,6 +74,58 @@ GROUP BY 1, 2
 ORDER BY bpp DESC
 """
 
+# ── Query 2: evidencia (1 linha por SHP) para EMPTY BOX e PNR C ─────────────
+QUERY_EVIDENCIA = f"""
+WITH ev AS (
+  SELECT
+    CAST(SHIPMENT_ID AS STRING)                               AS sid,
+    MAX(IFNULL(Classification_LM, ''))                        AS classe,
+    MAX(IFNULL(CAUSA_BPP, ''))                                AS causa_bpp,
+    MAX(BPP_CASHOUT_USD)                                      AS bpp,
+    MAX(FORMAT_DATE('%Y-%m', date_bpp))                       AS mes
+  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
+  WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
+    AND date_bpp >= '{INICIO}'
+    AND date_bpp <= CURRENT_DATE()
+    AND Classification_LM IN ('EMPTY BOX', 'PNR C')
+  GROUP BY 1
+)
+SELECT
+  p.SHP_AGENCY_ID                                             AS place_id,
+  p.SERVICE_TYPE                                              AS tipo,
+  e.sid, e.classe, e.causa_bpp, e.bpp, e.mes
+FROM ev e
+INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` p
+  ON CAST(p.SHP_SHIPMENT_ID AS STRING) = e.sid
+WHERE p.SERVICE_TYPE IN ('DO','NEX','DC','PU','XPT')
+ORDER BY e.bpp DESC
+"""
+
+# ── Query 3: pacotes parados (sem movimentacao ou vencidos) por nodo ────────
+QUERY_PARADOS = f"""
+WITH stuck AS (
+  SELECT
+    CAST(SHP_SHIPMENT_ID AS STRING)                           AS sid,
+    IFNULL(SHP_LG_STATUS, '')                                 AS status,
+    IFNULL(SHP_LG_SUB_STATUS, '')                             AS substatus,
+    IFNULL(DAYS_HANDLING_SVC, 0)                              AS dias_parado,
+    IFNULL(DAYS_EXPIRED_PROMISE, 0)                           AS dias_vencido,
+    ROUND(IFNULL(SHP_ORDER_COST_USD, 0), 2)                   AS gmv
+  FROM `meli-bi-data.WHOWNER.LK_SHP_MISSING_MANAGEMENT_PACKAGES`
+  WHERE SHP_LG_FACILITY_ID = '{FACILITY_ID}'
+    AND (IFNULL(DAYS_HANDLING_SVC, 0) >= {DIAS_PARADO_MIN} OR IFNULL(DAYS_EXPIRED_PROMISE, 0) > 0)
+)
+SELECT
+  p.SHP_AGENCY_ID                                             AS place_id,
+  p.SERVICE_TYPE                                              AS tipo,
+  s.sid, s.status, s.substatus, s.dias_parado, s.dias_vencido, s.gmv
+FROM stuck s
+INNER JOIN `meli-bi-data.WHOWNER.BT_SHP_PLACES_AND_NODES` p
+  ON CAST(p.SHP_SHIPMENT_ID AS STRING) = s.sid
+WHERE p.SERVICE_TYPE IN ('DO','NEX','DC','PU','XPT')
+ORDER BY s.dias_parado DESC
+"""
+
 TIPO_LBL = {'DO': 'Place', 'NEX': 'NEX', 'DC': 'DC', 'PU': 'Pickup', 'XPT': 'XPT'}
 
 
@@ -73,12 +134,56 @@ def conectar():
     return bigquery.Client(credentials=creds, project='meli-bi-data')
 
 
+def _score(fraud, bpp, empty_box, pnr, parados, pct_fraud):
+    s = (min(fraud, 20) + min(bpp / 300, 20) + min(empty_box * 3, 15)
+         + min(pnr * 2, 15) + min(parados * 2, 15) + (15 if pct_fraud > 20 else 0))
+    return round(s, 1)
+
+
 def carregar_dados():
     print('Conectando ao BigQuery...')
     client = conectar()
-    print('Consultando nodos (places/NEX/DC/PU/XPT)...')
-    rows = list(client.query(QUERY).result())
-    print(f'  {len(rows)} nodo(s) retornado(s)')
+    print('Disparando as 3 queries em paralelo (nodos, evidencia, parados)...')
+    job_nodos    = client.query(QUERY)
+    job_ev       = client.query(QUERY_EVIDENCIA)
+    job_parados  = client.query(QUERY_PARADOS)
+
+    print('Aguardando nodos agregados...')
+    rows = list(job_nodos.result())
+    print(f'  {len(rows):,} nodo(s) retornado(s)')
+
+    print('Aguardando evidencia EMPTY BOX/PNR...')
+    ev_rows = list(job_ev.result())
+    print(f'  {len(ev_rows):,} SHP(s) EMPTY BOX/PNR C')
+
+    print('Aguardando pacotes parados...')
+    parados_rows = list(job_parados.result())
+    print(f'  {len(parados_rows):,} pacote(s) parado(s) (>= {DIAS_PARADO_MIN}d sem mov. ou vencido)')
+
+    # Evidencia EMPTY BOX/PNR por nodo
+    evidencias = {}
+    for row in ev_rows:
+        key = (row['place_id'] or '', row['tipo'] or '')
+        evidencias.setdefault(key, []).append({
+            'sid':   row['sid'],
+            'classe': row['classe'] or '',
+            'causa': row['causa_bpp'] or row['classe'] or '',
+            'bpp':   float(row['bpp'] or 0),
+            'mes':   row['mes'] or '',
+        })
+
+    # Pacotes parados por nodo
+    parados_por_nodo = {}
+    for row in parados_rows:
+        key = (row['place_id'] or '', row['tipo'] or '')
+        parados_por_nodo.setdefault(key, []).append({
+            'sid':          row['sid'],
+            'status':       row['status'] or '',
+            'substatus':    row['substatus'] or '',
+            'dias':         int(row['dias_parado'] or 0),
+            'dias_vencido': int(row['dias_vencido'] or 0),
+            'gmv':          float(row['gmv'] or 0),
+        })
 
     nodos = []
     for row in rows:
@@ -89,41 +194,69 @@ def carregar_dados():
         dmg   = int(row['damaged_shps'])
         pct_fraud = round(fraud / total * 100, 1) if total else 0.0
         tipo = row['tipo'] or ''
+        place_id = row['place_id'] or ''
+        key = (place_id, tipo)
+        empty_box_qtd = int(row['empty_box_shps'])
+        pnr_qtd       = int(row['pnr_shps'])
+        parados_lista = parados_por_nodo.get(key, [])
+        parados_qtd   = len(parados_lista)
+        parados_gmv   = round(sum(p['gmv'] for p in parados_lista), 2)
+
         nodos.append({
-            'nodo':      row['nome'] or row['place_id'] or 'Não Identificado',
-            'node_id':   row['node_id'] or '',
-            'place_id':  row['place_id'] or '',
-            'tipo':      tipo,
-            'tipo_lbl':  TIPO_LBL.get(tipo, tipo),
-            'total':     total,
-            'drivers':   int(row['drivers']),
-            'sellers':   int(row['sellers']),
-            'buyers':    int(row['buyers']),
-            'bpp':       float(row['bpp'] or 0),
-            'classe':    row['classe_principal'] or '',
-            'fraud':     fraud,
-            'damaged':   dmg,
-            'pct_fraud': pct_fraud,
-            'estado':    row['estado'] or '',
-            'cidade':    row['cidade'] or '',
-            'meses':     meses,
-            'shps':      shps,
+            'nodo':          row['nome'] or place_id or 'Não Identificado',
+            'node_id':       row['node_id'] or '',
+            'place_id':      place_id,
+            'tipo':          tipo,
+            'tipo_lbl':      TIPO_LBL.get(tipo, tipo),
+            'total':         total,
+            'drivers':       int(row['drivers']),
+            'sellers':       int(row['sellers']),
+            'buyers':        int(row['buyers']),
+            'bpp':           float(row['bpp'] or 0),
+            'classe':        row['classe_principal'] or '',
+            'fraud':         fraud,
+            'damaged':       dmg,
+            'pct_fraud':     pct_fraud,
+            'empty_box_qtd': empty_box_qtd,
+            'empty_box_bpp': float(row['empty_box_bpp'] or 0),
+            'pnr_qtd':       pnr_qtd,
+            'pnr_bpp':       float(row['pnr_bpp'] or 0),
+            'parados_qtd':   parados_qtd,
+            'parados_gmv':   parados_gmv,
+            'score':         _score(fraud, float(row['bpp'] or 0), empty_box_qtd, pnr_qtd, parados_qtd, pct_fraud),
+            'estado':        row['estado'] or '',
+            'cidade':        row['cidade'] or '',
+            'meses':         meses,
+            'shps':          shps,
         })
 
-    return nodos
+    return nodos, evidencias, parados_por_nodo
 
 
-def gerar_tab_html(nodos):
+def gerar_tab_html(nodos, evidencias, parados_por_nodo):
     total_nodos  = len(nodos)
     total_shps   = sum(n['total'] for n in nodos)
     total_bpp    = round(sum(n['bpp'] for n in nodos), 2)
     total_fraud  = sum(n['fraud'] for n in nodos)
+    total_empty  = sum(n['empty_box_qtd'] for n in nodos)
+    total_pnr    = sum(n['pnr_qtd'] for n in nodos)
+    total_parados = sum(n['parados_qtd'] for n in nodos)
     top_bpp      = sorted(nodos, key=lambda x: x['bpp'], reverse=True)[:12]
     top_shps     = sorted(nodos, key=lambda x: x['total'], reverse=True)[:12]
 
     nodos_json    = json.dumps(nodos, ensure_ascii=False)
     top_bpp_json  = json.dumps([{'nodo': n['nodo']+' ('+n['tipo_lbl']+')', 'bpp': n['bpp']} for n in top_bpp], ensure_ascii=False)
     top_shps_json = json.dumps([{'nodo': n['nodo']+' ('+n['tipo_lbl']+')', 'total': n['total']} for n in top_shps], ensure_ascii=False)
+
+    # Evidencia/parados indexados por "place_id|tipo" (string, pra virar chave JS)
+    ev_json = json.dumps(
+        {f'{pid}|{tp}': v for (pid, tp), v in evidencias.items()},
+        ensure_ascii=False,
+    )
+    parados_json = json.dumps(
+        {f'{pid}|{tp}': v for (pid, tp), v in parados_por_nodo.items()},
+        ensure_ascii=False,
+    )
 
     now = datetime.now().strftime('%d/%m/%Y %H:%M')
 
@@ -142,6 +275,17 @@ def gerar_tab_html(nodos):
   <div style="font-size:10px;color:#6b7280;background:#0d1321;border:1px solid #1f2937;border-radius:6px;padding:8px 12px;margin-bottom:14px">
     Todos os nós abaixo têm ligação direta com o SSP30 — só entram na lista os que receberam ao menos um shipment que saiu do SSP30/Guarulhos Mega. Estados fora de SP são o destino final do comprador (Place/Pickup), não é erro. Um mesmo shipment pode passar por mais de um nó (ex: um NEX e depois um Place de entrega) — os valores de BPP/SHPs são por nó e não devem ser somados entre tipos diferentes.
   </div>
+
+  <!-- Sub-abas -->
+  <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid #1f2937">
+    <button id="nodtab-todos" class="nod-subtab nod-subtab-active" onclick="nodMostrarSub('todos',this)"
+      style="background:transparent;border:none;border-bottom:2px solid #34d399;color:#e5e7eb;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer">Todos os Nodos</button>
+    <button id="nodtab-ofensores" class="nod-subtab" onclick="nodMostrarSub('ofensores',this)"
+      style="background:transparent;border:none;border-bottom:2px solid transparent;color:#9ca3af;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer">Nodos Ofensores</button>
+  </div>
+
+  <!-- VIEW: TODOS -->
+  <div id="nod-view-todos">
 
   <!-- KPIs -->
   <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
@@ -218,6 +362,81 @@ def gerar_tab_html(nodos):
       <tbody id="nod-tbody"></tbody>
     </table>
   </div>
+  </div>
+
+  <!-- VIEW: OFENSORES -->
+  <div id="nod-view-ofensores" style="display:none">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#f87171">{total_fraud:,}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px">SHPs Fraude Confirmada</div>
+      </div>
+      <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#a78bfa">{total_empty:,}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px">SHPs Empty Box</div>
+      </div>
+      <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#fbbf24">{total_pnr:,}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px">SHPs PNR</div>
+      </div>
+      <div style="background:#0a0f1e;border:1px solid #1f2937;border-radius:8px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#60a5fa">{total_parados:,}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px">Pacotes Parados (&gt;= {DIAS_PARADO_MIN}d ou vencidos)</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div>
+        <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Nodos ofensores</span>
+        <span style="font-size:10px;color:#374151;margin-left:6px">ordenado por score (clique na linha pra ver os shipments abaixo)</span>
+        <span id="nod-of-header" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
+      </div>
+      <input id="nod-of-busca" type="text" placeholder="Buscar nodo..." oninput="nodOfFiltrar()"
+        style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
+    </div>
+    <div style="border:1px solid #1f2937;border-radius:8px;overflow:hidden;margin-bottom:14px">
+      <div style="overflow-y:auto;max-height:340px;background:#060a14">
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead style="position:sticky;top:0;z-index:2;background:#0d1321">
+            <tr>
+              <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="nodOfSort('nodo')">Nodo</th>
+              <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Tipo</th>
+              <th style="padding:6px 8px;text-align:center;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="nodOfSort('score')">Score</th>
+              <th style="padding:6px 8px;text-align:center;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="nodOfSort('fraud')">Fraude</th>
+              <th style="padding:6px 8px;text-align:center;color:#a78bfa;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="nodOfSort('empty_box_qtd')">Empty Box</th>
+              <th style="padding:6px 8px;text-align:center;color:#fbbf24;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="nodOfSort('pnr_qtd')">PNR</th>
+              <th style="padding:6px 8px;text-align:center;color:#60a5fa;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="nodOfSort('parados_qtd')">Parados</th>
+              <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937;cursor:pointer" onclick="nodOfSort('bpp')">BPP</th>
+            </tr>
+          </thead>
+          <tbody id="nod-of-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div>
+        <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Shipments do nodo selecionado</span>
+        <span id="nod-ev-header" style="font-size:10px;color:#4b5563;margin-left:6px">- selecione um nodo acima</span>
+      </div>
+    </div>
+    <div style="border:1px solid #1f2937;border-radius:8px;overflow:hidden">
+      <div style="overflow-y:auto;max-height:340px;background:#060a14">
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead style="position:sticky;top:0;z-index:2;background:#0d1321">
+            <tr>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Tipo</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Shipment ID</th>
+              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Causa / Status</th>
+              <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Mês / Dias parado</th>
+              <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP / GMV</th>
+            </tr>
+          </thead>
+          <tbody id="nod-ev-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
 </div>
 
@@ -226,8 +445,14 @@ def gerar_tab_html(nodos):
 var NODOS_DATA={nodos_json};
 var NOD_TOP_BPP={top_bpp_json};
 var NOD_TOP_SHPS={top_shps_json};
+var NOD_EV_DATA={ev_json};
+var NOD_PARADOS_DATA={parados_json};
+var LOG_URL='{LOG_URL}';
 var nodChtBpp=null,nodChtShps=null;
 var TIPO_CLR={{DO:'#34d399',NEX:'#60a5fa',DC:'#a78bfa',PU:'#fbbf24',XPT:'#f472b6'}};
+var _nodOfQ='';
+var _nodOfSortKey='score', _nodOfSortDir=-1;
+var _nodOfSel=null;
 
 function buildNodoCharts(){{
   var eB=document.getElementById('nodChtBpp');
@@ -308,6 +533,100 @@ window.limparFiltrosNodos=function(){{
   var f=document.getElementById('nod-filtro');if(f)f.value='';
   filtrarNodos();
 }};
+
+window.nodMostrarSub=function(nome,btn){{
+  document.getElementById('nod-view-todos').style.display=(nome==='todos')?'':'none';
+  document.getElementById('nod-view-ofensores').style.display=(nome==='ofensores')?'':'none';
+  document.querySelectorAll('.nod-subtab').forEach(function(b){{b.style.borderBottomColor='transparent';b.style.color='#9ca3af';}});
+  if(btn){{btn.style.borderBottomColor='#34d399';btn.style.color='#e5e7eb';}}
+  if(nome==='ofensores') nodRenderOfensores();
+}};
+
+function _nodOfensoresLista(){{
+  return NODOS_DATA.filter(function(n){{
+    return n.fraud>0||n.empty_box_qtd>0||n.pnr_qtd>0||n.parados_qtd>0;
+  }});
+}}
+
+window.nodOfSort=function(key){{
+  if(_nodOfSortKey===key) _nodOfSortDir=-_nodOfSortDir;
+  else {{ _nodOfSortKey=key; _nodOfSortDir=(key==='nodo')?1:-1; }}
+  nodRenderOfensores();
+}};
+
+window.nodOfFiltrar=function(){{
+  _nodOfQ=(document.getElementById('nod-of-busca')||{{}}).value||'';
+  nodRenderOfensores();
+}};
+
+function nodRenderOfensores(){{
+  var q=_nodOfQ.toLowerCase();
+  var lista=_nodOfensoresLista();
+  if(q) lista=lista.filter(function(n){{return n.nodo.toLowerCase().indexOf(q)>=0;}});
+  var key=_nodOfSortKey, dir=_nodOfSortDir;
+  lista=lista.slice().sort(function(a,b){{
+    if(key==='nodo') return a.nodo.localeCompare(b.nodo)*dir;
+    return ((a[key]||0)-(b[key]||0))*dir;
+  }});
+  var hdr=document.getElementById('nod-of-header');
+  if(hdr) hdr.textContent='- '+lista.length.toLocaleString('pt-BR')+' nodo(s) com sinal de risco';
+  var el=document.getElementById('nod-of-tbody');
+  if(!el) return;
+  el.innerHTML=lista.map(function(n){{
+    var key=n.place_id+'|'+n.tipo;
+    var sel=_nodOfSel===key;
+    var hl=sel?'background:#0f2040;border-left:3px solid #38bdf8;':'border-left:3px solid transparent;';
+    var tipoClr=TIPO_CLR[n.tipo]||'#9ca3af';
+    var scoreCls=n.score>=40?'color:#f87171;font-weight:700':(n.score>=20?'color:#fbbf24;font-weight:700':'color:#6b7280');
+    return '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="nodOfSelecionar(\\''+key+'\\')">'
+      +'<td style="padding:4px 8px;color:#34d399;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+n.nodo+'">'+n.nodo+'</td>'
+      +'<td style="padding:4px 8px;text-align:center"><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.06);color:'+tipoClr+'">'+n.tipo_lbl+'</span></td>'
+      +'<td style="padding:4px 8px;text-align:center;'+scoreCls+'">'+n.score+'</td>'
+      +'<td style="padding:4px 8px;text-align:center;color:'+(n.fraud>0?'#f87171':'#374151')+'">'+n.fraud+'</td>'
+      +'<td style="padding:4px 8px;text-align:center;color:'+(n.empty_box_qtd>0?'#a78bfa':'#374151')+'">'+n.empty_box_qtd+'</td>'
+      +'<td style="padding:4px 8px;text-align:center;color:'+(n.pnr_qtd>0?'#fbbf24':'#374151')+'">'+n.pnr_qtd+'</td>'
+      +'<td style="padding:4px 8px;text-align:center;color:'+(n.parados_qtd>0?'#60a5fa':'#374151')+'">'+n.parados_qtd+'</td>'
+      +'<td style="padding:4px 8px;text-align:right;color:#f87171;font-weight:700">US$ '+n.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
+      +'</tr>';
+  }}).join('');
+}}
+
+window.nodOfSelecionar=function(key){{
+  _nodOfSel=(_nodOfSel===key)?null:key;
+  nodRenderOfensores();
+  nodRenderEvidencia();
+}};
+
+function nodRenderEvidencia(){{
+  var hdr=document.getElementById('nod-ev-header');
+  var el=document.getElementById('nod-ev-tbody');
+  if(!el) return;
+  if(!_nodOfSel){{
+    if(hdr) hdr.textContent='- selecione um nodo acima';
+    el.innerHTML='';
+    return;
+  }}
+  var ev=(NOD_EV_DATA[_nodOfSel]||[]).map(function(e){{
+    return {{tipo:e.classe==='EMPTY BOX'?'Empty Box':'PNR', sid:e.sid, info:e.causa, extra:e.mes, valor:e.bpp}};
+  }});
+  var parados=(NOD_PARADOS_DATA[_nodOfSel]||[]).map(function(p){{
+    var motivo=p.dias>=7?(p.dias+'d parado'):('venc. '+p.dias_vencido+'d');
+    return {{tipo:'Parado', sid:p.sid, info:(p.status||'')+(p.substatus?(' / '+p.substatus):''), extra:motivo, valor:p.gmv}};
+  }});
+  var combinado=ev.concat(parados).sort(function(a,b){{return b.valor-a.valor;}});
+  var nodo=NODOS_DATA.find(function(n){{return (n.place_id+'|'+n.tipo)===_nodOfSel;}});
+  if(hdr) hdr.textContent='- '+(nodo?nodo.nodo:_nodOfSel)+' — '+combinado.length.toLocaleString('pt-BR')+' shipment(s)';
+  var TIPO_BG={{'Empty Box':'background:rgba(167,139,250,.12);color:#a78bfa','PNR':'background:rgba(251,191,36,.12);color:#fbbf24','Parado':'background:rgba(96,165,250,.12);color:#60a5fa'}};
+  el.innerHTML=combinado.length?combinado.map(function(e){{
+    return '<tr style="border-bottom:1px solid #080c18">'
+      +'<td style="padding:4px 8px"><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;'+(TIPO_BG[e.tipo]||'')+'">'+e.tipo+'</span></td>'
+      +'<td style="padding:4px 8px"><a href="'+LOG_URL+e.sid+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:11px;font-weight:600;text-decoration:none">'+e.sid+'</a></td>'
+      +'<td style="padding:4px 8px;color:#9ca3af;font-size:10px">'+(e.info||'—')+'</td>'
+      +'<td style="padding:4px 8px;text-align:center;color:#6b7280;font-size:10px">'+(e.extra||'—')+'</td>'
+      +'<td style="padding:4px 8px;text-align:right;color:#f87171">$'+e.valor.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'
+      +'</tr>';
+  }}).join('') : '<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:14px">Nenhum shipment encontrado.</td></tr>';
+}}
 
 window.NODOS_DATA=NODOS_DATA;
 window.filtrarNodos=filtrarNodos;
@@ -394,8 +713,8 @@ def injetar_no_fraude(tab_html, nodos, tab_id='tab-nodos'):
 
 
 def main():
-    nodos = carregar_dados()
-    tab_html = gerar_tab_html(nodos)
+    nodos, evidencias, parados_por_nodo = carregar_dados()
+    tab_html = gerar_tab_html(nodos, evidencias, parados_por_nodo)
     if injetar_no_fraude(tab_html, nodos, 'tab-nodos'):
         print(f'\nOK - Tab Nodos injetada com {len(nodos)} nodos')
     else:
