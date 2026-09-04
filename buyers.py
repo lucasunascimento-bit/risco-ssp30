@@ -1282,6 +1282,7 @@ window.buyTab = function(aba){{
   renderAbas();
 }};
 
+window.BUY_DATA = BUY_DATA;
 window.buyAplicar = buyAplicar;
 window.buySetPeriodChip = buySetPeriodChip;
 window.buyCustomPeriod  = buyCustomPeriod;

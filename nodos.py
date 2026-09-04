@@ -258,6 +258,7 @@ window.limparFiltrosNodos=function(){{
   filtrarNodos();
 }};
 
+window.NODOS_DATA=NODOS_DATA;
 window.filtrarNodos=filtrarNodos;
 window.buildNodoCharts=buildNodoCharts;
 

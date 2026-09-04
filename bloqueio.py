@@ -693,7 +693,10 @@ function blqToggleSt2(id) {{
   var cycle = ['ati','blq','ina'];
   var cur = blqGetSt2(id);
   var next = cycle[(cycle.indexOf(cur)+1) % cycle.length];
-  try {{ localStorage.setItem('blq_s2_'+id, next); }} catch(e) {{}}
+  try {{
+    localStorage.setItem('blq_s2_'+id, next);
+    localStorage.setItem('blq_stts_'+id, new Date().toISOString());
+  }} catch(e) {{}}
   blqRender();
 }}
 function blqSortBy(k) {{
@@ -887,6 +890,7 @@ window.blqToggleShps = function(id) {{
   row.style.display = open ? 'none' : 'table-row';
   if(chv) chv.className = open ? 'blq-chv' : 'blq-chv open';
 }};
+window.BLQ_DATA     = BLQ_DATA;
 window.blqNextSt    = blqNextSt;
 window.blqGetSt2    = blqGetSt2;
 window.blqToggleSt2 = blqToggleSt2;
@@ -1116,7 +1120,7 @@ def inject_bloqueios_sidebar(html):
         'setTimeout(function(){if(window.blqBuildCharts)window.blqBuildCharts();'
         'if(window.blqRender)window.blqRender();},250)">\n'
         '      <i data-lucide="shield-x" width="14" height="14" class="ci"></i>\n'
-        '      Bloqueios <span class="sb-badge" id="tab-count-bloqueios">0</span>\n'
+        '      Drivers <span class="sb-badge" id="tab-count-bloqueios">0</span>\n'
         '    </div>\n'
         '    <div class="sb-item" data-tab="nodos"'
     )
@@ -1164,14 +1168,14 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.23</span>',
+        '<span class="ver-badge">v4.24</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
     _salvar_ids_conhecidos({str(d['id']) for d in drivers})
-    print(f'Pronto! {mb:.1f} MB — v4.23')
+    print(f'Pronto! {mb:.1f} MB — v4.24')
 
 
 if __name__ == '__main__':

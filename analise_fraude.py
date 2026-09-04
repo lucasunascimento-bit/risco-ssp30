@@ -3122,13 +3122,13 @@ def gerar_html(d):
 {diario_panel_html()}
 <div class="app-body">
 <nav class="sidebar">
-  <div class="sb-item active" data-tab="lor-fraud" onclick="showTab('lor-fraud',this);setTimeout(function(){{if(window.lfRender)window.lfRender();}},80)">
-    <i data-lucide="truck" width="14" height="14" class="ci"></i>
-    LOR+Fraud <span class="sb-badge red" id="tab-count-lor-fraud">0</span>
+  <div class="sb-item active" data-tab="gestao" onclick="showTab('gestao',this);setTimeout(function(){{if(window.gstRender)window.gstRender();}},80)">
+    <i data-lucide="layout-dashboard" width="14" height="14" class="ci"></i>
+    Gestão
   </div>
   <div class="sb-item" data-tab="bloqueios" onclick="showTab('bloqueios',this)">
     <i data-lucide="shield" width="14" height="14" class="ci"></i>
-    Bloqueios <span class="sb-badge green" id="tab-count-bloqueios">{d["bl"]["total"]}</span>
+    Drivers <span class="sb-badge green" id="tab-count-bloqueios">{d["bl"]["total"]}</span>
   </div>
   <div class="sb-item" data-tab="nodos" onclick="showTab('nodos',this);setTimeout(function(){{if(window.buildNodoCharts)window.buildNodoCharts();if(window.filtrarNodos)window.filtrarNodos();}},80)">
     <i data-lucide="map-pin" width="14" height="14" class="ci"></i>
@@ -3251,126 +3251,256 @@ def gerar_html(d):
   {''.join(f'<div id="acbl-content-{p}" class="acbl-period-content" style="display:{"" if p=="90" else "none"}">{rows_acumulo_bloqueio(d["acumulo_por_periodo"][p], pid=p)}</div>' for p in ["30","60","90","180"])}
 </div>
 
-<!-- ANÁLISE LOR+FRAUD -->
-<div id="tab-lor-fraud" class="content">
-<div style="font-size:18px;font-weight:700;color:#f9fafb;margin-bottom:6px">Análise Drivers — LOR + Fraude</div>
-<div style="font-size:12px;color:#6b7280;margin-bottom:14px">Todos os casos desde {d["ano"]} · Lost on Route + Fraude + PNR C · Filtro por mês</div>
+<!-- GESTAO -->
+<div id="tab-gestao" class="content">
+<div style="font-size:18px;font-weight:700;color:#f9fafb;margin-bottom:6px">Gestão — Visão Geral</div>
+<div style="font-size:12px;color:#6b7280;margin-bottom:14px">Consolidado de Drivers, Nodos, Buyers e Sellers · calculado a partir dos dados já carregados em cada aba</div>
 <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap">
   <span style="font-size:11px;color:#9ca3af;font-weight:500;margin-right:4px">Período:</span>
-  <button class="lf-btn lf-active" onclick="lfMes('all',this)">Todos</button>
-  {_lf_month_btns}
+  <button class="lf-btn" data-p="1m" onclick="gstPeriodo('1m',this)">1m</button>
+  <button class="lf-btn" data-p="3m" onclick="gstPeriodo('3m',this)">3m</button>
+  <button class="lf-btn" data-p="6m" onclick="gstPeriodo('6m',this)">6m</button>
+  <button class="lf-btn lf-active" data-p="all" onclick="gstPeriodo('all',this)">Tudo</button>
 </div>
-<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px">
+<div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
   <div class="card">
-    <div class="card-header"><i data-lucide="package-x" class="ci" width="14" height="14" style="color:#E24B4A"></i><span class="cl">Casos LOR+Fraud</span></div>
-    <div id="lf-cnt-total" class="card-value" style="color:#E24B4A">{_dlf.get("total_shps",0):,}</div>
-    <div class="card-delta">pacotes desde {d["ano"]}</div>
+    <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14" style="color:#f87171"></i><span class="cl">BPP Total Exposto</span></div>
+    <div id="gst-kpi-bpp" class="card-value" style="color:#f87171">$0</div>
+    <div class="card-delta">no período selecionado</div>
   </div>
   <div class="card">
-    <div class="card-header"><i data-lucide="dollar-sign" class="ci" width="14" height="14"></i><span class="cl">BPP Total</span></div>
-    <div id="lf-cnt-bpp" class="card-value" style="font-size:20px">${_dlf.get("total_bpp",0):,.0f}</div>
-    <div class="card-delta">valor acumulado</div>
+    <div class="card-header"><i data-lucide="folder-open" class="ci" width="14" height="14"></i><span class="cl">Casos Ativos</span></div>
+    <div id="gst-kpi-casos" class="card-value">0</div>
+    <div class="card-delta">todas as áreas</div>
   </div>
   <div class="card">
-    <div class="card-header"><i data-lucide="users" class="ci" width="14" height="14"></i><span class="cl">Drivers</span></div>
-    <div id="lf-cnt-drivers" class="card-value">{_dlf.get("drivers_unique",0)}</div>
-    <div class="card-delta">envolvidos no período</div>
-  </div>
-  <div class="card c-red">
-    <div class="card-header"><i data-lucide="shield-x" class="ci" width="14" height="14" style="color:#7f1d1d"></i><span class="cl">Bloqueados</span></div>
-    <div id="lf-cnt-blocked" class="card-value red">{_dlf.get("por_status",{}).get("blocked",0)}</div>
-    <div class="card-delta">status blocked</div>
-  </div>
-  <div class="card">
-    <div class="card-header"><i data-lucide="activity" class="ci" width="14" height="14" style="color:#f59e0b"></i><span class="cl">Ativos</span></div>
-    <div id="lf-cnt-active" class="card-value" style="color:#f59e0b">{_dlf.get("por_status",{}).get("active",0)}</div>
-    <div class="card-delta">ainda ativos</div>
+    <div class="card-header"><i data-lucide="alert-triangle" class="ci" width="14" height="14" style="color:#fbbf24"></i><span class="cl">% Fraude Confirmada</span></div>
+    <div id="gst-kpi-pct" class="card-value" style="color:#fbbf24">0%</div>
+    <div class="card-delta">sobre casos ativos</div>
   </div>
 </div>
-<div class="grid2" style="margin-bottom:18px">
-  <div class="box"><div class="bt">Distribuição por Transportadora (MLP)</div><canvas id="cLfMlp" height="250"></canvas></div>
-  <div class="box"><div class="bt">BPP por Classificação (USD)</div><canvas id="cLfClass" height="250"></canvas></div>
+<div id="gst-area-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px"></div>
+<div class="grid2" style="margin-bottom:14px">
+  <div class="box"><div class="bt">Status dos casos — Sellers + Buyers ofensores</div><div id="gst-status-sb"></div></div>
+  <div class="box"><div class="bt">Status dos candidatos — Drivers</div><div id="gst-status-drv"></div></div>
 </div>
-<div class="tbl-wrap">
-  <div class="tbl-title">Casos por Shipment <span id="lf-table-label" style="font-weight:400;font-size:11px;color:#6b7280"></span></div>
-  <div class="tbl-scroll">
-    <table class="tbl">
-      <thead><tr>
-        <th>Semana</th><th>Classificação</th><th>Shipment ID</th>
-        <th>Driver ID</th><th>MLP</th><th>Status</th><th style="text-align:right">BPP (USD)</th>
-      </tr></thead>
-      <tbody id="lf-tbody"></tbody>
-    </table>
+<div class="box">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div class="bt" style="margin-bottom:0">Atividade da semana — casos tratados (últimos 7 dias)</div>
+    <div id="gst-week-total" style="font-size:15px;font-weight:800;color:#22d3ee">0</div>
   </div>
+  <div id="gst-week-chart" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:60px;margin-bottom:8px"></div>
+  <div id="gst-week-labels" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:10px"></div>
+  <div id="gst-week-breakdown" style="display:flex;gap:16px;border-top:1px solid #1f2937;padding-top:8px;flex-wrap:wrap"></div>
 </div>
 <script>
 (function(){{
-  var _lfD   = {j(_dlf.get('shps', []))};
-  var _lfSel = 'all';
-  var _lfChM = null, _lfChC = null;
-  var SB = {{blocked:'background:#7f1d1d;color:#fca5a5',inactive:'background:#1f2937;color:#9ca3af',removed:'background:#374151;color:#d1d5db',active:'background:#064e3b;color:#6ee7b7'}};
-  var CB = {{'LOST ON ROUTE':'background:#1e3a5f;color:#93c5fd','FRAUD ON ROUTE':'background:#450a0a;color:#fca5a5','FRAUD AT STATION':'background:#4c1d95;color:#c4b5fd','FRAUD ENE':'background:#431407;color:#fdba74','PNR C':'background:#451a03;color:#fde68a','EMPTY BOX':'background:#1a1a2e;color:#818cf8'}};
-  var PC = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16','#f97316','#6366f1','#14b8a6','#a855f7'];
+  var _gstPeriod = 'all';
 
-  window.lfMes = function(mes, btn) {{
-    _lfSel = mes;
-    document.querySelectorAll('.lf-btn').forEach(function(b){{ b.classList.remove('lf-active'); }});
+  function _gstRange(p) {{
+    if (p === 'all') return {{de: null, ate: null}};
+    var hoje = new Date();
+    var meses = p === '1m' ? 1 : (p === '3m' ? 3 : 6);
+    var de = new Date(hoje.getFullYear(), hoje.getMonth() - meses, hoje.getDate());
+    return {{de: de, ate: hoje}};
+  }}
+
+  window.gstPeriodo = function(p, btn) {{
+    _gstPeriod = p;
+    document.querySelectorAll('#tab-gestao .lf-btn').forEach(function(b){{ b.classList.remove('lf-active'); }});
     if (btn) btn.classList.add('lf-active');
-    lfRender();
+    gstRender();
   }};
 
-  window.lfRender = function() {{
-    var rows = _lfSel === 'all' ? _lfD : _lfD.filter(function(r){{ return r.mes === _lfSel; }});
-    var totalBpp = rows.reduce(function(a,r){{ return a+r.bpp; }}, 0);
-    var drvSet={{}}, blkSet={{}}, actSet={{}};
-    rows.forEach(function(r){{ drvSet[r.driver_id]=1; if(r.status==='blocked') blkSet[r.driver_id]=1; if(r.status==='active') actSet[r.driver_id]=1; }});
-    var el = function(id){{ return document.getElementById(id); }};
-    el('lf-cnt-total').textContent   = rows.length.toLocaleString('pt-BR');
-    el('lf-cnt-bpp').textContent     = '$'+Math.round(totalBpp).toLocaleString('pt-BR');
-    el('lf-cnt-drivers').textContent = Object.keys(drvSet).length;
-    el('lf-cnt-blocked').textContent = Object.keys(blkSet).length;
-    el('lf-cnt-active').textContent  = Object.keys(actSet).length;
-
-    var mlpA={{}}, clsA={{}};
-    rows.forEach(function(r){{
-      mlpA[r.mlp]=(mlpA[r.mlp]||0)+1;
-      if(!clsA[r.class]) clsA[r.class]={{count:0,bpp:0}};
-      clsA[r.class].count++; clsA[r.class].bpp+=r.bpp;
+  function _driverPeriodo(d, de, ate) {{
+    if (!de) return {{bpp: d.bpp||0, ativo: (d.total||0) > 0}};
+    var bpp = 0, n = 0;
+    (d.shps || []).forEach(function(s){{
+      var p = (s.date||'').split('/');
+      var dt = p.length === 3 ? new Date(+p[2], +p[1]-1, +p[0]) : null;
+      if (dt && dt >= de && dt <= ate) {{ bpp += (s.bpp||0); n++; }}
     }});
-    var mLbl=Object.keys(mlpA).sort(function(a,b){{ return mlpA[b]-mlpA[a]; }});
-    var mVal=mLbl.map(function(k){{ return mlpA[k]; }});
-    var cLbl=Object.keys(clsA).sort(function(a,b){{ return clsA[b].bpp-clsA[a].bpp; }});
-    var cBpp=cLbl.map(function(k){{ return +clsA[k].bpp.toFixed(2); }});
+    return {{bpp: bpp, ativo: n > 0}};
+  }}
 
-    if(_lfChM) _lfChM.destroy();
-    if(_lfChC) _lfChC.destroy();
-    var ctxM=document.getElementById('cLfMlp');
-    if(ctxM && mLbl.length) {{
-      _lfChM=new Chart(ctxM,{{type:'pie',data:{{labels:mLbl,datasets:[{{data:mVal,backgroundColor:PC,borderWidth:0}}]}},options:{{plugins:{{legend:{{position:'right',labels:{{color:'#9ca3af',font:{{size:11}},boxWidth:12}}}},tooltip:{{callbacks:{{label:function(c){{ return ' '+c.label+': '+c.raw+' ('+((c.raw/rows.length)*100).toFixed(1)+'%)'; }}}}}}}}}}}});
-    }}
-    var ctxC=document.getElementById('cLfClass');
-    if(ctxC && cLbl.length) {{
-      _lfChC=new Chart(ctxC,{{type:'bar',data:{{labels:cLbl.map(function(l){{ return l.length>22?l.substring(0,20)+'…':l; }}),datasets:[{{label:'BPP',data:cBpp,backgroundColor:'#f59e0b',borderRadius:4}}]}},options:{{indexAxis:'y',plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:function(c){{ return '$'+c.raw.toLocaleString('pt-BR',{{minimumFractionDigits:2}}); }}}}}}}},scales:{{x:{{grid:{{color:'#1f2937'}},ticks:{{color:'#6b7280'}}}},y:{{grid:{{color:'#1f2937'}},ticks:{{color:'#9ca3af'}}}}}}}}}});
-    }}
+  function _mdPeriodo(md, de, ate) {{
+    if (!de) return null;
+    var b=0, f=0, t=0;
+    (md||[]).forEach(function(m){{
+      var p = (m.mes||'').split('-');
+      var dt = p.length >= 2 ? new Date(+p[0], +p[1]-1, 1) : null;
+      if (dt && dt >= de && dt <= ate) {{ b += m.b||0; f += m.f||0; t += (m.t||0); }}
+    }});
+    return {{b:b, f:f, t:t}};
+  }}
 
-    var tbody=document.getElementById('lf-tbody');
-    var lbl=document.getElementById('lf-table-label');
-    var top=rows.slice(0,500);
-    if(lbl) lbl.textContent='· '+rows.length.toLocaleString('pt-BR')+' casos'+(rows.length>500?' (top 500)':'');
-    tbody.innerHTML=top.map(function(r){{
-      var sb=SB[r.status]||'background:#1f2937;color:#9ca3af';
-      var cb=CB[r.class]||'background:#1f2937;color:#9ca3af';
-      return '<tr>'
-        +'<td style="color:#9ca3af">'+r.semana+'</td>'
-        +'<td><span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;'+cb+'">'+r.class+'</span></td>'
-        +'<td style="font-family:monospace;font-size:11px;color:#93c5fd">'+r.shp_id+'</td>'
-        +'<td style="font-family:monospace;font-size:12px">'+r.driver_id+'</td>'
-        +'<td style="font-size:11px;color:#d1d5db">'+r.mlp+'</td>'
-        +'<td><span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;'+sb+'">'+r.status+'</span></td>'
-        +'<td style="color:#10b981;font-weight:600;text-align:right">$'+r.bpp.toLocaleString("pt-BR",{{minimumFractionDigits:2}})+'</td>'
-        +'</tr>';
+  function _stGet(prefix, key, valid) {{
+    var s; try {{ s = localStorage.getItem(prefix+key); }} catch(e) {{ s = null; }}
+    return (s && valid[s]) ? s : 'ati';
+  }}
+
+  window.gstRender = function() {{
+    var rng = _gstRange(_gstPeriod);
+    var de = rng.de, ate = rng.ate;
+
+    var drvList = (typeof window.BLQ_DATA   !== 'undefined') ? window.BLQ_DATA   : [];
+    var selList = (typeof window.SEL_DATA   !== 'undefined') ? window.SEL_DATA   : [];
+    var buyList = (typeof window.BUY_DATA   !== 'undefined') ? window.BUY_DATA   : [];
+    var nodosOk = (typeof window.NODOS_DATA !== 'undefined') && window.NODOS_DATA.length > 0;
+
+    var drvBpp=0, drvAtivos=0, drvBlocked=0;
+    drvList.forEach(function(d){{
+      var pr = _driverPeriodo(d, de, ate);
+      drvBpp += pr.bpp;
+      if (pr.ativo) drvAtivos++;
+      if ((typeof window.blqGetSt2==='function' ? window.blqGetSt2(d.id) : 'ati') === 'blq') drvBlocked++;
+    }});
+
+    var selBpp=0, selAtivos=0, selFraudConf=0;
+    selList.forEach(function(s){{
+      var pr = de ? _mdPeriodo(s.md, de, ate) : {{b:s.b, f:s.f, t:1}};
+      selBpp += pr ? pr.b : 0;
+      if (pr && (pr.t>0 || pr.f>0)) selAtivos++;
+      if (s.f > 0) selFraudConf++;
+    }});
+
+    var buyBpp=0, buyAtivos=0, buyFraudConf=0;
+    buyList.forEach(function(s){{
+      var pr = de ? _mdPeriodo(s.md, de, ate) : {{b:s.b, f:s.f, t:1}};
+      buyBpp += pr ? pr.b : 0;
+      if (pr && (pr.t>0 || pr.f>0)) buyAtivos++;
+      if (s.f > 0) buyFraudConf++;
+    }});
+
+    var totalBpp   = drvBpp + selBpp + buyBpp;
+    var totalCasos = drvAtivos + selAtivos + buyAtivos;
+    var totalFraud = drvBlocked + selFraudConf + buyFraudConf;
+    var pctFraud   = totalCasos ? (totalFraud/totalCasos*100) : 0;
+    var fmtMoney   = function(v){{ return '$'+Math.round(v).toLocaleString('pt-BR'); }};
+
+    document.getElementById('gst-kpi-bpp').textContent   = fmtMoney(totalBpp);
+    document.getElementById('gst-kpi-casos').textContent = totalCasos.toLocaleString('pt-BR');
+    document.getElementById('gst-kpi-pct').textContent   = pctFraud.toFixed(1)+'%';
+
+    var areas = [
+      {{label:'Drivers', tab:'bloqueios', total: drvList.length, sub: drvAtivos.toLocaleString('pt-BR')+' no período', bpp: drvBpp, extra: drvBlocked+' bloqueados'}},
+      {{label:'Nodos',   tab:'nodos',     total: nodosOk ? window.NODOS_DATA.length : null, sub: nodosOk ? 'no período' : 'em construção', bpp: nodosOk ? 0 : null, extra: ''}},
+      {{label:'Buyers',  tab:'buyers',    total: buyList.length, sub: buyAtivos.toLocaleString('pt-BR')+' no período', bpp: buyBpp, extra: buyFraudConf+' fraude confirmada'}},
+      {{label:'Sellers', tab:'sellers',   total: selList.length, sub: selAtivos.toLocaleString('pt-BR')+' no período', bpp: selBpp, extra: selFraudConf+' fraude confirmada'}}
+    ];
+    document.getElementById('gst-area-cards').innerHTML = areas.map(function(a){{
+      var valTotal = a.total === null ? '—' : a.total.toLocaleString('pt-BR');
+      var valBpp   = a.bpp   === null ? '—' : fmtMoney(a.bpp)+' BPP';
+      return '<div style="background:#0b1120;border:1px solid #1f2937;border-radius:6px;padding:12px;cursor:pointer" '
+        +'onclick="var el=document.querySelector(\'.sb-item[data-tab=&quot;'+a.tab+'&quot;]\'); if(el) el.click();">'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22d3ee"></span>'
+        +'<span style="font-size:11px;font-weight:700;color:#e5e7eb">'+a.label+'</span></div>'
+        +'<div style="font-size:18px;font-weight:800;color:#f3f4f6">'+valTotal+'</div>'
+        +'<div style="font-size:9px;color:#6b7280;margin-bottom:6px">'+a.sub+'</div>'
+        +'<div style="font-size:12px;font-weight:700;color:#f87171">'+valBpp+'</div>'
+        +(a.extra ? '<div style="font-size:9px;color:#fbbf24">'+a.extra+'</div>' : '')
+        +'</div>';
     }}).join('');
+
+    var FR_LBL = {{ati:'Ativo',inv:'Em investigação',enc:'Encaminhado',res:'Resolvido'}};
+    var FR_CLR = {{ati:'#9ca3af',inv:'#fbbf24',enc:'#f87171',res:'#4ade80'}};
+    var sbCnt = {{ati:0,inv:0,enc:0,res:0}};
+    selList.forEach(function(s){{ if (s.f>0) sbCnt[_stGet('selfr_st_', s.n, FR_LBL)]++; }});
+    buyList.forEach(function(s){{ if (s.f>0) sbCnt[_stGet('buyfr_st_', s.n, FR_LBL)]++; }});
+    var sbTotal = sbCnt.ati+sbCnt.inv+sbCnt.enc+sbCnt.res;
+    document.getElementById('gst-status-sb').innerHTML = ['ati','inv','enc','res'].map(function(k){{
+      var pct = sbTotal ? (sbCnt[k]/sbTotal*100) : 0;
+      return '<div style="display:grid;grid-template-columns:110px 1fr 50px;align-items:center;gap:8px;margin-bottom:7px">'
+        +'<span style="font-size:10px;color:'+FR_CLR[k]+'">&#9679; '+FR_LBL[k]+'</span>'
+        +'<div style="background:#1f2937;border-radius:3px;height:7px"><div style="background:'+FR_CLR[k]+';height:7px;border-radius:3px;width:'+pct+'%"></div></div>'
+        +'<span style="font-size:10px;color:#e5e7eb;text-align:right">'+sbCnt[k].toLocaleString('pt-BR')+'</span></div>';
+    }}).join('');
+
+    var DR_LBL = {{ati:'Ativo',blq:'Bloqueado',ina:'Inativo'}};
+    var DR_CLR = {{ati:'#9ca3af',blq:'#f87171',ina:'#4ade80'}};
+    var drCnt = {{ati:0,blq:0,ina:0}};
+    drvList.forEach(function(d){{
+      var s = (typeof window.blqGetSt2==='function') ? window.blqGetSt2(d.id) : 'ati';
+      if (drCnt[s] === undefined) s = 'ati';
+      drCnt[s]++;
+    }});
+    var drTotal = drCnt.ati+drCnt.blq+drCnt.ina;
+    document.getElementById('gst-status-drv').innerHTML = ['ati','blq','ina'].map(function(k){{
+      var pct = drTotal ? (drCnt[k]/drTotal*100) : 0;
+      return '<div style="display:grid;grid-template-columns:80px 1fr 50px;align-items:center;gap:8px;margin-bottom:7px">'
+        +'<span style="font-size:10px;color:'+DR_CLR[k]+'">&#9679; '+DR_LBL[k]+'</span>'
+        +'<div style="background:#1f2937;border-radius:3px;height:7px"><div style="background:'+DR_CLR[k]+';height:7px;border-radius:3px;width:'+pct+'%"></div></div>'
+        +'<span style="font-size:10px;color:#e5e7eb;text-align:right">'+drCnt[k].toLocaleString('pt-BR')+'</span></div>';
+    }}).join('');
+
+    var hoje = new Date();
+    var d0 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()-6);
+    var diasArr = [0,1,2,3,4,5,6].map(function(i){{ var dd=new Date(d0); dd.setDate(d0.getDate()+i); return dd; }});
+    var diasCnt = [0,0,0,0,0,0,0];
+    var totSemana=0, efetivoSemana=0, bySel=0, byBuy=0, byDrv=0;
+
+    function _idxDia(dt) {{
+      var idx = Math.floor((dt - d0) / 86400000);
+      return (idx >= 0 && idx <= 6) ? idx : -1;
+    }}
+
+    selList.forEach(function(s){{
+      if (!(s.f>0)) return;
+      var raw; try {{ raw = localStorage.getItem('selfr_hist_'+s.n); }} catch(e) {{ raw = null; }}
+      if (!raw) return;
+      var hist; try {{ hist = JSON.parse(raw); }} catch(e) {{ hist = []; }}
+      var st = _stGet('selfr_st_', s.n, FR_LBL);
+      (hist||[]).forEach(function(h){{
+        var dt = new Date(h.ts); var idx = _idxDia(dt);
+        if (idx < 0) return;
+        diasCnt[idx]++; totSemana++; bySel++;
+        if (st === 'res') {{ efetivoSemana++; }}
+      }});
+    }});
+    buyList.forEach(function(s){{
+      if (!(s.f>0)) return;
+      var raw; try {{ raw = localStorage.getItem('buyfr_hist_'+s.n); }} catch(e) {{ raw = null; }}
+      if (!raw) return;
+      var hist; try {{ hist = JSON.parse(raw); }} catch(e) {{ hist = []; }}
+      var st = _stGet('buyfr_st_', s.n, FR_LBL);
+      (hist||[]).forEach(function(h){{
+        var dt = new Date(h.ts); var idx = _idxDia(dt);
+        if (idx < 0) return;
+        diasCnt[idx]++; totSemana++; byBuy++;
+        if (st === 'res') {{ efetivoSemana++; }}
+      }});
+    }});
+    drvList.forEach(function(d){{
+      var ts; try {{ ts = localStorage.getItem('blq_stts_'+d.id); }} catch(e) {{ ts = null; }}
+      if (!ts) return;
+      var dt = new Date(ts); var idx = _idxDia(dt);
+      if (idx < 0) return;
+      diasCnt[idx]++; totSemana++; byDrv++;
+      if ((typeof window.blqGetSt2==='function' ? window.blqGetSt2(d.id) : '') === 'blq') {{ efetivoSemana++; }}
+    }});
+
+    document.getElementById('gst-week-total').textContent =
+      totSemana.toLocaleString('pt-BR') + ' tratados · ' + efetivoSemana.toLocaleString('pt-BR') + ' efetivos';
+    var maxDia = Math.max.apply(null, diasCnt.concat([1]));
+    document.getElementById('gst-week-chart').innerHTML = diasCnt.map(function(c){{
+      var h = c>0 ? Math.max(Math.round(c/maxDia*100), 8) : 2;
+      return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">'
+        +'<div style="background:#22d3ee;width:70%;border-radius:2px;height:'+h+'%"></div></div>';
+    }}).join('');
+    var diasLbl = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    document.getElementById('gst-week-labels').innerHTML = diasArr.map(function(dd){{
+      return '<span style="font-size:8px;color:#6b7280;text-align:center">'+diasLbl[dd.getDay()]+'</span>';
+    }}).join('');
+    document.getElementById('gst-week-breakdown').innerHTML =
+      '<div style="font-size:10px;color:#9ca3af">Sellers <strong style="color:#e5e7eb">'+bySel+'</strong></div>'
+      +'<div style="font-size:10px;color:#9ca3af">Buyers <strong style="color:#e5e7eb">'+byBuy+'</strong></div>'
+      +'<div style="font-size:10px;color:#9ca3af">Drivers <strong style="color:#e5e7eb">'+byDrv+'</strong> <span style="color:#4b5563">(a partir de agora)</span></div>';
   }};
+
+  setTimeout(function(){{
+    var t = document.getElementById('tab-gestao');
+    if (t && getComputedStyle(t).display !== 'none') gstRender();
+  }}, 300);
 }})();
 </script>
 </div>

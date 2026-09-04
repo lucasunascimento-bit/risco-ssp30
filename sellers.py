@@ -1489,6 +1489,7 @@ window.selTab = function(aba){{
   renderAbas();
 }};
 
+window.SEL_DATA = SEL_DATA;
 window.selAplicar = selAplicar;
 window.selSetPeriodChip = selSetPeriodChip;
 window.selCustomPeriod  = selCustomPeriod;
