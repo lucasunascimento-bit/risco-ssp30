@@ -44,6 +44,7 @@ SELECT
   p.SHP_AGENCY_ID                                             AS place_id,
   p.SERVICE_TYPE                                              AS tipo,
   MAX(p.SHP_AGEN_DESC)                                        AS nome,
+  MAX(p.SHP_AGEN_NODE_ID)                                     AS node_id,
   MAX(p.SHP_AGEN_STATE_NAME)                                  AS estado,
   MAX(p.SHP_AGEN_CITY_NAME)                                   AS cidade,
   COUNT(DISTINCT p.SHP_SHIPMENT_ID)                           AS total_shps,
@@ -90,6 +91,8 @@ def carregar_dados():
         tipo = row['tipo'] or ''
         nodos.append({
             'nodo':      row['nome'] or row['place_id'] or 'Não Identificado',
+            'node_id':   row['node_id'] or '',
+            'place_id':  row['place_id'] or '',
             'tipo':      tipo,
             'tipo_lbl':  TIPO_LBL.get(tipo, tipo),
             'total':     total,
@@ -260,7 +263,7 @@ function filtrarNodos(){{
   var tp=(document.getElementById('nod-tipo')||{{}}).value||'';
   var fl=(document.getElementById('nod-filtro')||{{}}).value||'';
   var dados=NODOS_DATA.filter(function(n){{
-    var okQ=!q||n.nodo.toLowerCase().indexOf(q)>=0||n.estado.toLowerCase().indexOf(q)>=0||n.cidade.toLowerCase().indexOf(q)>=0;
+    var okQ=!q||n.nodo.toLowerCase().indexOf(q)>=0||n.estado.toLowerCase().indexOf(q)>=0||n.cidade.toLowerCase().indexOf(q)>=0||(n.node_id||'').toLowerCase().indexOf(q)>=0||(n.place_id||'').toLowerCase().indexOf(q)>=0;
     var okT=!tp||n.tipo===tp;
     var okF=!fl||(fl==='fraud'&&n.fraud>0)||(fl==='top_bpp'&&n.bpp>1000);
     return okQ&&okT&&okF;
@@ -275,8 +278,9 @@ function filtrarNodos(){{
     var fraudBg=n.fraud>0?'background:rgba(239,68,68,.1);color:#f87171':'color:#4b5563';
     var pctColor=n.pct_fraud>20?'#f87171':n.pct_fraud>5?'#fbbf24':'#86efac';
     var tipoClr=TIPO_CLR[n.tipo]||'#9ca3af';
+    var idLbl=n.node_id?(n.tipo_lbl+' '+n.node_id):(n.place_id||'');
     return '<tr style="border-bottom:1px solid #111827">'
-      +'<td style="padding:7px 10px;color:#34d399;font-weight:600">'+n.nodo+'</td>'
+      +'<td style="padding:7px 10px;color:#34d399;font-weight:600">'+n.nodo+(idLbl?' <span style="color:#6b7280;font-weight:400;font-size:10px">('+idLbl+')</span>':'')+'</td>'
       +'<td style="padding:7px 10px;text-align:center"><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.06);color:'+tipoClr+'">'+n.tipo_lbl+'</span></td>'
       +'<td style="padding:7px 10px;text-align:center;color:#e5e7eb">'+n.total.toLocaleString()+'</td>'
       +'<td style="padding:7px 10px;text-align:center;color:#9ca3af">'+n.drivers+'</td>'
@@ -291,8 +295,8 @@ function filtrarNodos(){{
 }}
 
 window.exportCSVNodos=function(){{
-  var rows=[['Nodo','Tipo','SHPs','Drivers','Sellers','Buyers','BPP USD','Fraude','Damaged','% Fraude','Estado','Cidade','Classe Principal']];
-  NODOS_DATA.forEach(function(n){{rows.push([n.nodo,n.tipo_lbl,n.total,n.drivers,n.sellers,n.buyers,n.bpp,n.fraud,n.damaged,n.pct_fraud,n.estado,n.cidade,n.classe]);}});
+  var rows=[['Nodo','Node ID','Place ID','Tipo','SHPs','Drivers','Sellers','Buyers','BPP USD','Fraude','Damaged','% Fraude','Estado','Cidade','Classe Principal']];
+  NODOS_DATA.forEach(function(n){{rows.push([n.nodo,n.node_id,n.place_id,n.tipo_lbl,n.total,n.drivers,n.sellers,n.buyers,n.bpp,n.fraud,n.damaged,n.pct_fraud,n.estado,n.cidade,n.classe]);}});
   var csv=rows.map(function(r){{return r.map(function(v){{return'"'+String(v).replace(/"/g,'""')+'"';}}).join(',');}}).join('\\n');
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\\uFEFF'+encodeURIComponent(csv);
   a.download='nodos_ssp30.csv';a.click();
