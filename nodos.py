@@ -684,6 +684,8 @@ function nodRenderOfensores(){{
   }});
   var hdr=document.getElementById('nod-of-header');
   if(hdr) hdr.textContent='- '+lista.length.toLocaleString('pt-BR')+' nodo(s) com sinal de risco';
+  var badge=document.getElementById('tab-count-nodos');
+  if(badge) badge.textContent=_nodOfensoresLista().length.toLocaleString('pt-BR');
   var el=document.getElementById('nod-of-tbody');
   if(!el) return;
   el.innerHTML=lista.map(function(n){{
@@ -765,7 +767,7 @@ window.buildNodoCharts=buildNodoCharts;
 document.addEventListener('DOMContentLoaded',function(){{
   filtrarNodos();
   var badge=document.getElementById('tab-count-nodos');
-  if(badge)badge.textContent=NODOS_DATA.length;
+  if(badge)badge.textContent=_nodOfensoresLista().length;
 }});
 }})();
 </script>

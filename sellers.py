@@ -1430,6 +1430,7 @@ function updKPIs(){{
   el('sel-k-damaged', _damages.length.toLocaleString('pt-BR'));
   el('sel-k-untrusted', untrusted.toLocaleString('pt-BR'));
   el('sel-k-suspeitos', susp.toLocaleString('pt-BR'));
+  el('tab-count-sellers', susp.toLocaleString('pt-BR'));
 }}
 
 // Recalcula t/b/g/f/d/pnr/eb do seller somando só os meses dentro do período
@@ -1552,8 +1553,6 @@ document.addEventListener('click', function(e){{
 document.addEventListener('DOMContentLoaded', function(){{
   selAplicar();
   selUpdSuspOverview();
-  var badge = document.getElementById('tab-count-sellers');
-  if(badge) badge.textContent = SEL_DATA.length;
 }});
 }})();
 </script>
