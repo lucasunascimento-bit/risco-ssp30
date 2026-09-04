@@ -3297,7 +3297,7 @@ def gerar_html(d):
   <div class="tbl-title">Casos tratados na semana <span id="gst-week-list-label" style="font-weight:400;font-size:11px;color:#6b7280"></span></div>
   <div class="tbl-scroll">
     <table class="tbl">
-      <thead><tr><th>Data</th><th>Área</th><th>Nome</th><th>Ação</th><th style="text-align:center">Efetivo</th></tr></thead>
+      <thead><tr><th>Data</th><th>Área</th><th>Nome</th><th>Última ação</th><th style="text-align:center">Status</th></tr></thead>
       <tbody id="gst-week-list"></tbody>
     </table>
   </div>
@@ -3464,12 +3464,16 @@ def gerar_html(d):
       var hist; try {{ hist = JSON.parse(raw); }} catch(e) {{ hist = []; }}
       var st = _stGet('selfr_st_', s.n, FR_LBL);
       var efetivo = st === 'res';
+      var best = null;
       (hist||[]).forEach(function(h){{
         var dt = new Date(h.ts); var idx = _idxDia(dt);
         if (idx < 0) return;
-        diasCnt[idx]++; bySel++;
-        weekEvents.push({{ts: dt, area: 'Seller', nome: s.n, acao: h.text || ('Status: '+FR_LBL[st]), efetivo: efetivo}});
+        diasCnt[idx]++;
+        if (!best || dt > best.ts) best = {{ts: dt, text: h.text}};
       }});
+      if (!best) return;
+      bySel++;
+      weekEvents.push({{ts: best.ts, area: 'Seller', nome: s.n, acao: best.text || ('Status: '+FR_LBL[st]), efetivo: efetivo}});
     }});
     buyList.forEach(function(s){{
       if (!(s.f>0)) return;
@@ -3478,12 +3482,16 @@ def gerar_html(d):
       var hist; try {{ hist = JSON.parse(raw); }} catch(e) {{ hist = []; }}
       var st = _stGet('buyfr_st_', s.n, FR_LBL);
       var efetivo = st === 'res';
+      var best = null;
       (hist||[]).forEach(function(h){{
         var dt = new Date(h.ts); var idx = _idxDia(dt);
         if (idx < 0) return;
-        diasCnt[idx]++; byBuy++;
-        weekEvents.push({{ts: dt, area: 'Buyer', nome: s.n, acao: h.text || ('Status: '+FR_LBL[st]), efetivo: efetivo}});
+        diasCnt[idx]++;
+        if (!best || dt > best.ts) best = {{ts: dt, text: h.text}};
       }});
+      if (!best) return;
+      byBuy++;
+      weekEvents.push({{ts: best.ts, area: 'Buyer', nome: s.n, acao: best.text || ('Status: '+FR_LBL[st]), efetivo: efetivo}});
     }});
     drvList.forEach(function(d){{
       var ts; try {{ ts = localStorage.getItem('blq_stts_'+d.id); }} catch(e) {{ ts = null; }}
@@ -3492,7 +3500,7 @@ def gerar_html(d):
       if (idx < 0) return;
       diasCnt[idx]++; byDrv++;
       var stD = (typeof window.blqGetSt2==='function' ? window.blqGetSt2(d.id) : 'ati');
-      weekEvents.push({{ts: dt, area: 'Driver', nome: (d.nome || d.id), acao: 'Status: '+(DR_LBL[stD]||stD), efetivo: stD==='blq'}});
+      weekEvents.push({{ts: dt, area: 'Driver', nome: (d.nome || d.id), acao: 'Status alterado para '+(DR_LBL[stD]||stD), efetivo: stD==='blq'}});
     }});
 
     weekEvents.sort(function(a,b){{ return b.ts - a.ts; }});
@@ -3521,12 +3529,15 @@ def gerar_html(d):
     if (listLbl) listLbl.textContent = totSemana ? ('· '+totSemana.toLocaleString('pt-BR')+' caso(s)'+(totSemana>200?' (top 200)':'')) : '· nenhum caso tratado nos últimos 7 dias';
     document.getElementById('gst-week-list').innerHTML = listRows.length ? listRows.map(function(e){{
       var areaClr = e.area==='Driver' ? '#93c5fd' : (e.area==='Buyer' ? '#c4b5fd' : '#fbbf24');
+      var stPill = e.efetivo
+        ? '<span style="font-size:10px;padding:3px 9px;border-radius:4px;font-weight:700;background:rgba(74,222,128,.12);color:#4ade80">Efetivo</span>'
+        : '<span style="font-size:10px;padding:3px 9px;border-radius:4px;font-weight:700;background:rgba(251,191,36,.12);color:#fbbf24">Em andamento</span>';
       return '<tr>'
         +'<td style="color:#9ca3af;font-size:11px;white-space:nowrap">'+_fmtData(e.ts)+'</td>'
         +'<td><span style="font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;background:rgba(255,255,255,.06);color:'+areaClr+'">'+e.area+'</span></td>'
         +'<td style="font-weight:600;color:#e5e7eb">'+e.nome+'</td>'
         +'<td style="color:#d1d5db;font-size:12px">'+e.acao+'</td>'
-        +'<td style="text-align:center">'+(e.efetivo ? '<span style="color:#4ade80;font-weight:700">&#10003;</span>' : '<span style="color:#4b5563">—</span>')+'</td>'
+        +'<td style="text-align:center">'+stPill+'</td>'
         +'</tr>';
     }}).join('') : '<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:14px">Nenhum caso tratado nos últimos 7 dias</td></tr>';
   }};
