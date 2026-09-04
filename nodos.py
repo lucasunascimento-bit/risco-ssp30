@@ -578,8 +578,10 @@ function nodRenderOfensores(){{
     var hl=sel?'background:#0f2040;border-left:3px solid #38bdf8;':'border-left:3px solid transparent;';
     var tipoClr=TIPO_CLR[n.tipo]||'#9ca3af';
     var scoreCls=n.score>=40?'color:#f87171;font-weight:700':(n.score>=20?'color:#fbbf24;font-weight:700':'color:#6b7280');
+    var idLbl=n.node_id?(n.tipo_lbl+' '+n.node_id):(n.place_id||'');
+    var nomeFull=n.nodo+(idLbl?' ('+idLbl+')':'');
     return '<tr style="border-bottom:1px solid #080c18;'+hl+'cursor:pointer" onclick="nodOfSelecionar(\\''+key+'\\')">'
-      +'<td style="padding:4px 8px;color:#34d399;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+n.nodo+'">'+n.nodo+'</td>'
+      +'<td style="padding:4px 8px;color:#34d399;font-weight:600;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+nomeFull+'">'+n.nodo+(idLbl?' <span style="color:#6b7280;font-weight:400;font-size:10px">('+idLbl+')</span>':'')+'</td>'
       +'<td style="padding:4px 8px;text-align:center"><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.06);color:'+tipoClr+'">'+n.tipo_lbl+'</span></td>'
       +'<td style="padding:4px 8px;text-align:center;'+scoreCls+'">'+n.score+'</td>'
       +'<td style="padding:4px 8px;text-align:center;color:'+(n.fraud>0?'#f87171':'#374151')+'">'+n.fraud+'</td>'
@@ -615,7 +617,12 @@ function nodRenderEvidencia(){{
   }});
   var combinado=ev.concat(parados).sort(function(a,b){{return b.valor-a.valor;}});
   var nodo=NODOS_DATA.find(function(n){{return (n.place_id+'|'+n.tipo)===_nodOfSel;}});
-  if(hdr) hdr.textContent='- '+(nodo?nodo.nodo:_nodOfSel)+' — '+combinado.length.toLocaleString('pt-BR')+' shipment(s)';
+  var nodoLbl=_nodOfSel;
+  if(nodo){{
+    var idLbl2=nodo.node_id?(nodo.tipo_lbl+' '+nodo.node_id):(nodo.place_id||'');
+    nodoLbl=nodo.nodo+(idLbl2?' ('+idLbl2+')':'');
+  }}
+  if(hdr) hdr.textContent='- '+nodoLbl+' — '+combinado.length.toLocaleString('pt-BR')+' shipment(s)';
   var TIPO_BG={{'Empty Box':'background:rgba(167,139,250,.12);color:#a78bfa','PNR':'background:rgba(251,191,36,.12);color:#fbbf24','Parado':'background:rgba(96,165,250,.12);color:#60a5fa'}};
   el.innerHTML=combinado.length?combinado.map(function(e){{
     return '<tr style="border-bottom:1px solid #080c18">'
