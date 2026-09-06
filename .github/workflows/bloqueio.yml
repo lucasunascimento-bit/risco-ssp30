@@ -1,0 +1,54 @@
+name: Drivers SSP30 - Atualização Semanal
+
+on:
+  workflow_dispatch:        # Permite rodar manualmente pelo GitHub também
+  schedule:
+    - cron: '0 11 * * 1'    # Toda segunda às 08:00 horário de Brasília (11:00 UTC)
+
+permissions:
+  contents: write           # Necessário para fazer commit do dashboard gerado
+
+jobs:
+  atualizar-drivers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Configurar credenciais Google
+        run: |
+          mkdir -p ~/.config/gcloud
+          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > ~/.config/gcloud/application_default_credentials.json
+
+      - name: Restaurar cache de drivers conhecidos (tag NOVO)
+        uses: actions/cache@v4
+        with:
+          path: _drivers_conhecidos.json
+          key: drivers-conhecidos-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            drivers-conhecidos-${{ runner.os }}-
+
+      - name: Gerar aba Drivers
+        run: python bloqueio.py
+
+      - name: Publicar se houve mudança
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fraude.html
+          if git diff --staged --quiet; then
+            echo "Sem mudanças no dashboard."
+          else
+            git commit -m "Atualizacao semanal automatica: aba Drivers (bloqueio.py)"
+            git pull --rebase origin main
+            git push
+          fi
