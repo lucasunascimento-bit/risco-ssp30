@@ -140,41 +140,6 @@ LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` s
 ORDER BY f.bpp DESC
 """
 
-# ── Query 3: shipments damaged com buyer (1 linha por SHP, top 3000) ─────────
-Q_DAMAGED_BUYER = f"""
-SELECT
-  f.buyer, f.sid, f.causa, f.causa_bpp, f.td, f.mes, f.bpp, f.claim_id,
-  (SELECT SHP_ITEM_DESC FROM UNNEST(s.ITEMS) LIMIT 1) AS item_desc
-FROM (
-  SELECT
-    CUS_NICKNAME_BUY                                    AS buyer,
-    CAST(SHIPMENT_ID AS STRING)                         AS sid,
-    MAX(IFNULL(CLASSIFICATION_LM, ''))                  AS causa,
-    MAX(IFNULL(CAUSA_BPP, ''))                          AS causa_bpp,
-    MAX(IFNULL(TIPO_DAMAGED_LG, ''))                    AS td,
-    FORMAT_DATE('%Y-%m', MAX(DATE_BPP))                 AS mes,
-    ROUND(MAX(IFNULL(BPP_CASHOUT_USD, 0)), 2)           AS bpp,
-    MAX(CLAIM_ID)                                       AS claim_id
-  FROM `meli-bi-data.WHOWNER.DM_LP_MELI_OPTIMIZADO`
-  WHERE SHP_LG_FACILITY_NAME = '{FACILITY}'
-    AND DATE_BPP >= '{INICIO}'
-    AND DATE_BPP <= CURRENT_DATE()
-    AND CUS_NICKNAME_BUY IS NOT NULL
-    AND (
-      CLASSIFICATION_LM LIKE 'DAMAGED%'
-      OR TIPO_DAMAGED_LG IN (
-        'DAMAGED','damaged_svc','damaged_on_route','damaged_seller','damaged','SELLER'
-      )
-    )
-  GROUP BY 1, 2
-) f
-LEFT JOIN `meli-bi-data.WHOWNER.BT_SHP_SHIPMENTS` s
-  ON s.SHP_SHIPMENT_ID = CAST(f.sid AS INT64)
-  AND s.SHP_DATE_CREATED_ID >= DATE_SUB(DATE('{INICIO}'), INTERVAL 30 DAY)
-ORDER BY f.bpp DESC
-"""
-
-
 def carregar():
     creds, _ = default()
     client = bigquery.Client(credentials=creds, project='meli-bi-data')
@@ -183,11 +148,10 @@ def carregar():
     # como parametro) — dispara todas de uma vez e so espera o resultado
     # depois, em vez de rodar uma atras da outra. Corta o tempo total pra
     # perto do tempo da mais lenta (compras, ~7min) em vez da soma de todas.
-    print('Disparando as 4 queries em paralelo (buyers, compras, fraude, damaged)...')
+    print('Disparando as 3 queries em paralelo (buyers, compras, fraude)...')
     job_buyers  = client.query(Q_BUYERS)
     job_compras = client.query(Q_COMPRAS_BUYER)
     job_fraude  = client.query(Q_FRAUDE_BUYER)
-    job_damaged = client.query(Q_DAMAGED_BUYER)
 
     print('Aguardando buyers agregados (por mes)...')
     buyers_raw = {}
@@ -288,42 +252,25 @@ def carregar():
     print(f'  {len(novos)} buyer(s) NOVO(S) na fraude detectado(s)')
     _salvar_buyers_fraude_conhecidos(nicks_fraude)
 
-    print('Consultando shipments damaged...')
-    shps_damaged = []
-    for r in job_damaged.result():
-        shps_damaged.append({
-            'n': r['buyer'],
-            's': r['sid'],
-            'c': r['causa'],
-            'cb': r['causa_bpp'] or '',
-            'td': r['td'],
-            'mes': r['mes'],
-            'b': float(r['bpp']),
-            'desc': r['item_desc'] or '',
-            'cl': r['claim_id'] or '',
-        })
-    print(f'  {len(shps_damaged):,} SHPs damaged')
-
-    return buyers, shps_fraude, shps_damaged, compras
+    return buyers, shps_fraude, compras
 
 
-def static_kpis(buyers, shps_fraude, shps_damaged):
+def static_kpis(buyers, shps_fraude):
     total_bpp = sum(b['b'] for b in buyers)
     suspeitos = [b for b in buyers if (b['f'] > 0 and b['d'] > 0) or b['f'] > 1]
     return {
         'buyers':    len(buyers),
         'bpp':       round(total_bpp, 2),
         'fraude':    len(shps_fraude),
-        'damaged':   len(shps_damaged),
+        'damaged':   sum(b['d'] for b in buyers),
         'suspeitos': len(suspeitos),
     }
 
 
-def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
+def gerar_tab(buyers, shps_fraude, compras, kpis):
     now          = datetime.now().strftime('%d/%m/%Y %H:%M')
     buyers_json  = json.dumps(buyers,       ensure_ascii=False)
     fraude_json  = json.dumps(shps_fraude,  ensure_ascii=False)
-    damaged_json = json.dumps(shps_damaged, ensure_ascii=False)
     compras_json = json.dumps(compras,      ensure_ascii=False)
 
     return f"""<div id="tab-buyers" class="content">
@@ -391,17 +338,9 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
       style="background:#1e3a5f;color:#38bdf8;border:none;border-radius:6px 6px 0 0;padding:7px 16px;font-size:11px;font-weight:600;cursor:pointer;border-bottom:2px solid #38bdf8">
       Historico
     </button>
-    <button id="buytab-damaged" onclick="buyTab('damaged')"
-      style="background:transparent;color:#6b7280;border:none;border-radius:6px 6px 0 0;padding:7px 16px;font-size:11px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent">
-      Damaged
-    </button>
     <button id="buytab-fraudes" onclick="buyTab('fraudes')"
       style="background:transparent;color:#6b7280;border:none;border-radius:6px 6px 0 0;padding:7px 16px;font-size:11px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent">
       Fraudes
-    </button>
-    <button id="buytab-suspeitos" onclick="buyTab('suspeitos')"
-      style="background:transparent;color:#6b7280;border:none;border-radius:6px 6px 0 0;padding:7px 16px;font-size:11px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent">
-      Suspeitos
     </button>
   </div>
 
@@ -469,48 +408,6 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
         </table>
       </div>
     </div>
-  </div>
-
-  <!-- DAMAGED -->
-  <div id="buyc-damaged" style="display:none">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Top 10 Buyers - Casos Damaged <span style="font-weight:400;color:#374151">clique para filtrar</span></div>
-        <div style="position:relative;height:240px"><canvas id="buy-cht-dmg-rank"></canvas></div>
-      </div>
-      <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:8px">Tipos de Damaged</div>
-        <div style="position:relative;height:240px"><canvas id="buy-cht-dmg-tipo"></canvas></div>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div>
-        <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px">Shipments Damaged</span>
-        <span id="buy-dmg-header" style="font-size:10px;color:#4b5563;margin-left:6px"></span>
-      </div>
-      <input id="buy-dmg-busca" type="text" placeholder="Buscar buyer ou SHP..."
-        oninput="buyDmgFiltrar()"
-        style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;width:200px">
-    </div>
-    <div style="border:1px solid #1f2937;border-radius:8px;overflow:hidden">
-      <div style="overflow-y:auto;max-height:360px;background:#060a14">
-        <table style="width:100%;border-collapse:collapse;font-size:11px">
-          <thead style="position:sticky;top:0;z-index:2;background:#0d1321">
-            <tr>
-              <th style="padding:6px 8px;text-align:left;color:#38bdf8;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Buyer</th>
-              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Shipment ID</th>
-              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Descricao</th>
-              <th style="padding:6px 8px;text-align:left;color:#a78bfa;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Classificacao</th>
-              <th style="padding:6px 8px;text-align:left;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Tipo Damaged</th>
-              <th style="padding:6px 8px;text-align:center;color:#6b7280;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">Mes</th>
-              <th style="padding:6px 8px;text-align:right;color:#f87171;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1f2937">BPP</th>
-            </tr>
-          </thead>
-          <tbody id="buy-dmg-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-    <div id="buy-dmg-note" style="font-size:10px;color:#374151;margin-top:5px;text-align:right"></div>
   </div>
 
   <!-- FRAUDES -->
@@ -613,11 +510,11 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
         </table>
       </div>
     </div>
-  </div>
 
-  <!-- SUSPEITOS -->
-  <div id="buyc-suspeitos" style="display:none">
-    <div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#fca5a5">
+    <!-- SUSPEITOS (fundido em Fraudes) -->
+    <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px">Suspeitos</div>
+    <div id="buyc-suspeitos">
+      <div style="background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#fca5a5">
       <b>Criterios de suspeicao:</b> Buyer com FRAUDE e DAMAGED simultaneamente <b>OU</b> com mais de 1 caso de Fraude Buyer
     </div>
     <div style="background:#0d1321;border:1px solid #111827;border-radius:8px;padding:12px 14px;margin-bottom:14px">
@@ -653,24 +550,23 @@ def gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis):
       </div>
     </div>
   </div>
+  </div>
 
 </div>
 <script>
 (function(){{
 var BUY_DATA    = {buyers_json};
 var SHP_FRAUDE  = {fraude_json};
-var SHP_DAMAGE  = {damaged_json};
 var COMPRAS_DATA = {compras_json};
 var LOG_URL    = 'https://shipping-bo.adminml.com/sauron/shipments/shipment/';
 
 var _abaAtual = 'historico';
 var _buySel   = null;
 var _buySusp  = null;
-var _qHist='', _qDmg='', _qFr='', _qSusp='';
+var _qHist='', _qFr='', _qSusp='';
 
 var _buyers  = BUY_DATA;
 var _fraudes = SHP_FRAUDE;
-var _damages = SHP_DAMAGE;
 
 var BUY_ID_MAP = {{}}, BUY_HIST_MAP = {{}};
 COMPRAS_DATA.forEach(function(c){{
@@ -758,11 +654,8 @@ function renderHistShpPanel(){{
   SHP_FRAUDE.filter(function(s){{return s.n === _buySel;}}).forEach(function(s){{
     shps.push({{sid:s.s, tipo:'FRAUDE', sub:s.tf, causa:(s.cb||s.c), desc:(s.desc||'—'), mes:s.mes, bpp:s.b}});
   }});
-  SHP_DAMAGE.filter(function(s){{return s.n === _buySel;}}).forEach(function(s){{
-    shps.push({{sid:s.s, tipo:'DAMAGED', sub:s.td, causa:(s.cb||s.c), desc:(s.desc||'—'), mes:s.mes, bpp:s.b}});
-  }});
   shps.sort(function(a,b){{return b.bpp - a.bpp;}});
-  if(title) title.textContent = _buySel + ' — ' + shps.length + ' SHPs (Fraude + Damaged)';
+  if(title) title.textContent = _buySel + ' — ' + shps.length + ' SHPs (Fraude)';
   tbody.innerHTML = shps.map(function(s){{
     var cor = s.tipo === 'FRAUDE' ? '#fbbf24' : '#a78bfa';
     return '<tr style="border-bottom:1px solid #080c18">'
@@ -794,49 +687,6 @@ window.buyHistClear = function(){{
 }};
 window.buyHistClearPanel = function(){{
   _buySel = null; renderHistTbody(); renderHistShpPanel();
-}};
-
-// DAMAGED
-function renderDmgCharts(){{
-  var byB = {{}};
-  _damages.forEach(function(s){{ byB[s.n] = (byB[s.n] || 0) + 1; }});
-  var top10 = Object.entries(byB).sort(function(a,b){{return b[1]-a[1];}}).slice(0,10);
-  var nicks = top10.map(function(x){{return x[0];}});
-  mkChart('buy-cht-dmg-rank', nicks, top10.map(function(x){{return x[1];}}), '#a78bfa',
-    function(e,els){{if(els.length){{_buySel=nicks[els[0].index];renderDmgTbody();}}}});
-  var byT = {{}};
-  _damages.forEach(function(s){{ var k = s.td || s.c || 'Outro'; byT[k] = (byT[k] || 0) + 1; }});
-  var topT = Object.entries(byT).sort(function(a,b){{return b[1]-a[1];}}).slice(0,8);
-  mkChart('buy-cht-dmg-tipo', topT.map(function(x){{return x[0];}}), topT.map(function(x){{return x[1];}}), '#6366f1', null);
-}}
-
-function renderDmgTbody(){{
-  var q = _qDmg.toLowerCase();
-  var base = _buySel ? _damages.filter(function(s){{return s.n === _buySel;}}) : _damages;
-  var filtrado = q ? base.filter(function(s){{return s.n.toLowerCase().indexOf(q)>=0||s.s.indexOf(q)>=0;}}) : base;
-  var hdr = document.getElementById('buy-dmg-header');
-  if(hdr) hdr.textContent = _buySel
-    ? '- ' + _buySel + ' (' + filtrado.length + ' SHPs)'
-    : '- ' + filtrado.length.toLocaleString('pt-BR') + ' shipments (top 3000 por BPP)';
-  var note = document.getElementById('buy-dmg-note');
-  if(note) note.textContent = filtrado.length > 2000 ? 'Mostrando 2.000 primeiros. Filtre por buyer para ver todos.' : '';
-  var el = document.getElementById('buy-dmg-tbody'); if(!el) return;
-  el.innerHTML = filtrado.slice(0, 2000).map(function(s){{
-    return '<tr style="border-bottom:1px solid #080c18">'
-      + '<td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#60a5fa;font-size:10px;font-weight:600" title="'+s.n+'">'+s.n+'</td>'
-      + '<td style="padding:4px 8px"><a href="'+LOG_URL+s.s+'" target="_blank" style="color:#38bdf8;font-family:monospace;font-size:10px;font-weight:600;text-decoration:none">'+s.s+'</a></td>'
-      + '<td style="padding:4px 8px;color:#9ca3af;font-size:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(s.desc||'')+'">'+(s.desc||'—')+'</td>'
-      + '<td style="padding:4px 8px;font-size:10px;color:#a78bfa">'+(s.cb||s.c)+'</td>'
-      + '<td style="padding:4px 8px;color:#6b7280;font-size:10px">'+s.td+'</td>'
-      + '<td style="padding:4px 8px;text-align:center;color:#4b5563;font-size:10px">'+s.mes+'</td>'
-      + '<td style="padding:4px 8px;text-align:right;color:#f87171;font-size:10px">$'+s.b.toFixed(2)+'</td>'
-      + '</tr>';
-  }}).join('');
-}}
-
-window.buyDmgFiltrar = function(){{
-  _qDmg = (document.getElementById('buy-dmg-busca') || {{}}).value || '';
-  renderDmgTbody();
 }};
 
 // FRAUDES
@@ -1074,7 +924,7 @@ window.buyFrFiltrar = function(){{
 // ── Relatorio de investigacao — buyer (mesmo modelo usado em Sellers) ──────
 window.buyGerarRelatorioBuyer = function(nick, tipo){{
   if(!nick){{ alert('Selecione um buyer na tabela primeiro.'); return; }}
-  var fonte = tipo === 'damaged' ? _damages : _fraudes;
+  var fonte = _fraudes;
   var itens = fonte.filter(function(x){{ return x.n === nick; }}).sort(function(a,b){{ return b.b - a.b; }});
   if(!itens.length){{ alert('Nenhum shipment encontrado para este buyer.'); return; }}
   var hoje = new Date().toLocaleDateString('pt-BR',{{day:'2-digit',month:'2-digit',year:'numeric'}});
@@ -1175,7 +1025,6 @@ window.buyGerarRelatorioBuyer = function(nick, tipo){{
   w2.focus();
 }};
 window.buyGerarRelatorioFraude = function(){{ buyGerarRelatorioBuyer(_buySel, 'fraude'); }};
-window.buyGerarRelatorioDamaged = function(){{ buyGerarRelatorioBuyer(_buySel, 'damaged'); }};
 
 // SUSPEITOS
 function renderSuspCharts(lista){{
@@ -1221,7 +1070,7 @@ function updKPIs(){{
   el('buy-k-buyers',    _buyers.length.toLocaleString('pt-BR'));
   el('buy-k-bpp',       'US$ ' + Math.round(bpp).toLocaleString('pt-BR'));
   el('buy-k-fraude',    _fraudes.length.toLocaleString('pt-BR'));
-  el('buy-k-damaged',   _damages.length.toLocaleString('pt-BR'));
+  el('buy-k-damaged',   _buyers.reduce(function(a,b){{return a+b.d;}},0).toLocaleString('pt-BR'));
   el('buy-k-suspeitos', susp.toLocaleString('pt-BR'));
 }}
 
@@ -1277,9 +1126,6 @@ function buyAplicar(){{
   _fraudes = SHP_FRAUDE.filter(function(s){{
     return (!pDe || s.mes >= pDe) && (!pAte || s.mes <= pAte);
   }});
-  _damages = SHP_DAMAGE.filter(function(s){{
-    return (!pDe || s.mes >= pDe) && (!pAte || s.mes <= pAte);
-  }});
 
   updKPIs();
   _buySel = null; _buySusp = null;
@@ -1289,18 +1135,15 @@ function buyAplicar(){{
 function renderAbas(){{
   if(_abaAtual === 'historico'){{
     renderHistCharts(); renderHistTbody(); renderHistShpPanel();
-  }} else if(_abaAtual === 'damaged'){{
-    renderDmgCharts(); renderDmgTbody();
   }} else if(_abaAtual === 'fraudes'){{
     renderFrCharts(); renderFrOfensores(); renderFrTbody();
-  }} else if(_abaAtual === 'suspeitos'){{
     var susp = _buyers.filter(isSuspeito).sort(function(a,b){{return b.b - a.b;}});
     renderSuspCharts(susp); renderSuspTbody(susp);
   }}
 }}
 
 window.buyTab = function(aba){{
-  ['historico','damaged','fraudes','suspeitos'].forEach(function(a){{
+  ['historico','fraudes'].forEach(function(a){{
     var btn = document.getElementById('buytab-'+a);
     var sec = document.getElementById('buyc-'+a);
     var ativo = a === aba;
@@ -1389,12 +1232,12 @@ def find_and_replace_tab(content, tab_id, new_html):
 
 
 def main():
-    buyers, shps_fraude, shps_damaged, compras = carregar()
-    kpis = static_kpis(buyers, shps_fraude, shps_damaged)
+    buyers, shps_fraude, compras = carregar()
+    kpis = static_kpis(buyers, shps_fraude)
     print(f'  Suspeitos: {kpis["suspeitos"]:,}')
 
     print('Gerando HTML...')
-    tab_html = gerar_tab(buyers, shps_fraude, shps_damaged, compras, kpis)
+    tab_html = gerar_tab(buyers, shps_fraude, compras, kpis)
 
     print('Lendo fraude.html...')
     html = HTML_OUT.read_text(encoding='utf-8')
