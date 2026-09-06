@@ -294,6 +294,7 @@ def gerar_tab(drivers, sheet_status=None):
         return '<div id="tab-bloqueios" class="content"><div style="padding:40px;text-align:center;color:#6b7280">Nenhum candidato encontrado.</div></div>'
 
     now         = datetime.now().strftime('%d/%m/%Y %H:%M')
+    now_iso     = datetime.now().isoformat()
     n_drivers   = len(drivers)
     total_bpp   = sum(d['bpp'] for d in drivers)
     total_fraud = sum(d['fraud'] for d in drivers)
@@ -428,7 +429,10 @@ def gerar_tab(drivers, sheet_status=None):
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div>
       <div style="font-size:16px;font-weight:700;color:#f9fafb">Candidatos a Bloqueio</div>
-      <div style="font-size:11px;color:#6b7280;margin-top:2px">SSP30 · Guarulhos Mega · janela 90 dias · atualizado {now}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">
+        <span style="font-size:11px;color:#6b7280">SSP30 · Guarulhos Mega · janela 90 dias (acúmulo)</span>
+        <span id="blq-last-update" data-ts="{now_iso}" style="background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.25);border-radius:10px;padding:2px 10px;font-size:10px;font-weight:600">&#8635; Atualizado {now} · semanal</span>
+      </div>
     </div>
     <button onclick="blqExportCSV()" style="background:#1f2937;color:#9ca3af;border:1px solid #374151;border-radius:6px;padding:5px 14px;font-size:11px;cursor:pointer">⬇ Exportar CSV</button>
   </div>
@@ -653,6 +657,15 @@ var BLQ_DRV      = '{BO_DRIVER}';
 var BLQ_ANALISTA = '{ANALISTA}';
 var BLQ_BLOCKED     = new Set({blocked_ids_js});
 var BLQ_SHEET_STATUS = {sheet_status_js};
+(function(){{
+  var el = document.getElementById('blq-last-update');
+  if(!el) return;
+  var ts = el.getAttribute('data-ts');
+  if(!ts) return;
+  var dias = Math.floor((Date.now() - new Date(ts).getTime())/86400000);
+  var suf = dias<=0 ? 'hoje' : dias===1 ? 'há 1 dia' : ('há '+dias+' dias');
+  el.textContent = el.textContent + ' (' + suf + ')';
+}})();
 var _blqSort = 'bpp', _blqDir = -1;
 
 var _blqCMlp = null, _blqCTop = null, _blqGauge = null, _blqDonut = null;
@@ -1227,16 +1240,18 @@ def main():
             ok = True
     print(f'  tab-bloqueios {"atualizada" if ok else "ERRO"}')
 
+    m = re.search(r'<span class="ver-badge">v(\d+)\.(\d+)</span>', html)
+    new_ver = f'v{m.group(1)}.{int(m.group(2))+1}' if m else 'v4.37'
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.36</span>',
+        f'<span class="ver-badge">{new_ver}</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
     _salvar_ids_conhecidos({str(d['id']) for d in drivers})
-    print(f'Pronto! {mb:.1f} MB — v4.36')
+    print(f'Pronto! {mb:.1f} MB — {new_ver}')
 
 
 if __name__ == '__main__':
