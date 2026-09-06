@@ -527,62 +527,6 @@ def gerar_tab(drivers, sheet_status=None):
     </div>
   </div>
 
-  <!-- CASOS PARA ACOMPANHAR (fila) -->
-  <div id="blq-fila-box" style="display:none;margin-bottom:14px">
-    <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Casos para acompanhar <span id="blq-fila-count" style="font-size:10px;color:#4b5563;text-transform:none;font-weight:400"></span></div>
-    <div style="border:1px solid rgba(74,222,128,.3);border-radius:8px;overflow:hidden">
-      <div style="overflow-y:auto;max-height:240px;background:#060a14">
-        <table style="width:100%">
-          <thead>
-            <tr>
-              <th class="blq-no-sort">#</th>
-              <th class="blq-no-sort">BPP (USD)</th>
-              <th class="blq-no-sort">Driver ID</th>
-              <th class="blq-no-sort">Transportadora</th>
-              <th class="blq-no-sort">Fraud SHPs</th>
-              <th class="blq-no-sort">% Fraude</th>
-              <th class="blq-no-sort">Total SHPs</th>
-              <th class="blq-no-sort">Classificacao</th>
-              <th class="blq-no-sort">Meses ativo</th>
-              <th class="blq-no-sort">Ação</th>
-              <th class="blq-no-sort">Status</th>
-              <th class="blq-no-sort">PDF</th>
-            </tr>
-          </thead>
-          <tbody id="blq-fila-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- EM ACOMPANHAMENTO -->
-  <div id="blq-acomp-box" style="display:none;margin-bottom:14px">
-    <div style="font-size:11px;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Em acompanhamento <span id="blq-acomp-count" style="font-size:10px;color:#4b5563;text-transform:none;font-weight:400"></span></div>
-    <div style="border:1px solid rgba(251,191,36,.3);border-radius:8px;overflow:hidden">
-      <div style="overflow-y:auto;max-height:240px;background:#060a14">
-        <table style="width:100%">
-          <thead>
-            <tr>
-              <th class="blq-no-sort">#</th>
-              <th class="blq-no-sort">BPP (USD)</th>
-              <th class="blq-no-sort">Driver ID</th>
-              <th class="blq-no-sort">Transportadora</th>
-              <th class="blq-no-sort">Fraud SHPs</th>
-              <th class="blq-no-sort">% Fraude</th>
-              <th class="blq-no-sort">Total SHPs</th>
-              <th class="blq-no-sort">Classificacao</th>
-              <th class="blq-no-sort">Meses ativo</th>
-              <th class="blq-no-sort">Ação</th>
-              <th class="blq-no-sort">Status</th>
-              <th class="blq-no-sort">PDF</th>
-            </tr>
-          </thead>
-          <tbody id="blq-acomp-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
   <!-- CONTROLES -->
   <div class="blq-controls">
     <div class="blq-ms-wrap" id="blq-msw-mlp">
@@ -622,27 +566,82 @@ def gerar_tab(drivers, sheet_status=None):
     <span style="font-size:11px;color:#4b5563;margin-left:4px" id="blq-tbl-ct"></span>
   </div>
 
-  <!-- TABELA -->
-  <div class="blq-tbl-scr">
-    <table>
-      <thead>
-        <tr>
-          <th class="blq-no-sort">#</th>
-          <th onclick="blqSortBy('bpp')" id="blq-th-bpp">BPP (USD) ↕</th>
-          <th class="blq-no-sort">Driver ID</th>
-          <th class="blq-no-sort">Transportadora</th>
-          <th onclick="blqSortBy('fraud')" id="blq-th-fraud">Fraud SHPs ↕</th>
-          <th onclick="blqSortBy('pct')" id="blq-th-pct">% Fraude ↕</th>
-          <th onclick="blqSortBy('total')" id="blq-th-total">Total SHPs ↕</th>
-          <th class="blq-no-sort">Classificacao</th>
-          <th class="blq-no-sort">Meses ativo</th>
-          <th class="blq-no-sort">Ação</th>
-          <th class="blq-no-sort">Status</th>
-          <th class="blq-no-sort">PDF</th>
-        </tr>
-      </thead>
-      <tbody id="blq-tbody"></tbody>
-    </table>
+  <!-- CONCLUIDOS -->
+  <div style="margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Concluídos <span id="blq-concl-count" style="font-size:10px;color:#4b5563;text-transform:none;font-weight:400"></span></div>
+    <div class="blq-tbl-scr">
+      <table>
+        <thead>
+          <tr>
+            <th class="blq-no-sort">#</th>
+            <th onclick="blqSortBy('bpp')">BPP (USD) ↕</th>
+            <th class="blq-no-sort">Driver ID</th>
+            <th class="blq-no-sort">Transportadora</th>
+            <th onclick="blqSortBy('fraud')">Fraud SHPs ↕</th>
+            <th onclick="blqSortBy('pct')">% Fraude ↕</th>
+            <th onclick="blqSortBy('total')">Total SHPs ↕</th>
+            <th class="blq-no-sort">Classificacao</th>
+            <th class="blq-no-sort">Meses ativo</th>
+            <th class="blq-no-sort">Ação</th>
+            <th class="blq-no-sort">Status</th>
+            <th class="blq-no-sort">PDF</th>
+          </tr>
+        </thead>
+        <tbody id="blq-concl-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- EM ACOMPANHAMENTO -->
+  <div style="margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Em acompanhamento <span id="blq-acomp-count" style="font-size:10px;color:#4b5563;text-transform:none;font-weight:400"></span></div>
+    <div class="blq-tbl-scr">
+      <table>
+        <thead>
+          <tr>
+            <th class="blq-no-sort">#</th>
+            <th onclick="blqSortBy('bpp')">BPP (USD) ↕</th>
+            <th class="blq-no-sort">Driver ID</th>
+            <th class="blq-no-sort">Transportadora</th>
+            <th onclick="blqSortBy('fraud')">Fraud SHPs ↕</th>
+            <th onclick="blqSortBy('pct')">% Fraude ↕</th>
+            <th onclick="blqSortBy('total')">Total SHPs ↕</th>
+            <th class="blq-no-sort">Classificacao</th>
+            <th class="blq-no-sort">Meses ativo</th>
+            <th class="blq-no-sort">Ação</th>
+            <th class="blq-no-sort">Status</th>
+            <th class="blq-no-sort">PDF</th>
+          </tr>
+        </thead>
+        <tbody id="blq-acomp-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CASOS PARA ACOMPANHAR -->
+  <div>
+    <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Casos para acompanhar <span id="blq-fila-count" style="font-size:10px;color:#4b5563;text-transform:none;font-weight:400"></span></div>
+    <div class="blq-tbl-scr">
+      <table>
+        <thead>
+          <tr>
+            <th class="blq-no-sort">#</th>
+            <th onclick="blqSortBy('bpp')">BPP (USD) ↕</th>
+            <th class="blq-no-sort">Driver ID</th>
+            <th class="blq-no-sort">Transportadora</th>
+            <th onclick="blqSortBy('fraud')">Fraud SHPs ↕</th>
+            <th onclick="blqSortBy('pct')">% Fraude ↕</th>
+            <th onclick="blqSortBy('total')">Total SHPs ↕</th>
+            <th class="blq-no-sort">Classificacao</th>
+            <th class="blq-no-sort">Meses ativo</th>
+            <th class="blq-no-sort">Ação</th>
+            <th class="blq-no-sort">Status</th>
+            <th class="blq-no-sort">PDF</th>
+          </tr>
+        </thead>
+        <tbody id="blq-fila-tbody"></tbody>
+      </table>
+    </div>
   </div>
 
 </div>
@@ -826,11 +825,6 @@ function blqRender() {{
 
   rows.sort(function(a,b){{return _blqDir*(a[_blqSort]-b[_blqSort]);}});
 
-  ['bpp','fraud','pct','total'].forEach(function(k){{
-    var el=document.getElementById('blq-th-'+k);
-    if(el) el.className = _blqSort===k ? 'blq-sorted' : '';
-  }});
-
   // Atualiza KPIs dinamicamente
   var filtBpp   = rows.reduce(function(s,d){{return s+d.bpp;}},0);
   var filtFraud = rows.reduce(function(s,d){{return s+d.fraud;}},0);
@@ -866,13 +860,6 @@ function blqRender() {{
     }}
   }}
 
-  var tbody = document.getElementById('blq-tbody');
-  if(!tbody) return;
-  if(!rows.length){{
-    tbody.innerHTML='<tr><td colspan="12" style="text-align:center;padding:40px;color:#374151">Nenhum driver encontrado.</td></tr>';
-    return;
-  }}
-
   // Atualizar overview por status (todos os drivers, não filtrados)
   var _ov = {{ati:0,blq:0,ina:0}};
   BLQ_DATA.forEach(function(d){{ var s=blqGetSt2(d.id); if(_ov[s]!==undefined)_ov[s]++; else _ov.ati++; }});
@@ -885,13 +872,13 @@ function blqRender() {{
     blqBuildGaugeDonut(avgPct, _ov);
   }}
 
-  var ST_LBL = {{mon:'Monitorando',inv:'Em investigação',blq:'Concluído'}};
-  var ST_CLS = {{mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-ati'}};
-  var ST2_LBL = {{ati:'Ativo',blq:'Bloqueado',ina:'Inativo'}};
-  var ST2_CLS = {{ati:'blq-s-ati',blq:'blq-s-blq',ina:'blq-s-ina'}};
-
-  tbody.innerHTML = rows.map(_blqRowHtml).join('');
-  blqRenderPinned();
+  // Passagem: cada driver pertence a exatamente 1 das 3 secoes (mon/inv/blq), sem repeticao
+  var concl = rows.filter(function(d){{return blqGetSt(d.id)==='blq';}});
+  var acomp = rows.filter(function(d){{return blqGetSt(d.id)==='inv';}});
+  var fila  = rows.filter(function(d){{return blqGetSt(d.id)==='mon';}});
+  _blqRenderSection('concl', concl, 'driver(s) finalizados');
+  _blqRenderSection('acomp', acomp, 'driver(s) com trativa em andamento');
+  _blqRenderSection('fila',  fila,  'driver(s) ainda sem trativa iniciada');
 }}
 
 var _ST_LBL  = {{mon:'Monitorando',inv:'Em investigação',blq:'Concluído'}};
@@ -946,23 +933,14 @@ function _blqRowHtml(d,i){{
   return mainRow + shpRow;
 }}
 
-function blqRenderPinned(){{
-  var fila  = BLQ_DATA.filter(function(d){{ return blqGetSt(d.id)==='mon'; }}).sort(function(a,b){{return b.bpp-a.bpp;}});
-  var acomp = BLQ_DATA.filter(function(d){{ return blqGetSt(d.id)==='inv'; }}).sort(function(a,b){{return b.bpp-a.bpp;}});
-
-  var filaBox = document.getElementById('blq-fila-box');
-  if(filaBox) filaBox.style.display = fila.length ? '' : 'none';
-  var filaCnt = document.getElementById('blq-fila-count');
-  if(filaCnt) filaCnt.textContent = fila.length ? ('- '+fila.length.toLocaleString('pt-BR')+' driver(s) ainda sem trativa iniciada') : '';
-  var filaEl = document.getElementById('blq-fila-tbody');
-  if(filaEl) filaEl.innerHTML = fila.map(_blqRowHtml).join('');
-
-  var acompBox = document.getElementById('blq-acomp-box');
-  if(acompBox) acompBox.style.display = acomp.length ? '' : 'none';
-  var acompCnt = document.getElementById('blq-acomp-count');
-  if(acompCnt) acompCnt.textContent = acomp.length ? ('- '+acomp.length.toLocaleString('pt-BR')+' driver(s) com trativa em andamento') : '';
-  var acompEl = document.getElementById('blq-acomp-tbody');
-  if(acompEl) acompEl.innerHTML = acomp.map(_blqRowHtml).join('');
+function _blqRenderSection(key, list, sufixo){{
+  var cnt = document.getElementById('blq-'+key+'-count');
+  if(cnt) cnt.textContent = '- '+list.length.toLocaleString('pt-BR')+' '+sufixo;
+  var body = document.getElementById('blq-'+key+'-tbody');
+  if(!body) return;
+  body.innerHTML = list.length
+    ? list.map(_blqRowHtml).join('')
+    : '<tr><td colspan="12" style="text-align:center;padding:24px;color:#374151">Nenhum driver aqui com os filtros atuais.</td></tr>';
 }}
 
 window.blqToggleShps = function(id) {{
@@ -1251,14 +1229,14 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.35</span>',
+        '<span class="ver-badge">v4.36</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
     _salvar_ids_conhecidos({str(d['id']) for d in drivers})
-    print(f'Pronto! {mb:.1f} MB — v4.35')
+    print(f'Pronto! {mb:.1f} MB — v4.36')
 
 
 if __name__ == '__main__':
