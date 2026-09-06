@@ -527,6 +527,62 @@ def gerar_tab(drivers, sheet_status=None):
     </div>
   </div>
 
+  <!-- CASOS PARA ACOMPANHAR (fila) -->
+  <div id="blq-fila-box" style="display:none;margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Casos para acompanhar <span id="blq-fila-count" style="font-size:10px;color:#4b5563;text-transform:none;font-weight:400"></span></div>
+    <div style="border:1px solid rgba(74,222,128,.3);border-radius:8px;overflow:hidden">
+      <div style="overflow-y:auto;max-height:240px;background:#060a14">
+        <table style="width:100%">
+          <thead>
+            <tr>
+              <th class="blq-no-sort">#</th>
+              <th class="blq-no-sort">BPP (USD)</th>
+              <th class="blq-no-sort">Driver ID</th>
+              <th class="blq-no-sort">Transportadora</th>
+              <th class="blq-no-sort">Fraud SHPs</th>
+              <th class="blq-no-sort">% Fraude</th>
+              <th class="blq-no-sort">Total SHPs</th>
+              <th class="blq-no-sort">Classificacao</th>
+              <th class="blq-no-sort">Meses ativo</th>
+              <th class="blq-no-sort">Ação</th>
+              <th class="blq-no-sort">Status</th>
+              <th class="blq-no-sort">PDF</th>
+            </tr>
+          </thead>
+          <tbody id="blq-fila-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EM ACOMPANHAMENTO -->
+  <div id="blq-acomp-box" style="display:none;margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Em acompanhamento <span id="blq-acomp-count" style="font-size:10px;color:#4b5563;text-transform:none;font-weight:400"></span></div>
+    <div style="border:1px solid rgba(251,191,36,.3);border-radius:8px;overflow:hidden">
+      <div style="overflow-y:auto;max-height:240px;background:#060a14">
+        <table style="width:100%">
+          <thead>
+            <tr>
+              <th class="blq-no-sort">#</th>
+              <th class="blq-no-sort">BPP (USD)</th>
+              <th class="blq-no-sort">Driver ID</th>
+              <th class="blq-no-sort">Transportadora</th>
+              <th class="blq-no-sort">Fraud SHPs</th>
+              <th class="blq-no-sort">% Fraude</th>
+              <th class="blq-no-sort">Total SHPs</th>
+              <th class="blq-no-sort">Classificacao</th>
+              <th class="blq-no-sort">Meses ativo</th>
+              <th class="blq-no-sort">Ação</th>
+              <th class="blq-no-sort">Status</th>
+              <th class="blq-no-sort">PDF</th>
+            </tr>
+          </thead>
+          <tbody id="blq-acomp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- CONTROLES -->
   <div class="blq-controls">
     <div class="blq-ms-wrap" id="blq-msw-mlp">
@@ -834,52 +890,79 @@ function blqRender() {{
   var ST2_LBL = {{ati:'Ativo',blq:'Bloqueado',ina:'Inativo'}};
   var ST2_CLS = {{ati:'blq-s-ati',blq:'blq-s-blq',ina:'blq-s-ina'}};
 
-  tbody.innerHTML = rows.map(function(d,i){{
-    var st      = blqGetSt(d.id);
-    var st2     = blqGetSt2(d.id);
-    var pctCol  = d.pct>=50?'#f87171':d.pct>=20?'#fbbf24':'#6b7280';
-    var pctW    = d.pct>=50?'700':'400';
-    var _uniqMs = d.meses.map(function(m){{return m.slice(0,7);}}).filter(function(v,i,a){{return a.indexOf(v)===i;}});
-    var mLbl    = _uniqMs.length
-      ? _uniqMs.slice(-3).map(function(m){{
-          try{{var dt=new Date(m+'-15');return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('. ','/');}}catch(e){{return m;}}
-        }}).join(' · ')+(_uniqMs.length>3?' +':'')
-      : '—';
-    var novoBadge = d.is_new ? '<span class="blq-novo">NOVO</span>' : '';
+  tbody.innerHTML = rows.map(_blqRowHtml).join('');
+  blqRenderPinned();
+}}
 
-    var mainRow =
-      '<tr class="blq-dr-row">'+
-      '<td style="color:#374151;font-size:11px">'+(i+1)+'</td>'+
-      '<td style="color:#f87171;font-weight:700">US$ '+d.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'+
-      '<td><button class="blq-did-btn" onclick="blqToggleShps(\\''+d.id+'\\')">'+d.id+novoBadge+
-        '<span class="blq-chv" id="blq-chv-'+d.id+'">&#9660;</span></button></td>'+
-      '<td class="blq-mlp" title="'+(d.mlp||'')+'">'+blqMlpLabel(d)+'</td>'+
-      '<td style="color:#f87171">'+d.fraud+'</td>'+
-      '<td style="color:'+pctCol+';font-weight:'+pctW+'">'+d.pct.toFixed(1)+'%</td>'+
-      '<td>'+d.total+'</td>'+
-      '<td><span class="blq-tag" title="'+(d.classe||'')+'">'+(d.classe||'—')+'</span></td>'+
-      '<td style="font-size:10px;color:#6b7280">'+mLbl+'</td>'+
-      '<td><span class="blq-badge '+ST_CLS[st]+'" onclick="blqNextSt(\\''+d.id+'\\')">'+ST_LBL[st]+'</span></td>'+
-      '<td><span class="blq-badge '+ST2_CLS[st2]+'" onclick="blqToggleSt2(\\''+d.id+'\\')">'+ ST2_LBL[st2]+'</span></td>'+
-      '<td><button class="blq-btn-pdf" onclick="blqGerarApresentacao(\\''+d.id+'\\')">&#9998; PDF</button></td>'+
-      '</tr>';
+var _ST_LBL  = {{mon:'Monitorando',inv:'Em investigação',blq:'Concluído'}};
+var _ST_CLS  = {{mon:'blq-s-mon',inv:'blq-s-inv',blq:'blq-s-ati'}};
+var _ST2_LBL = {{ati:'Ativo',blq:'Bloqueado',ina:'Inativo'}};
+var _ST2_CLS = {{ati:'blq-s-ati',blq:'blq-s-blq',ina:'blq-s-ina'}};
 
-    var shps = d.shps || [];
-    var shpRow = '';
-    if(shps.length){{
-      var chips = shps.map(function(s){{
-        return '<a href="'+BLQ_LOG+s.id+'" target="_blank" class="blq-chip">'+s.id+'</a>';
-      }}).join('');
-      var extra = d.total>shps.length ? ' <span style="color:#374151"> · +'+(d.total-shps.length)+' nao exibidos</span>' : '';
-      shpRow =
-        '<tr class="blq-shp-row" id="blq-shps-'+d.id+'" style="display:none">'+
-        '<td colspan="12"><div class="blq-shp-meta">'+
-          '<a href="'+BLQ_DRV+d.id+'" target="_blank" class="blq-drv-link">&#8599; Ver driver no backoffice</a>'+
-          '<span style="font-size:10px;color:#4b5563">'+shps.length+' IDs (top BPP)'+extra+'</span>'+
-        '</div><div class="blq-shp-list">'+chips+'</div></td></tr>';
-    }}
-    return mainRow + shpRow;
-  }}).join('');
+function _blqRowHtml(d,i){{
+  var st      = blqGetSt(d.id);
+  var st2     = blqGetSt2(d.id);
+  var pctCol  = d.pct>=50?'#f87171':d.pct>=20?'#fbbf24':'#6b7280';
+  var pctW    = d.pct>=50?'700':'400';
+  var _uniqMs = d.meses.map(function(m){{return m.slice(0,7);}}).filter(function(v,i,a){{return a.indexOf(v)===i;}});
+  var mLbl    = _uniqMs.length
+    ? _uniqMs.slice(-3).map(function(m){{
+        try{{var dt=new Date(m+'-15');return dt.toLocaleDateString('pt-BR',{{month:'short',year:'2-digit'}}).replace('. ','/');}}catch(e){{return m;}}
+      }}).join(' · ')+(_uniqMs.length>3?' +':'')
+    : '—';
+  var novoBadge = d.is_new ? '<span class="blq-novo">NOVO</span>' : '';
+
+  var mainRow =
+    '<tr class="blq-dr-row">'+
+    '<td style="color:#374151;font-size:11px">'+(i+1)+'</td>'+
+    '<td style="color:#f87171;font-weight:700">US$ '+d.bpp.toLocaleString('pt-BR',{{minimumFractionDigits:2,maximumFractionDigits:2}})+'</td>'+
+    '<td><button class="blq-did-btn" onclick="blqToggleShps(\\''+d.id+'\\')">'+d.id+novoBadge+
+      '<span class="blq-chv" id="blq-chv-'+d.id+'">&#9660;</span></button></td>'+
+    '<td class="blq-mlp" title="'+(d.mlp||'')+'">'+blqMlpLabel(d)+'</td>'+
+    '<td style="color:#f87171">'+d.fraud+'</td>'+
+    '<td style="color:'+pctCol+';font-weight:'+pctW+'">'+d.pct.toFixed(1)+'%</td>'+
+    '<td>'+d.total+'</td>'+
+    '<td><span class="blq-tag" title="'+(d.classe||'')+'">'+(d.classe||'—')+'</span></td>'+
+    '<td style="font-size:10px;color:#6b7280">'+mLbl+'</td>'+
+    '<td><span class="blq-badge '+_ST_CLS[st]+'" onclick="blqNextSt(\\''+d.id+'\\')">'+_ST_LBL[st]+'</span></td>'+
+    '<td><span class="blq-badge '+_ST2_CLS[st2]+'" onclick="blqToggleSt2(\\''+d.id+'\\')">'+_ST2_LBL[st2]+'</span></td>'+
+    '<td><button class="blq-btn-pdf" onclick="blqGerarApresentacao(\\''+d.id+'\\')">&#9998; PDF</button></td>'+
+    '</tr>';
+
+  var shps = d.shps || [];
+  var shpRow = '';
+  if(shps.length){{
+    var chips = shps.map(function(s){{
+      return '<a href="'+BLQ_LOG+s.id+'" target="_blank" class="blq-chip">'+s.id+'</a>';
+    }}).join('');
+    var extra = d.total>shps.length ? ' <span style="color:#374151"> · +'+(d.total-shps.length)+' nao exibidos</span>' : '';
+    shpRow =
+      '<tr class="blq-shp-row" id="blq-shps-'+d.id+'" style="display:none">'+
+      '<td colspan="12"><div class="blq-shp-meta">'+
+        '<a href="'+BLQ_DRV+d.id+'" target="_blank" class="blq-drv-link">&#8599; Ver driver no backoffice</a>'+
+        '<span style="font-size:10px;color:#4b5563">'+shps.length+' IDs (top BPP)'+extra+'</span>'+
+      '</div><div class="blq-shp-list">'+chips+'</div></td></tr>';
+  }}
+  return mainRow + shpRow;
+}}
+
+function blqRenderPinned(){{
+  var fila  = BLQ_DATA.filter(function(d){{ return blqGetSt(d.id)==='mon'; }}).sort(function(a,b){{return b.bpp-a.bpp;}});
+  var acomp = BLQ_DATA.filter(function(d){{ return blqGetSt(d.id)==='inv'; }}).sort(function(a,b){{return b.bpp-a.bpp;}});
+
+  var filaBox = document.getElementById('blq-fila-box');
+  if(filaBox) filaBox.style.display = fila.length ? '' : 'none';
+  var filaCnt = document.getElementById('blq-fila-count');
+  if(filaCnt) filaCnt.textContent = fila.length ? ('- '+fila.length.toLocaleString('pt-BR')+' driver(s) ainda sem trativa iniciada') : '';
+  var filaEl = document.getElementById('blq-fila-tbody');
+  if(filaEl) filaEl.innerHTML = fila.map(_blqRowHtml).join('');
+
+  var acompBox = document.getElementById('blq-acomp-box');
+  if(acompBox) acompBox.style.display = acomp.length ? '' : 'none';
+  var acompCnt = document.getElementById('blq-acomp-count');
+  if(acompCnt) acompCnt.textContent = acomp.length ? ('- '+acomp.length.toLocaleString('pt-BR')+' driver(s) com trativa em andamento') : '';
+  var acompEl = document.getElementById('blq-acomp-tbody');
+  if(acompEl) acompEl.innerHTML = acomp.map(_blqRowHtml).join('');
 }}
 
 window.blqToggleShps = function(id) {{
@@ -1168,14 +1251,14 @@ def main():
 
     html = re.sub(
         r'<span class="ver-badge">v[\d.]+</span>',
-        '<span class="ver-badge">v4.34</span>',
+        '<span class="ver-badge">v4.35</span>',
         html, count=1
     )
 
     HTML_OUT.write_text(html, encoding='utf-8')
     mb = HTML_OUT.stat().st_size / 1024 / 1024
     _salvar_ids_conhecidos({str(d['id']) for d in drivers})
-    print(f'Pronto! {mb:.1f} MB — v4.34')
+    print(f'Pronto! {mb:.1f} MB — v4.35')
 
 
 if __name__ == '__main__':
